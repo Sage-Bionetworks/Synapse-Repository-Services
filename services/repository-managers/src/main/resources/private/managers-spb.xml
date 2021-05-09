@@ -10,7 +10,7 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-	<context:annotation-config/>
+	<context:annotation-config />
     <context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
@@ -110,11 +110,7 @@
 		</property>
 
 	</bean>
-	
-	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
-	
-	<bean id="multipartManagerV2" class="org.sagebionetworks.repo.manager.file.MultipartManagerV2Impl"  />
-	
+		
 	<bean name="userThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
 		<constructor-arg index="0">
 		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
@@ -127,34 +123,8 @@
 	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
-	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
-	<bean id="uploadFileDaemonThreadPoolPrimary"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads"/>
-	</bean>
-
-	<!-- The thread pool used by the asynchronous fileupload secondary daemons -->
-	<bean id="uploadFileDaemonThreadPoolSecondary"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
-	</bean>
-	
 	<!-- File Upload manager -->
-	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
-	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>
-	</bean>
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" />
 	
 	<!-- The preview manager -->
 	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
@@ -202,73 +172,7 @@
 	
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 	
-	<bean id="fileHandleAssociationManager"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAssociationManagerImpl">
-		<property name="providerMap">
-			<map>
-				<entry key="TableEntity">
-					<bean
-						class="org.sagebionetworks.repo.manager.table.TableFileHandleAssociationProvider" />
-				</entry>
-				<entry key="VerificationSubmission">
-					<bean
-						class="org.sagebionetworks.repo.manager.verification.VerificationFileHandleAssociationProvider" />
-				</entry>
-				<entry key="FileEntity">
-					<bean
-						class="org.sagebionetworks.repo.manager.file.FileEntityFileHandleAssociationProvider" />
-				</entry>
-				<entry key="WikiAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.wiki.WikiAttachmentFileHandleAssociationProvider" />
-				</entry>
-				<entry key="WikiMarkdown">
-					<bean
-						class="org.sagebionetworks.repo.manager.wiki.WikiMarkdownFileHandleAssociationProvider" />
-				</entry>
-				<entry key="UserProfileAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.UserProfileFileHandleAssociationProvider" />
-				</entry>
-				<entry key="TeamAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.team.TeamFileHandleAssociationProvider" />
-				</entry>
-				<entry key="SubmissionAttachment">
-					<bean
-						class="org.sagebionetworks.evaluation.manager.SubmissionFileHandleAssociationProvider" />
-				</entry>
-				<entry key="MessageAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
-				</entry>
-				<entry key="AccessRequirementAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
-				</entry>
-				<entry key="DataAccessRequestAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.RequestFileHandleAssociationProvider" />
-				</entry>
-				<entry key="DataAccessSubmissionAttachment">
-					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
-				</entry>
-				<entry key="FormData">
-				<bean
-						class="org.sagebionetworks.repo.manager.form.FormFileHandleAssociationProvider" />
-				</entry>
-			</map>
-		</property>
-	</bean>
-
-	<bean id="authorizationManager"
-		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
-		
-	<bean id="fileHandleAuthorizationManager"
-		class="org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManagerImpl" />	
-
-	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
+	<bean id="authorizationManager" class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
@@ -279,8 +183,6 @@
 	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
-
-	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffLoginLockoutStatusImpl"/>
 
 	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
 
@@ -323,18 +225,6 @@
 		scope="singleton" />
 
 	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
-		scope="singleton" />
-		
-	<bean id="evaluationManager" class="org.sagebionetworks.evaluation.manager.EvaluationManagerImpl" 
-		scope="singleton" />
-		
-	<bean id="submissionEligibilityManager" class="org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl" 
-		scope="singleton" />
-		
-	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
-		scope="singleton" />
-
-	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
 		scope="singleton" />
 		
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 

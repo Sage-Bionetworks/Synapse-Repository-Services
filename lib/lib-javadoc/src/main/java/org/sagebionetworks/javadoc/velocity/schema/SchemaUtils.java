@@ -105,15 +105,13 @@ public class SchemaUtils {
 			Iterator<ObjectSchema> it = schema.getSubSchemaIterator();
 			while (it.hasNext()) {
 				ObjectSchema sub = it.next();
-				if (TYPE.OBJECT == sub.getType()) {
-					if(sub.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
+				if (TYPE.OBJECT == sub.getType() && sub.getId() != null) {
 					recursiveAddTypes(schemaMap, sub.getId(), sub);
 				}else if(TYPE.ARRAY == sub.getType()){
 					if(sub.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 					ObjectSchema arrayItems = sub.getItems();
-					if (TYPE.OBJECT == arrayItems.getType()
-						/*PLFM-5723*/ || arrayItems.getEnum() != null) {
-						if(arrayItems.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
+					if ((TYPE.OBJECT == arrayItems.getType()
+						/*PLFM-5723*/ || arrayItems.getEnum() != null) && arrayItems.getId() != null) {
 						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
 					}
 				}else if(TYPE.INTERFACE == sub.getType()){
@@ -248,7 +246,7 @@ public class SchemaUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementaions) {
+	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementations) {
 		ObjectSchemaModel results = new ObjectSchemaModel();
 		results.setDescription(schema.getDescription());
 		results.setEffectiveSchema(schema.getSchema());
@@ -279,8 +277,19 @@ public class SchemaUtils {
 				enumValues.add(en);
 			}
 		}
-		results.setKnownImplementations(knownImplementaions);
-		results.setIsInterface(knownImplementaions != null);
+		results.setKnownImplementations(knownImplementations);
+		results.setIsInterface(knownImplementations != null);
+		
+		if (results.getIsInterface() && schema.getDefaultConcreteType() != null && knownImplementations != null) {
+			knownImplementations
+				.stream()
+				.filter(typeReference -> schema.getDefaultConcreteType().equals(typeReference.getId()))
+				.findFirst()
+				.ifPresent(defaultImplementation -> {
+					results.setDefaultImplementation(defaultImplementation);
+				});
+		}
+		
 		return results;
 	}
 	
@@ -315,7 +324,7 @@ public class SchemaUtils {
 		} else if (TYPE.TUPLE_ARRAY_MAP == type.getType() || TYPE.MAP == type.getType()) {
 			isMap = true;
 		}
-		return new TypeReference(isArray, isUnique, isMap, display, href);
+		return new TypeReference(type.getId(), isArray, isUnique, isMap, display, href);
 	}
 	
 	/**
@@ -332,7 +341,7 @@ public class SchemaUtils {
 			builder.append("${").append(recursiveAnchor.getId()).append("}");
 			return new String[] { builder.toString() };
 		}
-		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
+		if((TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()) && type.getId() != null){
 			if(type.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 			StringBuilder builder = new StringBuilder();
 			builder.append("${").append(type.getId()).append("}");
@@ -385,7 +394,7 @@ public class SchemaUtils {
 			}
 			return new String[] { recursiveAnchor.getName() };
 		}
-		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
+		if((TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()) && type.getId() != null){
 			return new String[] { type.getName() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");

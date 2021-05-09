@@ -52,7 +52,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-public class DBOSubmissionDAOImpl implements SubmissionDAO{
+public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -234,25 +234,39 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 		}
 	};
 
-	private static final RowMapper<SubmissionInfo> SUBMISSION_INFO_MAPPER = new RowMapper<SubmissionInfo>(){
-
+	private static final RowMapper<SubmissionInfo> SUBMISSION_INFO_MAPPER_WITH_ACCESSOR_CHANGES = new RowMapper<SubmissionInfo>(){
 		@Override
 		public SubmissionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-			try {
-				SubmissionInfo result = new SubmissionInfo();
-				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
-				Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, blob.getBytes(1, (int) blob.length()));
-				ResearchProject researchProject = submission.getResearchProjectSnapshot();
-				result.setInstitution(researchProject.getInstitution());
-				result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
-				result.setProjectLead(researchProject.getProjectLead());
-				result.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
-				return result;
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			return DBOSubmissionDAOImpl.mapRow(rs, rowNum, /*includeAccessorChanges*/true);
 		}
 	};
+	
+	private static final RowMapper<SubmissionInfo> SUBMISSION_INFO_MAPPER_WITHOUT_ACCESSOR_CHANGES = new RowMapper<SubmissionInfo>(){
+		@Override
+		public SubmissionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return DBOSubmissionDAOImpl.mapRow(rs, rowNum, /*includeAccessorChanges*/false);
+		}
+	};
+	
+	static SubmissionInfo mapRow(ResultSet rs, int rowNum, boolean includeAccessorChanges) throws SQLException {
+		try {
+			SubmissionInfo result = new SubmissionInfo();
+			Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
+			Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, blob.getBytes(1, (int) blob.length()));
+			ResearchProject researchProject = submission.getResearchProjectSnapshot();
+			result.setInstitution(researchProject.getInstitution());
+			result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
+			result.setProjectLead(researchProject.getProjectLead());
+			result.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
+			result.setSubmittedBy(submission.getSubmittedBy());
+			if (includeAccessorChanges) {
+				result.setAccessorChanges(submission.getAccessorChanges());
+			}
+			return result;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
 	public SubmissionStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId) {
@@ -354,13 +368,17 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 	}
 
 	@Override
-	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset) {
+	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset, boolean includeAccessorChanges) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, accessRequirementId);
 
 		String query =  SQL_LIST_SUBMISSION_INFO;
 		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
-		return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER);
+		if (includeAccessorChanges) {
+			return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER_WITH_ACCESSOR_CHANGES);
+		} else {
+			return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER_WITHOUT_ACCESSOR_CHANGES);
+		}
 	}
 
 	/**
@@ -405,5 +423,10 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 				return os;
 			}
 		}, limit, offset);
+	}
+	
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_DATA_ACCESS_SUBMISSION);
 	}
 }

@@ -158,9 +158,9 @@ public class FacetRequestColumnModelTest {
 			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {return null;}
 			public String getJSONSchema() {return null;}
 			public String getConcreteType() {return null;}
-			public void setConcreteType(String concreteType) {}
+			public FacetColumnRequest setConcreteType(String concreteType) { return this;}
 			public String getColumnName() {return null;}
-			public void setColumnName(String columnName) {}
+			public FacetColumnRequest setColumnName(String columnName) {return this;}
 		}, false);
 	}
 
@@ -228,6 +228,16 @@ public class FacetRequestColumnModelTest {
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\"='hello world')", searchConditionString);
+	}
+
+	@Test
+	public void testEnumerationSearchConditionStringColumnNameWithQuotes() {
+		String columnName = "\"quoted\"Column";
+		facetValues.setColumnName(columnName);
+		facetValues.setFacetValues(Collections.singleton("myValue"));
+		String expectedResult = "(\"\"\"quoted\"\"Column\"='myValue')";
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
+		assertEquals(expectedResult, searchConditionString);
 	}
 
 	////////////////////////////////////////////
@@ -300,7 +310,7 @@ public class FacetRequestColumnModelTest {
 	}
 
 	@Test
-	public void testListColumnEnumerationSearchConditionString_OneValueContainsSpace(){
+	public void testListColumnEnumerationSearchConditionString_OneValueContainsSpace() {
 		String value = "hello world";
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
@@ -359,13 +369,22 @@ public class FacetRequestColumnModelTest {
 	}
 
 	@Test
-	public void testRangeSearchConditionStringMaxIsNullValueKeyword(){
+	public void testRangeSearchConditionStringMaxIsNullValueKeyword() {
 		String min = "123";
 		String max = TableConstants.NULL_VALUE_KEYWORD;
 		facetRange.setMin(min);
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
 		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
+	}
+	@Test
+	public void testRangeSearchConditionStringColumnNameWithQuotes() {
+		String columnName = "\"quoted\"Column";
+		facetRange.setColumnName(columnName);
+		facetRange.setMax("42");
+		String expectedResult = "(\"\"\"quoted\"\"Column\"<='42')";
+		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange);
+		assertEquals(expectedResult, searchConditionString);
 	}
 
 	//////////////////////////////////////

@@ -23,6 +23,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "AUTHENTICATED_ON",
+			"description": "User authenticated date"
+		},
+		{
 			"name": "PRINCIPAL_ALIAS",
 			"description": "TODO: Auto-generated description"
 		},
@@ -129,6 +133,10 @@
 		{
 			"name": "EVALUATION",
 			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "EVALUATION_ROUND",
+			"description": "Rounds defined within a specific Evaluation"
 		},
 		{
 			"name": "EVALUATION_SUBMISSIONS",
@@ -287,10 +295,6 @@
 			"description": "Table of metadata about view snapshots."
 		},
 		{
-			"name": "AUTHENTICATION_RECEIPT",
-			"description": "TODO: Auto-generated description"
-		},
-		{
 			"name": "THROTTLE_RULE",
 			"description": "TODO: Auto-generated description"
 		},
@@ -356,15 +360,23 @@
 		},
 		{
 			"name": "DOWNLOAD_LIST",
-			"description": "The root object for a user's download list."
+			"description": "deprecated"
 		},
 		{
 			"name": "DOWNLOAD_LIST_ITEM",
-			"description": "The items of a user's download list."
+			"description": "deprecated"
 		},
 		{
 			"name": "DOWNLOAD_ORDER",
-			"description": "Historical record of files download by users."
+			"description": "deprecated"
+		},
+		{
+			"name": "DOWNLOAD_LIST_2",
+			"description": "The root object for a user's download list."
+		},
+		{
+			"name": "DOWNLOAD_LIST_ITEM_2",
+			"description": "The items of a user's download list."
 		},
 		{
 			"name": "DATA_TYPE",

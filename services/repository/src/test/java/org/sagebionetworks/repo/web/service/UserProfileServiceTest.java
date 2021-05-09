@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -20,21 +20,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -44,8 +43,6 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -70,10 +67,10 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
@@ -85,11 +82,14 @@ public class UserProfileServiceTest {
 	private AliasList aliasList;
 	List<AliasType> typeList;
 	List<UserGroupHeader> headers;
-	
-	private UserProfileServiceImpl userProfileService = new UserProfileServiceImpl();
+	List<PrincipalAlias> groups;
+	List<UserProfile> profiles;
+	List<Long> principalIds;
+	@InjectMocks
+	private UserProfileServiceImpl userProfileService;
 	
 	@Mock
-	private EntityPermissionsManager mockPermissionsManager;
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
 	private UserProfileManager mockUserProfileManager;
 	@Mock
@@ -103,12 +103,11 @@ public class UserProfileServiceTest {
 	@Mock
 	private TokenGenerator mockTokenGenerator;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
 		
 		// Create UserGroups
-		List<PrincipalAlias> groups = new LinkedList<PrincipalAlias>();
+		groups = new LinkedList<PrincipalAlias>();
 		for (int i = 0; i < 10; i++) {
 			PrincipalAlias alias = new PrincipalAlias();
 			alias.setPrincipalId(new Long(i));
@@ -128,46 +127,35 @@ public class UserProfileServiceTest {
 		UserProfile p = new UserProfile();
 		p.setOwnerId("-100");
 		list.add(p);
-		List<UserProfile> profiles = list;
+		profiles = list;
 		
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
 		userInfo = new UserInfo(false, EXTRA_USER_ID);
 		otherUserInfo = new UserInfo(false, OTHER_USER_ID);
 		
-		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
-		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
-		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
-		when(mockUserProfileManager.getUserProfile(eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
-		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
-
-		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockPermissionsManager);
-		ReflectionTestUtils.setField(userProfileService, "userProfileManager",mockUserProfileManager);
-		ReflectionTestUtils.setField(userProfileService, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);
-		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
-		ReflectionTestUtils.setField(userProfileService, "tokenGenerator", mockTokenGenerator);
-		
 		aliasList = new AliasList();
 		aliasList.setList(Lists.newArrayList("aliasOne", "aliasTwo"));
 		
 		typeList = Lists.newArrayList(AliasType.TEAM_NAME, AliasType.USER_NAME);
 		
-		List<Long> principalIds = Lists.newArrayList(101L);
-		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(aliasList.getList(), typeList)).thenReturn(principalIds);
-		
+		principalIds = Lists.newArrayList(101L);
+
 		headers = new LinkedList<UserGroupHeader>();
 		UserGroupHeader header = new UserGroupHeader();
 		header.setOwnerId("101");
 		headers.add(header);
-		when(mockPrincipalAliasDAO.listPrincipalHeaders(principalIds)).thenReturn(headers);
 	}
 
-	
+	@Test
 	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
+		UserGroupHeader one = new UserGroupHeader();
+		one.setOwnerId("1");
+		UserGroupHeader two = new UserGroupHeader();
+		two.setOwnerId("2");
+		List<UserGroupHeader> headers = Lists.newArrayList(one, two);
+		when(mockPrincipalAliasDAO.listPrincipalHeaders(any())).thenReturn(headers);
+		
 		List<Long> ids = new ArrayList<Long>();
 		ids.add(0L);
 		ids.add(1l);
@@ -175,21 +163,16 @@ public class UserProfileServiceTest {
 		ids.add(NONEXISTENT_USER_ID); // should not exist
 		
 		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren())
-			headers.put(ugh.getOwnerId(), ugh);
-		assertEquals(3, headers.size());
-		assertTrue(headers.containsKey("g0"));
-		assertTrue(headers.containsKey("g1"));
-		assertTrue(headers.containsKey("g2"));
-		assertFalse(headers.containsKey("g10"));
+		assertEquals(headers, response.getChildren());
 	}
 
 
 	@Test
 	public void testAddFavorite() throws Exception {
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
+		when(mockEntityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
@@ -201,17 +184,17 @@ public class UserProfileServiceTest {
 		verify(mockEntityManager).getEntityHeader(userInfo, entityId);
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied(""));
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
-		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
-
-		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
-		fail();
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			userProfileService.addFavorite(EXTRA_USER_ID, entityId);
+		});
 	}
 	
 	private static IdList singletonIdList(String id) {
@@ -366,6 +349,9 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetMyOwnUserBundleNoPassingRecord() throws Exception {
+		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+	
 		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false);
 
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
@@ -387,8 +373,6 @@ public class UserProfileServiceTest {
 	public void testGetMyOwnUserBundleNullRecords() throws Exception {
 		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(EXTRA_USER_ID, AliasType.USER_ORCID)).
-			thenReturn(Collections.EMPTY_LIST);
 
 		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 63/*everything*/);
 		
@@ -404,11 +388,10 @@ public class UserProfileServiceTest {
 	
 	@Test
 	public void testUserBundleMask() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
-		mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
-		mockUserProfile(EXTRA_USER_ID);
-		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
+	
 		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 0/*nothing*/);
 		
 		assertEquals(EXTRA_USER_ID.toString(), result.getUserId());
@@ -536,40 +519,46 @@ public class UserProfileServiceTest {
 		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong(), anyLong());
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testListPrincipalsForPrefixFilterNull(){
 		String prefix = "aab";
 		TypeFilter filter = null;
 		long offset = 1L;
 		long limit = 10L;
-		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
-		boolean isIndividual = false;
-		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
-		// call under test
-		userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		});
 	}
 	
 	@Test
 	public void testGetUserGroupHeadersByAlias(){
+		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(aliasList.getList(), typeList)).thenReturn(principalIds);
+		when(mockPrincipalAliasDAO.listPrincipalHeaders(principalIds)).thenReturn(headers);
+		
 		UserGroupHeaderResponse response = userProfileService.getUserGroupHeadersByAlias(aliasList);
 		assertNotNull(response);
 		assertNotNull(response.getList());
 		assertEquals(headers, response.getList());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetUserGroupHeadersByAliasNullRequest(){
 		aliasList = null;
-		// call under test
-		userProfileService.getUserGroupHeadersByAlias(aliasList);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			userProfileService.getUserGroupHeadersByAlias(aliasList);
+		});
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetUserGroupHeadersByAliasEmptyList(){
 		aliasList.setList(new LinkedList<String>());
-		// call under test
-		userProfileService.getUserGroupHeadersByAlias(aliasList);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			userProfileService.getUserGroupHeadersByAlias(aliasList);
+		});
 	}
 	
 	@Test
@@ -592,14 +581,13 @@ public class UserProfileServiceTest {
 			list.add("a"+i);
 		}
 		assertEquals(list.size(), UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST+1);
-		// call under test
-		try {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			userProfileService.getUserGroupHeadersByAlias(aliasList);
-			fail();
-		} catch (IllegalArgumentException e) {
-			// expected
-			assertTrue(e.getMessage().contains(""+UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST));
-		}
+		}).getMessage();
+
+		// expected
+		assertTrue(message.contains(""+UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST));
 	}
 	
 	@Test
@@ -655,6 +643,9 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetOthersProjects() {
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
+		
 		long teamId = 999;
 		String nextPageToken = (new NextPageToken(null)).toToken();
 		// call under test
@@ -669,6 +660,9 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetOthersProjectsDefaultSort() {
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
+		
 		long teamId = 999;
 		String nextPageToken = (new NextPageToken(null)).toToken();
 		// call under test

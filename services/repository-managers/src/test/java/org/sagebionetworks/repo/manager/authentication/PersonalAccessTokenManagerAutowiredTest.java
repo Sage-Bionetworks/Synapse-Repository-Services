@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 		tokenIdsToDelete = new ArrayList<>();
 		
-		fullAccessToken = oidcTokenHelper.createTotalAccessToken(userInfo.getId());
+		fullAccessToken = oidcTokenHelper.createClientTotalAccessToken(userInfo.getId(), null);
 	}
 
 	@AfterEach
@@ -115,6 +116,22 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		assertFalse(personalAccessTokenManager.isTokenActive(tokenId));
 	}
 
+	@Test // PLFM-6494
+	void testIssueTokenWithDuplicateName() {
+		AccessTokenGenerationRequest request = new AccessTokenGenerationRequest();
+		request.setName("token name");
+
+		// Create a token
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT).getToken();
+		String tokenId = this.getTokenIdFromJwt(token);
+
+		// Method under test: a user should not be able to create two tokens with the same name, and should get a specific error message
+		assertThrows(IllegalArgumentException.class, () -> personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT).getToken(), PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
+
+		// Cleanup -- delete the created token
+		personalAccessTokenManager.revokeToken(userInfo, tokenId);
+	}
+
 	@Test
 	void testGetListOfTokens() {
 		String tokenId1 = createTokenAndGetId();
@@ -154,7 +171,8 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		personalAccessTokenManager.updateLastUsedTime(tokenId1);
 
 		AccessTokenRecord postUpdate = personalAccessTokenManager.getTokenRecord(userInfo, tokenId1);
-		assertTrue(postUpdate.getLastUsed().after(preUpdate.getLastUsed()));
+		// we update no more than once per minute
+		assertTrue(postUpdate.getLastUsed().equals(preUpdate.getLastUsed()));
 	}
 
 }

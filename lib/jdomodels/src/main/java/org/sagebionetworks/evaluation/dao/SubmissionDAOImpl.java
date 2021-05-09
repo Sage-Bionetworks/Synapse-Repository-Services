@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_D
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ROUND_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
@@ -53,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -65,7 +65,6 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -295,6 +294,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			+ ", s." + COL_SUBMISSION_NAME
 			+ ", r." + COL_SUBSTATUS_ETAG
 			+ ", s." + COL_SUBMISSION_EVAL_ID + " AS " + SubmissionField.evaluationid.getColumnAlias()
+			+ ", s." + COL_SUBMISSION_EVAL_ROUND_ID + " AS " + SubmissionField.evaluationroundid.getColumnAlias()
 			+ ", e." + COL_EVALUATION_CONTENT_SOURCE + " AS " + PROJECT_ID
 			+ ", r." + COL_SUBSTATUS_VERSION
 			+ ", s." + COL_SUBMISSION_CREATED_ON
@@ -350,7 +350,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	@WriteTransaction
 	public String create(Submission dto) {
-		EvaluationUtils.ensureNotNull(dto, "Submission");
+		ValidateArgument.required(dto, "Submission");
 
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
@@ -638,12 +638,12 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dbo
 	 */
 	private void verifySubmissionDBO(SubmissionDBO dbo) {
-		EvaluationUtils.ensureNotNull(dbo.getEvalId(), "Evaluation ID");
-		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
-		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
-		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
-		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
+		ValidateArgument.required(dbo.getEvalId(), "Evaluation ID");
+		ValidateArgument.required(dbo.getUserId(), "User ID");
+		ValidateArgument.required(dbo.getEntityId(), "Entity ID");
+		ValidateArgument.required(dbo.getVersionNumber(), "Entity Version");
+		ValidateArgument.required(dbo.getId(), "Submission ID");
+		ValidateArgument.required(dbo.getCreatedOn(), "Creation date");
 	}	
 
 	/*
@@ -868,6 +868,19 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		jdbcTemplate.update("DELETE FROM " + TABLE_SUBMISSION);
 		jdbcTemplate.update("DELETE FROM " + TABLE_EVALUATION);
 	}
+
+	@Override
+	public boolean hasSubmissionForEvaluationRound(String evalId, String evalRoundId){
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue(DBOConstants.PARAM_SUBMISSION_EVAL_ID, evalId);
+		parameterSource.addValue(DBOConstants.PARAM_SUBMISSION_EVAL_ROUND_ID, evalRoundId);
+
+		String sql = "SELECT COUNT(*) > 0 FROM " + TABLE_SUBMISSION +
+				" WHERE " + COL_SUBMISSION_EVAL_ROUND_ID + " = :" + DBOConstants.PARAM_SUBMISSION_EVAL_ROUND_ID +
+				" AND " + COL_SUBMISSION_EVAL_ID + " = :" + DBOConstants.PARAM_SUBMISSION_EVAL_ID;
+
+		return namedJdbcTemplate.queryForObject(sql, parameterSource, Boolean.class);
+	}
 	
 	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
 		ObjectDataDTO data = new ObjectDataDTO();
@@ -937,8 +950,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			map.put(field.getColumnName(), annotationValue);
 		}
 		
-		return map.values().stream().collect(Collectors.toList());
+		return new ArrayList<>(map.values());
 	}
-
 
 }

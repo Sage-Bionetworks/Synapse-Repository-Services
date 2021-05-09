@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Constants for nodes.
- * @author jmhill
  *
  */
 public class NodeConstants {
@@ -62,4 +63,42 @@ public class NodeConstants {
 	 * A zero-ed etag
 	 */
 	public static final String ZERO_E_TAG = new UUID(0L, 0L).toString();
+	
+	/**
+	 * All bootstrap nodes.
+	 *
+	 */
+	public enum BOOTSTRAP_NODES {
+		
+		ROOT(4489L),
+		TRASH(1681355L);
+		
+		BOOTSTRAP_NODES(long id) {
+			this.id = id;
+		}
+		private Long id;
+		
+		public Long getId() {
+			return id;
+		}
+		
+		/**
+		 * Get all of the bootstrap node IDs.
+		 * @return
+		 */
+		public static List<Long> getAllBootstrapIds(){
+			List<Long> ids = new ArrayList<Long>(BOOTSTRAP_NODES.values().length);
+			for(BOOTSTRAP_NODES node: BOOTSTRAP_NODES.values()) {
+				ids.add(node.getId());
+			}
+			return ids;
+		}
+	}
+	
+	/**
+	 * Max path depth for a node hierarchy. Note: The root node counts as one.
+	 */
+	public static final int MAX_PATH_DEPTH = 50;
+	public static final int MAX_PATH_DEPTH_PLUS_ONE = MAX_PATH_DEPTH+1;
+	
 }

@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -51,6 +52,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Function;
@@ -212,12 +214,13 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static String validateValue(String value, ColumnModel cm) {
-		switch (cm.getColumnType()) {
-		case STRING:
+		if (cm.getColumnType() == ColumnType.STRING) {
 			validateStringValueSize(value, cm);
 			checkStringEnum(value, cm);
 			return value;
-		case LINK:
+		}
+
+		if (cm.getColumnType() == ColumnType.LINK) {
 			if (cm.getMaximumSize() == null)
 				throw new IllegalArgumentException("Link columns must have a maximum size");
 			if (value.length() > cm.getMaximumSize()) {
@@ -226,22 +229,29 @@ public class TableModelUtils {
 			}
 			checkStringEnum(value, cm);
 			return value;
-		case LARGETEXT:
+		}
+
+		if (cm.getColumnType() == ColumnType.LARGETEXT) {
 			if (value.length() > ColumnConstants.MAX_LARGE_TEXT_CHARACTERS) {
-				throw new IllegalArgumentException("Exceeds the maximum number of characters: "+ColumnConstants.MAX_LARGE_TEXT_CHARACTERS);
+				throw new IllegalArgumentException("Exceeds the maximum number of characters: " + ColumnConstants.MAX_LARGE_TEXT_CHARACTERS);
 			}
 			checkStringEnum(value, cm);
 			return value;
-		case INTEGER_LIST:
-		case DATE_LIST:
-		case BOOLEAN_LIST:
-		case STRING_LIST:
+		}
+
+		if (ColumnTypeListMappings.isList(cm.getColumnType())) {
 			//make sure this is a valid JSON List (size limit, values
 			String listValue = (String) ColumnTypeInfo.getInfoForType(cm.getColumnType())
 					.parseValueForDatabaseWrite(value);
 
+			if(listValue == null){
+				// this can occur in cases such as the JSON string being an empty JSON Array
+				return null;
+			}
+
 			//validate values for each individual string in the list
 			JSONArray jsonArray = new JSONArray(listValue);
+
 			if (jsonArray.length() > cm.getMaximumListLength()) {
 				throw new IllegalArgumentException(
 						"Exceeds the maximum number of list elements defined in the ColumnModel ("+cm.getMaximumListLength()+"): \"" +
@@ -256,12 +266,12 @@ public class TableModelUtils {
 				}
 			}
 			return listValue;
-		default:
-			// All other types are handled by the type specific parser.
-			ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
-			Object objectValue = info.parseValueForDatabaseWrite(value);
-			return objectValue.toString();
 		}
+
+		// All other types are handled by the type specific parser.
+		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
+		Object objectValue = info.parseValueForDatabaseWrite(value);
+		return objectValue.toString();
 	}
 
 	private static void validateStringValueSize(String value, ColumnModel cm) {

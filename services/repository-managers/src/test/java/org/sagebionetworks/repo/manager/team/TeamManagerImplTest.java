@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -295,9 +297,12 @@ public class TeamManagerImplTest {
 	@Test
 	public void testCreate() {
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
-		when(mockTeamDAO.create(team)).thenReturn(team);
-		// mock userGroupDAO
+
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
+		when(mockTeamDAO.create(team)).thenReturn(team);
+		
+		// Call under test
 		Team created = teamManagerImpl.create(userInfo,team);
 		assertEquals(team, created);
 		/*
@@ -311,6 +316,7 @@ public class TeamManagerImplTest {
 
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "101");
 		verify(mockTeamDAO).create(team);
 		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
@@ -319,6 +325,37 @@ public class TeamManagerImplTest {
 		assertNotNull(created.getModifiedOn());
 		assertEquals(MEMBER_PRINCIPAL_ID, created.getCreatedBy());
 		assertEquals(MEMBER_PRINCIPAL_ID, created.getModifiedBy());
+	}
+	
+	@Test
+	public void testCreateWithNotAllowedIcon() {
+		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
+
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {	
+			// Call under test
+			teamManagerImpl.create(userInfo,team);
+		}).getMessage();
+		
+		assertEquals("Only the user that uploaded the file can set it as the team icon.", errorMessage);
+		
+		// No check on the file handle since it's not supplied
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "101");
+	}
+	
+	@Test
+	public void testCreateWithNoIcon() {
+		Team team = createTeam(null, "name", "description", null, null, null, null, null, null);
+
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
+		when(mockTeamDAO.create(team)).thenReturn(team);
+		
+		// Call under test
+		teamManagerImpl.create(userInfo,team);
+		
+		// No check on the file handle since it's not supplied
+		verify(mockAuthorizationManager, never()).canAccessRawFileHandleById(any(), any());
 	}
 	
 	private BootstrapTeam createBootstrapTeam(String id, String name) {
@@ -403,6 +440,7 @@ public class TeamManagerImplTest {
 		// not allowed to specify ID of team being created
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenThrow(new NameConflictException());
+		
 		Assertions.assertThrows(NameConflictException.class, ()-> {
 			teamManagerImpl.create(userInfo,team);
 		});
@@ -414,6 +452,7 @@ public class TeamManagerImplTest {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		assertEquals(team, teamManagerImpl.get(TEAM_ID));
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -466,11 +505,75 @@ public class TeamManagerImplTest {
 	public void testPut() {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		when(mockTeamDAO.get(any())).thenReturn(team);
 		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
 		Team updated = teamManagerImpl.put(userInfo, team);
+		
 		assertEquals(updated, team);
 		assertNotNull(updated.getModifiedBy());
 		assertNotNull(updated.getModifiedOn());
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockTeamDAO).update(team);
+	}
+	
+	@Test
+	public void testPutWithNoIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", null, null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
+		Team updated = teamManagerImpl.put(userInfo, team);
+		
+		assertEquals(updated, team);
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager, never()).canAccessRawFileHandleById(any(), any());
+	}
+	
+	@Test
+	public void testPutWithNewIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", "102", null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockTeamDAO.update(team)).thenReturn(team);
+		
+		// Call under test
+		Team updated = teamManagerImpl.put(userInfo, team);
+		
+		assertEquals(updated, team);
+		
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "102");
+	}
+	
+	@Test
+	public void testPutWithNotAllowedIcon() {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		Team existingTeam = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
+		Team team = createTeam(TEAM_ID, "name", "description", "etag", "102", null, null, null, null);
+		
+		when(mockTeamDAO.get(any())).thenReturn(existingTeam);
+		when(mockAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Denied"));
+		
+		String errorMessage = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			teamManagerImpl.put(userInfo, team);
+		}).getMessage();
+
+		assertEquals("Only the user that uploaded the file can set it as the team icon.", errorMessage);
+		verify(mockTeamDAO).get(TEAM_ID);
+		verify(mockAuthorizationManager).canAccessRawFileHandleById(userInfo, "102");
+
 	}
 	
 	@Test
@@ -494,6 +597,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).delete(TEAM_ID);
 		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -558,6 +662,7 @@ public class TeamManagerImplTest {
 					thenReturn(hasUnmetAccessRqmtResponse);
 		// I can no longer join
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_AR_SELF);
+		verify(mockTeamDAO, times(7)).get(TEAM_ID);
 	}
 	
 	@Test
@@ -714,7 +819,7 @@ public class TeamManagerImplTest {
 		when(mockGroupMembersDAO.getMemberIdsForUpdate(Long.valueOf(TEAM_ID))).thenReturn(Collections.singleton(123L));
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
+		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -768,8 +873,108 @@ public class TeamManagerImplTest {
 		String url = teamManagerImpl.getIconURL(userInfo, TEAM_ID);
 		
 		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(urlRequest));
-		
+		verify(mockTeamDAO).get(TEAM_ID);
 		assertEquals(expectedUrl, url);
+	}
+
+	@Test
+	public void testGetIconURLWithNullUserInfo() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconURL(null, TEAM_ID);
+		});
+		assertEquals("userInfo is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetIconURLWithNullTeamId() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconURL(userInfo, null);
+		});
+		assertEquals("teamId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetIconPreviewURLPreviewFileHandleIdNotFoundException() {
+
+		NotFoundException cause = new NotFoundException("inner exception");
+		String iconFileHandleId = "";
+		Team team = createTeam(TEAM_ID, "name", "description", null, iconFileHandleId, null, null, null, null);
+        when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId)).thenThrow(cause);
+
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
+		});
+		verify(mockTeamDAO).get(TEAM_ID);
+		assertEquals("No preview was found for the icon of the team with id: " + TEAM_ID, exception.getMessage());
+		assertEquals(cause, exception.getCause());
+		assertEquals(cause.getMessage(), exception.getCause().getMessage());
+	}
+
+	@Test
+	public void testGetIconPreviewURL() {
+		String iconFileHandleId = "101";
+
+		Team team = createTeam(null, "name", "description", null, iconFileHandleId, null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+
+		String iconPreviewFileHandleId = "102";
+
+		when(mockFileHandleManager.getPreviewFileHandleId(iconFileHandleId)).thenReturn(iconPreviewFileHandleId);
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, iconPreviewFileHandleId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, TEAM_ID);
+
+		String expectedUrl = "https://testurl.org";
+
+		when(mockFileHandleManager.getRedirectURLForFileHandle(any())).thenReturn(expectedUrl);
+
+		// Call under test
+		String url = teamManagerImpl.getIconPreviewURL(userInfo, TEAM_ID);
+
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(urlRequest);
+		verify(mockTeamDAO).get(TEAM_ID);
+		assertEquals(expectedUrl, url);
+	}
+
+	@Test
+	public void testGetIconPreviewURLWithNullUserInfo() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconPreviewURL(null, TEAM_ID);
+		});
+        assertEquals("userInfo is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetIconPreviewURLWithNullTeamId() {
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			teamManagerImpl.getIconPreviewURL(userInfo, null);
+		});
+		assertEquals("teamId is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetFileHandleIdNotFoundException() {
+		Team team = createTeam(TEAM_ID, "name", "description", null, null, null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		Exception exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.getFileHandleId(TEAM_ID);
+		});
+		assertEquals("Team " + TEAM_ID + " has no icon file handle.", exception.getMessage());
+		verify(mockTeamDAO).get(TEAM_ID);
+	}
+
+	@Test
+	public void testGetFileHandleId() {
+		String iconFileHandleId = "101";
+		Team team = createTeam(TEAM_ID, "name", "description", null, iconFileHandleId, null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		// Call under test
+		String result = teamManagerImpl.getFileHandleId(TEAM_ID);
+		assertEquals(iconFileHandleId, result);
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -783,15 +988,17 @@ public class TeamManagerImplTest {
 		TeamMember tm = createTeamMember("101", false);
 		List<TeamMember> tms = Collections.singletonList(tm);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10, 0)).thenReturn(tms);
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
-
 		ListWrapper<TeamMember> lw = ListWrapper.wrap(tms, TeamMember.class);
 		Long teamId = Long.parseLong(TEAM_ID);
 		when(mockTeamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L))).thenReturn(lw);
 		assertEquals(tms, teamManagerImpl.listMembers(Collections.singletonList(teamId), Collections.singletonList(101L)).getList());
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(teamId), Collections.singletonList(101L));
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -806,12 +1013,14 @@ public class TeamManagerImplTest {
 				.thenReturn(Arrays.asList(101L));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(101L)))
 				.thenReturn(lw);
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		PaginatedResults<TeamMember> pg = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10, 0);
 		assertEquals(tms, pg.getResults());
 		assertEquals(1L, pg.getTotalNumberOfResults());
 		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
 		verify(mockTeamDAO, never()).getAdminTeamMemberIds(anyString());
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -826,11 +1035,14 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMemberId));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(adminMember), TeamMember.class));
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
 		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), adminIdsSet, null,10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(adminMemberId));
 		assertEquals(Collections.singletonList(adminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -845,10 +1057,13 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockPrincipalPrefixDao.listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMemberId));
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId))).thenReturn(ListWrapper.wrap(Collections.singletonList(nonAdminMember), TeamMember.class));
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
 		verify(mockPrincipalPrefixDao, times(1)).listCertainTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), null, adminIdsSet,10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Collections.singletonList(nonAdminMemberId));
 		assertEquals(Collections.singletonList(nonAdminMember), actual);
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -863,20 +1078,53 @@ public class TeamManagerImplTest {
 
 		when(mockPrincipalPrefixDao.listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID),10L, 0L)).thenReturn(Arrays.asList(adminMemberId, nonAdminMemberId));		
 		when(mockTeamDAO.listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId))).thenReturn(ListWrapper.wrap(Arrays.asList(adminMember, nonAdminMember), TeamMember.class));
-		
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembersForPrefix(prefix, TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
-		
 		verify(mockPrincipalPrefixDao, times(1)).listTeamMembersForPrefix(prefix, Long.parseLong(TEAM_ID), 10L, 0L);
 		verify(mockTeamDAO, times(1)).listMembers(Collections.singletonList(Long.parseLong(TEAM_ID)), Arrays.asList(adminMemberId, nonAdminMemberId));
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
-	
+
+	@Test
+	public void testListMembersWithPrefixInvalidTeamNotFound() {
+		String invalidId = "100";
+		String prefix = "pfx";
+		String expectedMessage = "Team does not exist for teamId: " + invalidId;
+		NotFoundException ex = new NotFoundException(expectedMessage);
+		doThrow(ex).when(mockTeamDAO).validateTeamExists(invalidId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.listMembersForPrefix(prefix, invalidId ,any(), 10L, 0L);
+		});
+		verify(mockTeamDAO).validateTeamExists(invalidId);
+		assertEquals(ex, exception);
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
+	@Test
+	public void testListMembersInvalidTeamNotFound() {
+		String invalidId = "100";
+		String expectedMessage = "Team does not exist for teamId: " + invalidId;
+		NotFoundException ex = new NotFoundException(expectedMessage);
+		doThrow(ex).when(mockTeamDAO).validateTeamExists(invalidId);
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamManagerImpl.listMembers(invalidId, any(), 10L, 0L);
+		});
+		verify(mockTeamDAO).validateTeamExists(invalidId);
+		assertEquals(ex, exception);
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
 	@Test
 	public void testNoAdmins() {
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(Collections.EMPTY_LIST);
-		
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
-		
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 		assertTrue(actual.isEmpty());
 	}
 
@@ -889,10 +1137,13 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L)).thenReturn(Collections.singletonList(adminMember));
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ADMIN, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, adminIdsSet, null,10L, 0L);
 		assertEquals(Collections.singletonList(adminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -904,11 +1155,13 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L)).thenReturn(Collections.singletonList(nonAdminMember));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.MEMBER, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, adminIdsSet,10L, 0L);
 		assertEquals(Collections.singletonList(nonAdminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -920,11 +1173,13 @@ public class TeamManagerImplTest {
 
 		when(mockTeamDAO.getAdminTeamMemberIds(TEAM_ID)).thenReturn(adminIds);
 		when(mockTeamDAO.getMembersInRange(TEAM_ID, null, null,10L, 0L)).thenReturn(Arrays.asList(adminMember, nonAdminMember));
-
+		doNothing().when(mockTeamDAO).validateTeamExists(TEAM_ID);
+		// Call under test
 		List<TeamMember> actual = teamManagerImpl.listMembers(TEAM_ID, TeamMemberTypeFilterOptions.ALL, 10L, 0L).getResults();
 		verify(mockTeamDAO, times(1)).getMembersInRange(TEAM_ID, null, null,10L, 0L);
 		assertEquals(Arrays.asList(adminMember, nonAdminMember), actual);
 		verify(mockTeamDAO, times(1)).getAdminTeamMemberIds(TEAM_ID); // Once for each invocation
+		verify(mockTeamDAO).validateTeamExists(TEAM_ID);
 	}
 
 	@Test
@@ -1002,6 +1257,7 @@ public class TeamManagerImplTest {
 		// unless it's an open team
 		team.setCanPublicJoin(true);
 		assertFalse(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
+		verify(mockTeamDAO, times(2)).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1143,6 +1399,7 @@ public class TeamManagerImplTest {
 					"</html>\r\n";
 			assertEquals(expected, result.getBody());
 		}
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1192,6 +1449,7 @@ public class TeamManagerImplTest {
 				"  </body>\r\n" + 
 				"</html>\r\n";
 		assertEquals(expected, result.getBody());
+		verify(mockTeamDAO).get(TEAM_ID);
 	}
 	
 	@Test
@@ -1234,6 +1492,7 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).delete(TEAM_ID);
 		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
+		verify(mockTeamDAO).get(TEAM_ID);
 
 	}
 

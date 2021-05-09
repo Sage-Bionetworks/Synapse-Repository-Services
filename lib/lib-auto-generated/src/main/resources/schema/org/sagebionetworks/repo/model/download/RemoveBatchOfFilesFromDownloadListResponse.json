@@ -1,0 +1,9 @@
+{
+	"description": "Response to remove a single batch of files from the user's download list.",
+	"properties": {
+		"numberOfFilesRemoved": {
+			"description": "The number of files that were removed.",
+			"type": "integer"
+		}
+	}
+}

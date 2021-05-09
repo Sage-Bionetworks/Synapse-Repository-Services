@@ -1,5 +1,50 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_JSON_SCHEMA_OBJECT_BINDING;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -44,6 +89,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
@@ -76,6 +122,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -84,11 +131,10 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -98,16 +144,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
-	/**
-	 * MySQL have a default limit on the maximum recursion calls that can be made on a recursive CTE
-	 */
-	private static final int MAX_PATH_RECURSION = 1000;
+	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
-	/**
-	 * Max path depth for a node hierarchy.
-	 */
-	private static final int MAX_PATH_DEPTH = 100;
-
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -232,7 +271,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String ENTITY_HEADER_SELECT = "SELECT N." + COL_NODE_ID + ", R." + COL_REVISION_LABEL + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", " + SQL_SELECT_BENEFACTOR_N + ", R." + COL_REVISION_NUMBER
 			+ ", N." + COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", R." + COL_REVISION_MODIFIED_BY + ", R."
-			+ COL_REVISION_MODIFIED_ON;
+			+ COL_REVISION_MODIFIED_ON + ", N." + COL_NODE_CURRENT_REV;
 	
 	private static final String JOIN_NODE_REVISION = TABLE_NODE+" N"+
 			" JOIN "+TABLE_REVISION+" R"+
@@ -346,24 +385,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT rr."
 			+ COL_REVISION_NUMBER + ", rr." + COL_REVISION_LABEL + ", rr."
 			+ COL_REVISION_COMMENT + ", rr." + COL_REVISION_MODIFIED_BY + ", rr."
-			+ COL_REVISION_MODIFIED_ON 
-			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_REVISION + " rr left outer join "
+			+ COL_REVISION_MODIFIED_ON + ", n." + COL_NODE_CURRENT_REV
+			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_NODE + " n, "
+			+ TABLE_REVISION + " rr left outer join "
 			+ TABLE_FILES+" ff on (rr."+COL_REVISION_FILE_HANDLE_ID+" = ff."+COL_FILES_ID+") WHERE rr."
-			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY rr." + COL_REVISION_NUMBER
-			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME +
+			" AND rr." + COL_REVISION_OWNER_NODE + " = n." + COL_NODE_ID +
+			" ORDER BY rr." + COL_REVISION_NUMBER + " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	/**
-	 * The max number of entity versions a MD5 string can map to. This puts a check
-	 * to potential DDOS attacks via MD5. We retrieve at most MD5_LIMIT + 1 rows.
-	 * If the number of rows retrieved is > MD5_LIMIT, an exception is thrown.
+	 * A sql query returning results for entity headers with a specific MD5 value
 	 */
-	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
 			ENTITY_HEADER_SELECT
-			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
-			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
+			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, " + TABLE_NODE + " N"
+			+ " WHERE R." + COL_REVISION_OWNER_NODE + " = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
-			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
+			+ " ORDER BY N." + COL_NODE_ID
+			+ " LIMIT " + NodeDAO.NODE_VERSION_LIMIT_BY_FILE_MD5;
 	
 	/**
 	 * A recursive sql call to get the full path of a given entity id (?). The limit
@@ -379,10 +418,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
-			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
 
+	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+	
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
@@ -397,6 +439,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			header.setName(rs.getString(COL_NODE_NAME));
 			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
 			header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
 			header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
@@ -510,14 +553,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		// Make sure to set the corret revision number
 		dto.setVersionNumber(revisionNumber);
-		
+
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
 		
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		
 		// Set the initial max revision the same as the current revision number
 		dboNode.setMaxRevNumber(revisionNumber);
-		
+
 		// Start it with a new e-tag
 		dboNode.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dboNode).withChangeType(ChangeType.CREATE).withUserId(dboNode.getCreatedBy()));
@@ -654,7 +697,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM NODES AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
-						+ " AND C.DISTANCE < " + MAX_PATH_RECURSION
+						+ " AND C.DISTANCE < " + NodeConstants.MAX_PATH_DEPTH_PLUS_ONE
 				+ ")"
 				+ " SELECT ID FROM NODES ORDER BY DISTANCE DESC LIMIT ?", Long.class, parentId, limit);
 	}
@@ -907,6 +950,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
 	}
+	
+	@Override
+	@WriteTransaction
+	public boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId) {
+		ValidateArgument.required(nodeId, "The nodeId");
+		ValidateArgument.required(versionNumber, "The versionNumber");
+		ValidateArgument.required(fileHandleId, "The fileHandleId");
+		
+		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		final Long fileHandleIdLong = NodeUtils.translateFileHandleId(fileHandleId);
+		
+		return jdbcTemplate.update(UPDATE_REVISION_FILE_HANDLE, fileHandleIdLong, nodeIdLong, versionNumber) > 0;
+	}
 
 	@WriteTransaction
 	@Override
@@ -1009,6 +1065,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));
+				info.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 				info.setContentMd5(rs.getString(COL_FILES_CONTENT_MD5));
 				info.setContentSize(rs.getString(COL_FILES_CONTENT_SIZE));
 				return info;
@@ -1126,6 +1183,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(ref.getTargetVersionNumber() != null){
 					clone.setVersionLabel(ref.getTargetVersionNumber().toString());
 					clone.setVersionNumber(ref.getTargetVersionNumber());
+					clone.setIsLatestVersion(original.getVersionNumber().equals(ref.getTargetVersionNumber()));
 				}
 				finalResults.add(clone);
 			}
@@ -1150,10 +1208,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
 		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, ENTITY_HEADER_ROWMAPPER);
 
-		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
-			throw new DatastoreException("MD5 " + md5 + " maps to more than "
-					+ NODE_VERSION_LIMIT_BY_FILE_MD5 + " entity versions.");
-		}
 		return rowList;
 	}
 	
@@ -1206,8 +1260,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(path.isEmpty()) {
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		if(path.size() >= MAX_PATH_DEPTH) {
-			throw new IllegalStateException("Path depth limit of: "+MAX_PATH_DEPTH+" exceeded for: "+nodeId);
+		if(path.size() > NodeConstants.MAX_PATH_DEPTH) {
+			throw new IllegalStateException("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
 	}
 	
@@ -1986,9 +2040,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long modifiedOn = System.currentTimeMillis();
 		Long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
 		String label = request.getSnapshotLabel() != null ? request.getSnapshotLabel() : revisionNumber.toString();
-		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
-				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
-		return revisionNumber;
+		try {
+			this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
+					request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
+			return revisionNumber;
+		} catch (DuplicateKeyException e) {
+			if (e.getMessage().contains("UNIQUE_REVISION_LABEL")) {
+				throw new IllegalArgumentException(String.format("The label '%s' has already been used for a version of this entity", label), e);
+			} else {
+				throw(e);
+			}
+		}
 	}
 
 	@Override
@@ -2024,10 +2086,45 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new NotFoundException("No JSON schema found for 'syn"+nodeId+"'");
 		}
 	}
+	
+	@Override
+	public Integer getEntityPathDepth(String entityId, int maxDepth) {
+		ValidateArgument.required(entityId, "entityId");
+		return jdbcTemplate.queryForObject(ENTITY_DEPTH_SQL, (ResultSet rs, int rowNum) -> {
+			int max = rs.getInt("MAX_DEPTH");
+			if (rs.wasNull()) {
+				throw new NotFoundException("Not found entityId: '" + entityId+"'");
+			}
+			return max;
+		}, KeyFactory.stringToKey(entityId), maxDepth);
+	}
 
 	@Override
 	public Long getEntityIdOfFirstBoundSchema(Long nodeId) {
-		return getEntityIdOfFirstBoundSchema(nodeId, MAX_PATH_DEPTH);
+		return getEntityIdOfFirstBoundSchema(nodeId, NodeConstants.MAX_PATH_DEPTH_PLUS_ONE );
+	}
+
+	@Override
+	public void truncateAll() {
+		/*
+		 * This is a workaround for the MySQL cascade delete limit on hierarchies deeper
+		 * than 15. We find and delete the last 10 nodes based on node IDs (excluding
+		 * bootstrap node), in a loop until no more nodes are found.
+		 */
+		SqlParameterSource listParams = new MapSqlParameterSource("bootstrapIds",
+				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds());
+		while (true) {
+			List<Long> idsToDelete = namedParameterJdbcTemplate.queryForList(
+					"SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID
+							+ " NOT IN(:bootstrapIds) ORDER BY " + COL_NODE_ID + " DESC LIMIT 10",
+					listParams, Long.class);
+			if (idsToDelete.isEmpty()) {
+				break;
+			}
+			SqlParameterSource deleteParams = new MapSqlParameterSource("toDelete", idsToDelete);
+			namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN(:toDelete)",
+					deleteParams);
+		}
 	}
 
 }

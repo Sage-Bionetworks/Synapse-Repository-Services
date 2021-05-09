@@ -2,11 +2,11 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -19,6 +19,9 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
@@ -339,4 +343,40 @@ public class EvaluationServiceImpl implements EvaluationService {
 		submissionManager.processUserCancelRequest(userInfo, subId);
 	}
 
+	@Override
+	public EvaluationRound createEvaluationRound(Long userId, EvaluationRound evaluationRound){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.createEvaluationRound(userInfo, evaluationRound);
+	}
+
+	@Override
+	public EvaluationRound updateEvaluationRound(Long userId, EvaluationRound evaluationRound){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.updateEvaluationRound(userInfo, evaluationRound);
+	}
+
+	@Override
+	public EvaluationRound getEvaluationRound(Long userId, String evaluationId, String evaluationRoundId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return evaluationManager.getEvaluationRound(userInfo, evaluationId, evaluationRoundId);
+	}
+
+	@Override
+	public EvaluationRoundListResponse getAllEvaluationRounds(Long userId, String evaluationId, EvaluationRoundListRequest request){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		return evaluationManager.getAllEvaluationRounds(userInfo, evaluationId, request);
+	}
+
+	@Override
+	public void deleteEvaluationRound(Long userId, String evaluationId, String evaluationRoundId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		evaluationManager.deleteEvaluationRound(userInfo, evaluationId, evaluationRoundId);
+	}
+
+	@Override
+	public void migrateEvaluationSubmissionQuota(Long userId, String evaluationId){
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		evaluationManager.migrateSubmissionQuota(userInfo, evaluationId);
+	}
 }

@@ -230,7 +230,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 
 		// make two nodes & two favorites
 		EntityType node1Type = EntityType.project;
-		EntityType node2Type = EntityType.project;
+		EntityType node2Type = EntityType.file;
 		String node1Name = "node1";
 		String node2Name = "node2";
 		
@@ -262,24 +262,35 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		favoritesToDelete.add(fav1created);
 		Favorite fav2created = favoriteDao.add(fav2);
 		favoritesToDelete.add(fav2created);
-		
+
 		PaginatedResults<EntityHeader> favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0);
 
 		assertEquals(2, favs.getTotalNumberOfResults());		
 		assertEquals(2, favs.getResults().size());
 		
-		EntityHeader eh1 = null;
-		EntityHeader eh2 = null;
-		for(EntityHeader eh : favs.getResults()) {
-			if(eh.getName().equals(node1Name)) eh1 = eh;
-			if(eh.getName().equals(node2Name)) eh2 = eh;
-		}
+		EntityHeader eh1 = favs.getResults().get(0);
+		EntityHeader eh2 = favs.getResults().get(1);
+
 		assertNotNull(eh1);
 		assertNotNull(eh2);
 		assertEquals(node1Id, eh1.getId());
 		assertEquals(Project.class.getName(), eh1.getType());
 		assertEquals(new Long(1), eh1.getVersionNumber());
 		assertEquals("1", eh1.getVersionLabel());
+		assertTrue(eh1.getIsLatestVersion());
+		assertTrue(eh2.getIsLatestVersion());
+
+		// Test limit and offset (PLFM-6616)
+		int limit = 1;
+		int offset = 0;
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
+		assertEquals(1, favs.getResults().size());
+		assertEquals(node1Id, favs.getResults().get(0).getId());
+
+		offset = 1;
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
+		assertEquals(1, favs.getResults().size());
+		assertEquals(node2Id, favs.getResults().get(0).getId());
 	}
 
 	@Test

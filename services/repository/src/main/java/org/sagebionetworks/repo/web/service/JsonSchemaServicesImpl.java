@@ -56,7 +56,8 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 
 	@Override
 	public JsonSchema getSchema(String $id) {
-		return schemaManager.getSchema($id);
+		boolean isTopLevel = true;
+		return schemaManager.getSchema($id, isTopLevel);
 	}
 
 	@Override

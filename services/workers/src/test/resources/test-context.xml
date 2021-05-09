@@ -37,4 +37,7 @@
 	
 	<bean id="dataAccessTestHelper" class="org.sagebionetworks.dataaccess.workers.DataAccessTestHelper"/>
 	
+	<bean id="awsStepFunctionsClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonStepFunctionsClient" scope="singleton" />
+	
 </beans>

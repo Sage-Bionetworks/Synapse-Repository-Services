@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +22,7 @@ import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3ClientImpl;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -310,6 +312,18 @@ public class SynapseS3ClientImplUnitTest {
 		
 		verify(mockAmazonClient).completeMultipartUpload(request);
 		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testAbportMultipartUpload() {
+		doNothing().when(mockAmazonClient).abortMultipartUpload(any());
+		
+		AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(BUCKET_NAME, OBJECT_KEY, "uploadId");
+		
+		// Call under test
+		client.abortMultipartUpload(request);
+		
+		verify(mockAmazonClient).abortMultipartUpload(request);
 	}
 
 	@Test

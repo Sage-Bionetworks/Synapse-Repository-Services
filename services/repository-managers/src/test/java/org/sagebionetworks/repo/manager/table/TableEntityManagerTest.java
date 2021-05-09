@@ -55,12 +55,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -1591,7 +1591,6 @@ public class TableEntityManagerTest {
 		long endMemory = getMemoryUsed();
 		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
 		long sizePerRow = (endMemory - startMemory)/numberRows;
-		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
 		assertTrue(calcuatedSize > sizePerRow, "Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes");
 	}
 	
@@ -1625,7 +1624,6 @@ public class TableEntityManagerTest {
 		long endMemory = getMemoryUsed();
 		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
 		long sizePerRow = (endMemory - startMemory)/numberRows;
-		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
 		assertTrue(calcuatedSize > sizePerRow, "Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes");
 	}
 	

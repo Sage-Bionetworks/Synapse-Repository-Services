@@ -50,7 +50,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("comment", COL_REVISION_COMMENT),
 		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_REVISION_MODIFIED_ON),
-		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID),
+		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID).withHasFileHandleRef(true),
 		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("scopeIds", COL_REVISION_SCOPE_IDS),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),

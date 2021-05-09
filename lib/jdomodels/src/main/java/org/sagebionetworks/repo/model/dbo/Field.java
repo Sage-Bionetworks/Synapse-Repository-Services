@@ -97,4 +97,9 @@ public @interface Field {
 	 * to the ID column, then set isSelfForeignKey = true on the parentID).
 	 */
 	boolean isSelfForeignKey() default false;
+	
+	/**
+	 * The column references a file handle (either as a FK or within a serialized field)
+	 */
+	boolean hasFileHandleRef() default false;
 }

@@ -1,0 +1,14 @@
+{
+	"description": "The results of an asynchronous job to query a user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"reponseDetails": {
+			"description": "The response details type is determined by the request details type.",
+			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"
+		}
+	}
+}

@@ -87,6 +87,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private StatisticsService statisticsService;
 	@Autowired
 	private JsonSchemaServicesImpl schemaServices;
+	@Autowired
+	private DownloadListService downloadListService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -226,5 +228,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public JsonSchemaServices getSchemaServices() {
 		return schemaServices;
+	}
+	@Override
+	public DownloadListService getDownloadListService() {
+		return downloadListService;
 	}
 }

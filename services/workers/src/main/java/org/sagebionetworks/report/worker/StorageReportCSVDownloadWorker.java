@@ -71,7 +71,7 @@ public class StorageReportCSVDownloadWorker implements MessageDrivenRunner {
 			// Upload the file to S3 can create the filehandle.
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, 0L, 0L, 0L, asynchJobStatusManager, status.getJobId());
 			String contentType = "text/csv";
-			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
+			S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
 
 			DownloadStorageReportResponse result = new DownloadStorageReportResponse();
 			result.setResultsFileHandleId(fileHandle.getId());

@@ -36,7 +36,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("modifiedBy", COL_DATA_ACCESS_REQUEST_MODIFIED_BY),
 			new FieldColumn("modifiedOn", COL_DATA_ACCESS_REQUEST_MODIFIED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
-			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED)
+			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED).withHasFileHandleRef(true)
 		};
 
 	private Long id;

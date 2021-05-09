@@ -7,8 +7,12 @@
 	],
 	"properties": {
 		"schema": {
-			"description": "The JsonSchema defintion to be created.",
+			"description": "The JsonSchema definition to be created.",
 			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
+		},
+		"dryRun": {
+			"description": "When true, an attempt will be made to create the schema normally, but the resulting schema will not be retained.  This can be used to validate a schema without actually registering it.  The default value is false.",
+			"type": "boolean"
 		}
 	}
 }

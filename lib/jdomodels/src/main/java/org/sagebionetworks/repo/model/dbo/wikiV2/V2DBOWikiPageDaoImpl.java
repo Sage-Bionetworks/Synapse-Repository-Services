@@ -44,11 +44,11 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -898,6 +898,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			}
 		});
 		return results;
+	}
+	
+	@Override
+	public void truncateAll() {
+		namedTemplate.getJdbcTemplate().update("DELETE FROM " + V2_TABLE_WIKI_PAGE);
 	}
 	
 }

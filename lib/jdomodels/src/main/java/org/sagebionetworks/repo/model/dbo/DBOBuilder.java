@@ -189,8 +189,10 @@ public class DBOBuilder<T> {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
 				return new FieldColumn(fieldEntry.field.getName(), fieldEntry.annotation.name(), fieldEntry.annotation.primary())
-						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag()
-								).withIsSelfForeignKey(fieldEntry.annotation.isSelfForeignKey());
+						.withIsBackupId(fieldEntry.annotation.backupId())
+						.withIsEtag(fieldEntry.annotation.etag())
+						.withIsSelfForeignKey(fieldEntry.annotation.isSelfForeignKey())
+						.withHasFileHandleRef(fieldEntry.annotation.hasFileHandleRef());
 			}
 		});
 		return result.toArray(new FieldColumn[result.size()]);

@@ -2,13 +2,15 @@ package org.sagebionetworks.repo.manager.authentication;
 
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
@@ -16,20 +18,17 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
-
-
-	public static final Long AUTHENTICATION_RECEIPT_LIMIT = 100L;
 
 	public static final long LOCK_TIMOUTE_SEC = 5*60;
 
@@ -44,7 +43,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
-	private AuthenticationReceiptDAO authReceiptDAO;
+	private AuthenticationReceiptTokenGenerator authenticationReceiptTokenGenerator;
 
 	@Autowired
 	private PasswordValidator passwordValidator;
@@ -58,6 +57,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private PasswordResetTokenGenerator passwordResetTokenGenerator;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	private Clock clock;
+
 	@Override
 	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
@@ -207,14 +212,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
-			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
+			throw new IllegalArgumentException("Cannot \"unsign\" the terms of use");
 		}
 		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 
-	@WriteTransaction
+	@Deprecated
 	@Override
-	public LoginResponse login(LoginRequest request){
+	public LoginResponse loginForSession(LoginRequest request){
 		ValidateArgument.required(request, "loginRequest");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
@@ -223,11 +228,24 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		final String password = request.getPassword();
 		final String authenticationReceipt = request.getAuthenticationReceipt();
 
-		authReceiptDAO.deleteExpiredReceipts(userId, System.currentTimeMillis());
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
 
-		String validAuthReceipt = validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
+	}
 
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, validAuthReceipt);
+	@Override
+	public LoginResponse login(LoginRequest request, String tokenIssuer){
+		ValidateArgument.required(request, "loginRequest");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+
+		final long userId = findUserIdForAuthentication(request.getUsername());
+		final String password = request.getPassword();
+		final String authenticationReceipt = request.getAuthenticationReceipt();
+
+		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
+
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, tokenIssuer);
 	}
 
 	/**
@@ -238,14 +256,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return authenticationReceipt if it is valid and password check passed. null, if the authenticationReceipt was invalid, but password check passed.
 	 * @throws UnauthenticatedException if password check failed
 	 */
-	String validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt) {
-		String validAuthReceipt = null;
-		if (authenticationReceipt != null && authReceiptDAO.isValidReceipt(userId, authenticationReceipt)){
-			validAuthReceipt = authenticationReceipt;
-		}
-
+	void validateAuthReceiptAndCheckPassword(final long userId, final String password, final String authenticationReceipt) {
+		
+		boolean isAuthenticationReceiptValid = authenticationReceiptTokenGenerator.isReceiptValid(userId, authenticationReceipt);
 		//callers that have previously logged in successfully are able to bypass lockout caused by failed attempts
-		boolean correctCredentials = validAuthReceipt != null ? userCredentialValidator.checkPassword(userId, password) : userCredentialValidator.checkPasswordWithThrottling(userId, password);
+		boolean correctCredentials = isAuthenticationReceiptValid ? userCredentialValidator.checkPassword(userId, password) : userCredentialValidator.checkPasswordWithThrottling(userId, password);
 		if(!correctCredentials){
 			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
 		}
@@ -256,34 +271,36 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		} catch (InvalidPasswordException e){
 			throw new PasswordResetViaEmailRequiredException("You must change your password via email reset.");
 		}
+	}
 
-		return validAuthReceipt;
+	@Deprecated
+	@Override
+	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId){
+		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(principalId);
 	}
 
 	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId){
-		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, null);
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer){
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer);
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String validatedAuthenticationReciept){
-		String newAuthenticationReceipt = createOrRefreshAuthenticationReceipt(principalId, validatedAuthenticationReciept);
+	@Deprecated
+	LoginResponse getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(long principalId){
+		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		//generate session tokens for user after successful check
 		Session session = getSessionToken(principalId);
 		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
-	private String createOrRefreshAuthenticationReceipt(Long principalId, String validatedAuthenticationReciept) {
-		String newAuthenticationReceipt = null;
-		if(validatedAuthenticationReciept != null) {
-			newAuthenticationReceipt = authReceiptDAO.replaceReceipt(principalId, validatedAuthenticationReciept);
-		} else {
-			if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {
-				newAuthenticationReceipt = authReceiptDAO.createNewReceipt(principalId);
-			}
-		}
-		return newAuthenticationReceipt;
+	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer) {
+		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
+		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
+		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
+		authDAO.setAuthenticatedOn(principalId, clock.now());
+		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
-
+	
+	@Deprecated
 	/**
 	 * Create a login response from the session and the new authentication receipt
 	 * 
@@ -291,10 +308,18 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param newReceipt
 	 * @return
 	 */
-	private LoginResponse createLoginResponse(Session session, String newReceipt) {
+	private static LoginResponse createLoginResponse(Session session, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setSessionToken(session.getSessionToken());
 		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
+		response.setAuthenticationReceipt(newReceipt);
+		return response;
+	}
+
+	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
+		LoginResponse response = new LoginResponse();
+		response.setAccessToken(accessToken);
+		response.setAcceptsTermsOfUse(acceptsTermsOfUse);
 		response.setAuthenticationReceipt(newReceipt);
 		return response;
 	}

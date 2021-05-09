@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -63,6 +64,7 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.Sets;
 
@@ -617,8 +619,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public void deleteAllofType(ObjectType objectType) {
-		ValidateArgument.required(objectType, "objectType");
-		jdbcTemplate.update("DELETE FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_OWNER_TYPE+" = ?", objectType.name());
+	public void truncateAll() {
+		SqlParameterSource params = new MapSqlParameterSource("bootstrapIds",
+				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds());
+		namedParameterJdbcTemplate.update(
+				"DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + " WHERE " + COL_ACL_OWNER_ID + " NOT IN(:bootstrapIds)",
+				params);
 	}
 }

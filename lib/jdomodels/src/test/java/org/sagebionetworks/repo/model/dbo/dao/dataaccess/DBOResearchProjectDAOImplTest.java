@@ -1,15 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+
+import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Date;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -24,14 +26,14 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOResearchProjectDAOImplTest {
 
@@ -56,7 +58,7 @@ public class DBOResearchProjectDAOImplTest {
 	private ManagedACTAccessRequirement accessRequirement = null;
 	private ResearchProject dto = null;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		// create a user
 		individualGroup = new UserGroup();
@@ -83,7 +85,7 @@ public class DBOResearchProjectDAOImplTest {
 		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (dto != null) {
 			researchProjectDao.delete(dto.getId());
@@ -100,10 +102,14 @@ public class DBOResearchProjectDAOImplTest {
 		}
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testNotFound() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getCreatedBy());
+		
+		assertThrows(NotFoundException.class, () -> {			
+			// Call under test
+			researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getCreatedBy());
+		});
 	}
 
 	@Test
@@ -126,12 +132,10 @@ public class DBOResearchProjectDAOImplTest {
 		assertEquals(dto, updated);
 
 		// insert another one with the same accessRequirementId & createdBy
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			researchProjectDao.create(dto);
-			fail("should fail because of uniqueness constraint");
-		} catch (IllegalArgumentException e){
-			// as expected
-		}
+		});
 
 		// test get for update
 		ResearchProject locked = transactionTemplate.execute(new TransactionCallback<ResearchProject>() {
@@ -145,9 +149,48 @@ public class DBOResearchProjectDAOImplTest {
 		dto = updated;
 	}
 
-	@Test (expected = IllegalTransactionStateException.class)
+	@Test
 	public void testGetForUpdateWithoutTransaction() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.getForUpdate(dto.getId());
+		
+		assertThrows(IllegalTransactionStateException.class, () -> {			
+			researchProjectDao.getForUpdate(dto.getId());
+		});
+	}
+	
+	@Test
+	public void testCreateWithNoIDU() {
+		dto = ResearchProjectTestUtils.createNewDto();
+		
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		
+		// The IDU can be null
+		dto.setIntendedDataUseStatement(null);
+		
+		// Call under test
+		dto = researchProjectDao.create(dto);
+		
+		assertNull(dto.getIntendedDataUseStatement());
+	}
+	
+	@Test
+	public void testUpdateWithNoIDU() {
+		dto = ResearchProjectTestUtils.createNewDto();
+		
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setIntendedDataUseStatement("Some IDU");
+		
+		// First create with a IDU
+		dto = researchProjectDao.create(dto);
+		
+		assertEquals("Some IDU", dto.getIntendedDataUseStatement());
+		
+		// Clear it
+		dto.setIntendedDataUseStatement(null);
+		
+		// Call under test
+		dto = researchProjectDao.update(dto);
+		
+		assertNull(dto.getIntendedDataUseStatement());
 	}
 }

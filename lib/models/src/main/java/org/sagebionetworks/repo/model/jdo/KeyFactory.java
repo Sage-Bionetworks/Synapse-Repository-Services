@@ -3,11 +3,12 @@ package org.sagebionetworks.repo.model.jdo;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -22,7 +23,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class KeyFactory {
 	
 	public static final String IS_NOT_A_VALID_SYNAPSE_ID_SUFFIX = " is not a valid Synapse ID.";
-	public static final Long ROOT_ID = new Long(4489);
+	public static final Long ROOT_ID = NodeConstants.BOOTSTRAP_NODES.ROOT.getId();
 	public static final String SYN_ROOT_ID = KeyFactory.keyToString(ROOT_ID);
 
 	/**
@@ -74,6 +75,16 @@ public class KeyFactory {
 			resutls.add(stringToKey(key));
 		}
 		return resutls;
+	}
+	
+	/**
+	 * Given a single string return singleton long list.
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public static List<Long> stringToKeySingletonList(String id) throws DatastoreException {
+		return Collections.singletonList(stringToKey(id));
 	}
 
 	/**

@@ -66,4 +66,115 @@ public class ValueExpressionTest {
 		assertEquals("syn11.22", one.toSql());
 	}
 
+	//////////////////////////
+	// getDisplayName() tests
+	//////////////////////////
+
+	@Test
+	public void testGetDisplayNameFunction() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("min(bar)");
+		assertEquals("MIN(bar)", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameFunctionQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("count(\"has space\")");
+		assertEquals("COUNT(\"has space\")", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("\"quoted\"");
+		assertEquals("quoted", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameNoQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("no_space");
+		assertEquals("no_space", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameDouble() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("1.23");
+		assertEquals("1.23", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithSpace() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("\"has space\"");
+		assertEquals("has space", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithFunction() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("date(foo)");
+		assertEquals("DATE(foo)", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithAggregateAndNoQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("count(foo)");
+		assertEquals("COUNT(foo)", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithAggregateAndQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("count(\"foo\")");
+		assertEquals("COUNT(\"foo\")", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithAggregateAndWrappedEscapedQuotes() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("count(\"foo\"\"quoted\")");
+		assertEquals("COUNT(\"foo\"\"quoted\")", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithArithmetic() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("5 div 2");
+		assertEquals("5 DIV 2", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameWithArithmeticColumn() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("5+foo");
+		assertEquals("5+foo", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameSingleQuote() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("\"single'quote\"");
+		assertEquals("single'quote", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameDoubleQuote() throws ParseException{
+		ValueExpression element = SqlElementUntils.createValueExpression("\"double\"\"quote\"");
+		assertEquals("double\"quote", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameBacktick() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("\"back`tick\"");
+		assertEquals("back`tick", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameStringLiteral() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("'Some String Literal'");
+		assertEquals("Some String Literal", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameEmpty() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("\"\"");
+		assertEquals("", element.getDisplayName());
+	}
+
+	@Test
+	public void testGetDisplayNameEmptySingleValue() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("\'\'");
+		assertEquals("", element.getDisplayName());
+	}
 }

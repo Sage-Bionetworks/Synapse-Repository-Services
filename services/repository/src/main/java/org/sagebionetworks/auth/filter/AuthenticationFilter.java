@@ -92,7 +92,7 @@ public class AuthenticationFilter implements Filter {
 				log.warn(failureReason, e);
 				return;
 			}
-			accessToken=oidcTokenHelper.createTotalAccessToken(userId);
+			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
 			// If there is no session token, then check for a HMAC signature
 		} else if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
@@ -106,7 +106,7 @@ public class AuthenticationFilter implements Filter {
 				log.warn(failureReason, e);
 				return;
 			}
-			accessToken=oidcTokenHelper.createTotalAccessToken(userId);
+			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
 		} else {
 			accessToken=HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 			if (!isTokenEmptyOrNull(accessToken)) {

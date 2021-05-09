@@ -10,7 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -19,9 +18,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -80,7 +79,6 @@ public class SubmissionFileHandleDBOTest {
         evaluation.setOwnerId(userId);
         evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setCreatedOn(System.currentTimeMillis());
-        evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
         
         // Initialize a new Submission

@@ -51,12 +51,21 @@ public interface SubmissionManager {
 	public SubmissionPage listSubmission(UserInfo userInfo, SubmissionPageRequest request);
 
 	/**
+	 * Delete a submission.
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 */
+	public void deleteSubmission(UserInfo userInfo, String submissionId);
+
+	/**
 	 * List the submission info for approved submissions.
 	 * 
+	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
-	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request);
+	public SubmissionInfoPage listInfoForApprovedSubmissions(UserInfo user, SubmissionInfoPageRequest request);
 
 	/**
 	 * Retrieve the status of a user meeting an access requirement

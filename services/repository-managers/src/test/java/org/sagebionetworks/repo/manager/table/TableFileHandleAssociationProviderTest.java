@@ -1,31 +1,30 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class TableFileHandleAssociationProviderTest {
 	
-	TableFileHandleAssociationProvider provider;
-	TableEntityManager tableEntityManager;
+	@Mock
+	private TableEntityManager tableEntityManager;
 	
-	@Before
-	public void before(){
-		tableEntityManager = Mockito.mock(TableEntityManager.class);
-		provider = new TableFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "tableEntityManager", tableEntityManager);
-	}
+	@InjectMocks
+	private TableFileHandleAssociationProvider provider;
 	
 	@Test
 	public void testGetAuthorizationObjectTypeForAssociatedObjectType(){
@@ -41,6 +40,11 @@ public class TableFileHandleAssociationProviderTest {
 		//call under test
 		Set<String> out = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, tableId);
 		assertEquals(results, out);
+	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.TableEntity, provider.getAssociateType());
 	}
 
 }

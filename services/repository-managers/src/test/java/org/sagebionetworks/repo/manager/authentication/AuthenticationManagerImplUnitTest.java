@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,8 +14,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl.AUTHENTICATION_RECEIPT_LIMIT;
 
+import java.util.Date;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -27,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationManagerImplUnitTest {
@@ -58,7 +59,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Mock
 	private UserGroupDAO mockUserGroupDAO;
 	@Mock
-	private AuthenticationReceiptDAO mockAuthReceiptDAO;
+	private AuthenticationReceiptTokenGenerator mockReceiptTokenGenerator;
 	@Mock
 	private PasswordValidatorImpl mockPassswordValidator;
 	@Mock
@@ -67,12 +68,18 @@ public class AuthenticationManagerImplUnitTest {
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
 	private PasswordResetTokenGenerator mockPasswordResetTokenGenerator;
-
+	@Mock
+	private OIDCTokenHelper mockOIDCTokenHelper;
+	@Mock
+	private Clock mockClock;
+	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String synapseSessionToken = "synapsesessiontoken";
+	final String synapseAccessToken = "synapseaccesstoken";
 	final String receipt = "receipt";
+	final String issuer = "https://repo-prod.sagebase.org/v1";
 
 	final String newChangedPassword = "hunter2";
 
@@ -137,30 +144,26 @@ public class AuthenticationManagerImplUnitTest {
 
 		// Token matches, but terms haven't been signed
 		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (TermsOfUseException e) {
-		}
+		assertThrows(TermsOfUseException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		});
 
 		// Nothing matches the token
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (UnauthenticatedException e) {
-			assertTrue(e.getMessage().contains("invalid"));
-		}
+		
+		String message = assertThrows(UnauthenticatedException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		}).getMessage();
+		assertEquals("The session token (synapsesessiontoken) is invalid", message);
 
 		// Token matches, but has expired
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
-		try {
-			authManager.checkSessionToken(synapseSessionToken, true).toString();
-			fail();
-		} catch (UnauthenticatedException e) {
-			assertTrue(e.getMessage().contains("expired"));
-		}
+		
+		message = assertThrows(UnauthenticatedException.class, ()->{
+			authManager.checkSessionToken(synapseSessionToken, true);
+		}).getMessage();
+		assertEquals("The session token (synapsesessiontoken) has expired", message);
 	}
 
 	@Test
@@ -175,13 +178,11 @@ public class AuthenticationManagerImplUnitTest {
 	public void testSetPasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);
-		try {
+		
+		assertThrows(InvalidPasswordException.class, ()->{
 			authManager.setPassword(userId, bannedPassword);
-			fail();
-		} catch (InvalidPasswordException e) {
-			//expected
-		}
-
+		}).getMessage();
+		
 		verify(mockPassswordValidator).validatePassword(bannedPassword);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
@@ -199,73 +200,91 @@ public class AuthenticationManagerImplUnitTest {
 	///////////////
 
 	@Test
-	public void testLogin(){
+	public void testLoginForSession() {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
 		setupMockPrincipalAliasDAO();
 		setupMockUserGroupDAO();
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		String newReceipt = "newReceipt";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 
-		authManager.login(loginRequest);
+		// call under test
+		LoginResponse response = authManager.loginForSession(loginRequest);
+		assertNotNull(response);
+		assertEquals(newReceipt, response.getAuthenticationReceipt());
+		assertEquals(synapseSessionToken, response.getSessionToken());
 
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
-		verify(mockAuthReceiptDAO).deleteExpiredReceipts(eq(userId), anyLong());
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
+	}
+
+
+	@Test
+	public void testLogin() {
+		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
+		setupMockPrincipalAliasDAO();
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
+		String newReceipt = "newReceipt";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		Date now = new Date(12345L);
+		when(mockClock.now()).thenReturn(now);
+
+		// call under test
+		LoginResponse response = authManager.login(loginRequest, issuer);
+		assertNotNull(response);
+		assertEquals(newReceipt, response.getAuthenticationReceipt());
+		assertEquals(synapseAccessToken, response.getAccessToken());
+
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockUserCredentialValidator).checkPassword(userId, password);
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 
 	///////////////////////////////////////////////////////////
 	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
 	///////////////////////////////////////////////////////////
 	@Test
-	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+	public void testGetLoginResponseWithSessionAfterSuccessfulAuthentication_validReciept(){
 		setupMockUserGroupDAO();
 		String newReceipt = "uwu";
-		when(mockAuthReceiptDAO.replaceReceipt(userId, receipt)).thenReturn(newReceipt);
-		//when(mockAuthReceiptDAO.createNewReceipt(userId)).thenReturn(receipt);
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, receipt);
+		LoginResponse loginResponse = authManager.getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
-
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO).replaceReceipt(userId, receipt);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 	}
 
 	@Test
-	public void testGetLoginResponseAfterSuccessfulAuthentication_nullReciept_underReceiptLimit(){
-		setupMockUserGroupDAO();
-		when(mockAuthReceiptDAO.createNewReceipt(userId)).thenReturn(receipt);
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
+	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+		String newReceipt = "uwu";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		Date authTime = new Date(12345L);
+		when(mockClock.now()).thenReturn(authTime);
+		LoginResponse expected = new LoginResponse();
+		expected.setAcceptsTermsOfUse(true);
+		expected.setAccessToken(synapseAccessToken);
+		expected.setAuthenticationReceipt(newReceipt);
 
 		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, null);
-
-		assertEquals(receipt, loginResponse.getAuthenticationReceipt());
-		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
-
-		verify(mockAuthReceiptDAO).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(),anyString());
-	}
-
-	@Test
-	public void testGetLoginResponseAfterSuccessfulAuthentication_nullReciept_overReceiptLimit(){
-		setupMockUserGroupDAO();
-		when(mockAuthReceiptDAO.countReceipts(userId)).thenReturn(AUTHENTICATION_RECEIPT_LIMIT);
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
-
-		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, null);
-
-		assertEquals(null, loginResponse.getAuthenticationReceipt());
-		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
-
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(userId);
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(userId, receipt);
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, issuer);
+		
+		assertEquals(loginResponse, loginResponse);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, authTime);
 	}
 
 	///////////////////////////////////////////
@@ -285,65 +304,57 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceipt() {
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
 
 		//method under test
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithInvalidReceiptAndWrongPassword() {
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(false);
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(false);
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
 
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e) {
-			//expected the exception to be thrown
-		}
+		});
 
 		verify(mockUserCredentialValidator, never()).checkPassword(userId, password);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithValidReceipt() {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
-
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 
 		authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
 	public void testValidateAuthReceiptAndCheckPassword_WithValidReceiptAndWrongPassword() {
-		when(mockAuthReceiptDAO.isValidReceipt(userId, receipt)).thenReturn(true);
+		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(false);
 
-
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
 			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, receipt);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e) {
-			//expected the exception to be thrown
-		}
+		});
 
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
-		verify(mockAuthReceiptDAO, never()).createNewReceipt(anyLong());
-		verify(mockAuthReceiptDAO, never()).replaceReceipt(anyLong(), anyString());
+		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 	}
 
 	@Test
@@ -352,12 +363,10 @@ public class AuthenticationManagerImplUnitTest {
 
 		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(false);
 
-		try {
+		assertThrows(UnauthenticatedException.class, ()->{
+			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
-			fail("expected exception to be thrown");
-		} catch (UnauthenticatedException e){
-			//expected
-		}
+		});
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator, never()).validatePassword(password);
@@ -370,13 +379,11 @@ public class AuthenticationManagerImplUnitTest {
 
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(password);
 
-		try {
+		String message = assertThrows(PasswordResetViaEmailRequiredException.class, ()->{
+			//method under test
 			authManager.validateAuthReceiptAndCheckPassword(userId, password, null);
-			fail("expected exception to be thrown");
-		} catch (PasswordResetViaEmailRequiredException e){
-			//expected
-			assertEquals("You must change your password via email reset.", e.getMessage());
-		}
+		}).getMessage();
+		assertEquals("You must change your password via email reset.", message);
 
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockPassswordValidator).validatePassword(password);
@@ -402,14 +409,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testFindUserForAuthentication_userNotFound(){
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(null);
-
-		try{
+		
+		String message = assertThrows(UnauthenticatedException.class, ()->{
 			authManager.findUserIdForAuthentication(username);
-			fail("Expected UnauthenticatedException to be thrown");
-		} catch (UnauthenticatedException e){
-			//expected
-			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
-		}
+		}).getMessage();
+		assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, message);
 	}
 
 
@@ -516,8 +520,8 @@ public class AuthenticationManagerImplUnitTest {
 				}
 
 				@Override
-				public void setNewPassword(String newPassword) {
-
+				public ChangePasswordInterface setNewPassword(String newPassword) {
+					return this;
 				}
 
 				@Override
@@ -526,8 +530,8 @@ public class AuthenticationManagerImplUnitTest {
 				}
 
 				@Override
-				public void setConcreteType(String concreteType) {
-
+				public ChangePasswordInterface setConcreteType(String concreteType) {
+					return this;
 				}
 
 				@Override
@@ -582,13 +586,9 @@ public class AuthenticationManagerImplUnitTest {
 		doNothing().when(mockPassswordValidator).validatePassword(password);
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(newChangedPassword);
 
-		try {
-			//method under test
-			Long changedPasswordUserId = authManager.changePassword(changePasswordWithCurrentPassword);
-			fail();
-		} catch (InvalidPasswordException e){
-			//expected
-		}
+		assertThrows(InvalidPasswordException.class,()->{
+			authManager.changePassword(changePasswordWithCurrentPassword);
+		});
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);

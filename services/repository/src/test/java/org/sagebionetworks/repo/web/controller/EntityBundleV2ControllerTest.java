@@ -30,8 +30,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -228,9 +228,11 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 
 		S3FileHandle handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setKey("EntityControllerTest.testGetFileHandle1");
-
+		handleOne.setContentMd5("md51");
+		
 		S3FileHandle handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setKey("EntityControllerTest.testGetFileHandle2");
+		handleTwo.setContentMd5("md52");
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);

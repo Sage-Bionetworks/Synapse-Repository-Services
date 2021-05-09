@@ -5,8 +5,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Service;
 
 /**
  * Utility for serializing/deserializing objects using the same HttpMessageConverters
@@ -28,9 +32,15 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
-	MappingJackson2HttpMessageConverter jacksonConverter = new MappingJackson2HttpMessageConverter();
-	JSONEntityHttpMessageConverter jsonEntityConverter = new JSONEntityHttpMessageConverter();
+	private MappingJackson2HttpMessageConverter jacksonConverter;
+	private JSONEntityHttpMessageConverter jsonEntityConverter;
 	
+	public ObjectTypeSerializerImpl() {
+		Set<Class <? extends JSONEntity>> set = new HashSet<>();
+		set.add(CreateSchemaRequest.class);
+		jsonEntityConverter = new JSONEntityHttpMessageConverter(set);
+		jacksonConverter = new MappingJackson2HttpMessageConverter();
+	}
 
 	/**
 	 * Deserialize the body of an HttpRequest entity from an http call.

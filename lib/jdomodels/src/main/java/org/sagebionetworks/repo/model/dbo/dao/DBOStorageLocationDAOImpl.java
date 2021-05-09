@@ -55,8 +55,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	@Autowired
 	private IdGenerator idGenerator;
 
-	public static final Long DEFAULT_STORAGE_LOCATION_ID = 1L;
-
 	private static final int STORAGE_LOCATIONS_LIST_LIMIT = 100;
 
 	private static final String STORAGE_LOCATION_IDS_PARAM = "udl_ids";

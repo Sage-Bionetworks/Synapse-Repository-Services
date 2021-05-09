@@ -54,10 +54,6 @@ public class OpenIDConnectController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 	
-	public static String getEndpoint(UriComponentsBuilder uriComponentsBuilder) {
-		return uriComponentsBuilder.fragment(null).replaceQuery(null).path(UrlHelpers.AUTH_PATH).build().toString();	
-	}
-
 	/**
 	 * Get the Open ID Configuration ("Discovery Document") for the Synapse OIDC service.
 	 * @return
@@ -69,7 +65,7 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OIDConnectConfiguration getOIDCConfiguration(UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
-				getOIDCConfiguration(getEndpoint(uriComponentsBuilder));
+				getOIDCConfiguration(EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 	
 	/**
@@ -113,7 +109,7 @@ public class OpenIDConnectController {
 	 * <br>
 	 * See the <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>
 	 * <br>
-	 * Synapse supports 'client_secret_basic'.
+	 * Synapse supports 'client_secret_basic' and 'client_secret_post'.
 	 * <br>
 	 * <em>NOTE:  This request will invalidate any previously issued secrets.</em>
 	 * 
@@ -319,7 +315,7 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 		
 	/**
@@ -338,11 +334,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
-			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**
@@ -360,11 +356,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
-			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**

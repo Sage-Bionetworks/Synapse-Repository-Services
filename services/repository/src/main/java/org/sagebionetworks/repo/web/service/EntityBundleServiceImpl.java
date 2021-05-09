@@ -8,10 +8,8 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -25,7 +23,6 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -38,6 +35,7 @@ import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,9 +51,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@Autowired
 	AccessRequirementManager accessRequirementManager;
-	
+
 	public EntityBundleServiceImpl() {}
-	
+
 	/**
 	 * Direct constructor (for testing purposes)
 	 * 
@@ -160,11 +158,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if(isTrue(request.getIncludeDOIAssociation()) ){
 			try {
-				if (versionNumber == null && (entity instanceof VersionableEntity)) {
-					// DOIs on VersionableEntity cannot be versionless, so we want to get the DOI for the current version
+				if (versionNumber == null && (entity instanceof FileEntity)) {
+					// For File Entities, we assume that the user wants the DOI of the most recent version, if it exists.
 					Long currentVersionNumber = ((VersionableEntity) entity).getVersionNumber();
 					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, currentVersionNumber));
-				} else {
+				} else { // Handle non-versionable entities and other types of versionable entities
+					// For other versionable entity types (e.g. tables), the 'current version' is mutable.
+					// In this case, we get the DOI of the specified version, which may be null.
 					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, versionNumber));
 				}
 			} catch (NotFoundException e) {

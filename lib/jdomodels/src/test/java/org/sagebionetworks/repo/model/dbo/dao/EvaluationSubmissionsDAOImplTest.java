@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAOImpl;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -78,7 +77,6 @@ public class EvaluationSubmissionsDAOImplTest {
 		evaluation.setName("evaluation name");
 		evaluation.setOwnerId(ownerId.toString());
 		evaluation.setCreatedOn(new Date());
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluationIdToDelete = evaluationDAO.create(evaluation, ownerId);
 		
 		mockTransactionalMessenger = mock(TransactionalMessenger.class);

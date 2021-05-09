@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.manager.dataaccess;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -56,7 +58,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private TeamManager teamManager;
 	
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
@@ -108,7 +110,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		childNode.setParentId(entityId);
 		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
-		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		String testUserId = testUserInfo.getId().toString();
@@ -117,7 +119,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		atSet.add(ACCESS_TYPE.CREATE);
 		ra.setAccessType(atSet);
 		raSet.add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
@@ -326,4 +328,19 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, ars.size());
 	}
+
+	@Test
+	public void testDeleteAccessRequirement() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		String accessRequirementId = String.valueOf(ar.getId());
+		// Call under test
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, accessRequirementId);
+		String expectedMessage = "An access requirement with id "+ accessRequirementId + " cannot be found.";
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			accessRequirementManager.getAccessRequirement(accessRequirementId);
+		});
+		assertEquals(expectedMessage, exception.getMessage());
+	}
+
 }

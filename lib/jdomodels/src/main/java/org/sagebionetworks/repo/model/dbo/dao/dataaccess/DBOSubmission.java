@@ -34,7 +34,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("createdBy", COL_DATA_ACCESS_SUBMISSION_CREATED_BY),
 			new FieldColumn("createdOn", COL_DATA_ACCESS_SUBMISSION_CREATED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_SUBMISSION_ETAG).withIsEtag(true),
-			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED),
+			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED).withHasFileHandleRef(true),
 			new FieldColumn("researchProjectId", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID)
 		};
 

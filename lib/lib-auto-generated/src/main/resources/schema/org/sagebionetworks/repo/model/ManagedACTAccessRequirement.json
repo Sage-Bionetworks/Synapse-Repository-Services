@@ -33,6 +33,10 @@
 		"isIDUPublic": {
 			"type":"boolean",
 			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
+		},
+		"isIDURequired": {
+			"type": "boolean",
+			"description": "If true (default), the Intended Data Use Statement for a research project is required."
 		}
 	}
 }

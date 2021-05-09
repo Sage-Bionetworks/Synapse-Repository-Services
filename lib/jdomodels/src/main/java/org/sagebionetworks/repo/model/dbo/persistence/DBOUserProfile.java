@@ -45,7 +45,7 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true).withIsBackupId(true),
 		new FieldColumn("properties", COL_USER_PROFILE_PROPS_BLOB),
 		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true),
-		new FieldColumn("pictureId", COL_USER_PROFILE_PICTURE_ID),
+		new FieldColumn("pictureId", COL_USER_PROFILE_PICTURE_ID).withHasFileHandleRef(true),
 		new FieldColumn("emailNotification", COL_USER_PROFILE_EMAIL_NOTIFICATION),
 		new FieldColumn("firstName", COL_USER_PROFILE_FIRST_NAME),
 		new FieldColumn("lastName", COL_USER_PROFILE_LAST_NAME)

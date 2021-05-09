@@ -1,0 +1,47 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "hasNot",
+	"description": "test of not condition",
+	"properties": {
+		"color": {
+			"enum": [
+				"red",
+				"blue",
+				"green",
+				"pink",
+				"orange",
+				"purple"
+			]
+		},
+		"isPrimary": {
+			"type": "string"
+		}
+	},
+	"if": {
+		"not": {
+			"properties": {
+				"color": {
+					"enum": [
+						"red",
+						"blue",
+						"green"
+					]
+				}
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"isPrimary": {
+				"const": "false"
+			}
+		}
+	},
+	"else": {
+		"properties": {
+			"isPrimary": {
+				"const": "true"
+			}
+		}
+	}
+}

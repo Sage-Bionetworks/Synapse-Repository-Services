@@ -253,9 +253,11 @@ public class TeamManagerImpl implements TeamManager {
 	@WriteTransaction
 	public Team create(UserInfo userInfo, Team team) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
-		if (AuthorizationUtils.isUserAnonymous(userInfo))
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
+		}
 		validateForCreate(team);
+		
 		// create UserGroup (fail if UG with the given name already exists)
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
@@ -263,6 +265,8 @@ public class TeamManagerImpl implements TeamManager {
 		Long id = userGroupDAO.create(ug);
 		// bind the team name to this principal
 		bindTeamName(team.getName(), id);
+		
+		validateTeamIcon(userInfo, null, team.getIcon());
 		
 		team.setId(id.toString());
 		Date now = new Date();
@@ -273,6 +277,31 @@ public class TeamManagerImpl implements TeamManager {
 		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
+	}
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param currentFileHandle
+	 * @param newFileHandle
+	 */
+	private void validateTeamIcon(UserInfo userInfo, String currentFileHandle, String newFileHandle) {
+		// Nothing to check if the user removes a file handle
+		if (newFileHandle == null) {
+			return;
+		}
+		
+		// The file handle didn't change
+		if (newFileHandle.equals(currentFileHandle)) {
+			return;
+		}
+		
+		AuthorizationStatus status = authorizationManager.canAccessRawFileHandleById(userInfo, newFileHandle);
+	
+		if (!status.isAuthorized()) {
+			throw new UnauthorizedException("Only the user that uploaded the file can set it as the team icon.");
+		}
+		
 	}
 	
 	/**
@@ -335,7 +364,8 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit,
-			long offset) throws DatastoreException {
+			long offset) throws DatastoreException, NotFoundException {
+		teamDAO.validateTeamExists(teamId);
 		List<TeamMember> results;
 		Set<Long> adminIds = teamDAO.getAdminTeamMemberIds(teamId).stream().map(Long::valueOf).collect(Collectors.toSet());
 		switch (memberType) {
@@ -367,7 +397,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId,
 															 TeamMemberTypeFilterOptions memberType,
-															 long limit, long offset) throws DatastoreException {
+															 long limit, long offset) throws DatastoreException, NotFoundException {
+		teamDAO.validateTeamExists(teamId);
 		List<Long> prefixMemberIds;
 		switch (memberType) {
 			case ADMIN:
@@ -437,8 +468,8 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(java.lang.String)
 	 */
 	@Override
-	public Team get(String id) throws DatastoreException, NotFoundException {
-		return teamDAO.get(id);
+	public Team get(String teamId) throws DatastoreException, NotFoundException {
+		return teamDAO.get(teamId);
 	}
 
 	/* (non-Javadoc)
@@ -451,8 +482,10 @@ public class TeamManagerImpl implements TeamManager {
 		authorizationManager.canAccess(userInfo, team.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		validateForUpdate(team);
 		populateUpdateFields(userInfo, team, new Date());
+		Team existingTeam = teamDAO.get(team.getId());
 		// bind the team name to this principal
 		bindTeamName(team.getName(), Long.parseLong(team.getId()));
+		validateTeamIcon(userInfo, existingTeam.getIcon(), team.getIcon());
 		return teamDAO.update(team);
 	}
 
@@ -693,18 +726,44 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException {
-		Team team = teamDAO.get(teamId);
-		
-		String fileHandleId = team.getIcon();
-		
-		if (fileHandleId == null) {
-			throw new NotFoundException("Team " + teamId + " has no icon file handle.");
-		}
-		
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
 				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	@Override
+	public String getIconPreviewURL(UserInfo userInfo, String teamId) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(teamId, "teamId");
+
+		String fileHandleId = getFileHandleId(teamId);
+		String fileHandlePreviewId = null;
+		try {
+			fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		} catch(NotFoundException e) {
+			throw new NotFoundException("No preview was found for the icon of the team with id: " + teamId, e);
+		}
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.TeamAttachment, teamId);
+
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	String getFileHandleId(String teamId) throws NotFoundException {
+		Team team = teamDAO.get(teamId);
+		String fileHandleId = team.getIcon();
+
+		if (fileHandleId == null) {
+			throw new NotFoundException("Team " + team.getId() + " has no icon file handle.");
+		}
+		return fileHandleId;
 	}
 
 	@Override

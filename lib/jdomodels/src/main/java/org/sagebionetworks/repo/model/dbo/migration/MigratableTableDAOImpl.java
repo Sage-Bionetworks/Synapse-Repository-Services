@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -315,9 +316,13 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				"FROM INFORMATION_SCHEMA.COLUMNS \n" +
 				"WHERE TABLE_NAME = ? \n" +
 				"AND COLUMN_NAME = ? \n";
-		String isNullable = jdbcTemplate.queryForObject(query, String.class, tableName, columnName);
-		if (!"NO".equals(isNullable)) {
-			throw new IllegalArgumentException("etag column " + columnName + " must be NOT NULL for table " + tableName);
+		try {
+			String isNullable = jdbcTemplate.queryForObject(query, String.class, tableName, columnName);
+			if (!"NO".equals(isNullable)) {
+				throw new IllegalArgumentException("etag column " + columnName + " must be NOT NULL for table " + tableName);
+			}
+		} catch (EmptyResultDataAccessException e){
+			throw new IllegalStateException("Could not find row for table="+tableName + " columnName="+columnName , e);
 		}
 	}
 	
@@ -649,7 +654,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public String getPrimaryCardinalitySql(MigrationType primaryType) {
 		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
 		TableMapping primaryMapping = primaryObject.getTableMapping();
-		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<TableMapping<?>> secondaryMapping = new LinkedList<>();
 		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
 		if(secondaryTypes != null) {
 			for(MigratableDatabaseObject secondary: secondaryTypes) {

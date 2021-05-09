@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -45,6 +44,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -69,10 +69,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
-import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -87,7 +87,6 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -106,7 +105,9 @@ public class EntityManagerImplUnitTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
-	private EntityPermissionsManager mockPermissionsManager;
+	private EntityAclManager mockEntityAclManager;
+	@Mock
+	private EntityAuthorizationManager mockAuthorizationManger;
 	@Mock
 	private NodeManager mockNodeManager;
 	@Mock
@@ -191,14 +192,14 @@ public class EntityManagerImplUnitTest {
 	public void testValidateReadAccessFail() throws DatastoreException, NotFoundException, UnauthorizedException {
 		String entityId = "abc";
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, entityId, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			entityManager.validateReadAccess(mockUser, entityId);
 		});
 
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 
 	}
 
@@ -207,12 +208,12 @@ public class EntityManagerImplUnitTest {
 		String entityId = "abc";
 
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, entityId, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		entityManager.validateReadAccess(mockUser, entityId);
 
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 	}
 
 	@Test
@@ -302,42 +303,94 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateFileHandleId() throws Exception {
+	public void testUpdateEntityAndNoNewVersionWithNewFileHandleId() throws Exception {
 		// Mock dependencies.
 		String id = "123";
 		String parentId = "456";
+		String sourceFileHandleId = "101";
 
 		Node node = new Node();
-		node.setFileHandleId("101");
+		node.setFileHandleId(sourceFileHandleId);
 		Annotations annos = new Annotations();
+		
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
-
+		
+		boolean matchingMD5 = false;
+		
+		when(mockFileHandleManager.isMatchingMD5(any(), any())).thenReturn(matchingMD5);
+		
 		// Make file entity to update.
 		FileEntity entity = new FileEntity();
 		entity.setId(id);
 		entity.setParentId(parentId);
-		String dataFileHandleId = "202"; // i.e. we are updating from 101 to 202
-		entity.setDataFileHandleId(dataFileHandleId);
+		String targetFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(targetFileHandleId);
 		entity.setVersionComment("a comment for the original version");
 		entity.setVersionLabel("a label for the original version");
 
 		boolean newVersion = false; // even though new version is false the
-		// modified file handle will trigger a version update
+		// modified file handle will trigger a version update since the MD5 does not match
 
 		// method under test
 		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		verify(mockNodeManager).getNode(mockUser, id);
+		verify(mockNodeManager).getEntityPropertyAnnotations(mockUser, id);
+		verify(mockFileHandleManager).isMatchingMD5(sourceFileHandleId, targetFileHandleId);
+		verify(mockNodeManager).update(mockUser, node, annos, !newVersion);
 
 		assertNull(node.getVersionComment());
 		assertNull(node.getVersionLabel());
+	}
+	
+	@Test
+	public void testUpdateEntityAndNoNewVersionWithNewFileHandleIdSameMD5() throws Exception {
+		// Mock dependencies.
+		String id = "123";
+		String parentId = "456";
+		String sourceFileHandleId = "101";
+
+		Node node = new Node();
+		node.setFileHandleId(sourceFileHandleId);
+		Annotations annos = new Annotations();
+		
+		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
+		
+		boolean matchingMD5 = true;
+		
+		when(mockFileHandleManager.isMatchingMD5(any(), any())).thenReturn(matchingMD5);
+		
+		// Make file entity to update.
+		FileEntity entity = new FileEntity();
+		entity.setId(id);
+		entity.setParentId(parentId);
+		String targetFileHandleId = "202"; // i.e. we are updating from 101 to 202
+		entity.setDataFileHandleId(targetFileHandleId);
+		entity.setVersionComment("a comment for the original version");
+		entity.setVersionLabel("a label for the original version");
+
+		boolean newVersion = false;
+
+		// method under test
+		entityManager.updateEntity(mockUser, entity, newVersion, null);
+		
+		verify(mockNodeManager).getNode(mockUser, id);
+		verify(mockNodeManager).getEntityPropertyAnnotations(mockUser, id);
+		verify(mockFileHandleManager).isMatchingMD5(sourceFileHandleId, targetFileHandleId);
+		verify(mockNodeManager).update(mockUser, node, annos, newVersion);
+
+		assertEquals(entity.getVersionComment(), node.getVersionComment());
+		assertEquals(node.getVersionLabel(), node.getVersionLabel());
 	}
 
 	@Test
 	public void testGetChildren() {
 
-		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, childRequest.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockPermissionsManager.getNonvisibleChildren(mockUser, childRequest.getParentId()))
+		when(mockEntityAclManager.getNonvisibleChildren(mockUser, childRequest.getParentId()))
 				.thenReturn(nonvisibleChildren);
 
 		when(mockNodeManager.getChildren(anyString(), anyListOf(EntityType.class), anySetOf(Long.class),
@@ -351,8 +404,8 @@ public class EntityManagerImplUnitTest {
 		assertNotNull(response);
 		assertEquals(statsReponse.getTotalChildCount(), response.getTotalChildCount());
 		assertEquals(statsReponse.getSumFileSizesBytes(), response.getSumFileSizesBytes());
-		verify(mockPermissionsManager).hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser);
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, childRequest.getParentId());
+		verify(mockAuthorizationManger).hasAccess(mockUser, childRequest.getParentId(), ACCESS_TYPE.READ);
+		verify(mockEntityAclManager).getNonvisibleChildren(mockUser, childRequest.getParentId());
 		verify(mockNodeManager).getChildren(childRequest.getParentId(), childRequest.getIncludeTypes(),
 				nonvisibleChildren, DEFAULT_SORT_BY, DEFAULT_SORT_DIRECTION, DEFAULT_LIMIT + 1, DEFAULT_OFFSET);
 
@@ -402,8 +455,8 @@ public class EntityManagerImplUnitTest {
 		EntityChildrenResponse response = entityManager.getChildren(mockUser, childRequest);
 		assertNotNull(response);
 		// hasAcces should not be called for root.
-		verify(mockPermissionsManager, never()).hasAccess(anyString(), any(ACCESS_TYPE.class), any(UserInfo.class));
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, EntityManagerImpl.ROOT_ID);
+		verify(mockAuthorizationManger, never()).hasAccess(any(UserInfo.class), anyString(), any(ACCESS_TYPE.class));
+		verify(mockEntityAclManager).getNonvisibleChildren(mockUser, EntityManagerImpl.ROOT_ID);
 		verify(mockNodeManager).getChildren(EntityManagerImpl.ROOT_ID, EntityManagerImpl.PROJECT_ONLY,
 				new HashSet<Long>(), SortBy.NAME, Direction.ASC, NextPageToken.DEFAULT_LIMIT + 1,
 				NextPageToken.DEFAULT_OFFSET);
@@ -431,7 +484,7 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testGetChildrenCannotReadParent() {
-		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, childRequest.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
@@ -443,9 +496,9 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testGetChildrenNextPage() {
 
-		when(mockPermissionsManager.hasAccess(childRequest.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, childRequest.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockPermissionsManager.getNonvisibleChildren(mockUser, childRequest.getParentId()))
+		when(mockEntityAclManager.getNonvisibleChildren(mockUser, childRequest.getParentId()))
 				.thenReturn(nonvisibleChildren);
 
 		when(mockNodeManager.getChildren(anyString(), anyListOf(EntityType.class), anySetOf(Long.class),
@@ -503,7 +556,7 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, request.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
@@ -516,7 +569,7 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, request.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName()))
 				.thenThrow(new NotFoundException());
@@ -531,10 +584,10 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, request.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, entityId, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
@@ -547,10 +600,10 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
 		request.setEntityName("entityName");
-		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, request.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, entityId, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
@@ -562,7 +615,7 @@ public class EntityManagerImplUnitTest {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setEntityName("entityName");
 		when(mockNodeManager.lookupChild(EntityManagerImpl.ROOT_ID, request.getEntityName())).thenReturn(entityId);
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser))
+		when(mockAuthorizationManger.hasAccess(mockUser, entityId, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
@@ -664,13 +717,13 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testBindSchemaToEntity() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any())).thenReturn(schemaBinding);
 
 		// call under test
 		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest);
 		assertEquals(schemaBinding, result);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
 		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
 				BoundObjectType.entity);
 		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
@@ -678,11 +731,11 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testBindSchemaToEntityWithUnauthorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
 		assertThrows(UnauthorizedException.class, () -> {
 			entityManager.bindSchemaToEntity(mockUser, schemaBindRequest);
 		});
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
 		verify(mockJsonSchemaManager, never()).bindSchemaToObject(any(), any(), any(), any());
 	}
 
@@ -721,27 +774,27 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testGetBoundSchema() {
 		Long boundId = 456L;
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenReturn(boundId);
 		when(mockJsonSchemaManager.getJsonSchemaObjectBinding(any(), any())).thenReturn(schemaBinding);
 		// call under test
 		JsonSchemaObjectBinding result = entityManager.getBoundSchema(mockUser, entityId);
 		assertNotNull(result);
 		assertEquals(schemaBinding, result);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(mockNodeManager).findFirstBoundJsonSchema(KeyFactory.stringToKey(entityId));
 		verify(mockJsonSchemaManager).getJsonSchemaObjectBinding(boundId, BoundObjectType.entity);
 	}
 
 	@Test
 	public void testGetBoundSchemaWithUnauthorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
 
 		assertThrows(UnauthorizedException.class, () -> {
 			entityManager.getBoundSchema(mockUser, entityId);
 		});
 
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(mockNodeManager, never()).findFirstBoundJsonSchema(any());
 	}
 
@@ -763,10 +816,10 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testClearBoundSchema() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		entityManagerSpy.clearBoundSchema(mockUser, entityId);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.DELETE);
 		verify(mockJsonSchemaManager).clearBoundSchema(123L, BoundObjectType.entity);
 		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
 	}
@@ -803,13 +856,13 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testClearBoundSchemaWithUnauthorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any()))
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
 				.thenReturn(AuthorizationStatus.accessDenied("nope"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			entityManager.clearBoundSchema(mockUser, entityId);
 		});
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.DELETE, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.DELETE);
 		verify(mockJsonSchemaManager, never()).clearBoundSchema(any(), any());
 	}
 
@@ -833,7 +886,7 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testGetEntityJson() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		Project project = new Project();
 		project.setId(entityId);
 		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
@@ -845,7 +898,7 @@ public class EntityManagerImplUnitTest {
 		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId);
 		assertNotNull(object);
 		assertEquals(jsonResult, object);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
 		verify(mockAnnotationTranslator).writeToJsonObject(project, annos);
@@ -853,12 +906,12 @@ public class EntityManagerImplUnitTest {
 
 	@Test
 	public void testGetEntityJsonWithUnauthrorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			entityManagerSpy.getEntityJson(mockUser, entityId);
 		});
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verifyNoMoreInteractions(mockNodeManager);
 		verifyNoMoreInteractions(mockAnnotationTranslator);
 	}
@@ -960,24 +1013,24 @@ public class EntityManagerImplUnitTest {
 	
 	@Test
 	public void testGetEntityValidationResults() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		ValidationResults expected = new ValidationResults();
 		expected.setObjectId(entityId);
 		when(mockEntitySchemaValidationResultDao.getValidationResults(any())).thenReturn(expected);
 		// call under test
 		ValidationResults results = entityManager.getEntityValidationResults(mockUser, entityId);
 		assertEquals(expected, results);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(mockEntitySchemaValidationResultDao).getValidationResults(entityId);
 	}
 	
 	@Test
 	public void testGetEntityValidationResultsWithUnauthorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
 		assertThrows(UnauthorizedException.class, ()->{
 			entityManager.getEntityValidationResults(mockUser, entityId);
 		});
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(mockEntitySchemaValidationResultDao, never()).getValidationResults(any());
 	}
 	
@@ -999,25 +1052,25 @@ public class EntityManagerImplUnitTest {
 	
 	@Test
 	public void testAuthorizedListChildren() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		Set<Long> nonVisible = Sets.newHashSet(543L);
-		when(mockPermissionsManager.getNonvisibleChildren(any(), any())).thenReturn(nonVisible);
+		when(mockEntityAclManager.getNonvisibleChildren(any(), any())).thenReturn(nonVisible);
 		// call under test
 		Set<Long> results = entityManager.authorizedListChildren(mockUser, entityId);
 		assertEquals(nonVisible, results);
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, entityId);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockEntityAclManager).getNonvisibleChildren(mockUser, entityId);
 	}
 	
 	@Test
 	public void testAuthorizedListChildrenWithUnauthorized() {
-		when(mockPermissionsManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no access"));
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no access"));
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			entityManager.authorizedListChildren(mockUser, entityId);
 		});
-		verify(mockPermissionsManager).hasAccess(entityId, ACCESS_TYPE.READ, mockUser);
-		verify(mockPermissionsManager, never()).getNonvisibleChildren(any(), any());
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockEntityAclManager, never()).getNonvisibleChildren(any(), any());
 	}
 	
 	
@@ -1025,12 +1078,12 @@ public class EntityManagerImplUnitTest {
 	public void testAuthorizedListChildrenWithRootId() {
 		entityId = NodeUtils.ROOT_ENTITY_ID;
 		Set<Long> nonVisible = Sets.newHashSet(543L);
-		when(mockPermissionsManager.getNonvisibleChildren(any(), any())).thenReturn(nonVisible);
+		when(mockEntityAclManager.getNonvisibleChildren(any(), any())).thenReturn(nonVisible);
 		// call under test
 		Set<Long> results = entityManager.authorizedListChildren(mockUser, entityId);
 		assertEquals(nonVisible, results);
-		verify(mockPermissionsManager, never()).hasAccess(any(), any(), any());
-		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, entityId);
+		verify(mockAuthorizationManger, never()).hasAccess(any(), any(), any(ACCESS_TYPE.class));
+		verify(mockEntityAclManager).getNonvisibleChildren(mockUser, entityId);
 	}
 	
 	@Test
@@ -1139,6 +1192,22 @@ public class EntityManagerImplUnitTest {
 			// call under test
 			entityManagerSpy.getInvalidEntitySchemaValidationResults(mockUser, request);
 		});
+	}
+	
+	@Test
+	public void testUpdateEntityFileHandle() {
+		Long versionNumber = 1L;
+		
+		FileHandleUpdateRequest updateRequest = new FileHandleUpdateRequest();
+		updateRequest.setOldFileHandleId("123");
+		updateRequest.setNewFileHandleId("456");
+		
+		doNothing().when(mockNodeManager).updateNodeFileHandle(any(), any(), any(), any());
+		
+		// Call under test
+		entityManager.updateEntityFileHandle(mockUser, entityId, versionNumber, updateRequest);
+		
+		verify(mockNodeManager).updateNodeFileHandle(mockUser, entityId, versionNumber, updateRequest);
 	}
 	
 	static public List<ValidationResults> createValidationResultsListOfSize(int size){

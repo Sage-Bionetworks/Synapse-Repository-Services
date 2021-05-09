@@ -17,7 +17,7 @@
     <context:component-scan base-package="org.sagebionetworks.repo.web" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
+	
 	<!-- slightly misplaced here, as it is under the controller package, but services use it -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
@@ -172,14 +172,5 @@
 	<bean id="dataAccessService"
 		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
 		scope="singleton" />
-		
-	<!-- Setup for annotation based exception handling. -->
-	<bean id="platformExceptionHandlers"
-		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">
-		<property name="messageConverters">
-			<list>
-				<ref bean="objectTypeSerializer" />
-			</list>
-		</property>
-	</bean>
+	
 </beans>

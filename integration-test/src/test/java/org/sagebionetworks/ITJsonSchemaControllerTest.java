@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
@@ -18,8 +22,10 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -214,6 +220,7 @@ public class ITJsonSchemaControllerTest {
 		String semanticVersion = null;
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
@@ -241,8 +248,8 @@ public class ITJsonSchemaControllerTest {
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.GetValidationSchema, getRequest,
 				(GetValidationSchemaResponse response) -> {
 					assertNotNull(response);
+					schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 					assertEquals(schema, response.getValidationSchema());
-
 				}, MAX_WAIT_MS).getResponse();
 
 		// call under test
@@ -317,11 +324,36 @@ public class ITJsonSchemaControllerTest {
 
 		// call under test
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		assertEquals(schema, fetched);
 		// call under test
 		synapse.deleteSchema(organizationName, schemaName);
 	}
-
+	
+	@Test
+	public void testCreateSchemaWithUnsupportedElement() throws SynapseException {
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		String semanticVersion = "1.45.67-alpha+beta";
+		FakeJsonSchema schema = new FakeJsonSchema();
+		schema.set$id(organizationName + "-" + schemaName + "-" + semanticVersion);
+		schema.setDescription("Expect this to fail");
+		schema.setNotPartOfSpecification("random");
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+		// call under test
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
+			waitForSchemaCreate(request, (response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getNewVersionInfo());
+				assertEquals(organizationName, response.getNewVersionInfo().getOrganizationName());
+				assertEquals(schemaName, response.getNewVersionInfo().getSchemaName());
+			});
+		}).getMessage();
+		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
+	}
+	
+	
 	@Test
 	public void testDeleteSchemaVersion() throws SynapseException, InterruptedException {
 		organization = synapse.createOrganization(createOrganizationRequest);
@@ -337,7 +369,7 @@ public class ITJsonSchemaControllerTest {
 		waitForSchemaCreate(request, (response) -> {
 			assertNotNull(response);
 		});
-
+		schema.set$id(JsonSchemaManager.createAbsolute$id(schema.get$id()));
 		JsonSchema fetched = synapse.getJsonSchema(organizationName, schemaName, semanticVersion);
 		assertEquals(schema, fetched);
 		// call under test

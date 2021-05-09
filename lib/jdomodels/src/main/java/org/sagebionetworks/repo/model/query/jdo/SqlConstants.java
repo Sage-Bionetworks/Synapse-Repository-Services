@@ -334,7 +334,9 @@ public class SqlConstants {
 	public static final String COL_FILES_STORAGE_LOCATION_ID		= "STORAGE_LOCATION_ID";
 	public static final String COL_FILES_ENDPOINT					= "ENDPOINT";
 	public static final String COL_FILES_IS_PREVIEW					= "IS_PREVIEW";
-	public static final String DDL_FILES							= "schema/Files-ddl.sql";
+	public static final String COL_FILES_STATUS						= "STATUS";
+	public static final String COL_FILES_UPDATED_ON					= "UPDATED_ON";
+	public static final String DDL_FILES							= "schema/files/Files-ddl.sql";
 	
 	// multipart upload state
 	public static final String TABLE_MULTIPART_UPLOAD				= "MULTIPART_UPLOAD";
@@ -352,7 +354,11 @@ public class SqlConstants {
 	public static final String COL_MULTIPART_BUCKET					= "BUCKET";
 	public static final String COL_MULTIPART_KEY					= "FILE_KEY";
 	public static final String COL_MULTIPART_NUMBER_OF_PARTS		= "NUMBER_OF_PARTS";
-	public static final String COL_MULTIPART_DDL					= "schema/MutipartUpload-ddl.sql";
+	public static final String COL_MULTIPART_REQUEST_TYPE   		= "REQUEST_TYPE";
+	public static final String COL_MULTIPART_PART_SIZE				= "PART_SIZE";
+	public static final String COL_MULTIPART_SOURCE_FILE_HANDLE_ID	= "SOURCE_FILE_HANDLE_ID";
+	public static final String COL_MULTIPART_SOURCE_FILE_ETAG		= "SOURCE_FILE_ETAG";
+	public static final String COL_MULTIPART_DDL					= "schema/MultipartUpload-ddl.sql";
 	
 	// multipart upload part state
 	public static final String TABLE_MULTIPART_UPLOAD_PART_STATE	= "MULTIPART_UPLOAD_PART_STATE";
@@ -673,14 +679,14 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_OWNERS_ETAG					= "ETAG";
 	public static final String V2_DDL_FILE_WIKI_ONWERS					= "schema/v2-WikiOwners-ddl.sql";
 	
-	// Download list
+	// Download list  - deprecated
 	public static final String TABLE_DOWNLOAD_LIST 				= "DOWNLOAD_LIST";
 	public static final String COL_DOWNLOAD_LIST_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 	public static final String COL_DOWNLOAD_LIST_UPDATED_ON		= "UPDATED_ON";
 	public static final String COL_DOWNLOAD_LIST_ETAG			= "ETAG";
 	public static final String DDL_DOWNLOAD_LIST				= "schema/DownloadList-ddl.sql";
 	
-	// Download list item.
+	// Download list item. - deprecated
 	public static final String TABLE_DOWNLOAD_LIST_ITEM							= "DOWNLOAD_LIST_ITEM";
 	public static final String COL_DOWNLOAD_LIST_ITEM_PRINCIPAL_ID				= "PRINCIPAL_ID";
 	public static final String COL_DOWNLOAD_LIST_ITEM_ASSOCIATED_OBJECT_ID 		= "ASSOCIATED_OBJECT_ID";
@@ -688,7 +694,7 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_LIST_ITEM_FILE_HANDLE_ID 			= "FILE_HANDLE_ID";
 	public static final String DDL_DOWNLOAD_LIST_ITEM							= "schema/DownloadListItem-ddl.sql";
 	
-	// Download order
+	// Download order - deprecated
 	public static final String TABLE_DOWNLOAD_ORDER					= "DOWNLOAD_ORDER";
 	public static final String COL_DOWNLOAD_ORDER_ID				= "ORDER_ID";
 	public static final String COL_DOWNLOAD_ORDER_CREATED_BY		= "CREATED_BY";
@@ -698,6 +704,21 @@ public class SqlConstants {
 	public static final String COL_DOWNLOAD_ORDER_TOTAL_NUM_FILES	= "TOTAL_NUM_FILES";
 	public static final String COL_DOWNLOAD_ORDER_FILES_BLOB		= "FILES_BLOB";
 	public static final String DDL_DOWNLOAD_ORDER					= "schema/DownloadOrder-ddl.sql";
+	
+	// Download list
+	public static final String TABLE_DOWNLOAD_LIST_V2 				= "DOWNLOAD_LIST_V2";
+	public static final String COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID 	= "PRINCIPAL_ID";
+	public static final String COL_DOWNLOAD_LIST_V2_UPDATED_ON		= "UPDATED_ON";
+	public static final String COL_DOWNLOAD_LIST_V2_ETAG			= "ETAG";
+	public static final String DDL_DOWNLOAD_V2_LIST					= "schema/DownloadList-V2-ddl.sql";
+	
+	// Download list item.
+	public static final String TABLE_DOWNLOAD_LIST_ITEM_V2				= "DOWNLOAD_LIST_ITEM_V2";
+	public static final String COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID	= "PRINCIPAL_ID";
+	public static final String COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID		= "ENTITY_ID";
+	public static final String COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER	= "VERSION_NUMBER";
+	public static final String COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON		= "ADDED_ON";
+	public static final String DDL_DOWNLOAD_LIST_ITEM_V2				= "schema/DownloadListItem-V2-ddl.sql";
 	
 	// Data type
 	public static final String TABLE_DATA_TYPE				= "DATA_TYPE";
@@ -752,18 +773,6 @@ public class SqlConstants {
 	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
 	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
 
-	// Upload status
-	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
-	public static final String COL_UPLOAD_STATUS_ID					= "ID";
-	public static final String COL_UPLOAD_STATUS_STATE				= "STATE";
-	public static final String COL_UPLOAD_STATUS_STARTED_BY			= "STARTED_BY";
-	public static final String COL_UPLOAD_STATUS_STARTED_ON			= "STARTED_ON";
-	public static final String COL_UPLOAD_STATUS_PERCENT_COMPLETE	= "PERCENT_COMPLETE";
-	public static final String COL_UPLOAD_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
-	public static final String COL_UPLOAD_STATUS_FILE_HANDLE_IDS	= "FILE_HANDLE_IDS";
-	public static final String COL_UPLOAD_STATUS_RUNTIME_MS			= "RUNTIME_MS";
-	public static final String DDL_UPLOAD_STATUS					= "schema/UploadDaemonStatus-ddl.sql";
-	
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
@@ -774,9 +783,15 @@ public class SqlConstants {
 	// Session token
 	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
 
+	// AuthenticatedOn
+	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";
+	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
+	public static final String COL_AUTHENTICATED_ON_ETAG				= "ETAG";
+	public static final String COL_AUTHENTICATED_ON_AUTHENTICATED_ON	= "AUTHENTICATED_ON";
+	public static final String DDL_AUTHENTICATED_ON = "schema/AuthenticatedOn-ddl.sql";
+	
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
@@ -786,6 +801,7 @@ public class SqlConstants {
 	public static final String TABLE_TEAM				= "TEAM";
 	public static final String COL_TEAM_ID				= "ID";
 	public static final String COL_TEAM_ETAG			= "ETAG";
+	public static final String COL_TEAM_ICON			= "ICON";
 	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
 	
@@ -1149,6 +1165,16 @@ public class SqlConstants {
 	public static final String COL_FEATURE_STATUS_ETAG = 								"ETAG";
 	public static final String COL_FEATURE_STATUS_TYPE = 								"FEATURE_TYPE";
 	public static final String COL_FEATURE_STATUS_ENABLED =								"ENABLED";
+	
+	// The file associations scanner status
+	public static final String DDL_FILES_SCANNER_STATUS = 								"schema/files/FilesScannerStatus-ddl.sql";
+	public static final String TABLE_FILES_SCANNER_STATUS = 							"FILES_SCANNER_STATUS";
+	public static final String COL_FILES_SCANNER_STATUS_ID = 							"ID";
+	public static final String COL_FILES_SCANNER_STATUS_STARTED_ON = 					"STARTED_ON";
+	public static final String COL_FILES_SCANNER_STATUS_UPDATED_ON = 					"UPDATED_ON";
+	public static final String COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT = 			"JOBS_STARTED_COUNT";
+	public static final String COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT = 			"JOBS_COMPLETED_COUNT";
+	public static final String COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT = 	"SCANNED_ASSOCIATIONS_COUNT";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

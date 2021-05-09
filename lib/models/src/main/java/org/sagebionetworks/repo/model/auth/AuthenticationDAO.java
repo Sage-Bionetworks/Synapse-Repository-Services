@@ -22,6 +22,7 @@ public interface AuthenticationDAO {
 	 */
 	public boolean checkUserCredentials(long principalId, String passHash);
 
+	@Deprecated
 	/**
 	 * Updates the timestamp associated with the user's session token it needed.
 	 * Unconditionally updating the timestamp of a session token was cuasing users to be
@@ -33,6 +34,7 @@ public interface AuthenticationDAO {
 	 */
 	public boolean revalidateSessionTokenIfNeeded(long principalId);
 	
+	@Deprecated
 	/**
 	 * Changes the user's session token to the specified string
 	 * @param sessionToken If null, a random token is generated
@@ -41,6 +43,7 @@ public interface AuthenticationDAO {
 	 */
 	public String changeSessionToken(long principalId, String sessionToken);
 	
+	@Deprecated
 	/** 
 	 * Fetches a session token by username (email)
 	 * If the token has expired, null is returned
@@ -48,6 +51,7 @@ public interface AuthenticationDAO {
 	 */
 	public Session getSessionTokenIfValid(long principalId);
 
+	@Deprecated
 	/**
 	 * For testing purposes only
 	 * Allows the current time to be spoofed for testing purposes
@@ -55,17 +59,26 @@ public interface AuthenticationDAO {
 	public Session getSessionTokenIfValid(long userId, Date now);
 	
 	/**
+	 * Set the time stamp at which the given user authenticated to the system
+	 * @param principalId
+	 * @param authTime
+	 */
+	public void setAuthenticatedOn(long principalId, Date authTime);
+	
+	/**
 	 * Find the time stamp when the session was validated
 	 * @param principalId
 	 * @return the validation time stamp or null, if there is no session
 	 */
-	public Date getSessionValidatedOn(long principalId) ;
+	public Date getAuthenticatedOn(long principalId) ;
 	
+	@Deprecated
 	/**
 	 * Nullifies the session token
 	 */
 	public void deleteSessionToken(String sessionToken);
 
+	@Deprecated
 	/**
 	 * Nullifies the session token for a user. This is idempotent.
 	 * @param principalId id of the user for which the session token will be nullified.

@@ -28,6 +28,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -37,11 +38,16 @@ import io.jsonwebtoken.Jwt;
 @Service
 public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManager {
 
+	static final String DUPLICATE_TOKEN_NAME_MSG = "You cannot have two tokens with the same name. You must delete the existing token to create a new one with this name.";
+
 	// The maximum time, in days, that a token remains active if unused.
 	private static final long MAX_TOKEN_LEASE_LENGTH_DAYS = 180L;
 	private static final long MAX_TOKEN_LEASE_LENGTH_MILLIS = MAX_TOKEN_LEASE_LENGTH_DAYS * 24 * 60 * 60 * 1000;
 
 	private static final long MAX_NUMBER_OF_TOKENS_PER_USER = 100L;
+
+	// the minimum period in which we update the 'last updated' time stamp for a token
+	private static final Long UPDATE_THRESHOLD_MILLIS = 60*1000L; // one minute
 
 	@Autowired
 	private PersonalAccessTokenDao personalAccessTokenDao;
@@ -120,7 +126,15 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		record.setCreatedOn(now);
 		record.setLastUsed(now);
 
-		record = personalAccessTokenDao.createTokenRecord(record);
+		try {
+			record = personalAccessTokenDao.createTokenRecord(record);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() instanceof DuplicateKeyException) {
+				throw new IllegalArgumentException(DUPLICATE_TOKEN_NAME_MSG, e);
+			} else {
+				throw e;
+			}
+		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
 		response.setToken(oidcTokenHelper.createPersonalAccessToken(oauthEndpoint, record));
 
@@ -140,11 +154,19 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		}
 		return determineActiveState(lastUsedDate).equals(AccessTokenState.ACTIVE);
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public void updateLastUsedTime(String tokenId) {
-		personalAccessTokenDao.updateLastUsed(tokenId);
+		Date lastUsedDate;
+		try {
+			lastUsedDate = personalAccessTokenDao.getLastUsedDate(tokenId);
+		} catch (NotFoundException e) {
+			lastUsedDate = null;
+		}
+		if (lastUsedDate==null || clock.currentTimeMillis()>=lastUsedDate.getTime()+UPDATE_THRESHOLD_MILLIS) {
+			personalAccessTokenDao.updateLastUsed(tokenId);
+		}
 	}
 
 	@Override

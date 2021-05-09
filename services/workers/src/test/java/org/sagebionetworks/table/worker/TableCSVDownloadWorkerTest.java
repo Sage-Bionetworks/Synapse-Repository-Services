@@ -123,7 +123,7 @@ public class TableCSVDownloadWorkerTest {
 		
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("8888");
-		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(fileHandle);
+		when(mockFileHandleManager.uploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(fileHandle);
 
 	}
 
@@ -132,7 +132,7 @@ public class TableCSVDownloadWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		verify(mockAsynchJobStatusManager).setComplete(jobId, results);
-		verify(mockFileHandleManager).multipartUploadLocalFile(fileUploadCaptor.capture());
+		verify(mockFileHandleManager).uploadLocalFile(fileUploadCaptor.capture());
 		LocalFileUploadRequest request = fileUploadCaptor.getValue();
 		assertNotNull(request);
 		assertEquals(userInfo.getId().toString(), request.getUserId());

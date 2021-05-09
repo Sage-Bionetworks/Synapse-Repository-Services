@@ -160,11 +160,10 @@ public interface AccessControlListDAO  {
 	 * @param parentIds
 	 */
 	public List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds);
-
+	
 	/**
-	 * Delete all ACL data for the given type.
-	 * @param formGroup
+	 * Truncate all data except bootstrap data.
 	 */
-	public void deleteAllofType(ObjectType formGroup);
+	public void truncateAll();
 
 }

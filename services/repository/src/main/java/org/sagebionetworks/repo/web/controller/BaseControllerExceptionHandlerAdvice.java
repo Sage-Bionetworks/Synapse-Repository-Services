@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthException;
@@ -359,6 +360,24 @@ public class BaseControllerExceptionHandlerAdvice {
 	ErrorResponse handleQuarantinedEmailException(QuarantinedEmailException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
+	}
+	
+	/**
+	 * This is an application exception thrown when while trying to delete a file handle
+	 * that is somehow still linked
+	 * 
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(FileHandleLinkedException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody
+	ErrorResponse handleFileHandleLinkedException(FileHandleLinkedException ex, HttpServletRequest request) {
+		return handleException(ex, request, false);
 	}
 
 

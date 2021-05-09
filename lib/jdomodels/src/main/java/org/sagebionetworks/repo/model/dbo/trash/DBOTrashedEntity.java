@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.trash;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PRIORITY_PURGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TRASH_CAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
@@ -15,7 +15,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -75,18 +74,7 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 		}
 	};
 	
-	private static final MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOTrashedEntity>() {
-		@Override
-		public DBOTrashedEntity createDatabaseObjectFromBackup(DBOTrashedEntity backup) {
-			if (backup.getEtag() == null) {
-				backup.setEtag(UUID.randomUUID().toString());
-			}
-			if (backup.getPriorityPurge() == null) {
-				backup.setPriorityPurge(false);
-			}
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOTrashedEntity> getTableMapping() {

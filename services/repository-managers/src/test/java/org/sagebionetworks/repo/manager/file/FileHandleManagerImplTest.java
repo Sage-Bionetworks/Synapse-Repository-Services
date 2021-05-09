@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -24,8 +25,6 @@ import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_H
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
@@ -42,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +49,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
@@ -61,7 +58,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
-import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -70,8 +66,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -106,14 +102,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
-import com.amazonaws.util.StringInputStream;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.StorageException;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -325,20 +320,7 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(true);
 		batchRequest.setIncludePreSignedURLs(true);
 	}
-	
-	@Test
-	public void testCreateMetadata() throws UnsupportedEncodingException{
-		// Create the metadata
-		InputStream stream = new StringInputStream("stream");
-		TransferRequest metadata = FileHandleManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
-		assertNotNull(metadata);
-		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), metadata.getS3bucketName());
-		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
-		assertNotNull(metadata.getS3key());
-		assertTrue(metadata.getS3key().startsWith("123/"));
-		assertEquals(stream, metadata.getInputStream());
-	}
-	
+		
 	@Test
 	public void testGetFileHandleUnAuthorized() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle
@@ -428,6 +410,58 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
 		manager.deleteFileHandle(mockUser, validResults.getId());
+	}
+	
+	@Test
+	public void testDeleteFileHandleWithFailedDeleteOnS3() throws Exception {
+		String fileHandleId = "123";
+		
+		when(mockFileHandleDao.get(fileHandleId)).thenReturn(validResults);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
+		
+		RuntimeException deleteException = new RuntimeException("Something went wrong");
+		
+		doThrow(deleteException).when(mockFileHandleDao).delete(any());
+		
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.deleteFileHandle(mockUser, fileHandleId);			
+		});
+		
+		assertEquals(deleteException, ex);
+		
+		verify(mockFileHandleDao).get(fileHandleId);
+		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, validResults.getCreatedBy());
+		verify(mockFileHandleDao).delete(fileHandleId);
+		
+		verifyZeroInteractions(mockS3Client);
+		
+	}
+	
+	@Test
+	public void testDeleteFileHandleWithFailedDeleteOnGC() throws Exception {
+		String fileHandleId = "123";
+		
+		when(mockFileHandleDao.get(fileHandleId)).thenReturn(googleCloudFileHandle);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, fileHandleId, googleCloudFileHandle.getCreatedBy())).thenReturn(AuthorizationStatus.authorized());
+		
+		RuntimeException deleteException = new RuntimeException("Something went wrong");
+		
+		doThrow(deleteException).when(mockFileHandleDao).delete(any());
+		
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			// Call under test
+			manager.deleteFileHandle(mockUser, fileHandleId);			
+		});
+		
+		assertEquals(deleteException, ex);
+		
+		verify(mockFileHandleDao).get(fileHandleId);
+		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, googleCloudFileHandle.getCreatedBy());
+		verify(mockFileHandleDao).delete(fileHandleId);
+		
+		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		
 	}
 	
 	@Test
@@ -2311,5 +2345,67 @@ public class FileHandleManagerImplTest {
 				PARENT_ENTITY_ID, proxyStorageLocationId));
 		assertEquals("Cannot handle upload destination location setting of type: org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings",
 				ex.getMessage());
+	}
+	
+	@Test
+	public void testIsMatchingMD5() {
+		String sourceId = "123";
+		String targetId = "456";
+		
+		boolean expected = true;
+		
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		boolean result = manager.isMatchingMD5(sourceId, targetId);
+		
+		assertEquals(expected, result);
+
+		verify(mockFileHandleDao).isMatchingMD5(sourceId, targetId);
+	}
+	
+	@Test
+	public void testIsMatchingMD5AndNotMatching() {
+		String sourceId = "123";
+		String targetId = "456";
+		
+		boolean expected = false;
+		
+		when(mockFileHandleDao.isMatchingMD5(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		boolean result = manager.isMatchingMD5(sourceId, targetId);
+		
+		assertEquals(expected, result);
+
+		verify(mockFileHandleDao).isMatchingMD5(sourceId, targetId);
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullSource() {
+		String sourceId = null;
+		String targetId = "456";
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.isMatchingMD5(sourceId, targetId);
+		});
+		
+		assertEquals("The sourceFileHandleId is required.", ex.getMessage());
+		
+	}
+	
+	@Test
+	public void testIsMatchingMD5WithNullTarget() {
+		String sourceId = "123";
+		String targetId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.isMatchingMD5(sourceId, targetId);
+		});
+		
+		assertEquals("The targetFileHandleId is required.", ex.getMessage());
+		
 	}
 }

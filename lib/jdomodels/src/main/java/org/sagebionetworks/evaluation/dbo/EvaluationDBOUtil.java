@@ -7,11 +7,11 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class EvaluationDBOUtil {
 
@@ -39,7 +39,6 @@ public class EvaluationDBOUtil {
 		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(KeyFactory.stringToKey(dto.getContentSource()));
-		dbo.setStatusEnum(dto.getStatus());
 		if (dto.getSubmissionInstructionsMessage() != null) {
 			dbo.setSubmissionInstructionsMessage(dto.getSubmissionInstructionsMessage().getBytes());
 		}
@@ -67,13 +66,12 @@ public class EvaluationDBOUtil {
 	 * @param dbo
 	 */
 	private static void verifyEvaluationDBO(EvaluationDBO dbo) {
-		EvaluationUtils.ensureNotNull(dbo.getId(), "ID");
-		EvaluationUtils.ensureNotNull(dbo.getEtag(), "etag");
-		EvaluationUtils.ensureNotNull(dbo.getName(), "name");
-		EvaluationUtils.ensureNotNull(dbo.getOwnerId(), "ownerID");
-		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
-		EvaluationUtils.ensureNotNull(dbo.getContentSource(), "content source");
-		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "status");
+		ValidateArgument.required(dbo.getId(), "ID");
+		ValidateArgument.required(dbo.getEtag(), "etag");
+		ValidateArgument.required(dbo.getName(), "name");
+		ValidateArgument.required(dbo.getOwnerId(), "ownerID");
+		ValidateArgument.required(dbo.getCreatedOn(), "creation date");
+		ValidateArgument.required(dbo.getContentSource(), "content source");
 	}
 	
 	public static Long getEndTimeOrNull(Long startTime, Long roundDurationMillis, Long numberOfRounds) {
@@ -104,7 +102,6 @@ public class EvaluationDBOUtil {
 		dto.setOwnerId(dbo.getOwnerId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setContentSource(KeyFactory.keyToString(dbo.getContentSource()));
-		dto.setStatus(dbo.getStatusEnum());
 		if (dbo.getSubmissionInstructionsMessage() != null) {
 			try {
 				dto.setSubmissionInstructionsMessage(new String(dbo.getSubmissionInstructionsMessage(), "UTF-8"));

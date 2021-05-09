@@ -17,6 +17,9 @@ import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -79,10 +82,12 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -120,7 +125,14 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
+import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
@@ -313,13 +325,16 @@ public interface SynapseClient extends BaseClient {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint) throws SynapseException;
 	
+	@Deprecated
+	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	
 	/**
-	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid session token
+	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid access token
 	 * @param accountSetupInfo  Note:  Caller may override the first/last name, but not the email, given in 'newAccountEmailValidation' 
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	LoginResponse createNewAccountForAccessToken(AccountSetupInfo accountSetupInfo) throws SynapseException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
@@ -386,8 +401,9 @@ public interface SynapseClient extends BaseClient {
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
 
+	@Deprecated
 	/**
-	 * Returns a Session and UserProfile object
+	 * Returns an access token and UserProfile object
 	 * 
 	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
 	 */
@@ -962,6 +978,16 @@ public interface SynapseClient extends BaseClient {
 	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
 
 	public void deleteEvaluation(String evalId) throws SynapseException;
+
+	EvaluationRound createEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	EvaluationRound getEvaluationRound(String evalId, String roundId) throws SynapseException;
+
+	EvaluationRoundListResponse getAllEvaluationRounds(String evalId, EvaluationRoundListRequest request) throws SynapseException;
+
+	EvaluationRound updateEvaluationRound(EvaluationRound round) throws SynapseException;
+
+	void deleteEvaluationRound(String evalId, String roundId) throws SynapseException;
 
 	/**
 	 * 
@@ -1864,10 +1890,16 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
 
+	@Deprecated
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
+
+	/**
+	 * Signs the terms of use for utilization of Synapse, as identified by an access token
+	 */
+	public void signTermsOfUse(String accessToken) throws SynapseException;
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to
@@ -1887,6 +1919,7 @@ public interface SynapseClient extends BaseClient {
 	OAuthUrlResponse getOAuth2AuthenticationUrl(OAuthUrlRequest request)
 			throws SynapseException;
 	
+	@Deprecated
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -1904,7 +1937,24 @@ public interface SynapseClient extends BaseClient {
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
 	
-
+	/**
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch information about the
+	 * user from the OAuthProvider. If successful, an access token for the user
+	 * will be returned.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws NotFoundException if the user does not exist in Synapse.
+	 */
+	LoginResponse validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request)
+			throws SynapseException;
+	
+	@Deprecated
 	/**
 	 * 
 	 * After a user has been authenticated at an OAuthProvider's web page, the
@@ -1926,6 +1976,27 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
 	
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and an access token for a new session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse createAccountViaOAuth2ForAccessToken(OAuthAccountCreationRequest request) throws SynapseException;
+		
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -3205,6 +3276,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus cancelSubmission(String submissionId) throws SynapseException;
+	
+	/**
+	 * Delete a Data Access Submission.
+	 * 
+	 * @param submissionId
+	 * @throws SynapseException
+	 */
+	void deleteDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.
@@ -3834,5 +3913,55 @@ public interface SynapseClient extends BaseClient {
 	 */
 	ListValidationResultsResponse getInvalidValidationResults(ListValidationResultsRequest request)
 			throws SynapseException;
+	
+	/**
+	 * Updates the file handle of the version of the entity with the given id
+	 * 
+	 * @param request Body of the request containing the old and new file handle
+	 * @throws SynapseException
+	 */
+	void updateEntityFileHandle(String entityId, Long versionNumber, FileHandleUpdateRequest request) throws SynapseException;
+
+	/**
+	 * Add a batch of files to the user's download list.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AddBatchOfFilesToDownloadListResponse addFilesToDownloadList(AddBatchOfFilesToDownloadListRequest request) throws SynapseException;
+
+	/**
+	 * Remove a batch of files from the user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	RemoveBatchOfFilesFromDownloadListResponse removeFilesFromDownloadList(
+			RemoveBatchOfFilesFromDownloadListRequest request) throws SynapseException;
+
+	/**
+	 * Clear all files from the user's download list.
+	 * @throws SynapseException
+	 */
+	void clearUsersDownloadList() throws SynapseException;
+
+	/**
+	 * Start an asynchronous job to query the user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startDownloadListQuery(DownloadListQueryRequest request) throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to query the user's download list.
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	DownloadListQueryResponse getDownloadListQueryResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 
 }

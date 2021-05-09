@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -1636,9 +1637,7 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("`");
-			builder.append(cm.getName());
-			builder.append("`");
+			builder.append(SqlElementUntils.wrapInDoubleQuotes(cm.getName()));
 			first = false;
 		}
 		builder.append(" FROM ");
@@ -2005,7 +2004,9 @@ public class SQLUtils {
 				", '$[*]'" +
 				" COLUMNS (" +
 				" ORDINAL FOR ORDINALITY, " +
-				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
+				// "error on error" ensures that data will not be replicated if varchar() size is too small to fit the values
+				// see PLFM-6690
+				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$' ERROR ON ERROR" +
 				" )" +
 				") TEMP_JSON_TABLE"+rowFilter;
 	}

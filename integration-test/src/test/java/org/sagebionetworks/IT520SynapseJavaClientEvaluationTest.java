@@ -13,6 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,12 +39,17 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
+import org.sagebionetworks.evaluation.model.EvaluationRoundLimitType;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.MemberSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -74,6 +81,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -188,14 +196,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setName("some name");
 		eval1.setDescription("description");
         eval1.setContentSource(project.getId());
-        eval1.setStatus(EvaluationStatus.PLANNED);
         eval1.setSubmissionInstructionsMessage("foo");
         eval1.setSubmissionReceiptMessage("bar");
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
         eval2.setContentSource(project.getId());
-        eval2.setStatus(EvaluationStatus.PLANNED);
         eval2.setSubmissionInstructionsMessage("baz");
         eval2.setSubmissionReceiptMessage("mumble");
         
@@ -312,10 +318,86 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
 	}
-	
+
+	@Test
+	public void testEvaluationRound_RoundTrip() throws SynapseException {
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+
+		//create
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+		//read
+		EvaluationRound retrieved = synapseOne.getEvaluationRound(created.getEvaluationId(), created.getId());
+		assertEquals(created, retrieved);
+
+		// create second round
+		EvaluationRound round2 = new EvaluationRound();
+		round2.setEvaluationId(eval1.getId());
+		round2.setRoundStart(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round2.setRoundEnd(Date.from(now.plus(2, ChronoUnit.DAYS)));
+		EvaluationRound created2 = synapseOne.createEvaluationRound(round2);
+
+		//read all
+		EvaluationRoundListResponse listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
+		assertEquals(Arrays.asList(created, created2), listResponse.getPage());
+
+		//update
+		created.setLimits(Arrays.asList(newEvaluationRoundLimit(EvaluationRoundLimitType.DAILY, 45)));
+		EvaluationRound updated = synapseOne.updateEvaluationRound(created);
+		assertEquals(created.getLimits(), updated.getLimits());
+
+		//delete
+		synapseOne.deleteEvaluationRound(updated.getEvaluationId(), updated.getId());
+		listResponse = synapseOne.getAllEvaluationRounds(created.getEvaluationId(), new EvaluationRoundListRequest());
+		assertEquals(Arrays.asList(created2), listResponse.getPage());
+	}
+
+	@Test
+	public void testEvaluationRoundLimitEnforcement() throws SynapseException {
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+
+
+		//create a new EvaluationRound
+		Instant now = Instant.now();
+		EvaluationRound round = new EvaluationRound();
+		round.setEvaluationId(eval1.getId());
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round.setLimits(Collections.singletonList(newEvaluationRoundLimit(EvaluationRoundLimitType.WEEKLY, 1L)));
+		EvaluationRound created = synapseOne.createEvaluationRound(round);
+
+		// create a submission
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(fileEntity.getId());
+		sub1 = synapseOne.createIndividualSubmission(sub1, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		submissionsToDelete.add(sub1.getId());
+
+		sub2.setEvaluationId(eval1.getId());
+		sub2.setEntityId(fileEntity.getId());
+		String message = assertThrows(SynapseForbiddenException.class, () -> {
+			sub2 = synapseOne.createIndividualSubmission(sub2, fileEntity.getEtag(), MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		}).getMessage();
+
+		assertEquals("Submitter has reached the weekly limit of 1. (for the current submission round).", message);
+	}
+
+	private EvaluationRoundLimit newEvaluationRoundLimit(EvaluationRoundLimitType type, long maxSubmissions){
+		EvaluationRoundLimit limit = new EvaluationRoundLimit();
+		limit.setLimitType(type);
+		limit.setMaximumSubmissions(maxSubmissions);
+		return limit;
+	}
+
 	@Test
 	public void testSubmissionView() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		String entityId = fileEntity.getId();
@@ -436,8 +518,9 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// Update ACL
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		
+		Long user2Id = Long.parseLong(JSONWebTokenHelper.getSubjectFromJWTAccessToken(
+				synapseTwo.getAccessToken()));
 		ra.setPrincipalId(user2Id);
 		
 		acl.getResourceAccess().add(ra);
@@ -500,7 +583,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		String entityId = fileEntity.getId();
@@ -597,7 +679,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testSubmissionWithAnnotationsV2() throws SynapseException, NotFoundException, InterruptedException, IOException {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		String entityId = fileEntity.getId();
@@ -682,7 +763,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testTeamSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		SubmissionQuota quota = createSubmissionQuota();
 		eval1.setQuota(quota);
 		eval1 = synapseOne.createEvaluation(eval1);
@@ -746,7 +826,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testTeamSubmissionRoundTripWithNotification() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		SubmissionQuota quota = createSubmissionQuota();
 		eval1.setQuota(quota);
 		eval1 = synapseOne.createEvaluation(eval1);
@@ -796,7 +875,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 
 	@Test
 	public void testSubmissionEntityBundle() throws SynapseException, NotFoundException, InterruptedException, JSONObjectAdapterException {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		String entityId = project.getId();
@@ -850,7 +928,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	@Test
 	public void testSubmissionsPaginated() throws SynapseException {
 		// create objects
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
@@ -964,7 +1041,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	@Test
 	public void testGetMySubmissions() throws SynapseException {
 		// create objects
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
@@ -1022,7 +1098,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	@Test
 	public void testGetFileTemporaryUrlForSubmissionFileHandle() throws Exception {
 		// create Objects
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
@@ -1106,8 +1181,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessSet.add(ACCESS_TYPE.DELETE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		Long user2Id = Long.parseLong(JSONWebTokenHelper.getSubjectFromJWTAccessToken(
+				synapseTwo.getAccessToken()));
 		ra.setPrincipalId(user2Id);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);
@@ -1131,7 +1206,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	@Test
 	public void testAnnotationsQuery() throws SynapseException, InterruptedException, JSONObjectAdapterException {
 		// set up objects
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		String entityId = project.getId();

@@ -5,6 +5,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
@@ -123,7 +124,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * 
 	 * @return The ID of the user
 	 */
-	public long createUser(NewIntegrationTestUser user) throws SynapseException;
+	public LoginResponse createIntegrationTestUser(NewIntegrationTestUser user) throws SynapseException;
 	
 	
 	/**

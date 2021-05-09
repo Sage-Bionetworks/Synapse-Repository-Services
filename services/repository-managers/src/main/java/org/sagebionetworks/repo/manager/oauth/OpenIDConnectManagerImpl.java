@@ -63,8 +63,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
 	
-	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
-	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
 
@@ -239,7 +237,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt(clock.now());
-		authorizationRequest.setAuthenticatedAt(authDao.getSessionValidatedOn(userInfo.getId()));
+		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		try {
@@ -414,11 +412,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
+				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
-		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
+		result.setExpires_in(AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -453,7 +451,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
+		Date authTime = authDao.getAuthenticatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -479,10 +477,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now,ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
-		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
+		result.setExpires_in(AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -523,6 +521,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
+		ValidateArgument.required(accessTokenParam, "Access token");
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
@@ -558,7 +557,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
-			Date authTime = authDao.getSessionValidatedOn(Long.parseLong(userId));
+			Date authTime = authDao.getAuthenticatedOn(Long.parseLong(userId));
 
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);

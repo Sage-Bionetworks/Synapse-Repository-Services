@@ -138,6 +138,17 @@ public class UserManagerImpl implements UserManager {
 		}
 		return alias;
 	}
+	
+	@WriteTransaction
+	@Override
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse)
+			throws NotFoundException {
+		DBOCredential credential = null;
+		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+		touAgreement.setAgreesToTermsOfUse(acceptsTermsOfUse);
+		DBOSessionToken token = null;
+		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, token);
+	}
 
 	@WriteTransaction
 	@Override
@@ -172,8 +183,8 @@ public class UserManagerImpl implements UserManager {
 				basicDAO.createOrUpdate(touAgreement);
 			}
 			if (token != null) {
-				token.setPrincipalId(principalId);
-				basicDAO.createOrUpdate(token);
+				// set the session token and record the auth time
+				authDAO.changeSessionToken(principalId, token.getSessionToken());
 			}
 		} else {
 			principalId = alias.getPrincipalId();
@@ -216,6 +227,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);
+		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		return ui;
 	}
 

@@ -1,27 +1,35 @@
 package org.sagebionetworks.repo.web.service;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
-import org.sagebionetworks.repo.manager.file.MultipartManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -33,16 +41,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -65,7 +67,7 @@ public class TrashServiceImplAutowiredTest {
 
 	// Used only to create test file handles.
 	@Autowired
-	private MultipartManager multipartManager;
+	private FileHandleManager fileHandleManager;
 
 	@Autowired
 	private ProjectSettingsService projectSettingsService;
@@ -107,8 +109,9 @@ public class TrashServiceImplAutowiredTest {
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
-		EntityId userEntityId = adminService.createOrGetTestUser(adminUserId, user);
-		long createdUserId = Long.valueOf(userEntityId.getId());
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
+		long createdUserId = Long.valueOf(accessTokenSubject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
 
 		// Before we can create file entities, we must agree to terms of use.
@@ -281,7 +284,7 @@ public class TrashServiceImplAutowiredTest {
 		// Create file handle.
 		LocalFileUploadRequest uploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
 				.withFileToUpload(file).withStorageLocationId(storageLocationId).withUserId(userId.toString());
-		S3FileHandle fileHandle = multipartManager.multipartUploadLocalFile(uploadRequest);
+		S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(uploadRequest);
 		fileHandlesToDelete.add(fileHandle);
 
 		// Create file entity.

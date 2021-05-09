@@ -1,0 +1,15 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "my.organization-FolderWithBoolean",
+	"allOf": [
+		{
+			"$ref": "org.sagebionetworks-repo.model.Folder"
+		}
+	],
+	"properties": {
+		"hasBoolean": {
+			"type": "boolean",
+			"description": "Example of a boolean property"
+		}
+	}
+}

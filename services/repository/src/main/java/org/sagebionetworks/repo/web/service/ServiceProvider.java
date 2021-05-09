@@ -84,4 +84,6 @@ public interface ServiceProvider {
 	
 	public JsonSchemaServices getSchemaServices();
 	
+	public DownloadListService getDownloadListService();
+	
 }

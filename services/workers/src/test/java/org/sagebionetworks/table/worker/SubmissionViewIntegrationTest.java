@@ -16,11 +16,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
-import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.model.Entity;
@@ -175,6 +175,25 @@ public class SubmissionViewIntegrationTest {
 		
 		List<SubmissionBundle> submissions = ImmutableList.of(submission1, submission2);
 		
+		// Wait for the results
+		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
+	}
+
+	@Test
+	public void testSubmissionViewWithEvaluationRound() throws Exception {
+
+		testHelper.setEvaluationACLForSubmission(evaluationOwner, evaluation, submitterTeam);
+
+		testHelper.createEvaluationRound(evaluationOwner, evaluation.getId());
+
+		Folder entity = testHelper.createFolder(submitter1, submitter1Project);
+
+		SubmissionBundle submission = testHelper.createSubmission(submitter1, evaluation, entity);
+
+		view = createView(evaluationOwner, evaluationProject, evaluation, evaluation);
+
+		List<SubmissionBundle> submissions = Collections.singletonList(submission);
+
 		// Wait for the results
 		assertSubmissionQueryResults(evaluationOwner, "select * from " + view.getId() + " order by id", submissions);
 	}
@@ -511,6 +530,7 @@ public class SubmissionViewIntegrationTest {
 		Long id = KeyFactory.stringToKey(bundle.getSubmission().getId());
 		String eTag = bundle.getSubmissionStatus().getEtag();
 		Long evaluationId = KeyFactory.stringToKey(bundle.getSubmission().getEvaluationId());
+		String evaluationRoundId = bundle.getSubmission().getEvaluationRoundId();
 		Long versionNumber = bundle.getSubmissionStatus().getStatusVersion();
 		
 		
@@ -532,6 +552,7 @@ public class SubmissionViewIntegrationTest {
 		// Custom submission fields
 		values.add(bundle.getSubmissionStatus().getStatus().name());
 		values.add(evaluationId.toString());
+		values.add(evaluationRoundId);
 		values.add(bundle.getSubmission().getTeamId() == null ? bundle.getSubmission().getUserId() : bundle.getSubmission().getTeamId());
 		values.add(bundle.getSubmission().getSubmitterAlias());
 		values.add(bundle.getSubmission().getEntityId());

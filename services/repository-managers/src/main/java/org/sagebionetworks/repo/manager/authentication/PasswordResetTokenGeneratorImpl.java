@@ -1,18 +1,13 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.util.Base64;
 import java.util.Date;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.model.SignedTokenInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 

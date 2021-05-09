@@ -26,7 +26,7 @@ BEGIN
 		SET entityId = parentId;
 		/* Prevent an infinite loop */
 		SET counter = counter + 1;
-		IF counter > 1000 THEN RETURN -1;
+		IF counter > 51 THEN RETURN -1;
 		END IF;
     END WHILE;
  END;

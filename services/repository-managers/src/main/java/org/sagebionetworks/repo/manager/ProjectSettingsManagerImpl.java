@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
-import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -58,15 +56,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Autowired
 	private NodeManager nodeManager;
 	
-	@Autowired
-	private NodeDAO nodeDao;
-
-	@Autowired
-	private TrashManager trashManager;
-	
 	private static final Map<Class<? extends ProjectSetting>, ProjectSettingsType> TYPE_MAP = ImmutableMap.of(
-		UploadDestinationListSetting.class, ProjectSettingsType.upload,
-		ProjectCertificationSetting.class, ProjectSettingsType.certification
+		UploadDestinationListSetting.class, ProjectSettingsType.upload
 	);
 
 	private List<StorageLocationProcessor<? extends StorageLocationSetting>> storageLocationProcessors;
@@ -100,18 +91,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		
 		ProjectSetting projectSetting = null;
 		
-		// The certification setting can be applied only at the project level, no need to walk up the hierarchy of settings
-		if (ProjectSettingsType.certification == type) {
-			String projectId = nodeDao.getProjectId(nodeId);
-			projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.certification).orElse(null);
-		} else {
-			String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
-			
-			if (projectSettingId != null) {
-				// Note that get throws NotFoundException if the project setting somehow doesn't exist.
-				projectSetting = projectSettingsDao.get(projectSettingId);
-			}	
-		}
+		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
+		
+		if (projectSettingId != null) {
+			// Note that get throws NotFoundException if the project setting somehow doesn't exist.
+			projectSetting = projectSettingsDao.get(projectSettingId);
+		}	
 		
 		if (projectSetting == null) {
 			// Not having a setting is normal.
@@ -141,14 +126,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		EntityType nodeType = nodeManager.getNodeType(userInfo, parentId);
 		Class<? extends Entity> nodeClass = EntityTypeUtils.getClassForType(nodeType);
 		
-		// A project certification setting can only be applied to a project and by an ACT member
-		if (projectSetting instanceof ProjectCertificationSetting) {
-			if (nodeClass != Project.class) {
-				throw new IllegalArgumentException("The certification setting can be applied only to projects");
-			}
-			validateACTAccessForCertificationSetting(userInfo);
-		}
-		
 		if (nodeClass != Project.class && nodeClass != Folder.class) {
 			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
@@ -170,11 +147,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		validateProjectSetting(projectSetting, userInfo);
 
-		// Can't add an StsStorageLocation to a non-empty entity.
-		if (!isEntityEmptyWithTrash(parentId) && isStsStorageLocationSetting(projectSetting)) {
-			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
-		}
-
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -184,11 +156,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		ValidateArgument.required(projectSetting.getId(), "The id");
 		ValidateArgument.required(projectSetting.getProjectId(), "The project id");
-		
-		// A project certification setting can only be applied to by an ACT member
-		if (projectSetting instanceof ProjectCertificationSetting) {
-			validateACTAccessForCertificationSetting(userInfo);
-		}
 	
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
@@ -199,18 +166,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		
 		validateProjectSetting(projectSetting, userInfo);
 
-		// Can't add or modify an StsStorageLocation on a non-empty entity.
-		if (!isEntityEmptyWithTrash(projectSetting.getProjectId())) {
-			if (isStsStorageLocationSetting(projectSetting)) {
-				throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
-			}
-
-			ProjectSetting oldSetting = projectSettingsDao.get(projectSetting.getId());
-			if (isStsStorageLocationSetting(oldSetting)) {
-				throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
-			}
-		}
-
 		projectSettingsDao.update(projectSetting);
 	}
 
@@ -220,34 +175,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		
-		// A project certification setting can only be applied to by an ACT member
-		if (projectSetting instanceof ProjectCertificationSetting) {
-			validateACTAccessForCertificationSetting(userInfo);
-		}
-	
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
 				.isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		
-		// Can't delete an StsStorageLocation on a non-empty entity.
-		if (!isEntityEmptyWithTrash(projectSetting.getProjectId()) &&
-				isStsStorageLocationSetting(projectSetting)) {
-			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
-		}
-
 		projectSettingsDao.delete(id);
-	}
-	
-	private void validateACTAccessForCertificationSetting(UserInfo userInfo) {
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
-			throw new UnauthorizedException("The user must be an ACT member in order to customize the certification requirement");
-		}
-	}
-
-	// Helper method to check that the given entity has no children (either in the node hierarchy or in the trash can).
-	boolean isEntityEmptyWithTrash(String entityId) {
-		return !nodeManager.doesNodeHaveChildren(entityId) && !trashManager.doesEntityHaveTrashedChildren(entityId);
 	}
 
 	@Override
@@ -301,8 +234,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
-		} else if (setting instanceof ProjectCertificationSetting) {
-			ValidateArgument.required(((ProjectCertificationSetting) setting).getCertificationRequired(), "certificationRequired");
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}

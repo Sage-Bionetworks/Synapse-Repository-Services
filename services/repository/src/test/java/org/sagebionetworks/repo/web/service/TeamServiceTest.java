@@ -1,19 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +26,20 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamServiceTest {
@@ -163,6 +163,15 @@ public class TeamServiceTest {
 			teamService.get(null, 50, -1);
 		});
 		assertEquals("'offset' may not be negative", ex.getMessage());
+	}
+
+	@Test
+	public void testGetMembersWithNullTeamId() {
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			teamService.getMembers(null, null, TeamMemberTypeFilterOptions.ALL, 1, 0);
+		});
+		assertEquals("The teamId is required.", ex.getMessage());
 	}
 	
 	@Test

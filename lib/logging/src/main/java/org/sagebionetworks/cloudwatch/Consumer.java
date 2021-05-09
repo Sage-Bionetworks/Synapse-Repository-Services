@@ -171,6 +171,7 @@ public class Consumer {
 	// and throws an error if "contains non-ASCII characters" which seems to
 	// arise if you use \n or \t (even though they are, in fact, ascii char's!)
 	public static String scrubDimensionString(String s) {
+		if (s==null) return null;
 		s = s.replaceAll("\\s", " "); // replace all white space with a simple space
 		if (s.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
 			s = s.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);

@@ -13,6 +13,7 @@ import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -50,7 +51,7 @@ public class StsManagerImpl implements StsManager {
 					.build();
 
 	@Autowired
-	private AuthorizationManager authManager;
+	private EntityAuthorizationManager authManager;
 
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -99,12 +100,13 @@ public class StsManagerImpl implements StsManager {
 			throw new IllegalArgumentException("STS write access is not allowed in Synapse storage");
 		}
 
-		// Check auth. We always need at least download access.
-		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
-				.checkAuthorizationOrElseThrow();
 		if (permission == StsPermission.read_write) {
-			// For write permissions, we also need upload access.
-			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
+			// For write permissions, we need download, update, create, and delete.
+			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE)
+					.checkAuthorizationOrElseThrow();
+		}else {
+			// for read-only access we need download.
+			authManager.hasAccess(userInfo, entityId, ACCESS_TYPE.DOWNLOAD)
 					.checkAuthorizationOrElseThrow();
 		}
 

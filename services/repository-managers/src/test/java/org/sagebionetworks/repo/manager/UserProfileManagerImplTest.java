@@ -55,7 +55,7 @@ public class UserProfileManagerImplTest {
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 
 	private static final String USER_NAME = "foobar";
 	private static final String USER_EMAIL = "foo@bar.com";
@@ -82,6 +82,7 @@ public class UserProfileManagerImplTest {
 		user.setUserName(USER_NAME);
 		userId = userManager.createUser(user);
 		userInfo = userManager.getUserInfo(userId);
+		userInfo.setAcceptsTermsOfUse(true);
 		usersToDelete.add(userId);
 
 		user = new NewUser();
@@ -277,12 +278,12 @@ public class UserProfileManagerImplTest {
 	 * @throws Exception
 	 */
 	private void grantReadAcess(Long principalId, String entityId) throws Exception {
-		AccessControlList acl = entityPermissionsManager.getACL(entityId, admin);
+		AccessControlList acl = entityAclManager.getACL(entityId, admin);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
 		acl.getResourceAccess().add(ra);
-		entityPermissionsManager.updateACL(acl, admin);
+		entityAclManager.updateACL(acl, admin);
 	}
 
 }

@@ -8,16 +8,16 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 /**
  * A simple stub implementation of the FileMetadataDao.
@@ -92,15 +92,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
-		Multimap<String, String> result = ArrayListMultimap.create();
-		for (String fileHandleId : fileHandleIds) {
-			result.put(map.get(fileHandleId).getCreatedBy(), fileHandleId);
-		}
-		return result;
-	}
-
-	@Override
 	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> fileHandleIds) {
 		Map<String, FileHandle> result = Maps.newHashMap();
 		for (String fileHandleId : fileHandleIds) {
@@ -127,6 +118,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void createBatchDbo(List<DBOFileHandle> dbos) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public FileHandle createFile(FileHandle metadata) {
@@ -137,11 +134,35 @@ public class StubFileMetadataDao implements FileHandleDao {
 		map.put(id, metadata);
 		return metadata;
 	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 	@Override
 	public void truncateTable() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

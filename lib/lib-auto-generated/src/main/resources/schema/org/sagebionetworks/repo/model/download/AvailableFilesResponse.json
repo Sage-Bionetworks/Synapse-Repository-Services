@@ -1,0 +1,21 @@
+{
+	"description": "Represents a single page of files that are available for download from the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"
+		}
+	],
+	"properties": {
+		"page": {
+			"description": "The page of download list items",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.DownloadListItemResult"
+			}
+		},
+		"nextPageToken": {
+			"description": "When provided, the nextPageToken indicates that there are more results.  Forward this token to the next request to get the next page.",
+			"type": "string"
+		}
+	}
+}

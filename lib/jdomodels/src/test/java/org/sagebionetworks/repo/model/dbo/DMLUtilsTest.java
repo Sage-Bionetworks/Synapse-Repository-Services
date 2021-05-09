@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
@@ -334,7 +334,7 @@ public class DMLUtilsTest {
 				+ " FROM SOME_TABLE AS P"
 				+ " LEFT JOIN SECONDARY_ONE AS S ON (P.ID =  S.OWNER_ID)"
 				+ " WHERE P.ID >= :BMINID AND P.ID <= :BMAXID GROUP BY P.ID";
-		TableMapping primaryMapping = mapping;
+		TableMapping<?> primaryMapping = mapping;
 		String sql = DMLUtils.createCardinalitySubQueryForSecondary(primaryMapping, secondaryOne);
 		assertEquals(expectedSql, sql);
 	}
@@ -360,8 +360,8 @@ public class DMLUtilsTest {
 				+ " ON (P0.ID = T1.ID)"
 				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
-		TableMapping primaryMapping = mapping;
-		List<TableMapping> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
+		TableMapping<?> primaryMapping = mapping;
+		List<TableMapping<?>> secondaryMappings = Lists.newArrayList(secondaryOne, secondaryTwo);
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);
 		assertEquals(expectedSql, sql);
 	}
@@ -373,9 +373,18 @@ public class DMLUtilsTest {
 				+ " FROM SOME_TABLE AS P0"
 				+ " WHERE P0.ID >= :BMINID AND P0.ID <= :BMAXID"
 				+ " ORDER BY P0.ID ASC";
-		TableMapping primaryMapping = mapping;
-		List<TableMapping> secondaryMappings = new LinkedList<>();
+		TableMapping<?> primaryMapping = mapping;
+		List<TableMapping<?>> secondaryMappings = new LinkedList<>();
 		String sql = DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMappings);
+		assertEquals(expectedSql, sql);
+	}
+	
+	@Test
+	public void testCreateMinMaxByBackupKeyStatement() {
+		String expectedSql = "SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE";
+		String sql = DMLUtils.createGetMinMaxByBackupKeyStatement(migrateableMappingEtagAndId);
+		assertNotNull(sql);
+		System.out.println(sql);
 		assertEquals(expectedSql, sql);
 	}
 }

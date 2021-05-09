@@ -13,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -35,7 +37,9 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
@@ -67,9 +71,11 @@ public class NodeManagerImpl implements NodeManager {
 	public static final Long TRASH_ID = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
 	@Autowired
-	NodeDAO nodeDao;	
+	private NodeDAO nodeDao;
 	@Autowired
-	AuthorizationManager authorizationManager;	
+	private FileHandleDao fileHandleDao;
+	@Autowired
+	private AuthorizationManager authorizationManager;	
 	@Autowired
 	private AccessControlListDAO aclDAO;	
 	@Autowired
@@ -78,6 +84,8 @@ public class NodeManagerImpl implements NodeManager {
 	private ActivityManager activityManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private StsManager stsManager;
 
 	/*
 	 * (non-Javadoc)
@@ -136,15 +144,12 @@ public class NodeManagerImpl implements NodeManager {
 		
 		// can this entity be added to the parent?
 		validateChildCount(newNode.getParentId(), newNode.getNodeType());
+		validatePathDepth(newNode.getParentId());
 
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
 			authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId()).checkAuthorizationOrElseThrow();
-			
-			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).isAuthorized()) {
-				throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
-			}
 		}
 
 		// check whether the user is allowed to connect to the specified activity
@@ -166,6 +171,21 @@ public class NodeManagerImpl implements NodeManager {
 			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
 		return newNode;
+	}
+	
+	/**
+	 * Validate that adding an Entity to the following container will not exceed the
+	 * maximum hierarchical depth.
+	 * 
+	 * @param parentId
+	 */
+	public void validatePathDepth(String parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		int depth = nodeDao.getEntityPathDepth(parentId, NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
+		if (depth >= NodeConstants.MAX_PATH_DEPTH) {
+			throw new IllegalArgumentException("Exceeded the maximum hierarchical depth of: "
+					+ NodeConstants.MAX_PATH_DEPTH + " for parent: " + parentId);
+		}
 	}
 	
 	/**
@@ -337,7 +357,7 @@ public class NodeManagerImpl implements NodeManager {
 		authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate).checkAuthorizationOrElseThrow();
 
 		if (!StringUtils.equals(oldNode.getAlias(), updatedNode.getAlias())) {
-			authorizationManager.canChangeSettings(userInfo, oldNode).checkAuthorizationOrElseThrow();
+			authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).checkAuthorizationOrElseThrow();
 		}
 
 		// Validate that the user can assign the file handle if they have it.
@@ -346,9 +366,7 @@ public class NodeManagerImpl implements NodeManager {
 			String currentHandleId = nodeDao.getFileHandleIdForVersion(updatedNode.getId(), null);
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
-				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();
-				authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).checkAuthorizationOrElseThrow();
-			}
+				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();			}
 		}
 		updateNode(userInfo, updatedNode, entityPropertyAnnotations, newVersion, ChangeType.UPDATE, oldNode);
 
@@ -392,6 +410,7 @@ public class NodeManagerImpl implements NodeManager {
 			}
 			// Validate the limits of the new parent
 			validateChildCount(parentInUpdate, updatedNode.getNodeType());
+			validatePathDepth(parentInUpdate);
 			
 			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
 				// Notify listeners of the hierarchy change to this container.
@@ -411,6 +430,62 @@ public class NodeManagerImpl implements NodeManager {
 		if (log.isDebugEnabled()) {
 			log.debug("username "+userInfo.getId().toString()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateNodeFileHandle(UserInfo userInfo, String nodeId, Long versionNumber,
+			FileHandleUpdateRequest updateRequest) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(nodeId, "The nodeId");
+		ValidateArgument.required(versionNumber, "The versionNumber");
+		ValidateArgument.required(updateRequest, "The updateRequest");
+		ValidateArgument.required(updateRequest.getOldFileHandleId(), "The updateRequest.oldFileHandleId");
+		ValidateArgument.required(updateRequest.getNewFileHandleId(), "The updateRequest.newFileHandleId");
+		
+		// This will check the READ access
+		final EntityType type = getNodeType(userInfo, nodeId);
+		
+		nodeDao.lockNode(nodeId);
+		
+		final String currentFileHandleId = nodeDao.getFileHandleIdForVersion(nodeId, versionNumber);
+		
+		if (!EntityType.file.equals(type) || currentFileHandleId == null) {
+			throw new NotFoundException("A file entity with id " + nodeId + " and revision " + versionNumber + " does not exist.");
+		}
+		
+		// Authorization checks
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+
+		final String newFileHandleId = updateRequest.getNewFileHandleId();
+		
+		authorizationManager.canAccessRawFileHandleById(userInfo, newFileHandleId).checkAuthorizationOrElseThrow();
+		
+		if (!currentFileHandleId.equals(updateRequest.getOldFileHandleId())) {
+			throw new ConflictingUpdateException("The id of the provided file handle id (request.oldFileHandleId: " + updateRequest.getOldFileHandleId() + ") does not match the current file handle id.");
+		}
+		
+		// No need to update the node if the file handle didn't change
+		if (newFileHandleId.equals(currentFileHandleId)) {
+			return;
+		}
+		
+		if (!fileHandleDao.isMatchingMD5(currentFileHandleId, newFileHandleId)) {
+			throw new ConflictingUpdateException("The MD5 of the new file handle does not match the MD5 of the current file handle, a new version must be created.");
+		}
+		
+		final String parentId = nodeDao.getParentId(nodeId);
+		
+		stsManager.validateCanAddFile(userInfo, newFileHandleId, parentId);
+		
+		nodeDao.touch(userInfo.getId(), nodeId);
+		
+		boolean updated = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		if (!updated) {
+			throw new ConflictingUpdateException("Could not perform the update on node " + nodeId + " with revision " + versionNumber);
+		}
+		
 	}
 	
 	/**

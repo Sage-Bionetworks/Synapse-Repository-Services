@@ -431,4 +431,34 @@ public class SchemaIdParserTest {
 		assertNotNull(id);
 		assertEquals("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta", id.toString());
 	}
+	
+	@Test
+	public void testExtractRelative() {
+		String start = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta";
+		String relative = SchemaIdParser.extractRelative$id(start);
+		assertEquals("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta", relative);
+	}
+	
+	@Test
+	public void testExtractRelativeWithRelative() {
+		String start = "test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta";
+		String relative = SchemaIdParser.extractRelative$id(start);
+		assertEquals("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta", relative);
+	}
+	
+	@Test
+	public void testExtractRelativeWithNull() {
+		String start = null;
+		String relative = SchemaIdParser.extractRelative$id(start);
+		assertEquals(null, relative);
+	}
+	
+	@Test
+	public void testParseSchemaIdWithAbsoluteFull() {
+		String fullId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta";
+		SchemaId id = SchemaIdParser.parseSchemaId(fullId);
+		assertNotNull(id);
+		assertEquals("test.integeration.organization-integration.test.Schema.json-1.45.67-alpha+beta", id.toString());
+	}
+
 }

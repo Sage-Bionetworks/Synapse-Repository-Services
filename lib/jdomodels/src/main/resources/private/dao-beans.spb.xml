@@ -23,9 +23,6 @@
 	<bean id="transactionalMessenger"
 		class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl" />
 
-	<bean id="uploadDaemonStatusDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDaemonStatusDaoImpl" />
-
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 		
@@ -284,9 +281,6 @@
 	<bean id="stackStatusDao" class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl"
 		scope="singleton" />	
 
-	<bean id="multipartUplaodDAO" class="org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAOImpl"
-		scope="singleton" />
-
 	<bean id="multipartUploadComposerDAO" class="org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAOImpl"
 		  scope="singleton" />
 
@@ -324,10 +318,6 @@
 	<bean id="viewScopeDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDaoImpl" />
 
-	<!--  DAO for Authentication Receipt -->
-	<bean id="authReceiptDao"
-		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceiptDAOImpl" />
-
 	<!-- Misc beans -->
 	
 	<!-- A singleton counting semaphore with all method synchronized to serialize lock acquisition on each machine -->
@@ -364,7 +354,4 @@
 	<bean id="dataTypeDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DataTypeDaoImpl"/>
 
-	<!-- DAO for blocking repeated unsuccessful attempts -->
-	<bean id="unsuccessfulAtteptLockoutDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.UnsuccessfulLoginLockoutDAOImpl"/>
 </beans>

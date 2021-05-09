@@ -200,6 +200,11 @@ public class AuthorizationConstants {
 	 */
 	public static final String SYNAPSE_OAUTH_CLIENT_ID = "0";
 	
+	/**
+	 * The time, in seconds, that an access token lasts
+	 */
+	public static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+
 	
 	/**
 	 * Request parameters for the Synapse OAuth server, defined by
@@ -236,5 +241,18 @@ public class AuthorizationConstants {
 	public static final String BASIC_PREFIX = "Basic ";
 
 	public static final String PROJECT_FILTER_PARAM = "filter";
+	
+	public static final String ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE = "You have not yet agreed to the Synapse Terms of Use.";
+	public static final String ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE = "You lack %s access to the requested entity.";
+	public static final String ERR_MSG_YOU_DO_NOT_HAVE_PERMISSION_TEMPLATE = "You do not have %s permission for the requested entity, %s.";
+	public static final String ERR_MSG_ONLY_CERTIFIED_USERS_MAY_CHANGE_NODE_SETTINGS = "Only certified users may change node settings.";
+	public static final String ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS = "There are unmet access requirements that must be met to read content in the requested container.";
+	public static final String ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION = "Anonymous users have only READ access permission.";
+	public static final String ERR_MSG_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
+	public static final String ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND = "The resource you are attempting to access cannot be found";
+	public static final String ERR_MSG_ENTITY_IN_TRASH_TEMPLATE = "Entity %s is in trash can.";
+	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
+	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";
+
 	
 }

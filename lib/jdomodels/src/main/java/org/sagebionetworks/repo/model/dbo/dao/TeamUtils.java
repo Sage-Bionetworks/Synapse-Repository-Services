@@ -37,6 +37,11 @@ public class TeamUtils {
 	public static void copyDtoToDbo(Team dto, DBOTeam dbo) throws DatastoreException {
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setEtag(dto.getEtag());
+		if (dto.getIcon() == null) {
+			dbo.setIcon(null);
+		} else {
+			dbo.setIcon(Long.valueOf(dto.getIcon()));
+		}
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -44,12 +49,21 @@ public class TeamUtils {
 		Team dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setEtag(dbo.getEtag());
+		if (dbo.getIcon() == null) {
+			dto.setIcon(null);
+		} else {
+			dto.setIcon(String.valueOf(dbo.getIcon()));
+		}
 		return dto;
 	}
 
 	public static void copyToSerializedField(Team dto, DBOTeam dbo) throws DatastoreException {
+		dbo.setProperties(serialize(dto));
+	}
+	
+	public static byte[] serialize(Team dto) {
 		try {
-			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

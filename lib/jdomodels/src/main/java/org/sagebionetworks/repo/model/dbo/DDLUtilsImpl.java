@@ -3,9 +3,14 @@ package org.sagebionetworks.repo.model.dbo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -85,32 +90,54 @@ public class DDLUtilsImpl implements DDLUtils{
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getDDL();
 		} else {
-			return loadSchemaSql(mapping.getDDLFileName());
+			return loadSQLFromClasspath(mapping.getDDLFileName());
 		}
 	}
 
 	/**
-	 * Load the schema file from the classpath.
+	 * Load a SQL file from the classpath.
 	 * 
 	 * @return
 	 * @throws IOException
 	 */
-	public static String loadSchemaSql(String fileName) throws IOException{
-		InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName);
-		if(in == null){
-			throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
-		}
-		try{
-			StringWriter writer = new StringWriter();
-			byte[] buffer = new byte[1024];
-			int count = -1;
-			while((count = in.read(buffer, 0, buffer.length)) >0){
-				writer.write(new String(buffer, 0, count, "UTF-8"));
+	public static String loadSQLFromClasspath(String fileName) {
+		try(InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName)){
+			if(in == null){
+				throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 			}
-			return writer.toString();
-		}finally{
-			in.close();
+			String sql =  IOUtils.toString(in, StandardCharsets.UTF_8.name());
+			return removeSQLComments(sql);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Helper to remove multi-line SQL comments from the given SQL string.
+	 * @param sql
+	 * @return
+	 */
+	public static String removeSQLComments(String sql) {
+		// simple state machine to ignore comments
+		StringBuilder builder = new StringBuilder();
+		boolean withinMultiLineComment = false;
+		for (int i=0; i < sql.length(); i++) {
+			char c = sql.charAt(i);
+			if(i+1<sql.length() && c == '/' && sql.charAt(i+1) == '*') {
+				withinMultiLineComment = true;
+				i++;
+				continue;
+			}
+			if(i+1<sql.length() && c == '*' && sql.charAt(i+1) == '/') {
+				withinMultiLineComment = false;
+				i++;
+				continue;
+			}
+			if(!withinMultiLineComment) {
+				builder.append(c);
+			}
+		}
+		return builder.toString();
 	}
 
 	@Override
@@ -132,7 +159,7 @@ public class DDLUtilsImpl implements DDLUtils{
 			log.info(FUNCTION_ALREADY_EXISTS+functionName);
 			return;
 		}
-		String functionDefinition = loadSchemaSql(fileName);
+		String functionDefinition = loadSQLFromClasspath(fileName);
 		try {
 			// create the function from its definition
 			createFunction(functionDefinition);

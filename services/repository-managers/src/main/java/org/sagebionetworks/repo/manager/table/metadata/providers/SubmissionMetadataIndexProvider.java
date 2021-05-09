@@ -8,8 +8,8 @@ import java.util.Set;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionField;
-import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 @Service
 public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 
-	private static final ViewObjectType OBJECT_TYPE = ViewObjectType.SUBMISSION;
+	private static final ViewObjectType OBJECT_TYPE = ViewObjectType.	SUBMISSION;
 
 	static final String SCOPE_SIZE_LIMITED_EXCEEDED = "The view's scope exceeds the maximum number of "
 			+ "%d evaluations.";

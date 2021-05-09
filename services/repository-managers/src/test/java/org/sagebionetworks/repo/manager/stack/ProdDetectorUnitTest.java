@@ -216,7 +216,7 @@ public class ProdDetectorUnitTest {
 		// We use a spy since all other methods are already tested and we can mock them out
 		ProdDetectorImpl prodDetectorSpy = Mockito.spy(prodDetector);
 		
-		when(mockVersionInfo.getVersion()).thenReturn(CURRENT_VERSION);
+		when(mockVersionInfo.getStackInstance()).thenReturn(CURRENT_VERSION);
 
 		doReturn(Optional.of(mockResponse)).when(prodDetectorSpy).sendVersionRequest();
 		doReturn(Optional.of(mockVersionInfo)).when(prodDetectorSpy).parseVersionResponse(mockResponse);
@@ -232,7 +232,7 @@ public class ProdDetectorUnitTest {
 		// We use a spy since all other methods are already tested and we can mock them out
 		ProdDetectorImpl prodDetectorSpy = Mockito.spy(prodDetector);
 		
-		when(mockVersionInfo.getVersion()).thenReturn(CURRENT_VERSION + 1);
+		when(mockVersionInfo.getStackInstance()).thenReturn(CURRENT_VERSION + 1);
 
 		doReturn(Optional.of(mockResponse)).when(prodDetectorSpy).sendVersionRequest();
 		doReturn(Optional.of(mockVersionInfo)).when(prodDetectorSpy).parseVersionResponse(mockResponse);

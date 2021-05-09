@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
@@ -16,6 +15,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -35,7 +37,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
@@ -117,8 +118,6 @@ public class EvaluationController {
 	 * <ul>
 	 * <li>name - Give your new Evaluation a name.</li>
 	 * <li>contentSource - The ID of the parent Entity, such as a Folder or Project.</li>
-	 * <li>status - The initial state of the Evaluation, an 
-	 * <a href="${org.sagebionetworks.evaluation.model.EvaluationStatus}">EvaluationStatus</a></li>
 	 * </ul>
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -689,7 +688,6 @@ public class EvaluationController {
 	
 	/**	
 	 * Deletes a Submission and its accompanying SubmissionStatus.
-	 * <b>This service is intended to only be used by ChallengesInfrastructure service account.</b>
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -1190,8 +1188,190 @@ public class EvaluationController {
 			@PathVariable String subId) {
 		serviceProvider.getEvaluationService().processCancelSubmissionRequest(userId, subId);
 	}
-	
-	
+
+
+	/**
+	 * Creates a new EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to create an EvaluationRound.
+	 *
+	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
+	 *
+	 * EvaluationRounds define a fixed time period during which submissions to an Evaluation queue are accepted.
+	 * Limits to the number of allowed submissions may be defined inside a EvaluationRound.
+	 *
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND, method = RequestMethod.POST)
+	public @ResponseBody
+	EvaluationRound createEvaluationRound(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@RequestBody EvaluationRound evaluationRound)
+	{
+		if(evaluationRound.getEvaluationId() == null){
+			evaluationRound.setEvaluationId(evalId);
+		}
+		if(!evalId.equals(evaluationRound.getEvaluationId())){
+			throw new IllegalArgumentException("EvaluationId in URL path:"+ evalId +" does not match evaluationId in request body:"+ evaluationRound.getEvaluationId());
+		}
+		return serviceProvider.getEvaluationService().createEvaluationRound(userId, evaluationRound);
+	}
+
+	/**
+	 * Retrieve an existing EvaluationRound associated with a Evaluation.
+	 * You must have READ permissions for the associated Evaluation in order to retrieve an EvaluationRound.
+	 *
+	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
+	 *
+	 * EvaluationRounds define a fixed time period during which submissions to an Evaluation queue are accepted.
+	 * Limits to the number of allowed submissions may be defined inside a EvaluationRound.
+	 *
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	EvaluationRound getEvaluationRound(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@PathVariable String roundId)
+	{
+		return serviceProvider.getEvaluationService().getEvaluationRound(userId, evalId, roundId);
+	}
+
+	/**
+	 * Retrieve all EvaluationRounds associated with a Evaluation.
+	 * You must have READ permissions for the associated Evaluation in order to retrieve all EvaluationRounds.
+	 *
+	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
+	 *
+	 * EvaluationRounds define a fixed time period during which submissions to an Evaluation queue are accepted.
+	 * Limits to the number of allowed submissions may be defined inside a EvaluationRound.
+	 *
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND + UrlHelpers.LIST, method = RequestMethod.POST)
+	public @ResponseBody
+	EvaluationRoundListResponse getAllEvaluationRounds(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@RequestBody EvaluationRoundListRequest request)
+	{
+		return serviceProvider.getEvaluationService().getAllEvaluationRounds(userId, evalId, request);
+	}
+
+	/**
+	 * Update an existing EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to update an EvaluationRound.
+	 *
+	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
+	 *
+	 * EvaluationRounds define a fixed time period during which submissions to an Evaluation queue are accepted.
+	 * Limits to the number of allowed submissions may be defined inside a EvaluationRound.
+	 *
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.PUT)
+	public @ResponseBody
+	EvaluationRound updateEvaluationRound(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@PathVariable String roundId,
+			@RequestBody EvaluationRound evaluationRound)
+	{
+		if(!evalId.equals(evaluationRound.getEvaluationId())){
+			throw new IllegalArgumentException("evalId in URL path:"+ evalId +" does not match evaluationId in request body:"+ evaluationRound.getEvaluationId());
+		}
+		if(!roundId.equals(evaluationRound.getId())){
+			throw new IllegalArgumentException("roundId in URL path:"+ roundId +" does not match id in request body:"+ evaluationRound.getId());
+		}
+		return serviceProvider.getEvaluationService().updateEvaluationRound(userId, evaluationRound);
+	}
+
+	/**
+	 * Delete an existing EvaluationRound to associate with a Evaluation.
+	 * You must have UPDATE permissions for the associated Evaluation in order to delete an EvaluationRound.
+	 *
+	 * This is a replacement for the deprecated <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * which is a property inside of <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>.
+	 *
+	 * EvaluationRounds define a fixed time period during which submissions to an Evaluation queue are accepted.
+	 * Limits to the number of allowed submissions may be defined inside a EvaluationRound.
+	 *
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ROUND_WITH_ROUND_ID, method = RequestMethod.DELETE)
+	public @ResponseBody
+	void deleteEvaluationRound(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String evalId,
+			@PathVariable String roundId)
+	{
+		serviceProvider.getEvaluationService().deleteEvaluationRound(userId, evalId, roundId);
+	}
+
+	/**
+	 * Migrates the DEPRECATED <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>
+	 * in the "quota" field of an <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>
+	 * into one or many <a href="${org.sagebionetworks.evaluation.model.EvaluationRound}">EvaluationRound</a>
+	 * (depending on the "numberOfRounds" defined in the
+	 * <a href="${org.sagebionetworks.evaluation.model.SubmissionQuota}">SubmissionQuota</a>)
+	 *
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_SUBMISSIONQUOTA_MIGRATION, method = RequestMethod.POST)
+	public @ResponseBody
+	void migrateEvaluationSubmission(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+	{
+		serviceProvider.getEvaluationService().migrateEvaluationSubmissionQuota(userId, evalId);
+	}
+
 	// For some unknown reason binding a List<Long> with a @RequestParam is not working with our setup 
 	// (Leaving this static method here as this is a feature present since spring 3, more investigation is needed)
 	private static List<Long> stringToEvaluationIds(String value) {
@@ -1211,4 +1391,5 @@ public class EvaluationController {
 		}
 		return evalIds;
 	}
+
 }

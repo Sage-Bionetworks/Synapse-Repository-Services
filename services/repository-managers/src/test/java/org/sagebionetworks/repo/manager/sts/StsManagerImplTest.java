@@ -1,38 +1,5 @@
 package org.sagebionetworks.repo.manager.sts;
 
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.model.Credentials;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.google.common.collect.ImmutableList;
-import org.joda.time.DateTime;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.sts.StsCredentials;
-import org.sagebionetworks.repo.model.sts.StsPermission;
-
-import java.util.Date;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,6 +11,39 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Date;
+import java.util.Optional;
+
+import org.joda.time.DateTime;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
+
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
 public class StsManagerImplTest {
@@ -70,7 +70,7 @@ public class StsManagerImplTest {
 	private static final long DIFFERENT_STS_STORAGE_LOCATION_ID = 789;
 
 	@Mock
-	private AuthorizationManager mockAuthManager;
+	private EntityAuthorizationManager mockAuthManager;
 
 	@Mock
 	private AuthorizationStatus mockAuthStatus;
@@ -121,7 +121,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID),any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -151,7 +151,7 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
@@ -167,7 +167,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -198,10 +198,9 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE);
 		verifyNoMoreInteractions(mockAuthManager);
-		verify(mockAuthStatus, times(2)).checkAuthorizationOrElseThrow();
+		verify(mockAuthStatus, times(1)).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
@@ -216,7 +215,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -246,7 +245,7 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + EXPECTED_BUCKET_WITH_BASE_KEY + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
@@ -262,7 +261,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+		when(mockAuthManager.hasAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -295,7 +294,7 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucketWithBaseKey + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}

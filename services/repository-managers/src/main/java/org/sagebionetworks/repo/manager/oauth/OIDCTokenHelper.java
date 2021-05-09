@@ -87,9 +87,20 @@ public interface OIDCTokenHelper {
 	 * ID it creates a token having 'total access' to the user account,
 	 * duplicating the access provided by a Synapse session token.
 	 * 
+	 * This is for 'internal use only', not to return to the client.
+	 * 
 	 * @param principalId
 	 * @return
 	 */
-	String createTotalAccessToken(Long principalId);
+	String createInternalTotalAccessToken(Long principalId);
+	
+	/**
+	 * Creates a total access token suitable for returning to the client
+	 * 
+	 * @param principalId
+	 * @param issuer
+	 * @return
+	 */
+	String createClientTotalAccessToken(final Long principalId, final String issuer);
 
 }

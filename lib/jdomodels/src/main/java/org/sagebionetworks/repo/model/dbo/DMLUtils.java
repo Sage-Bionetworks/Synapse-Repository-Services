@@ -31,7 +31,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createInsertStatement(TableMapping mapping){
+	public static String createInsertStatement(TableMapping<?> mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("DBOMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
@@ -70,7 +70,7 @@ public class DMLUtils {
 	 * A batch insert or update SQL.
 	 * @return
 	 */
-	public static String getBatchInsertOrUdpate(TableMapping mapping){
+	public static String getBatchInsertOrUdpate(TableMapping<?> mapping){
 		StringBuilder builder = new StringBuilder();
 		builder.append(createInsertStatement(mapping));
 		if (hasNonPrimaryKeyColumns(mapping)) {
@@ -85,7 +85,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	private static boolean hasNonPrimaryKeyColumns(TableMapping mapping) {
+	private static boolean hasNonPrimaryKeyColumns(TableMapping<?> mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
 			if(!fc.isPrimaryKey()) return true;
@@ -98,7 +98,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createGetByIDStatement(TableMapping mapping){
+	public static String createGetByIDStatement(TableMapping<?> mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("DBOMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
@@ -115,7 +115,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return the COUNT statement
 	 */
-	public static String createGetCountByPrimaryKeyStatement(TableMapping mapping) {
+	public static String createGetCountByPrimaryKeyStatement(TableMapping<?> mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		StringBuilder main = new StringBuilder();
 		main.append("SELECT COUNT("+getPrimaryFieldColumnName(mapping)+") FROM ");
@@ -128,7 +128,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return the MAX statement
 	 */
-	public static String createGetMaxByBackupKeyStatement(TableMapping mapping) {
+	public static String createGetMaxByBackupKeyStatement(TableMapping<?> mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		StringBuilder main = new StringBuilder();
 		main.append("SELECT MAX("+getBackupFieldColumnName(mapping)+") FROM ");
@@ -141,7 +141,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return the MAX statement
 	 */
-	public static String createGetMinByBackupKeyStatement(TableMapping mapping) {
+	public static String createGetMinByBackupKeyStatement(TableMapping<?> mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		StringBuilder main = new StringBuilder();
 		main.append("SELECT MIN("+getBackupFieldColumnName(mapping)+") FROM ");
@@ -149,7 +149,7 @@ public class DMLUtils {
 		return main.toString();		
 	}
 	
-	public static String createGetMinMaxCountByKeyStatement(TableMapping mapping) {
+	public static String createGetMinMaxCountByKeyStatement(TableMapping<?> mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		String backupFieldName = getBackupFieldColumnName(mapping);
 		String primaryFieldName = getPrimaryFieldColumnName(mapping);
@@ -158,8 +158,17 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		return builder.toString();
 	}
+	
+	public static String createGetMinMaxByBackupKeyStatement(TableMapping<?> mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		String backupFieldName = getBackupFieldColumnName(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MIN(`" + backupFieldName + "`), MAX(`" + backupFieldName + "`) FROM ");
+		builder.append(mapping.getTableName());
+		return builder.toString();
+	}
 
-	public static String getPrimaryFieldColumnName(TableMapping mapping) {
+	public static String getPrimaryFieldColumnName(TableMapping<?> mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
 			if(fc.isPrimaryKey()) return fc.getColumnName();
@@ -167,7 +176,7 @@ public class DMLUtils {
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no primary key.");
 	}
 
-	public static String getBackupFieldColumnName(TableMapping mapping) {
+	public static String getBackupFieldColumnName(TableMapping<?> mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
 			if(fc.isBackupId()) return fc.getColumnName();
@@ -180,7 +189,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @param main
 	 */
-	public static void appendPrimaryKey(TableMapping mapping, StringBuilder main) {
+	public static void appendPrimaryKey(TableMapping<?> mapping, StringBuilder main) {
 		int keyCount = 0;
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
@@ -203,7 +212,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createDeleteStatement(TableMapping mapping){
+	public static String createDeleteStatement(TableMapping<?> mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
@@ -219,7 +228,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createDeleteByBackupIdRange(TableMapping mapping) {
+	public static String createDeleteByBackupIdRange(TableMapping<?> mapping) {
 		ValidateArgument.required(mapping, "Mapping cannot be null");
 		ValidateArgument.required(mapping.getFieldColumns(), "TableMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
@@ -234,7 +243,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createUpdateStatment(TableMapping mapping){
+	public static String createUpdateStatment(TableMapping<?> mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
@@ -252,7 +261,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @param builder
 	 */
-	private static void buildUpdateBody(TableMapping mapping, StringBuilder builder) {
+	private static void buildUpdateBody(TableMapping<?> mapping, StringBuilder builder) {
 		int count = 0;
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
@@ -273,7 +282,7 @@ public class DMLUtils {
 	/**
 	 *	Build a 'select sum(crc32(concat(id, '@', 'NA'))), bit_xor(crc32(concat(id, '@', ifnull(etag, 'NULL')))) statement for given mapping
 	 */
-	public static String createSelectChecksumStatement(TableMapping mapping) {
+	public static String createSelectChecksumStatement(TableMapping<?> mapping) {
 
 		validateMigratableTableMapping(mapping);
 
@@ -293,7 +302,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String createSelectBatchChecksumStatement(TableMapping mapping) {
+	public static String createSelectBatchChecksumStatement(TableMapping<?> mapping) {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT");
@@ -312,7 +321,7 @@ public class DMLUtils {
 	 * @param builder
 	 * @param mapping
 	 */
-	public static void builderBinCountMinMax(StringBuilder builder, TableMapping mapping) {
+	public static void builderBinCountMinMax(StringBuilder builder, TableMapping<?> mapping) {
 		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		builder.append(" `");
 		builder.append(idColName);
@@ -331,7 +340,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static void builderConcatSumBitXorCRC32(StringBuilder builder, TableMapping mapping) {
+	public static void builderConcatSumBitXorCRC32(StringBuilder builder, TableMapping<?> mapping) {
 		builder.append(" CONCAT(");
 		buildAggregateCrc32Call(builder, mapping, "SUM");
 		builder.append(", '%', ");
@@ -343,7 +352,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	private static void buildAggregateCrc32Call(StringBuilder builder, TableMapping mapping, String aggregate) {
+	private static void buildAggregateCrc32Call(StringBuilder builder, TableMapping<?> mapping, String aggregate) {
 		builder.append(aggregate);
 		builder.append("(CRC32(");
 		buildCallConcatIdAndEtagIfExists(builder, mapping);
@@ -353,7 +362,7 @@ public class DMLUtils {
 	/**
 	 * Builds the concat() call
 	 */
-	private static void buildCallConcatIdAndEtagIfExists(StringBuilder builder, TableMapping mapping) {
+	private static void buildCallConcatIdAndEtagIfExists(StringBuilder builder, TableMapping<?> mapping) {
 		FieldColumn etagCol = getEtagColumn(mapping);
 		FieldColumn idCol = getBackupIdColumnName(mapping);
 		builder.append("CONCAT(`");
@@ -375,7 +384,7 @@ public class DMLUtils {
 	 * @param builder
 	 * @param mapping
 	 */
-	public static void buildWhereBackupIdBetween(StringBuilder builder, TableMapping mapping) {
+	public static void buildWhereBackupIdBetween(StringBuilder builder, TableMapping<?> mapping) {
 		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		builder.append(" WHERE `");
 		builder.append(idColName);
@@ -389,7 +398,7 @@ public class DMLUtils {
 	 * @param builder
 	 * @param mapping
 	 */
-	private static void addBackupRange(StringBuilder builder, TableMapping mapping) {
+	private static void addBackupRange(StringBuilder builder, TableMapping<?> mapping) {
 		String idColName = getBackupIdColumnName(mapping).getColumnName();
 		builder.append(" WHERE `");
 		builder.append(idColName);
@@ -404,7 +413,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static FieldColumn getBackupIdColumnName(TableMapping mapping){
+	public static FieldColumn getBackupIdColumnName(TableMapping<?> mapping){
 		for(FieldColumn column: mapping.getFieldColumns()){
 			if(column.isBackupId()){
 				return column;
@@ -418,7 +427,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static FieldColumn getEtagColumn(TableMapping mapping){
+	public static FieldColumn getEtagColumn(TableMapping<?> mapping){
 		for(FieldColumn column: mapping.getFieldColumns()){
 			if(column.isEtag()){
 				return column;
@@ -432,7 +441,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static FieldColumn getSelfForeignKey(TableMapping mapping){
+	public static FieldColumn getSelfForeignKey(TableMapping<?> mapping){
 		for(FieldColumn column: mapping.getFieldColumns()){
 			if(column.isSelfForeignKey()){
 				return column;
@@ -447,7 +456,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String getBackupRangeBatch(TableMapping mapping) {
+	public static String getBackupRangeBatch(TableMapping<?> mapping) {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT * FROM ");
@@ -465,7 +474,7 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return
 	 */
-	public static String getBackupUniqueValidation(TableMapping mapping){
+	public static String getBackupUniqueValidation(TableMapping<?> mapping){
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SHOW INDEXES FROM ");
@@ -491,30 +500,13 @@ public class DMLUtils {
 		builder.append("'");
 		return builder.toString();
 	}
-	
-	/**
-	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
-	 * @param mapping
-	 * @param builder
-	 */
-	private static void buildBackupOrderBy(TableMapping mapping, StringBuilder builder, boolean ascending) {
-		builder.append(" ORDER BY `");
-		FieldColumn backupId = getBackupIdColumnName(mapping);
-		builder.append(backupId.getColumnName());
-		builder.append("` ");
-		if(ascending){
-			builder.append("ASC");
-		}else{
-			builder.append("DESC");
-		}
-	}
-	
+		
 	/**
 	 * Validate the passed mapping meets the minimum requirements for a backup table mapping.
 	 * 
 	 * @param mapping
 	 */
-	public static void validateMigratableTableMapping(TableMapping mapping){
+	public static void validateMigratableTableMapping(TableMapping<?> mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getTableName() == null) throw new IllegalArgumentException("Mapping.tableName cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.fieldColumns() cannot be null");
@@ -522,7 +514,9 @@ public class DMLUtils {
 		if(backupId == null) throw new IllegalArgumentException("One column must be marked as the backupIdColumn");
 	}
 	
-	public static String createChecksumTableStatement(TableMapping mapping) {
+	
+	
+	public static String createChecksumTableStatement(TableMapping<?> mapping) {
 		validateMigratableTableMapping(mapping);
 		String tableName = mapping.getTableName();
 		String stmt = "CHECKSUM TABLE " + tableName;
@@ -570,7 +564,7 @@ public class DMLUtils {
 	 * @param secondaryMappings
 	 * @return
 	 */
-	public static String createPrimaryCardinalitySql(TableMapping primaryMapping, List<TableMapping> secondaryMappings) {
+	public static String createPrimaryCardinalitySql(TableMapping<?> primaryMapping, List<TableMapping<?>> secondaryMappings) {
 		StringBuilder builder = new StringBuilder();
 		String primaryBackupColumnName = getBackupIdColumnName(primaryMapping).getColumnName();
 		// Select
@@ -578,7 +572,7 @@ public class DMLUtils {
 		builder.append(primaryBackupColumnName);
 		builder.append(", 1 ");
 		int index = 0;
-		for(TableMapping secondary: secondaryMappings) {
+		for(TableMapping<?> secondary: secondaryMappings) {
 			builder.append(" + T").append(index).append(".");
 			builder.append("CARD");
 			index++;
@@ -588,7 +582,7 @@ public class DMLUtils {
 		builder.append(" FROM ").append(primaryMapping.getTableName()).append(" AS P0");
 		// Join sub-query for each secondary type
 		index = 0;
-		for(TableMapping secondary: secondaryMappings) {
+		for(TableMapping<?> secondary: secondaryMappings) {
 			builder.append(" JOIN (");
 			builder.append(createCardinalitySubQueryForSecondary(primaryMapping, secondary));
 			builder.append(") T").append(index);
@@ -615,7 +609,7 @@ public class DMLUtils {
 	 * @param secondaryMapping
 	 * @return
 	 */
-	public static String createCardinalitySubQueryForSecondary(TableMapping primaryMapping, TableMapping secondaryMapping) {
+	public static String createCardinalitySubQueryForSecondary(TableMapping<?> primaryMapping, TableMapping<?> secondaryMapping) {
 		StringBuilder builder = new StringBuilder();
 		String primaryBackupIdColumnName = getBackupIdColumnName(primaryMapping).getColumnName();
 		String secondaryBackupIdColumnName = getBackupIdColumnName(secondaryMapping).getColumnName();

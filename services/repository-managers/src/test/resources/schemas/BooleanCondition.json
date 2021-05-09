@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "Testing conditionals with boolean and other values",
+	"$id": "my.organization-BooleanCondition",
+	"type": "object",
+	"properties": {
+		"assay": {
+			"type": "string"
+		},
+		"isMultiSpecimen": {
+			"type": "boolean"
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"isMultiSpecimen": {
+						"const": true
+					}
+				}
+			},
+			"then": {
+				"required": [
+					"assay"
+				]
+			}
+		}
+	]
+}

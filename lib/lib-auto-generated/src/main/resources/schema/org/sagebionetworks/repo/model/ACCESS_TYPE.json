@@ -29,7 +29,7 @@
         },
         {
             "name": "UPLOAD",
-            "description": "TODO: Auto-generated description"
+            "description": "Deprecated. Adding this to an ACL will do nothing."
         },
         {
             "name": "PARTICIPATE",

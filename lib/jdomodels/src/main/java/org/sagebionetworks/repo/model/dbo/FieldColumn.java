@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.util.Objects;
+
 /**
  * Binds a java field name to a database column.
  * 
@@ -18,6 +20,7 @@ public class FieldColumn {
 	private boolean isEtag = false;
 	private boolean isBackupId = false;
 	private boolean isSelfForeignKey = false;
+	private boolean hasFileHandleRef = false;
 	
 	/**
 	 * @param fieldName - the name of the field as declared in the DBO class.
@@ -142,49 +145,52 @@ public class FieldColumn {
 	public boolean isSelfForeignKey(){
 		return this.isSelfForeignKey;
 	}
-
+	
+	/**
+	 * @return True if this column has reference to file handle id(s) (e.g. in the form of a FK, or as part of a serialzied field), false otherwise
+	 */
+	public boolean hasFileHandleRef() {
+		return hasFileHandleRef;
+	}
+	
+	/**
+	 * Does this column point to a file handle id or is it serialized and contains references to file handles? If so set this to true
+	 * 
+	 * @param hasFileHandleRef True if this column has a reference to file handle id(s), false otherwise
+	 * @return This {@link FieldColumn} reference for chaining 
+	 */
+	public FieldColumn withHasFileHandleRef(boolean hasFileHandleRef) {
+		this.hasFileHandleRef = hasFileHandleRef;
+		return this;
+	}
+	
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((columnName == null) ? 0 : columnName.hashCode());
-		result = prime * result
-				+ ((fieldName == null) ? 0 : fieldName.hashCode());
-		result = prime * result + (isPrimaryKey ? 1231 : 1237);
-		return result;
+		return Objects.hash(columnName, fieldName, isBackupId, isEtag, hasFileHandleRef, isPrimaryKey, isSelfForeignKey);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		FieldColumn other = (FieldColumn) obj;
-		if (columnName == null) {
-			if (other.columnName != null)
-				return false;
-		} else if (!columnName.equals(other.columnName))
-			return false;
-		if (fieldName == null) {
-			if (other.fieldName != null)
-				return false;
-		} else if (!fieldName.equals(other.fieldName))
-			return false;
-		if (isPrimaryKey != other.isPrimaryKey)
-			return false;
-		return true;
+		return Objects.equals(columnName, other.columnName) && Objects.equals(fieldName, other.fieldName) && isBackupId == other.isBackupId
+				&& isEtag == other.isEtag && hasFileHandleRef == other.hasFileHandleRef && isPrimaryKey == other.isPrimaryKey
+				&& isSelfForeignKey == other.isSelfForeignKey;
 	}
 
 	@Override
 	public String toString() {
-		return "FieldColumn [fieldName=" + fieldName + ", columnName="
-				+ columnName + ", isPrimaryKey=" + isPrimaryKey + "]";
+		return "FieldColumn [fieldName=" + fieldName + ", columnName=" + columnName + ", isPrimaryKey=" + isPrimaryKey + ", isEtag="
+				+ isEtag + ", isBackupId=" + isBackupId + ", isSelfForeignKey=" + isSelfForeignKey + ", isFileHandleRef=" + hasFileHandleRef
+				+ "]";
 	}
-
-	
 
 }

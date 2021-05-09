@@ -29,9 +29,10 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -57,10 +58,14 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -125,21 +130,21 @@ public class TableViewIntegrationTest {
 	@Autowired
 	private TableViewManager tableViewManager;
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
-	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
+	private ConnectionFactory tableConnectionFactory;
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	TableStatusDAO tableStatusDao;
+	private TableStatusDAO tableStatusDao;
 	@Autowired
-	RepositoryMessagePublisher repositoryMessagePublisher;
+	private RepositoryMessagePublisher repositoryMessagePublisher;
 	@Autowired
-	DBOChangeDAO changeDAO;
+	private DBOChangeDAO changeDAO;
 	@Autowired
-	AsynchronousJobWorkerHelper asyncHelper;
+	private AsynchronousJobWorkerHelper asyncHelper;
+	@Autowired
+	private BulkDownloadManager bulkDownloadManager;
 	
 	
 	ProgressCallback mockProgressCallbackVoid;
@@ -176,6 +181,7 @@ public class TableViewIntegrationTest {
 		viewEntityType = ViewEntityType.entityview;
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		bulkDownloadManager.truncateAllDownloadDataForAllUsers(adminUserInfo);
 		NewUser user = new NewUser();
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@bond.com");
@@ -183,20 +189,7 @@ public class TableViewIntegrationTest {
 		userInfo = userManager.getUserInfo(userId);
 		
 		// create a shared fileHandle
-		sharedHandle = new S3FileHandle();
-		sharedHandle.setBucketName("fakeBucket");
-		sharedHandle.setKey("fakeKey");
-		sharedHandle.setContentMd5("md5");
-		sharedHandle.setContentSize(123L);
-		sharedHandle.setContentType("text/plain");
-		sharedHandle.setCreatedBy(""+adminUserInfo.getId());
-		sharedHandle.setCreatedOn(new Date(System.currentTimeMillis()));
-		sharedHandle.setEtag(UUID.randomUUID().toString());
-		sharedHandle.setFileName("foo.txt");
-		sharedHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		sharedHandle.setEtag(UUID.randomUUID().toString());
-		sharedHandle.setPreviewId(sharedHandle.getId());
-		sharedHandle = (S3FileHandle) fileHandleDao.createFile(sharedHandle);
+		sharedHandle = createNewFileHandle();
 		
 		entitiesToDelete = new LinkedList<String>();
 		
@@ -258,6 +251,28 @@ public class TableViewIntegrationTest {
 		
 		viewObjectType = ViewObjectType.ENTITY;
 	}
+	
+	/**
+	 * Helper to create a new FileHandle
+	 * @return
+	 */
+	public S3FileHandle createNewFileHandle() {
+		S3FileHandle fh = new S3FileHandle();
+		fh.setBucketName("fakeBucket");
+		fh.setKey("fakeKey");
+		fh.setContentMd5("md5");
+		fh.setContentSize(123L);
+		fh.setContentType("text/plain");
+		fh.setCreatedBy(""+adminUserInfo.getId());
+		fh.setCreatedOn(new Date(System.currentTimeMillis()));
+		fh.setEtag(UUID.randomUUID().toString());
+		fh.setFileName("foo.txt");
+		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fh.setEtag(UUID.randomUUID().toString());
+		fh.setPreviewId(fh.getId());
+		fh = (S3FileHandle) fileHandleDao.createFile(fh);
+		return fh;
+	}
 
 	/**
 	 * Create a File View using the project as a scope.
@@ -309,9 +324,7 @@ public class TableViewIntegrationTest {
 			}
 		}
 		
-		if(sharedHandle != null){
-			fileHandleDao.delete(sharedHandle.getId());
-		}
+		fileHandleDao.truncateTable();
 		
 		if(userInfo != null){
 			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
@@ -332,11 +345,11 @@ public class TableViewIntegrationTest {
 			});
 		});
 		
-		assertEquals("You do not have READ permission for the requested entity, "+KeyFactory.stringToKey(fileViewId)+".", ex.getMessage());
+		assertEquals("You lack READ access to the requested entity.", ex.getMessage());
 
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		
@@ -789,7 +802,7 @@ public class TableViewIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		// Add an ACL on the folder
 		AccessControlList acl = AccessControlListUtil.createACL(folderId, adminUserInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// Add a file to the folder
 		FileEntity file = new FileEntity();
 		file.setName("ChangingBenefactor");
@@ -815,7 +828,7 @@ public class TableViewIntegrationTest {
 		 * Removing the ACL on the folder should set the file's benefactor to be
 		 * the project. This should be reflected in the view.
 		 */
-		entityPermissionsManager.restoreInheritance(folderId, adminUserInfo);
+		entityAclManager.restoreInheritance(folderId, adminUserInfo);
 
 		// Query for the the file with the project as its benefactor.
 		sql = "select * from "+fileViewId+" where benefactorId='"+project.getId()+"' and id = '"+fileId+"'";
@@ -1302,7 +1315,7 @@ public class TableViewIntegrationTest {
 		Long folderOneIdLong = KeyFactory.stringToKey(folderOneId);
 		// Add an ACL on the folder
 		AccessControlList acl = AccessControlListUtil.createACL(folderOneId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// Add a file to the folder
 		FileEntity fileOne = new FileEntity();
 		fileOne.setName("fileOne");
@@ -1316,7 +1329,7 @@ public class TableViewIntegrationTest {
 		createFileView();
 		// grant the user read on the view.
 		acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
-		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, fileOneId);
 		
@@ -1354,7 +1367,7 @@ public class TableViewIntegrationTest {
 		/*
 		 * Remove the ACL on the folder.  
 		 */
-		entityPermissionsManager.restoreInheritance(folderOneId, adminUserInfo);
+		entityAclManager.restoreInheritance(folderOneId, adminUserInfo);
 		
 		waitForConsistentQuery(userInfo, sql, (results) -> {			
 			List<Row> rows  = extractRows(results);
@@ -1372,12 +1385,12 @@ public class TableViewIntegrationTest {
 	 */
 	void grantUserReadAccessOnProject() throws ACLInheritanceException {
 		// grant the user read permission the project
-		AccessControlList projectAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		AccessControlList projectAcl = entityAclManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess access = new ResourceAccess();
 		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
 		access.setPrincipalId(userInfo.getId());
 		projectAcl.getResourceAccess().add(access);
-		entityPermissionsManager.updateACL(projectAcl, adminUserInfo);
+		entityAclManager.updateACL(projectAcl, adminUserInfo);
 	}
 	
 	/**
@@ -1825,6 +1838,122 @@ public class TableViewIntegrationTest {
 			assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
 			assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
 		});
+	}
+	
+	/**
+	 * This is a test added for PLFM-6468.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testAddViewSnapshotToDownloadList() throws Exception {
+		createFileView();
+		String firstFileId = fileIds.get(0);
+		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+
+		// create a snapshot of the view
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("first snapshot");
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(null);
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber+" where id='"+firstFileId+"'");
+		query.setIncludeEntityEtag(true);
+		
+		QueryResultBundle bundle = waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {			
+			assertNotNull(queryResults);
+			List<Row> rows = extractRows(queryResults);
+			assertEquals(1, rows.size());
+		});
+		Row firstRow = extractRows(bundle).get(0);
+		assertEquals(KeyFactory.stringToKey(firstFileId), firstRow.getRowId());
+		assertEquals(1L, firstRow.getVersionNumber());
+
+		FileEntity firstFile = entityManager.getEntity(adminUserInfo, firstFileId, FileEntity.class);
+		String versionOneFileHandleId = firstFile.getDataFileHandleId();
+		assertEquals(sharedHandle.getId(), versionOneFileHandleId);
+		// Create a new version of the file with a new file handle
+		S3FileHandle newFileHandle = createNewFileHandle();
+		firstFile.setDataFileHandleId(newFileHandle.getId());
+		firstFile.setVersionLabel("added a new data file");
+		boolean createNewVersion = true;
+		String activityId = null;
+		// create a new version of the file
+		entityManager.updateEntity(adminUserInfo, firstFile, createNewVersion, activityId);
+		firstFile = entityManager.getEntity(adminUserInfo, firstFileId, FileEntity.class);
+		assertEquals(2L, firstFile.getVersionNumber());
+		assertEquals(newFileHandle.getId(), firstFile.getDataFileHandleId());
+		
+		// finally, use a query on the view snapshot to add the files the user's download list
+		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
+		request.setQuery(query);
+		
+		// call under test
+		asyncHelper.assertJobResponse(adminUserInfo, request, (AddFileToDownloadListResponse response) -> {		
+			assertNotNull(response);
+			assertNotNull(response.getDownloadList());
+			List<FileHandleAssociation> list = response.getDownloadList().getFilesToDownload();
+			assertNotNull(list);
+			assertEquals(1, list.size());
+			FileHandleAssociation association = list.get(0);
+			assertEquals(firstFileId, association.getAssociateObjectId());
+			assertEquals(FileHandleAssociateType.FileEntity, association.getAssociateObjectType());
+			assertEquals(versionOneFileHandleId, association.getFileHandleId());
+		}, MAX_WAIT_MS);
+		
+	}
+	
+	@Test
+	public void testTableViewWithBooleanAnnotations() throws Exception{
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "True", AnnotationsValueType.BOOLEAN);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(booleanColumn.getId(), etagColumn.getId());
+		createFileView();
+
+		// Query for the values as strings.
+		String sql = "select "+booleanColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
+		
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, sql, (results) -> {
+			List<Row> rows  = extractRows(results);
+			assertEquals(3, rows.size());
+			assertEquals("true", rows.get(0).getValues().get(0));
+			assertEquals("false", rows.get(1).getValues().get(0));
+			assertEquals("true", rows.get(2).getValues().get(0));			
+		}).getQueryResult().getQueryResults();
+
+		// use the results to update the annotations.
+		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+
+		assertEquals(3, updates.size());
+		// all of the update should have succeeded.
+		for(EntityUpdateResult eur: updates){
+			assertEquals(null, eur.getFailureMessage());
+			assertEquals(null, eur.getFailureCode());
+		}
 	}
 	
 	/**

@@ -112,5 +112,8 @@ public interface MessageDAO {
 	 * True if the message with the given id should override the user notification settings
 	 */
 	boolean overrideNotificationSettings(String messageId) throws NotFoundException;
+	
+	// For testing
+	void truncateAll();
 
 }

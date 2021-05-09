@@ -2158,7 +2158,22 @@ public class SQLUtilsTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 
 		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
-		String expected = "SELECT `col_1`, `col_2` FROM syn123 WHERE ROW_ID IN (222, 333)";
+		String expected = "SELECT \"col_1\", \"col_2\" FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testBuildSelectRowIdsColumnsWithDoubleQuotes(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "\"quoted\"Name", ColumnType.STRING);
+
+		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT \"col_1\", \"\"\"quoted\"\"Name\" FROM syn123 WHERE ROW_ID IN (222, 333)";
 		assertEquals(expected, sql);
 	}
 
@@ -2923,7 +2938,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE";
 		assertEquals(expected, sql);
@@ -2943,7 +2958,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);
@@ -2963,7 +2978,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE TEMPT999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);

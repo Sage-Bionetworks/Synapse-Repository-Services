@@ -1,35 +1,41 @@
 package org.sagebionetworks.repo.manager;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+@ExtendWith(MockitoExtension.class)
 public class MessageFileHandleAssociationProviderTest {
 
 	@Mock
 	private MessageDAO mockMessageDAO;
+	
 	@Mock
 	private MessageToUser mockMessage;
+	
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+	
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	
+	@InjectMocks
 	private MessageFileHandleAssociationProvider provider;
 	
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		provider = new MessageFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "messageDAO", mockMessageDAO);
-	}
 
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
@@ -46,4 +52,10 @@ public class MessageFileHandleAssociationProviderTest {
 	public void testGetObjectTypeForAssociatedType() {
 		assertEquals(ObjectType.MESSAGE, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.MessageAttachment, provider.getAssociateType());
+	}
+	
 }

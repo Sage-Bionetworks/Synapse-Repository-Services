@@ -3,17 +3,13 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,64 +17,44 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RestrictionInformationManagerImpl implements RestrictionInformationManager {
-	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
-	private AccessApprovalDAO accessApprovalDAO;
-	
-	@Autowired
-	private NodeDAO nodeDao;
-	
+	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request) {
+	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo,
+			RestrictionInformationRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getObjectId(), "RestrictionInformationRequest.objectId");
-		ValidateArgument.required(request.getRestrictableObjectType(), "RestrictionInformationRequest.restrictableObjectType");
-		RestrictionInformationResponse info = new RestrictionInformationResponse();
+		ValidateArgument.required(request.getRestrictableObjectType(),
+				"RestrictionInformationRequest.restrictableObjectType");
+		if (RestrictableObjectType.ENTITY != request.getRestrictableObjectType()
+				&& RestrictableObjectType.TEAM != request.getRestrictableObjectType()) {
+			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
+		}
 
-		boolean userIsFileCreator=false;
-		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
-			// if the user is the owner of the entity (and the entity is a File), then she automatically 
-			// has access to the object and therefore has no unmet access requirements
-			Long principalId = userInfo.getId();
-			Node node = nodeDao.getNode(request.getObjectId());
-			if (node.getCreatedByPrincipalId().equals(principalId) && EntityType.file.equals(node.getNodeType())) {
-				userIsFileCreator=true;
-			}
-		}
-		
-		List<Long> subjectIds;
-		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
-			subjectIds = nodeDao.getEntityPathIds(request.getObjectId());
-		} else if (RestrictableObjectType.TEAM == request.getRestrictableObjectType()){
-			subjectIds = Arrays.asList(KeyFactory.stringToKey(request.getObjectId()));
-		} else {
-			throw new IllegalArgumentException("Do not support retrieving restriction information for type: "+request.getRestrictableObjectType());
-		}
-		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, request.getRestrictableObjectType());
-		if (stats.getRequirementIdSet().isEmpty()) {
-			info.setRestrictionLevel(RestrictionLevel.OPEN);
+		List<UsersRestrictionStatus> statusList = accessRestrictionStatusDao.getSubjectStatus(
+				Arrays.asList(KeyFactory.stringToKey(request.getObjectId())), request.getRestrictableObjectType(),
+				userInfo.getId());
+
+		return statusList.stream().findFirst().map((s) -> {
+			RestrictionInformationResponse info = new RestrictionInformationResponse();
+			info.setHasUnmetAccessRequirement(s.hasUnmet());
+			info.setRestrictionLevel(s.getMostRestrictiveLevel());
+			return info;
+		}).orElseGet(() -> {
+			// If there are no restrictions then the data is open and met.
+			RestrictionInformationResponse info = new RestrictionInformationResponse();
 			info.setHasUnmetAccessRequirement(false);
-		} else {
-			if (stats.getHasACT() || stats.getHasLock()) {
-				info.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT);
-			} else if (stats.getHasToU()) {
-				info.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE);
-			} else {
-				throw new IllegalStateException("Access Requirement does not contain either ACT or ToU: "+stats.getRequirementIdSet().toString());
-			}
-			if (userIsFileCreator) {
-				info.setHasUnmetAccessRequirement(false);
-			} else {
-				info.setHasUnmetAccessRequirement(accessApprovalDAO.hasUnmetAccessRequirement(stats.getRequirementIdSet(), userInfo.getId().toString()));
-			}
-		}
-		return info;
+			info.setRestrictionLevel(RestrictionLevel.OPEN);
+			return info;
+		});
 	}
-
-
+	
+	@Override
+	public List<UsersRestrictionStatus> getEntityRestrictionInformation(UserInfo userInfo, List<Long> entityIds){
+		return accessRestrictionStatusDao.getEntityStatus(entityIds, userInfo.getId());
+	}
 
 }

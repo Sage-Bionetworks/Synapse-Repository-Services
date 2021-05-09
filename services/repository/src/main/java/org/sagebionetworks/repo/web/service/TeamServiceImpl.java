@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Comparator;
-import java.util.List;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -32,6 +29,9 @@ import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * @author brucehoff
@@ -118,7 +118,7 @@ public class TeamServiceImpl implements TeamService {
 	public PaginatedResults<TeamMember> getMembers(String teamId,
 			String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		
+		ValidateArgument.required(teamId, "The teamId");
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
@@ -192,6 +192,12 @@ public class TeamServiceImpl implements TeamService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);		
 		return teamManager.getIconURL(userInfo, teamId);
+	}
+
+	public String getIconPreviewURL(Long userId, String teamId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return teamManager.getIconPreviewURL(userInfo, teamId);
 	}
 
 	/* (non-Javadoc)

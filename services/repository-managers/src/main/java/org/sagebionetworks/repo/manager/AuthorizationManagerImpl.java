@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.form.FormManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -32,7 +34,6 @@ import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -41,15 +42,14 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -82,7 +82,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
@@ -119,7 +119,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throws DatastoreException, NotFoundException {
 		switch (objectType) {
 			case ENTITY:
-				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
+				return entityAuthorizationManager.hasAccess(userInfo, objectId, accessType);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
@@ -228,12 +228,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) 
 		throws NotFoundException, DatastoreException {
-		return entityPermissionsManager.canCreate(parentId, nodeType, userInfo);
-	}
-
-	@Override
-	public AuthorizationStatus canChangeSettings(UserInfo userInfo, Node node) throws NotFoundException, DatastoreException {
-		return entityPermissionsManager.canChangeSettings(node, userInfo);
+		return entityAuthorizationManager.canCreate(parentId, nodeType, userInfo);
 	}
 
 	@Override
@@ -373,7 +368,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException {
 		if (objectType==ObjectType.ENTITY) {
-			return entityPermissionsManager.canCreateWiki(objectId, userInfo);
+			return entityAuthorizationManager.canCreateWiki(objectId, userInfo);
 		} else {
 			return canAccess(userInfo, objectId, objectType, ACCESS_TYPE.CREATE);
 		}

@@ -12,6 +12,8 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -138,6 +140,11 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 			throws SdkClientException, AmazonServiceException {
 		return getS3ClientForBucket(getObjectRequest.getBucketName()).getObject( getObjectRequest,  destinationFile);
 	}
+	
+	@Override
+	public AccessControlList getObjectAcl(String bucketName, String objectName) {
+		return getS3ClientForBucket(bucketName).getObjectAcl(bucketName, objectName);
+	}
 
 	@Override
 	public ObjectListing listObjects(String bucketName, String prefix)
@@ -190,6 +197,11 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 			throws SdkClientException, AmazonServiceException {
 		return getS3ClientForBucket(request.getBucketName()).completeMultipartUpload(request);
 	}
+	
+	@Override
+	public void abortMultipartUpload(AbortMultipartUploadRequest request) throws SdkClientException, AmazonServiceException {
+		getS3ClientForBucket(request.getBucketName()).abortMultipartUpload(request);
+	}
 
 	@Override
 	public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration)
@@ -206,5 +218,10 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	@Override
 	public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(String bucketName) {
 		return getS3ClientForBucket(bucketName).getBucketCrossOriginConfiguration(bucketName);
+	}
+	
+	@Override
+	public String getAccountOwnerId(String bucketName) {
+		return getS3ClientForBucket(bucketName).getS3AccountOwner().getId();
 	}
 }

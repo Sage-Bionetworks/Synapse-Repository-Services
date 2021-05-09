@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -29,20 +30,29 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.http.HttpHeaders;
+import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadComposerDAO;
+import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GoogleCloudStorageMultipartUploadDAOImplTest {
@@ -58,10 +68,16 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	private GoogleCloudStorageMultipartUploadDAOImpl googleMpuDAO;
 
 	@Mock
-	Blob mockBlob;
+	private Blob mockBlob;
 
 	@Mock
-	Blob mockBlobPart;
+	private Blob mockBlobPart;
+	
+	@Mock
+	private LoggerProvider mockLoggerProvider;
+	
+	@Mock
+	private Logger mockLogger;
 
 	private static final String UPLOAD_ID = "233";
 	private static final String KEY_NAME = "testKeyName";
@@ -70,37 +86,68 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	private static final String BUCKET_NAME = "test-bucket-name";
 	private static final String PART_MD5 = "abcdef0123456789abcdef0123456789";
 	private static final String CONTENT_TYPE = "application/json";
+	
+	@BeforeEach
+	public void before() {
+		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
+		googleMpuDAO.configureLogger(mockLoggerProvider);
+	}
+	
+	@AfterEach
+	public void after() {
+		verify(mockLoggerProvider).getLogger(GoogleCloudStorageMultipartUploadDAOImpl.class.getName());
+	}
 
 	@Test
-	public void initiateMultipartUpload() {
+	public void testInitiateMultipartUpload() {
 		// Will always be an empty string.
 		assertTrue(googleMpuDAO
 				.initiateMultipartUpload(BUCKET_NAME, KEY_NAME, new MultipartUploadRequest())
 				.isEmpty());
 	}
+	
+	@Test
+	public void testInitiateMultipartUploadCopy() {
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+			// Call under test
+			googleMpuDAO.initiateMultipartUploadCopy(BUCKET_NAME, KEY_NAME, new MultipartUploadCopyRequest(), new S3FileHandle());
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
+	}
 
 	@Test
-	public void presignedPutURL() throws MalformedURLException {
+	public void testCreatePartUploadPreSignedUrl() throws MalformedURLException {
 		Map<String, String> expectedHeaders = new HashMap<>();
 		expectedHeaders.put(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE);
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, CONTENT_TYPE));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
+	}
+	
+	@Test
+	public void testCreatePartUploadCopyPresignedUrl() {
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {			
+			// Call under test
+			googleMpuDAO.createPartUploadCopyPresignedUrl(new CompositeMultipartUploadStatus(), 1L, null);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
 	}
 
 	@Test
-	public void presignedPutURLNullContentType() throws MalformedURLException {
+	public void testCreatePartUploadPreSignedUrlNullContentType() throws MalformedURLException {
 		when(mockStorageClient.createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT)).thenReturn(new URL("http://google.com/"));
 
 		// Call under test
-		assertNotNull(googleMpuDAO.createPreSignedPutUrl(BUCKET_NAME, KEY_NAME, null));
+		assertNotNull(googleMpuDAO.createPartUploadPreSignedUrl(BUCKET_NAME, KEY_NAME, null));
 		verify(mockStorageClient).createSignedUrl(BUCKET_NAME, KEY_NAME, 15 * 1000 * 60, HttpMethod.PUT);
 	}
 
 	@Test
-	public void addPart() throws Exception {
+	public void testValidateAndAddPart() throws Exception {
 		long existingDboLowerBound = 1L;
 		long existingDboUpperBound = 20L;
 		long existingDboPartSize = 1L;
@@ -126,7 +173,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void validatePart() throws Exception {
+	public void testValidatePartMd5() throws Exception {
 		AddPartRequest addPartRequest = new AddPartRequest(UPLOAD_ID,
 				"", BUCKET_NAME, KEY_NAME, PART_KEY_NAME, PART_MD5, PART_NUMBER, 100);
 		when(mockStorageClient.getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER)).thenReturn(mockBlob);
@@ -140,7 +187,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void validatePartNullBlob() {
+	public void testValidatePartMd5NullBlob() {
 		AddPartRequest addPartRequest = new AddPartRequest(UPLOAD_ID,
 				"", BUCKET_NAME, KEY_NAME, PART_KEY_NAME, PART_MD5, PART_NUMBER, 100);
 		when(mockStorageClient.getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER)).thenReturn(null);
@@ -150,7 +197,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void validatePartMismatchedMd5() {
+	public void vtestValidatePartMd5MismatchedMd5() {
 		AddPartRequest addPartRequest = new AddPartRequest(UPLOAD_ID,
 				"", BUCKET_NAME, KEY_NAME, PART_KEY_NAME, PART_MD5, PART_NUMBER, 100);
 		when(mockStorageClient.getObject(BUCKET_NAME, KEY_NAME + "/" + PART_NUMBER)).thenReturn(mockBlob);
@@ -161,7 +208,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void addPartNoMd5Check() {
+	public void testAddPartNoMd5Check() {
 		long existingDboLowerBound = 1L;
 		long existingDboUpperBound = 20L;
 		long existingDboPartSize = 1L;
@@ -180,7 +227,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeNoStitchTargets() {
+	public void testAddPartAttemptMergeNoStitchTargets() {
 		// parts 21-32 would be missing in this case, so the merge shouldn't happen
 		long lowerBoundOfPart = 5L;
 		long upperBoundOfPart = 5L;
@@ -201,7 +248,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeWithStitchTargetsSingleton() {
+	public void testAddPartAttemptMergeWithStitchTargetsSingleton() {
 		long lowerBoundOfPart = 5L;
 		long upperBoundOfPart = 5L;
 		long numberOfPartsInEntireUpload = 100L;
@@ -221,7 +268,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeWithStitchTargetsRange() {
+	public void testAddPartAttemptMergeWithStitchTargetsRange() {
 		long lowerBoundOfPart = 65L;
 		long upperBoundOfPart = 96L;
 		long numberOfPartsInEntireUpload = 1024L;
@@ -240,7 +287,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeWithStitchTargetsHitUpperBound() {
+	public void testAddPartAttemptMergeWithStitchTargetsHitUpperBound() {
 		long lowerBoundOfPart = 1L;
 		long upperBoundOfPart = 32L;
 		long numberOfPartsInEntireUpload = 100L;
@@ -259,7 +306,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeWithStitchTargetsSingletonLastPartEdgeCase() {
+	public void testAddPartAttemptMergeWithStitchTargetsSingletonLastPartEdgeCase() {
 		long lowerBoundOfPart = 33L;
 		long upperBoundOfPart = 33L;
 		long numberOfPartsInEntireUpload = 33L;
@@ -278,7 +325,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	}
 
 	@Test
-	public void attemptMergeWithStitchTargetsRangeLastPartEdgeCase() {
+	public void testAddPartAttemptMergeWithStitchTargetsRangeLastPartEdgeCase() {
 		long lowerBoundOfPart = 1025L;
 		long upperBoundOfPart = 1026L;
 		long numberOfPartsInEntireUpload = 1026L;
@@ -294,6 +341,19 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockStorageClient).composeObjects(eq(BUCKET_NAME), anyString(), anyList());
 		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, existingDboLowerBound, existingDboUpperBound);
+	}
+	
+	@Test
+	public void testValidatePartCopy() {
+		long partNumber = 1;
+		String partMD5Hex = "md5";
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+			// Call under test
+			googleMpuDAO.validatePartCopy(new CompositeMultipartUploadStatus(), partNumber, partMD5Hex);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
 	}
 
 
@@ -373,5 +433,54 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockBlobPart).delete();
 		verify(mockBlob, never()).delete();
 		verify(mockBlob).getSize();
+	}
+	
+	@Test
+	public void testAbortMultipartRequest() {
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
+		doNothing().when(mockStorageClient).deleteObject(any(), any());
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.tryAbortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		
+	}
+	
+	@Test
+	public void testAbortMultipartRequestWithException() {
+		
+		StorageException ex = new StorageException(1, "Something went wrong");
+		
+		doThrow(ex).when(mockStorageClient).deleteObject(any(), any());
+		
+		when(mockStorageClient.getObjects(any(), any())).thenReturn(Arrays.asList(mockBlobPart));
+		
+		AbortMultipartRequest request = new AbortMultipartRequest(UPLOAD_ID, null, BUCKET_NAME, KEY_NAME);
+		
+		// Call under test
+		googleMpuDAO.tryAbortMultipartRequest(request);
+		
+		verify(mockMultipartUploadComposerDAO).deleteAllParts(request.getUploadId());
+		verify(mockStorageClient).getObjects(request.getBucket(), request.getKey() + "/");
+		verify(mockBlobPart).delete();
+		verify(mockStorageClient).deleteObject(request.getBucket(), request.getKey());
+		verify(mockLogger).warn(ex.getMessage(), ex);
+	}
+	
+	@Test
+	public void testGetObjectEtag() {
+		
+		String errorMessage = assertThrows(UnsupportedOperationException.class, () -> {
+			// Call under test
+			googleMpuDAO.getObjectEtag(BUCKET_NAME, KEY_NAME);
+		}).getMessage();
+		
+		assertEquals("Copying from a Google Cloud Bucket is not supported yet.", errorMessage);
 	}
 }

@@ -11,7 +11,7 @@
                            http://www.springframework.org/schema/aop
                            http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
 
-	<aop:aspectj-autoproxy />
+	<context:annotation-config />
 
 	<!-- Enables CGLIB so tests can depend on DAO implementations to test methods 
 		that are not part of the interface. -->

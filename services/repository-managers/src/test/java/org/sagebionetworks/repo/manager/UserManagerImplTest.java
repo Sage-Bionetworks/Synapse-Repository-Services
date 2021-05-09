@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -31,6 +32,9 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private AuthenticationDAO authDAO;
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -66,6 +70,7 @@ public class UserManagerImplTest {
 
 		// Anonymous does not belong to the authenticated user's group.
 		assertFalse(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertFalse(ui.acceptsTermsOfUse());
 	}
 	
 	@Test
@@ -96,6 +101,53 @@ public class UserManagerImplTest {
 		// Should include Public and authenticated users' group.
 		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertFalse(ui.acceptsTermsOfUse());
+	}
+	
+	@Test
+	public void testGetUserAcceptsTermsOfUseWithNotSet() {
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		Long principalId = userManager.createUser(user);;
+		groupsToDelete.add(principalId.toString());
+		
+		// Check that the UserInfo is populated
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		assertEquals(principalId, userInfo.getId());
+		assertFalse(userInfo.acceptsTermsOfUse());
+	}
+	
+	@Test
+	public void testGetUserAcceptsTermsOfUseWithTrue() {
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		Long principalId = userManager.createUser(user);;
+		groupsToDelete.add(principalId.toString());
+		
+		authDAO.setTermsOfUseAcceptance(principalId, true);
+		
+		// Check that the UserInfo is populated
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		assertEquals(principalId, userInfo.getId());
+		assertTrue(userInfo.acceptsTermsOfUse());
+	}
+	
+	@Test
+	public void testGetUserAcceptsTermsOfUseWithFalse() {
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		Long principalId = userManager.createUser(user);;
+		groupsToDelete.add(principalId.toString());
+		
+		authDAO.setTermsOfUseAcceptance(principalId, false);
+		
+		// Check that the UserInfo is populated
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		assertEquals(principalId, userInfo.getId());
+		assertFalse(userInfo.acceptsTermsOfUse());
 	}
 		
 	@Test

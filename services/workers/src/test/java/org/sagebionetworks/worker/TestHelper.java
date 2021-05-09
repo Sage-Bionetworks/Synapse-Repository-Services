@@ -1,17 +1,15 @@
 package org.sagebionetworks.worker;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.manager.SubmissionEligibilityManager;
-import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -20,6 +18,10 @@ import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionEligibilityManager;
+import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableSet;
@@ -186,7 +189,6 @@ public class TestHelper {
 		evaluation.setName(UUID.randomUUID().toString());
 		evaluation.setOwnerId(user.getId().toString());
 		evaluation.setContentSource(project.getId());
-		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation.setEtag(UUID.randomUUID().toString());
 
 		evaluation = evaluationManager.createEvaluation(user, evaluation);
@@ -194,6 +196,18 @@ public class TestHelper {
 		addEvaluationForCleanup(evaluation.getId());
 
 		return evaluation;
+	}
+
+	public EvaluationRound createEvaluationRound(UserInfo userInfo, String evaluationId){
+		EvaluationRound round = new EvaluationRound();
+		Instant now = Instant.now();
+		round.setRoundStart(Date.from(now));
+		round.setRoundEnd(Date.from(now.plus(1, ChronoUnit.DAYS)));
+		round.setEvaluationId(evaluationId);
+
+		// cleaning up the evaluation will cascade delete the round
+
+		return evaluationManager.createEvaluationRound(userInfo, round);
 	}
 	
 	public SubmissionBundle createSubmission(UserInfo submitter, Evaluation evaluation, Entity entity) throws Exception {
@@ -212,7 +226,7 @@ public class TestHelper {
 		
 		if (team != null) {
 			submission.setTeamId(team.getId());
-			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId());
+			TeamSubmissionEligibility eligibility = submissionEligibilityManager.getTeamSubmissionEligibility(evaluation, team.getId(), new Date());
 			teamEligibilityHash = String.valueOf(eligibility.getEligibilityStateHash());
 		}
 		

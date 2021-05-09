@@ -68,6 +68,9 @@
     <import resource="classpath:get-validation-schema-worker-spb.xml" />
     <import resource="classpath:dataaccess-worker-spb.xml" />
     <import resource="classpath:schema-validation-worker-spb.xml" />
+    <import resource="classpath:multipart-cleanup-spb.xml" />
+    <import resource="classpath:file-scanner-spb.xml" />
+    <import resource="classpath:download-list-query-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -121,6 +124,12 @@
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
 		<ref bean="schemaValidationTrigger" />
+		<ref bean="multipartCleanupWorkerTrigger" />
+		<ref bean="fileHandleAssociationScanDispatcherWorkerTrigger" />
+		<ref bean="fileHandleAssociationScanRangeWorkerTrigger" />
+		<ref bean="fileHandleStreamWorkerTrigger" />
+		<ref bean="downloadListQueryTrigger" />
+		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
@@ -135,8 +144,6 @@
 	</bean>
 	
 	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects -->
-	<bean id="workerLogger" class="org.sagebionetworks.cloudwatch.WorkerLoggerImpl">
-		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
-	</bean>
+	<bean id="workerLogger" class="org.sagebionetworks.cloudwatch.WorkerLoggerImpl"></bean>
 
 </beans>

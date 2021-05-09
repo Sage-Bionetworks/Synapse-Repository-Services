@@ -251,6 +251,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 	}
 
 	@Test
@@ -279,6 +280,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
@@ -455,6 +457,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
@@ -781,7 +784,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(RestrictableObjectType.ENTITY, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.DOWNLOAD));
 		assertEquals(RestrictableObjectType.TEAM, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.PARTICIPATE));
 		try {
-			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.UPLOAD);
+			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.READ);
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}

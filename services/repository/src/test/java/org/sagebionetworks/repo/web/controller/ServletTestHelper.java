@@ -1,17 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.io.StringWriter;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServlet;
-
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -123,6 +111,17 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import javax.servlet.http.HttpServlet;
+import java.io.StringWriter;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertNotNull;
+
 /**
  * Helper class to make HttpServlet request.
  * 
@@ -204,7 +203,7 @@ public class ServletTestHelper {
 	}
 
 	private String token(Long userId) {
-		return oidcTokenHelper.createTotalAccessToken(userId);
+		return oidcTokenHelper.createInternalTotalAccessToken(userId);
 	}
 	
 	public <T extends Entity> T createEntity(T entity,
@@ -1462,6 +1461,18 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return new PaginatedTeamIds(new JSONObjectAdapterImpl(response.getContentAsString()));
+	}
+
+	public MockHttpServletResponse getTeamMembersWithTeamId(HttpServlet dispatchServlet, Long userId,
+																String teamId) throws Exception {
+		String uri = UrlHelpers.TEAM_MEMBERS_ID;
+		uri = uri.replace("{id}", teamId);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, uri, userId,
+				token(userId), null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return response;
 	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,

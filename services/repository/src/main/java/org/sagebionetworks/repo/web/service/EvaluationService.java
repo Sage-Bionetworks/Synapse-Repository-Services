@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationRound;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListRequest;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -392,5 +395,16 @@ public interface EvaluationService {
 	 * @return
 	 */
 	public void processCancelSubmissionRequest(Long userId, String subId);
-	
+
+	EvaluationRound createEvaluationRound(Long userId, EvaluationRound evaluationRound);
+
+	EvaluationRound updateEvaluationRound(Long userId, EvaluationRound evaluationRound);
+
+	EvaluationRound getEvaluationRound(Long userId, String evaluationId, String evaluationRoundId);
+
+	EvaluationRoundListResponse getAllEvaluationRounds(Long userId, String evaluationId, EvaluationRoundListRequest request);
+
+	void deleteEvaluationRound(Long userId, String evaluationId, String evaluationRoundId);
+
+	void migrateEvaluationSubmissionQuota(Long userId, String evaluationId);
 }

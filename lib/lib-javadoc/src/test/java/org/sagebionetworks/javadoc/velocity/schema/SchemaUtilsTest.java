@@ -20,9 +20,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
 import org.sagebionetworks.javadoc.testclasses.GenericList;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -79,7 +79,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testEffectiveSchema(){
-		String fullName = ChunkedFileToken.class.getName();
+		String fullName = Team.class.getName();
 		ObjectSchema schema = SchemaUtils.getSchema(fullName);
 		assertNotNull(schema);
 		assertEquals(schema.getId(), fullName);
@@ -89,9 +89,9 @@ public class SchemaUtilsTest {
 	public void testFindSchemaFiles(){
 		MethodDoc method = JavadocMockUtils.createMockMethodDoc("getSomething");
 		// The return type and one parameter should be JSON entites
-		String returnName = ChunkedFileToken.class.getName();
-		String paramOne = ChunkRequest.class.getName();
-		String paramTwo = ChunkResult.class.getName();
+		String returnName = VersionInfo.class.getName();
+		String paramOne = UserGroup.class.getName();
+		String paramTwo = Team.class.getName();
 		ClassDoc returnClass = JavadocMockUtils.createMockJsonEntity(returnName);
 		Type retunType = JavadocMockUtils.createMockType(returnName, returnClass);
 		
@@ -126,7 +126,7 @@ public class SchemaUtilsTest {
 		assertNotNull(field);
 		assertEquals(name, field.getName());
 		assertEquals(description, field.getDescription());
-		assertEquals(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }), field.getType());
+		assertEquals(new TypeReference(null, false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }), field.getType());
 	}
 	
 	@Test
@@ -184,15 +184,6 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTypeToLinkStringObjectNullId(){
-		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
-		schema.setId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
-			SchemaUtils.typeToLinkString(schema, recursiveAnchor);
-		});
-	}
-	
-	@Test
 	public void testTypeToLinkStringArrayNullItems(){
 		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
 		schema.setItems(null);
@@ -209,6 +200,28 @@ public class SchemaUtilsTest {
 		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
 		assertTrue(result.getIsArray());
+		assertFalse(result.getIsUnique());
+	}
+	
+	@Test
+	public void testTypeToLinkStringWithArrayPrimitiveObject(){
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
+		schema.setItems(new ObjectSchemaImpl(TYPE.OBJECT));
+		// call under test
+		TypeReference result = SchemaUtils.typeToLinkString(schema, recursiveAnchor);
+		assertArrayEquals(new String[] { TYPE.OBJECT.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
+		assertTrue(result.getIsArray());
+		assertFalse(result.getIsUnique());
+	}
+	
+	@Test
+	public void testTypeToLinkStringWithPrimitiveObject(){
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
+		TypeReference result = SchemaUtils.typeToLinkString(schema, recursiveAnchor);
+		assertArrayEquals(new String[] { TYPE.OBJECT.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
+		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
 	
@@ -356,9 +369,9 @@ public class SchemaUtilsTest {
 		assertEquals(effective, model.getEffectiveSchema());
 		assertNotNull(model.getFields());
 		assertEquals(2, model.getFields().size());
-		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }),
+		assertEquals(new SchemaFields(new TypeReference(null, false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }),
 				"someString", null), model.getFields().get(0));
-		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
+		assertEquals(new SchemaFields(new TypeReference(null, false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
 				"someBoolean", null), model.getFields().get(1));
 	}
 
@@ -391,6 +404,39 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
+	public void testRecursiveAddTypesWithArrayOfGenericbjects(){
+		//create array of generic objects
+		ObjectSchema arrayOfObjects = new ObjectSchemaImpl(TYPE.ARRAY);
+		arrayOfObjects.setItems(new ObjectSchemaImpl(TYPE.OBJECT));
+
+		//create object schema with a list containing enums
+		String schemaToTestId = "org.sagebionetworks.test.ArrayOfObjects";
+		ObjectSchema schemaToTest = new ObjectSchemaImpl(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myObjects", arrayOfObjects)));
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//call under test
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(1, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
+	}
+	
+	@Test
+	public void testRecursiveAddTypesWithGenericbject(){
+		String schemaToTestId = "org.sagebionetworks.test.Object";
+		ObjectSchema schemaToTest = new ObjectSchemaImpl(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myObject", new ObjectSchemaImpl(TYPE.OBJECT))));
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//call under test
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(1, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
+	}
+	
+	@Test
 	public void testTranslateToModelRecurisveType() {
 		ObjectSchema root = new ObjectSchemaImpl();
 		root.setName("root");
@@ -413,6 +459,31 @@ public class SchemaUtilsTest {
 		assertEquals("root", childField.type.getDisplay()[0]);
 		assertEquals(1, childField.type.getHref().length);
 		assertEquals("${path.root}", childField.type.getHref()[0]);
+	}
+	
+	@Test
+	public void testTranslateToModelWithDefaultImplementation() {
+		ObjectSchema defaultImplementation = new ObjectSchemaImpl();
+		
+		defaultImplementation.setType(TYPE.OBJECT);
+		defaultImplementation.setName("Impl");
+		defaultImplementation.setId("path.to.Impl");
+		
+		ObjectSchema superInterface = new ObjectSchemaImpl();
+		
+		superInterface.setType(TYPE.INTERFACE);
+		superInterface.setName("Interface");
+		superInterface.setId("path.to.Interface");
+		superInterface.setDefaultConcreteType(defaultImplementation.getId());
+		
+		TypeReference expectedReference = SchemaUtils.typeToLinkString(defaultImplementation, null);
+		
+		List<TypeReference> knownImplementaions = Arrays.asList(expectedReference);
+		
+		// call under test
+		ObjectSchemaModel model = SchemaUtils.translateToModel(superInterface, knownImplementaions);
+
+		assertEquals(expectedReference, model.getDefaultImplementation());
 	}
 	
 	@Test

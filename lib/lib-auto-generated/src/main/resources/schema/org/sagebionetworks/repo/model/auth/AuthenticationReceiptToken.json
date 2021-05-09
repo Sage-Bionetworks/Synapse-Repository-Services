@@ -1,0 +1,14 @@
+{
+	"description": "A token returned to the user upon successful authentication.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+		}
+	],
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user account."
+		}
+	}
+}
