@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.sts;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -51,9 +54,12 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 
@@ -234,12 +240,16 @@ public class StsManagerImplAutowiredTest {
 		readWriteTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, subFolderPath + "/file.txt");
 
 		// Validate can write to S3. This call will not throw.
-		readWriteTempClient.putObject(EXTERNAL_S3_BUCKET, testFolderPath + "/" + filenameToWrite,
-				"lorem ipsum");
+		PutObjectRequest req = new PutObjectRequest(EXTERNAL_S3_BUCKET, testFolderPath + "/" + filenameToWrite,
+				new ByteArrayInputStream("lorem ipsum".getBytes(StandardCharsets.UTF_8)), null)
+				.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
+		readWriteTempClient.putObject(req);
 
 		// Cannot write to owner.txt.
 		ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.putObject(
-				EXTERNAL_S3_BUCKET, testFolderPath + "/owner.txt", "lorem ipsum"));
+				new PutObjectRequest(EXTERNAL_S3_BUCKET, testFolderPath + "/owner.txt",
+						new ByteArrayInputStream("lorem ipsum".getBytes(StandardCharsets.UTF_8)), null)
+						.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl)));
 		assertEquals(403, ex.getStatusCode());
 	}
 
@@ -291,6 +301,93 @@ public class StsManagerImplAutowiredTest {
 				() -> stsManager.getTemporaryCredentials(userInfo, folderId, StsPermission.read_write));
 		assertEquals("STS write access is not allowed in Synapse storage", synapseException.getMessage());
 	}
+	
+	@Test
+	public void testSTSWithBucketOwnerFullControl() throws Exception {
+		// Only run this test if the STS Arn is set up.
+		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
+		
+		String testFolderPath = "StsManagerImplAutowiredTest-" + UUID.randomUUID().toString();
+		uploadFileToS3(testFolderPath, "owner.txt", username);
+
+		// Create StsStorageLocation.
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBaseKey(testFolderPath);
+		storageLocationSetting.setBucket(EXTERNAL_S3_BUCKET);
+		storageLocationSetting.setStsEnabled(true);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, storageLocationSetting);
+
+		applyStorageLocationToFolder(storageLocationSetting.getStorageLocationId());
+
+		// create temporary read_write client
+		String filenameToWrite = RandomStringUtils.randomAlphabetic(4) + ".txt";
+		String key = testFolderPath + "/" + filenameToWrite;
+		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write,
+				EXTERNAL_S3_BUCKET, testFolderPath);
+		
+		// give the putObject request the bucket-owner-full-control canned acl
+		String content = "lorem ipsum";
+		PutObjectRequest req = new PutObjectRequest(EXTERNAL_S3_BUCKET, key, 
+				new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), null)
+				.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
+		
+		// call under test, write the object to the bucket
+		readWriteTempClient.putObject(req);
+		
+		// call under test, verify that the read_write client can read the object it wrote
+		assertTrue(readWriteTempClient.doesObjectExist(EXTERNAL_S3_BUCKET, key));
+		
+		// create temporary read only client
+		AmazonS3 readOnlyTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_only, 
+				EXTERNAL_S3_BUCKET, testFolderPath);
+		
+		// call under test
+		// check to see if the temporary read only client can read the object uploaded by the read_write client
+		assertTrue(readOnlyTempClient.doesObjectExist(EXTERNAL_S3_BUCKET, key));
+		assertNotNull(readOnlyTempClient.getObjectMetadata(EXTERNAL_S3_BUCKET, key));
+		
+		// call under test, Synapse client can read the object
+		assertNotNull(s3Client.getObjectMetadata(EXTERNAL_S3_BUCKET, key));
+		
+		// clean up
+		readWriteTempClient.deleteObject(EXTERNAL_S3_BUCKET, key);
+	}
+	
+
+	@Test
+	public void testSTSWithNoBucketOwnerFullControl() throws Exception {
+		// Only run this test if the STS Arn is set up.
+		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
+
+		String testFolderPath = "StsManagerImplAutowiredTest-" + UUID.randomUUID().toString();
+		uploadFileToS3(testFolderPath, "owner.txt", username);
+
+		// Create StsStorageLocation.
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBaseKey(testFolderPath);
+		storageLocationSetting.setBucket(EXTERNAL_S3_BUCKET);
+		storageLocationSetting.setStsEnabled(true);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, storageLocationSetting);
+
+		applyStorageLocationToFolder(storageLocationSetting.getStorageLocationId());
+
+		// create temporary read_write client
+		String filenameToWrite = RandomStringUtils.randomAlphabetic(4) + ".txt";
+		String key = testFolderPath + "/" + filenameToWrite;
+		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write,
+				EXTERNAL_S3_BUCKET, testFolderPath);
+		
+		// request with no bucket-owner-full-control
+		String content = "lorem ipsum";
+		PutObjectRequest req = new PutObjectRequest(EXTERNAL_S3_BUCKET, key, 
+				new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), null);
+		
+		// call under test
+		AmazonServiceException ex = assertThrows(AmazonServiceException.class, () -> readWriteTempClient.putObject(req));
+		assertEquals(403, ex.getStatusCode());
+	}
 
 	private void applyStorageLocationToFolder(long storageLocationId) {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
@@ -310,7 +407,7 @@ public class StsManagerImplAutowiredTest {
 				stsCredentials.getSecretAccessKey(), stsCredentials.getSessionToken());
 		AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
 
-		return AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).build();
+		return AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).withRegion(Regions.US_EAST_1).build();
 	}
 
 	private void uploadFileToS3(String folder, String filename, String content) {
