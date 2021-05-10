@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
  * Abstraction for all of the different type of FileHandleAssociationsProviders.
@@ -53,10 +54,13 @@ public interface FileHandleAssociationManager {
 	long getMaxIdRangeSize(FileHandleAssociateType associationType);
 	
 	/**
-	 * Return an iterable for all the file handles associatied with the given asociation type
+	 * Return an iterable for all the file handles associatied with the given asociation type.
+	 * <p> 
+	 * Note: the iterable can throw a {@link RecoverableMessageException} if the process fails while iterating and
+	 * can be retried later
 	 * 
 	 * @param associationType The association type
-	 * @param range The range of ids to scan, inclusive
+	 * @param range           The range of ids to scan, inclusive
 	 * @return An iterable over all the file handles found in the given range
 	 */
 	Iterable<ScannedFileHandleAssociation> scanRange(FileHandleAssociateType associationType, IdRange range);

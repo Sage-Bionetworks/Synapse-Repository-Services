@@ -80,9 +80,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Projects can be further organized into hierarchical
  * <a href="${org.sagebionetworks.repo.model.Folder}">Folders</a>. Finally, the
  * data is then represented by
- * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> or
- * Records (coming soon) that reside within Folders or directly within Projects.
- * All these objects (Projects, Folders, FileEntities, and Records) are derived
+ * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> 
+ * that reside within Folders or directly within Projects.
+ * All these objects (Projects, Folders, FileEntities) are derived
  * from a common object called
  * <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>. The Entity
  * Services provide the means to create, read, update, and delete Synapse
@@ -248,17 +248,15 @@ public class EntityController {
 
 	/**
 	 * Create a new Entity. This method is used to create Projects, Folders,
-	 * FileEntities and Records (coming soon). The passed request body should
+	 * File Entities, etc. The passed request body should
 	 * contain the following fields:
 	 * <ul>
 	 * <li>name - Give your new entity a Name. <b>Note:</b> A name must be unique
 	 * within the given parent, similar to a file in a folder.</li>
 	 * <li>parentId - The ID of the parent Entity, such as a Folder or Project. This
 	 * field should be excluded when creating a Project.</li>
-	 * <li>concreteType - Indicates the type of Entity to create. The value should
-	 * be one of the following: org.sagebionetworks.repo.model.Project,
-	 * org.sagebionetworks.repo.model.Folder, or
-	 * org.sagebionetworks.repo.model.FileEntity</li>
+	 * <li>concreteType - Indicates the type of Entity to create. The value should be
+	 * the entity's fully qualified class name, e.g. org.sagebionetworks.repo.model.FileEntity.</li>
 	 * </ul>
 	 * <p>
 	 * Note: To create an Entity the caller must be granted the

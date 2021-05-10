@@ -86,16 +86,16 @@ public class FileMetadataUtils {
 		if (fileHandle.getId() != null) {
 			dbo.setId(Long.parseLong(fileHandle.getId()));
 		}
-
+		
+		// Note that we do not expose the updatedOn in a fileHandle, on creation we set it to the same as the createdOn
 		if (fileHandle.getCreatedOn() != null) {
 			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
+			dbo.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
 		} else {
 			dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+			dbo.setUpdatedOn(dbo.getCreatedOn());
 		}
 
-
-		// Note that we do not expose the updatedOn in a fileHandle, on creation we set it to the same as the createdOn
-		dbo.setUpdatedOn(dbo.getCreatedOn());
 		dbo.setName(fileHandle.getFileName());
 		dbo.setStorageLocationId(fileHandle.getStorageLocationId());
 		dbo.setContentType(fileHandle.getContentType());

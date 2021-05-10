@@ -54,7 +54,7 @@
 		},
         "concreteType":{
             "type":"string",
-            "description":"Indicates which implementation of Entity this object represents. It should be set to one of the following: org.sagebionetworks.repo.model.Project, org.sagebionetworks.repo.model.Folder, or org.sagebionetworks.repo.model.FileEntity."
+            "description":"Indicates which implementation of Entity this object represents.  The value is the fully qualified class name, e.g. org.sagebionetworks.repo.model.FileEntity."
         }
 	}
 }

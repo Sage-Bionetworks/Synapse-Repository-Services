@@ -6,9 +6,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -29,8 +31,10 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -46,11 +50,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private OAuthManager oauthManager;
 	
 	@Autowired
+	private OpenIDConnectManager oidcManager;
+	
+	@Autowired
 	private MessageManager messageManager;
 
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
-
+	
 	@Override
 	@WriteTransaction
 	public Long revalidate(String sessionToken) throws NotFoundException {
@@ -82,9 +89,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		messageManager.sendPasswordChangeConfirmationEmail(userId);
 	}
 
+	@Deprecated
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(Session session) throws NotFoundException {
+	public void signTermsOfUseSession(Session session) throws NotFoundException {
 		if (session.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -99,6 +107,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
 			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
 		}
+	}
+	
+	@Override
+	@WriteTransaction
+	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException {
+		ValidateArgument.required(accessToken, "Access token");
+		ValidateArgument.required(accessToken.getAccessToken(), "Access token contents");
+		
+		Long principalId = Long.parseLong(oidcManager.validateAccessToken(accessToken.getAccessToken()));
+		
+		// Save the state of acceptance
+		authManager.setTermsOfUseAcceptance(principalId, true);
 	}
 	
 	@Override
@@ -136,8 +156,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return response;
 	}
 
+	@Deprecated
 	@Override
-	public Session validateOAuthAuthenticationCodeAndLogin(
+	public Session validateOAuthAuthenticationCodeAndLoginForSession(
 			OAuthValidationRequest request) throws NotFoundException {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
@@ -151,8 +172,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return authManager.getSessionToken(emailAlias.getPrincipalId());
 	}
 	
+	@Override
+	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
+			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// This is the ID of the user within the provider's system.
+		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+		
+		// Return the user's access token
+		return authManager.loginWithNoPasswordCheck(emailAlias.getPrincipalId(), tokenIssuer);
+	}
+	
+	@Deprecated
 	@WriteTransaction
-	public Session createAccountViaOauth(OAuthAccountCreationRequest request) {
+	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
@@ -169,6 +207,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		Session session = authManager.getSessionToken(newPrincipalId);
 		return session;
+	}
+	
+	@WriteTransaction
+	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) {
+		// Use the authentication code to lookup the user's information.
+		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		if(providedInfo.getUsersVerifiedEmail() == null){
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		}
+		// create account with the returned user info.
+		NewUser newUser = new NewUser();
+		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
+		newUser.setFirstName(providedInfo.getFirstName());
+		newUser.setLastName(providedInfo.getLastName());
+		newUser.setUserName(request.getUserName());
+		long newPrincipalId = userManager.createUser(newUser);
+
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
+
 	}
 	
 	@Override
@@ -189,6 +247,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		userManager.unbindAlias(aliasName, aliasType, userId);
 	}
 
+	@Deprecated
 	@Override
 	public LoginResponse loginForSession(LoginRequest request) {
 			return authManager.loginForSession(request);
@@ -196,7 +255,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public LoginResponse login(LoginRequest request, String tokenIssuer) {
-			return authManager.login(request, tokenIssuer);
+		return authManager.login(request, tokenIssuer);
 	}
 
 	@Override

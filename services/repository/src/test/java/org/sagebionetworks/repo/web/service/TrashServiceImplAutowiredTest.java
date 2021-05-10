@@ -24,11 +24,12 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -108,8 +109,9 @@ public class TrashServiceImplAutowiredTest {
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
-		EntityId userEntityId = adminService.createOrGetTestUser(adminUserId, user);
-		long createdUserId = Long.valueOf(userEntityId.getId());
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
+		long createdUserId = Long.valueOf(accessTokenSubject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
 
 		// Before we can create file entities, we must agree to terms of use.

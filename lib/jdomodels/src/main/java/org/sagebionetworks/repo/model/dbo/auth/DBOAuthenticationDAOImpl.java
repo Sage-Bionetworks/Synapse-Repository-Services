@@ -56,8 +56,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
 	@Autowired
-	Clock clock;
+	private Clock clock;
 	
 	/**
 	 * A session token expires after 1 day
@@ -161,6 +162,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		return jdbcTemplate.queryForObject(SELECT_COUNT_BY_EMAIL_AND_PASSWORD, Long.class, principalId, passHash) > 0;
 	}
 
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public boolean revalidateSessionTokenIfNeeded(long principalId) {
@@ -182,6 +184,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 	}
 	
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public String changeSessionToken(long principalId, String sessionToken) {
@@ -196,15 +199,22 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		dboSession.setSessionToken(sessionToken);
 		basicDAO.createOrUpdate(dboSession);
 		
-		DBOAuthenticatedOn dboAuthOn = new DBOAuthenticatedOn();
-		dboAuthOn.setPrincipalId(principalId);
-		dboAuthOn.setAuthenticatedOn(new Date());
-		dboAuthOn.setEtag(UUID.randomUUID().toString());
-		basicDAO.createOrUpdate(dboAuthOn);
+		setAuthenticatedOn(principalId, new Date());
 		
 		return sessionToken;
 	}
 
+	@Override
+	@WriteTransaction
+	public void setAuthenticatedOn(long principalId, Date authTime) {
+		DBOAuthenticatedOn dboAuthOn = new DBOAuthenticatedOn();
+		dboAuthOn.setPrincipalId(principalId);
+		dboAuthOn.setAuthenticatedOn(authTime);
+		dboAuthOn.setEtag(UUID.randomUUID().toString());
+		basicDAO.createOrUpdate(dboAuthOn);
+	}
+
+	@Deprecated
 	@Override
 	public Session getSessionTokenIfValid(long principalId) {
 		return getSessionTokenIfValid(principalId, new Date());
@@ -219,6 +229,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 	}
 	
+	@Deprecated
 	@Override
 	public Session getSessionTokenIfValid(long principalId, Date now) {
 		long time = now.getTime() - SESSION_EXPIRATION_TIME;
@@ -230,6 +241,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 	}
 
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void deleteSessionToken(String sessionToken) {
@@ -240,6 +252,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		jdbcTemplate.update(NULLIFY_SESSION_TOKEN, sessionToken);
 	}
 
+	@Deprecated
 	@Override
 	@WriteTransaction
 	public void deleteSessionToken(long principalId) {

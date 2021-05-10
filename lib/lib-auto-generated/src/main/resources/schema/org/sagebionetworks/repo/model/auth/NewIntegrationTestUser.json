@@ -14,15 +14,9 @@
 			"type": "string",
 			"description": "User's password"
 		}, 
-		"profile": {
-			"type": "object",
-			"description": "User's profile",
-			"$ref": "org.sagebionetworks.repo.model.UserProfile"
-		}, 
-		"session": {
-			"type": "object",
-			"description": "Holds the state of the user's session token and ToU",
-			"$ref": "org.sagebionetworks.repo.model.auth.Session"
+		"tou": {
+			"type": "boolean",
+			"description": "True if user agrees to Synapse terms of use"
 		}
 	}
 }

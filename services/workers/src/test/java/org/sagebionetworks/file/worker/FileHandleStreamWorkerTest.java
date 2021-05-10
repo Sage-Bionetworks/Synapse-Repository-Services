@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -48,6 +49,7 @@ public class FileHandleStreamWorkerTest {
 		DBOFileHandle file = new DBOFileHandle();
 		file.setId(id);
 		file.setCreatedOn(createdOn);
+		file.setUpdatedOn(createdOn);
 		file.setStatus(FileHandleStatus.AVAILABLE.name());
 		return file;
 	}
@@ -65,7 +67,7 @@ public class FileHandleStreamWorkerTest {
 				fileHandle(id2, createdOn)
 		);	
 		
-		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList())).thenReturn(fileHandles);
+		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList(), anyInt())).thenReturn(fileHandles);
 		
 		List<ChangeMessage> messages = Arrays.asList(
 				new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(id1.toString()).setObjectType(ObjectType.FILE),
@@ -75,10 +77,10 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2));
+		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE"),
-				new FileHandleRecord().withId(456).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE"),
+				new FileHandleRecord().withId(456).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -95,7 +97,7 @@ public class FileHandleStreamWorkerTest {
 				fileHandle(id1, createdOn)
 		);	
 		
-		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList())).thenReturn(fileHandles);
+		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList(), anyInt())).thenReturn(fileHandles);
 		
 		List<ChangeMessage> messages = Arrays.asList(
 				new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(id1.toString()).setObjectType(ObjectType.FILE),
@@ -105,9 +107,9 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2));
+		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1, id2), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -124,7 +126,7 @@ public class FileHandleStreamWorkerTest {
 				fileHandle(id1, createdOn)
 		);	
 		
-		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList())).thenReturn(fileHandles);
+		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList(), anyInt())).thenReturn(fileHandles);
 		
 		List<ChangeMessage> messages = Arrays.asList(
 				new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(id1.toString()).setObjectType(ObjectType.FILE),
@@ -134,9 +136,9 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1));
+		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -172,7 +174,7 @@ public class FileHandleStreamWorkerTest {
 				fileHandle(id1, createdOn)
 		);	
 		
-		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList())).thenReturn(fileHandles);
+		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList(), anyInt())).thenReturn(fileHandles);
 		
 		List<ChangeMessage> messages = Arrays.asList(
 				new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId(id1.toString()).setObjectType(ObjectType.FILE),
@@ -182,9 +184,9 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1));
+		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		verify(mockKinesisLogger).logBatch("fileHandleData", Arrays.asList(
-				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
+				new FileHandleRecord().withId(123).withCreatedOn(createdOn.getTime()).withUpdatedOn(createdOn.getTime()).withIsPreview(false).withStatus("AVAILABLE")
 		));
 		
 	}
@@ -209,7 +211,7 @@ public class FileHandleStreamWorkerTest {
 		
 		List<DBOFileHandle> fileHandles = Collections.emptyList();
 		
-		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList())).thenReturn(fileHandles);
+		when(mockFileHandleDao.getDBOFileHandlesBatch(anyList(), anyInt())).thenReturn(fileHandles);
 		
 		
 		List<ChangeMessage> messages = Arrays.asList(
@@ -220,7 +222,7 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1));
+		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		
 		verifyZeroInteractions(mockKinesisLogger);		
 	}
@@ -238,6 +240,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(true)
 				.withStatus(FileHandleStatus.AVAILABLE.name())
 				.withContentSize(123L);
@@ -260,6 +263,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(false)
 				.withStatus(FileHandleStatus.AVAILABLE.name());
 		
@@ -284,6 +288,7 @@ public class FileHandleStreamWorkerTest {
 		FileHandleRecord expected = new FileHandleRecord()
 				.withId(123)
 				.withCreatedOn(createdOn.getTime())
+				.withUpdatedOn(createdOn.getTime())
 				.withIsPreview(false)
 				.withStatus(FileHandleStatus.AVAILABLE.name())
 				.withContentSize(123L)
