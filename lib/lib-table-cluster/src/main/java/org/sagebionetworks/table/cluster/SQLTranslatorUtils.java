@@ -30,6 +30,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
 import org.sagebionetworks.table.query.model.ArrayFunctionType;
+import org.sagebionetworks.table.query.model.ArrayHasLikePredicate;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
@@ -683,10 +684,11 @@ public class SQLTranslatorUtils {
 			
 			QuerySpecification subquery;
 			
-			if (arrayHasPredicate.getHasLikeSpec() == null) {
-				subquery = createArrayHasSubqueryWithInClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue());
+			if (arrayHasPredicate instanceof ArrayHasLikePredicate) {
+				ArrayHasLikePredicate hasLikePredicate = (ArrayHasLikePredicate) arrayHasPredicate;
+				subquery = createArrayHasSubqueryWithLikeClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue(), hasLikePredicate.getEscapeCharacter());
 			} else {
-				subquery = createArrayHasSubqueryWithLikeClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue(), arrayHasPredicate.getHasLikeSpec().getEscapeCharacter());
+				subquery = createArrayHasSubqueryWithInClause(columnFlattenedIndexTable, rowIdRefColumnName, unnestedColumn, arrayHasPredicate.getInPredicateValue());
 			}
 			
 			//replace the "HAS" with "IN" predicate containing the subquery

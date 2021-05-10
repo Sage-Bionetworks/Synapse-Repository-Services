@@ -821,6 +821,36 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithHasLike() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
+
+	}
+	
+	@Test
+	public void testReplaceArrayHasPredicateWithHasLikeWithEscape() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet') escape '_'");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
+
+	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {

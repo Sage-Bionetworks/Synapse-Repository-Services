@@ -835,7 +835,7 @@ ArrayHasPredicate arrayHasPredicate(ColumnReference leftHandSide, Boolean notB):
 	<has> inPredicateValue = inPredicateValue()
 	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);} |
 	<has_like> inPredicateValue = inPredicateValue() [ <escape> escapeCharacter = escapeCharacter() ]
-	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue, new ArrayHasLikeSpec(escapeCharacter));}
+	{ return new ArrayHasLikePredicate(leftHandSide, notB, inPredicateValue, escapeCharacter);}
 
 }
 InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
