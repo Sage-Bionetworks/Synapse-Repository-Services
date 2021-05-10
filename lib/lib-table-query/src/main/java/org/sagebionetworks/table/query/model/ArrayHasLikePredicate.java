@@ -20,6 +20,8 @@ import java.util.stream.StreamSupport;
  * NOTE the implemented {@link HasPredicate} interface is not for the "HAS" keyword, but, instead an interface for any predicate
  */
 public class ArrayHasLikePredicate extends ArrayHasPredicate {
+	
+	private static final String KEYWORD = "HAS_LIKE";
 
 	private EscapeCharacter escapeCharacter;
 
@@ -29,21 +31,18 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 		this.escapeCharacter = escapeCharacter;
 	}
 	
+	@Override
+	public String getKeyWord() {
+		return KEYWORD;
+	}
+	
 	public EscapeCharacter getEscapeCharacter() {
 		return escapeCharacter;
 	}
 	
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReferenceLHS.toSql(builder, parameters);
-		builder.append(" ");
-		if (this.not != null) {
-			builder.append("NOT ");
-		}
-		builder.append("HAS_LIKE");
-		builder.append(" ( ");
-		inPredicateValue.toSql(builder, parameters);
-		builder.append(" )");
+		super.toSql(builder, parameters);
 		if (escapeCharacter != null) {
 			builder.append(" ESCAPE ");
 			escapeCharacter.toSql(builder, parameters);

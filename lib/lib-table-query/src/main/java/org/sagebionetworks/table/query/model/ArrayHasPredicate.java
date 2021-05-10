@@ -17,6 +17,8 @@ import java.util.List;
  * NOTE the implemented {@link HasPredicate} interface is not for the "HAS" keyword, but, instead an interface for any predicate
  */
 public class ArrayHasPredicate extends SQLElement implements HasPredicate {
+	
+	private static final String KEYWORD = "HAS";
 
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -26,6 +28,10 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 		this.columnReferenceLHS = columnReferenceLHS;
 		this.not = not;
 		this.inPredicateValue = inPredicateValue;
+	}
+	
+	public String getKeyWord() {
+		return KEYWORD;
 	}
 
 	public Boolean getNot() {
@@ -43,7 +49,7 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 		if (this.not != null) {
 			builder.append("NOT ");
 		}
-		builder.append("HAS");
+		builder.append(getKeyWord());
 		builder.append(" ( ");
 		inPredicateValue.toSql(builder, parameters);
 		builder.append(" )");

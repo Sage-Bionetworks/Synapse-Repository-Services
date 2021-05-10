@@ -987,6 +987,29 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
+	public void testQueryPreflight_AdditionalQueryFiltersWithHasLike() throws Exception {
+		
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+
+		Query query = new Query();
+		query.setSql("select i2, i0 from "+tableId);
+
+		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		likeFilter.setColumnName("i12");
+		likeFilter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
+		likeFilter.setValues(Arrays.asList("foo%", "bar"));
+		query.setAdditionalFilters(Arrays.asList(likeFilter));
+
+		Long maxBytesPerPage = null;
+
+		// call under test
+		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
+		assertNotNull(result);
+		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS_LIKE ( 'foo%', 'bar' ) )", result.getModel().toSql());
+	}
+	
+	@Test
 	public void testQueryPreflightEmptySchema() throws Exception {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());

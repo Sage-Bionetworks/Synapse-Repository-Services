@@ -789,9 +789,11 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of the ArrayHasPredicate when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
-		});
+		}).getMessage();
+		
+		assertEquals("The HAS keyword only works for columns that hold list values", message);
 	}
 
 	@Test
@@ -819,36 +821,6 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
-
-	}
-	
-	@Test
-	public void testReplaceArrayHasPredicateWithHasLike() throws ParseException {
-		columnFoo.setColumnType(ColumnType.STRING_LIST);
-		columnMap = new ColumnTranslationReferenceLookup(schema);
-
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet')");
-		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
-		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
-
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
-
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
-
-	}
-	
-	@Test
-	public void testReplaceArrayHasPredicateWithHasLikeWithEscape() throws ParseException {
-		columnFoo.setColumnType(ColumnType.STRING_LIST);
-		columnMap = new ColumnTranslationReferenceLookup(schema);
-
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%', 'qwerty', 'yeet') escape '_'");
-		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
-		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
-
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
-
-		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
 
 	}
 
@@ -903,7 +875,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReplaceArrayHasPredicateWithLike() throws ParseException {
+	public void testReplaceArrayHasLikePredicate() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -925,7 +897,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReplaceArrayHasPredicateWithLikeAndEscape() throws ParseException {
+	public void testReplaceArrayHasLikePredicateWithEscape() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -944,6 +916,37 @@ public class SQLTranslatorUtilsTest {
 				"b2", "yeet",
 				"b3", "_"
 		), parameters);
+
+	}
+	
+	@Test
+	public void testReplaceArrayHasLikePredicateWithReferencedColumnNotMultiValue() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of the ArrayHasPredicate when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		}).getMessage();
+		
+		assertEquals("The HAS_LIKE keyword only works for columns that hold list values", message);
+	}
+
+	@Test
+	public void testReplaceArrayHasLikePredicateWithSingleValue() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has_like ('asdf%')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
+
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
 
 	}
 
@@ -2122,6 +2125,32 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(builder, filter)
 		);
+	}
+	
+	@Test
+	public void testTranslateQueryFilters_HasLikeFilter_multipleValues(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
+		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" HAS_LIKE ('foo%', '%bar', '%baz%'))", builder.toString());
+	}
+	
+	@Test
+	public void testTranslateQueryFilters_HasLikeFilter_SingleValue(){
+		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
+		filter.setColumnName("myCol");
+		filter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
+		filter.setValues(Arrays.asList("foo%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" HAS_LIKE ('foo%'))", builder.toString());
 	}
 
 	@Test

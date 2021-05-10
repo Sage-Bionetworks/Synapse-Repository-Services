@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -672,7 +673,7 @@ public class SQLTranslatorUtils {
 
 		String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
 
-		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(columnTranslationReferenceLookup, columnName, "The HAS keyword");
+		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(columnTranslationReferenceLookup, columnName, "The " + arrayHasPredicate.getKeyWord() + " keyword");
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
@@ -875,10 +876,15 @@ public class SQLTranslatorUtils {
 	}
 
 	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
+		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.likeValues");
 		ValidateArgument.required(filter.getOperator(), "ColumnSingleValueQueryFilter.operator");
 		switch (filter.getOperator()){
 			case LIKE:
 				appendLikeFilter(builder, filter);
+				break;
+			case HAS_LIKE:
+				appendHasLikeFilter(builder, filter);
 				break;
 			default:
 				throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
@@ -886,9 +892,6 @@ public class SQLTranslatorUtils {
 	}
 
 	static void appendLikeFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
-		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
-		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.likeValues");
-
 		builder.append("(");
 		boolean firstVal = true;
 		String columnName = filter.getColumnName();
@@ -905,6 +908,21 @@ public class SQLTranslatorUtils {
 			firstVal = false;
 		}
 		builder.append(")");
+	}
+	
+	static void appendHasLikeFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+		builder.append("(");
+		String columnName = filter.getColumnName();
+		builder.append("\"").append(columnName).append("\" HAS_LIKE (");
+		boolean firstVal = true;
+		for (String likeValue : filter.getValues()) {
+			if (!firstVal) {
+				builder.append(", ");
+			}
+			appendSingleQuotedValueToStringBuilder(builder, likeValue);
+			firstVal = false;
+		}
+		builder.append("))");
 	}
 
 	/**
