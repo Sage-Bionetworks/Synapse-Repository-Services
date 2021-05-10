@@ -349,7 +349,7 @@ public class FileMetadataUtilsTest {
 		for (int i = 0; i < list.size(); i++) {
 			DBOFileHandle dbo = dbos.get(i);
 			assertEquals(FileHandleStatus.AVAILABLE.name(), dbo.getStatus());
-			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()));
+			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
 			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbo));
 		}
 	}
@@ -440,7 +440,7 @@ public class FileMetadataUtilsTest {
 		assertNotNull(dbo.getCreatedOn());
 		assertNotNull(dbo.getUpdatedOn());
 
-		assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()));
+		assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
 
 		expected.setCreatedOn(dbo.getCreatedOn());
 		expected.setUpdatedOn(dbo.getUpdatedOn());

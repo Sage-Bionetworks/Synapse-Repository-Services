@@ -26,13 +26,14 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -105,18 +106,20 @@ public class FileUploadServiceImplAutowireTest {
 		username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
-		user.setSession(new Session().setAcceptsTermsOfUse(true));
-		EntityId userEntityId = adminService.createOrGetTestUser(adminUserId, user);
-		userId = Long.valueOf(userEntityId.getId());
+		user.setTou(true);
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String subject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
+		userId = Long.valueOf(subject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, userId, true);
 
 		NewIntegrationTestUser user2 = new NewIntegrationTestUser();
 		String user2name = UUID.randomUUID().toString();
 		user2.setEmail(user2name + "@test.com");
 		user2.setUsername(user2name);
-		user2.setSession(new Session().setAcceptsTermsOfUse(true));
-		EntityId user2EntityId = adminService.createOrGetTestUser(adminUserId, user2);
-		user2Id = Long.valueOf(user2EntityId.getId());
+		user2.setTou(true);
+		LoginResponse loginResponse2 = adminService.createOrGetTestUser(adminUserId, user2);
+		String subject2 = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse2.getAccessToken());
+		user2Id = Long.valueOf(subject2);
 		certifiedUserService.setUserCertificationStatus(adminUserId, user2Id, true);
 
 		// Set up test project.

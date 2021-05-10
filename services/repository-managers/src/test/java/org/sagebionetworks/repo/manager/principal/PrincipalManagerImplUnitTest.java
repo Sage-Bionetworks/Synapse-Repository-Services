@@ -102,6 +102,7 @@ public class PrincipalManagerImplUnitTest {
 	private static final String USER_NAME = "awesome123";
 	private static final String PASSWORD = "shhhhh";
 	private static final String PORTAL_ENDPOINT = "https://www.synapse.org?";
+	private static final String ISSUER = "https://repo-prod.sagebase.org/v1";
 
 	private static NewUser createNewUser() {
 		NewUser user = new NewUser();
@@ -258,6 +259,31 @@ public class PrincipalManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCreateNewAccountForSession() throws Exception {
+		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setEmail(user.getEmail());
+		emailValidationSignedToken.setCreatedOn(now);
+		emailValidationSignedToken.setHmac("signed");
+		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+		accountSetupInfo.setFirstName(FIRST_NAME);
+		accountSetupInfo.setLastName(LAST_NAME);
+		accountSetupInfo.setPassword(PASSWORD);
+		accountSetupInfo.setUsername(USER_NAME);
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
+		manager.createNewAccountForSession(accountSetupInfo);
+		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
+		verify(mockUserManager).createUser(newUserCaptor.capture());
+		NewUser user = newUserCaptor.getValue();
+		assertEquals(FIRST_NAME, user.getFirstName());
+		assertEquals(LAST_NAME, user.getLastName());
+		assertEquals(USER_NAME, user.getUserName());
+		assertEquals(EMAIL, user.getEmail());
+		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
+		verify(mockAuthManager).loginForSessionWithNoPasswordCheck(USER_ID);
+	}
+
+	@Test
 	public void testCreateNewAccount() throws Exception {
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
@@ -270,7 +296,10 @@ public class PrincipalManagerImplUnitTest {
 		accountSetupInfo.setPassword(PASSWORD);
 		accountSetupInfo.setUsername(USER_NAME);
 		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
-		manager.createNewAccount(accountSetupInfo);
+		
+		// method under test
+		manager.createNewAccount(accountSetupInfo, ISSUER);
+		
 		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
 		verify(mockUserManager).createUser(newUserCaptor.capture());
 		NewUser user = newUserCaptor.getValue();
@@ -279,7 +308,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
 		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID);
+		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID, ISSUER);
 	}
 
 	// token is OK 23 hours from now

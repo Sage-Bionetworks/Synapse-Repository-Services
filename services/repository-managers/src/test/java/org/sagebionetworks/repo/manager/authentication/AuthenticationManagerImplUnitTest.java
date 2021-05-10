@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Date;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -46,6 +47,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationManagerImplUnitTest {
@@ -68,6 +70,8 @@ public class AuthenticationManagerImplUnitTest {
 	private PasswordResetTokenGenerator mockPasswordResetTokenGenerator;
 	@Mock
 	private OIDCTokenHelper mockOIDCTokenHelper;
+	@Mock
+	private Clock mockClock;
 	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
@@ -227,6 +231,8 @@ public class AuthenticationManagerImplUnitTest {
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		Date now = new Date(12345L);
+		when(mockClock.now()).thenReturn(now);
 
 		// call under test
 		LoginResponse response = authManager.login(loginRequest, issuer);
@@ -238,13 +244,14 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 
 	///////////////////////////////////////////////////////////
 	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
 	///////////////////////////////////////////////////////////
 	@Test
-	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+	public void testGetLoginResponseWithSessionAfterSuccessfulAuthentication_validReciept(){
 		setupMockUserGroupDAO();
 		String newReceipt = "uwu";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
@@ -256,6 +263,28 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
 		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+	}
+
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
+		String newReceipt = "uwu";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		Date authTime = new Date(12345L);
+		when(mockClock.now()).thenReturn(authTime);
+		LoginResponse expected = new LoginResponse();
+		expected.setAcceptsTermsOfUse(true);
+		expected.setAccessToken(synapseAccessToken);
+		expected.setAuthenticationReceipt(newReceipt);
+
+		//method under test
+		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulPasswordAuthentication(userId, issuer);
+		
+		assertEquals(loginResponse, loginResponse);
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, authTime);
 	}
 
 	///////////////////////////////////////////

@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -359,4 +361,23 @@ public class DBOAuthenticationDAOImplTest {
 		
 		
 	}
+	
+	@Test
+	public void testSetAuthenticatedOn() {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("principalId", userId);
+		DBOAuthenticatedOn original = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param);
+		
+		Date newAuthOn = new Date(original.getAuthenticatedOn().getTime()+10000L);
+		
+		//method under test
+		authDAO.setAuthenticatedOn(userId, newAuthOn);
+		
+		DBOAuthenticatedOn updated = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param);
+		// check that date has been set
+		assertEquals(newAuthOn, updated.getAuthenticatedOn());
+		// check that etag has changed
+		assertNotEquals(original.getEtag(), updated.getEtag());
+	}
+
 }

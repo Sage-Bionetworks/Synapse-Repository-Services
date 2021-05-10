@@ -11,8 +11,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface AuthenticationManager {
-
-	
 	/**
 	 * Looks for the user holding the given session token
 	 * @throws UnauthorizedException If the token has expired
@@ -81,7 +79,6 @@ public interface AuthenticationManager {
 	@Deprecated
 	public LoginResponse loginForSession(LoginRequest request);
 
-
 	/**
 	 * Log user in using information from the LoginRequest
 	 * 
@@ -91,10 +88,15 @@ public interface AuthenticationManager {
 	 */
 	public LoginResponse login(LoginRequest request, String tokenIssuer);
 	
+	@Deprecated
+	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId);
+	
 	/**
 	 * Bypass password check and just create a login response for the user.
+	 * 
 	 * @param principalId
+	 * @param tokenIssuer
 	 * @return
 	 */
-	public LoginResponse loginWithNoPasswordCheck(long principalId);
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer);
 }

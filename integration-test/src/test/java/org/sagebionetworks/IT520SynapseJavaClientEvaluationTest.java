@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -517,8 +518,9 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// Update ACL
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		
+		Long user2Id = Long.parseLong(JSONWebTokenHelper.getSubjectFromJWTAccessToken(
+				synapseTwo.getAccessToken()));
 		ra.setPrincipalId(user2Id);
 		
 		acl.getResourceAccess().add(ra);
@@ -1179,8 +1181,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		accessSet.add(ACCESS_TYPE.DELETE);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		UserSessionData session = synapseTwo.getUserSessionData();
-		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		Long user2Id = Long.parseLong(JSONWebTokenHelper.getSubjectFromJWTAccessToken(
+				synapseTwo.getAccessToken()));
 		ra.setPrincipalId(user2Id);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);

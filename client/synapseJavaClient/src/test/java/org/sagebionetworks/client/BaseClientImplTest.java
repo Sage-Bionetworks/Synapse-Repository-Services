@@ -161,10 +161,12 @@ public class BaseClientImplTest {
 				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
 		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login2",
 				captor.getValue().getUri());
+		assertEquals("token", baseClient.getAccessToken());
 	}
 
 	@Test
 	public void testLogout() throws Exception {
+		baseClient.setSessionToken("some token");
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		baseClient.logout();
@@ -173,7 +175,21 @@ public class BaseClientImplTest {
 		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
 				captor.getValue().getUri());
 	}
+	
+	@Test
+	public void testLogoutForAccessToken() throws Exception {
+		baseClient.logoutForAccessToken();
 
+		assertNull(baseClient.getAuthorizationHeader());
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testGetAccessTokenAfterLogout() throws Exception {
+		baseClient.logoutForAccessToken();
+
+		assertNull(baseClient.getAccessToken());
+	}
+	
 	@Test (expected = SynapseClientException.class)
 	public void testRevalidateSessionNotLogin() throws Exception {
 		baseClient.revalidateSession();
