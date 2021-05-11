@@ -57,8 +57,12 @@ import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CanonicalGrantee;
+import com.amazonaws.services.s3.model.Grant;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
@@ -332,8 +336,29 @@ public class StsManagerImplAutowiredTest {
 				new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), null)
 				.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
 		
-		// call under test, write the object to the bucket
+		// call under test, write the object to the bucket with the temporary client
 		readWriteTempClient.putObject(req);
+		
+		// the Synapse s3 client can get the object's acl
+		AccessControlList acl = s3Client.getObjectAcl(EXTERNAL_S3_BUCKET, key);
+		
+		// this is the id of the bucket owner, retrieved with Synapse s3 client
+		String bucketOwnerId = s3Client.getAccountOwnerId(EXTERNAL_S3_BUCKET);
+		
+		// verify that the ownership of the acl is given to the bucket owner
+		assertTrue(acl.getOwner().getId().equals(bucketOwnerId));
+		
+		// verify that there exists a grant applied to a grantee that is the bucket owner,
+		// and also that this grant gives the bucket owner "FULL_CONTROL"
+		boolean found = false;
+		// should iterate only once, since only one grant, but loop just in case
+		for (Grant g : acl.getGrantsAsList()) {
+			if (((CanonicalGrantee) g.getGrantee()).getIdentifier().equals(bucketOwnerId) 
+					&& g.getPermission().toString().equals("FULL_CONTROL")) {
+				found = true;
+			}
+		}	
+		assertTrue(found);
 		
 		// call under test, verify that the read_write client can read the object it wrote
 		assertTrue(readWriteTempClient.doesObjectExist(EXTERNAL_S3_BUCKET, key));
