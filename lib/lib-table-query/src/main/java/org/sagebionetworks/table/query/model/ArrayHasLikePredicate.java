@@ -1,9 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Custom "HAS_LIKE" predicate for searching patterns in multi-value columns.
@@ -60,11 +60,9 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 		Iterable<UnsignedLiteral> valuesIterable = super.getRightHandSideValues();
 
 		if (escapeCharacter != null) {
-			// The stream of values in the function
-			Stream<UnsignedLiteral> valuesStream = StreamSupport.stream(valuesIterable.spliterator(), /*parallel*/ false);
+			UnsignedLiteral escapeLiteral = escapeCharacter.getFirstElementOfType(UnsignedLiteral.class);
 			
-			valuesIterable = Stream.concat(valuesStream, Stream.of(escapeCharacter.getFirstElementOfType(UnsignedLiteral.class)))
-					.collect(Collectors.toList());
+			valuesIterable = Iterables.concat(valuesIterable, Collections.singletonList(escapeLiteral));
 		}
 		
 		return valuesIterable;
