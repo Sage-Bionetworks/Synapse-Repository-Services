@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -143,7 +144,8 @@ public class ITStsTest {
 		// Get read-only credentials.
 		AWSCredentialsProvider awsCredentialsProvider = new SynapseStsCredentialsProvider(synapse, folder.getId(),
 				StsPermission.read_only);
-		AmazonS3 tempClient = AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).build();
+		AmazonS3 tempClient = AmazonS3ClientBuilder.standard()
+				.withCredentials(awsCredentialsProvider).withRegion(Regions.US_EAST_1).build();
 
 		// Validate we can list the bucket from the base key.
 		ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(externalS3Bucket)

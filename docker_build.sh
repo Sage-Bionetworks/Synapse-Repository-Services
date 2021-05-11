@@ -105,6 +105,7 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.doi.datacite.password=${org_sagebionetworks_datacite_password} \
 -Dorg.sagebionetworks.doi.datacite.api.endpoint=${org_sagebionetworks_doi_datacite_api_endpoint} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
+-Dorg.sagebionetworks.sts.iam.arn=${org_sagebionetworks_sts_iam_arn} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
 -Duser.home=/tmp"
 
