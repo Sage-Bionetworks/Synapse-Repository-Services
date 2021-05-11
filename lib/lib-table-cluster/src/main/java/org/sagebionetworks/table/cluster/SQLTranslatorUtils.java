@@ -12,11 +12,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
@@ -870,21 +870,20 @@ public class SQLTranslatorUtils {
 	static void translateQueryFilters(StringBuilder builder, QueryFilter filter){
 		if(filter instanceof ColumnSingleValueQueryFilter){
 			translateSingleValueFilters(builder, (ColumnSingleValueQueryFilter) filter);
-		}else{
+		} else if (filter instanceof ColumnMultiValueFunctionQueryFilter) {
+			translateMultiValueFunctionFilters(builder, (ColumnMultiValueFunctionQueryFilter) filter);
+		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
 	}
 
 	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){
 		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
-		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.likeValues");
+		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.values");
 		ValidateArgument.required(filter.getOperator(), "ColumnSingleValueQueryFilter.operator");
 		switch (filter.getOperator()){
 			case LIKE:
 				appendLikeFilter(builder, filter);
-				break;
-			case HAS_LIKE:
-				appendHasLikeFilter(builder, filter);
 				break;
 			default:
 				throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
@@ -910,10 +909,24 @@ public class SQLTranslatorUtils {
 		builder.append(")");
 	}
 	
-	static void appendHasLikeFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
+	static void translateMultiValueFunctionFilters(StringBuilder builder, ColumnMultiValueFunctionQueryFilter filter) {
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnMultiValueFunctionQueryFilter.columnName");
+		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnMultiValueFunctionQueryFilter.values");
+		ValidateArgument.required(filter.getFunction(), "ColumnMultiValueFunctionQueryFilter.function");
+		switch (filter.getFunction()) {
+		case HAS:
+		case HAS_LIKE:
+			appendHasFilter(builder, filter);
+			break;
+		default:
+			throw new IllegalArgumentException("Unexpected function: " + filter.getFunction());
+		}
+	}
+	
+	static void appendHasFilter(StringBuilder builder, ColumnMultiValueFunctionQueryFilter filter){
 		builder.append("(");
-		String columnName = filter.getColumnName();
-		builder.append("\"").append(columnName).append("\" HAS_LIKE (");
+		builder.append("\"").append(filter.getColumnName()).append("\" ");
+		builder.append(filter.getFunction().name()).append(" (");
 		boolean firstVal = true;
 		for (String likeValue : filter.getValues()) {
 			if (!firstVal) {

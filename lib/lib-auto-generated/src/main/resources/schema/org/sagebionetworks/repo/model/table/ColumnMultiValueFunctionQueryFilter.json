@@ -1,0 +1,33 @@
+{
+	"implements": [{"$ref":"org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"description": "A filter that applies multi-value columns functions.",
+	"properties": {
+		"columnName":{
+			"type": "string",
+			"description": "name of the column to filter"
+		},
+		"function": {
+			"type": "string",
+			"description": "Determines the filter operation to perform",
+			"name": "ColumnMultiValueFunction",
+			"id": "org.sagebionetworks.repo.model.table.ColumnMultiValueFunction",
+			"enum": [
+				{
+					"name": "HAS",
+					"description": "HAS function on multi-value columns, same as the predicate: 'columnName HAS (<values>)'"
+				},
+				{
+					"name": "HAS_LIKE",
+					"description": "HAS_LIKE function on multi-value columns, same as the predicate: 'columnName HAS_LIKE (<values>)'. Can be used for pattern matching using wildcard %."
+				}
+			]
+		},
+		"values":{
+			"description": "Values to be used as parameters of the multi-column function.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -995,9 +997,9 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select i2, i0 from "+tableId);
 
-		ColumnSingleValueQueryFilter likeFilter = new ColumnSingleValueQueryFilter();
+		ColumnMultiValueFunctionQueryFilter likeFilter = new ColumnMultiValueFunctionQueryFilter();
 		likeFilter.setColumnName("i12");
-		likeFilter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
+		likeFilter.setFunction(ColumnMultiValueFunction.HAS_LIKE);
 		likeFilter.setValues(Arrays.asList("foo%", "bar"));
 		query.setAdditionalFilters(Arrays.asList(likeFilter));
 
@@ -1007,6 +1009,29 @@ public class TableQueryManagerImplTest {
 		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
 		assertNotNull(result);
 		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS_LIKE ( 'foo%', 'bar' ) )", result.getModel().toSql());
+	}
+	
+	@Test
+	public void testQueryPreflight_AdditionalQueryFiltersWithHas() throws Exception {
+		
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+
+		Query query = new Query();
+		query.setSql("select i2, i0 from "+tableId);
+
+		ColumnMultiValueFunctionQueryFilter likeFilter = new ColumnMultiValueFunctionQueryFilter();
+		likeFilter.setColumnName("i12");
+		likeFilter.setFunction(ColumnMultiValueFunction.HAS);
+		likeFilter.setValues(Arrays.asList("foo%", "bar"));
+		query.setAdditionalFilters(Arrays.asList(likeFilter));
+
+		Long maxBytesPerPage = null;
+
+		// call under test
+		SqlQuery result = manager.queryPreflight(user, query, maxBytesPerPage);
+		assertNotNull(result);
+		assertEquals("SELECT i2, i0 FROM syn123 WHERE ( \"i12\" HAS ( 'foo%', 'bar' ) )", result.getModel().toSql());
 	}
 	
 	@Test

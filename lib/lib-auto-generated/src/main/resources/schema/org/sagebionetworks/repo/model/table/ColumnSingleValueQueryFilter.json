@@ -15,10 +15,6 @@
 				{
 					"name": "LIKE",
 					"description": "The LIKE operation. Use wildcard '%' in value sting for prefix/suffix matching."
-				},
-				{
-					"name": "HAS_LIKE",
-					"description": "LIKE operation on multi-value columns. This will translate into the HAS_LIKE([values]) predicate for pattern matching in multi-value columns."
 				}
 			]
 		},

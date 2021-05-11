@@ -31,6 +31,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
+import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -875,7 +877,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReplaceArrayHasLikePredicate() throws ParseException {
+	public void testReplaceArrayHasPredicateWithHasLike() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -897,7 +899,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReplaceArrayHasLikePredicateWithEscape() throws ParseException {
+	public void testReplaceArrayHasPredicateWithHasLikeAndEscape() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -920,7 +922,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReplaceArrayHasLikePredicateWithReferencedColumnNotMultiValue() throws ParseException {
+	public void testReplaceArrayHasPredicateWithHasLikeAndReferencedColumnNotMultiValue() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -936,7 +938,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testReplaceArrayHasLikePredicateWithSingleValue() throws ParseException {
+	public void testReplaceArrayHasPredicateWithHasLikeAndSingleValue() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
@@ -2128,11 +2130,24 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateQueryFilters_HasFilter_multipleValues(){
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
+				.setColumnName("myCol")
+				.setFunction(ColumnMultiValueFunction.HAS)
+				.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" HAS ('foo%', '%bar', '%baz%'))", builder.toString());
+	}
+	
+	@Test
 	public void testTranslateQueryFilters_HasLikeFilter_multipleValues(){
-		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
-		filter.setColumnName("myCol");
-		filter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
-		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
+				.setColumnName("myCol")
+				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
+				.setValues(Arrays.asList("foo%", "%bar","%baz%"));
 
 		StringBuilder builder = new StringBuilder();
 		// method under test
@@ -2141,11 +2156,24 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateQueryFilters_HasFilter_SingleValue(){
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
+				.setColumnName("myCol")
+				.setFunction(ColumnMultiValueFunction.HAS)
+				.setValues(Arrays.asList("foo%"));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(\"myCol\" HAS ('foo%'))", builder.toString());
+	}
+	
+	@Test
 	public void testTranslateQueryFilters_HasLikeFilter_SingleValue(){
-		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
-		filter.setColumnName("myCol");
-		filter.setOperator(ColumnSingleValueFilterOperator.HAS_LIKE);
-		filter.setValues(Arrays.asList("foo%"));
+		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
+				.setColumnName("myCol")
+				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
+				.setValues(Arrays.asList("foo%"));
 
 		StringBuilder builder = new StringBuilder();
 		// method under test
