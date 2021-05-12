@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -129,6 +130,13 @@ public interface AuthenticationService {
 	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
 	 */
 	public LoginResponse login(LoginRequest request, String tokenIssuer);
+	
+	/**
+	 * Get the date/time when the user was authenticated
+	 * @param userId
+	 * @return
+	 */
+	public AuthenticatedOn getAuthenticatedOn(long userId);
 
 	/**
 	 * Creates a scoped personal access token for the requesting user.

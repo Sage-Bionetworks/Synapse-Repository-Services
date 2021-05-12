@@ -1,0 +1,11 @@
+{
+	"title": "Authenticated On", 
+	"description": "The date/time on which the user was authenticated",
+	"properties": {
+		"authenticatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time on which the user was authenticated"
+		}
+	}
+}

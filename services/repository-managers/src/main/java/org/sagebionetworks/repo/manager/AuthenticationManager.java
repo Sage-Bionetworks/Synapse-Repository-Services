@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -87,6 +89,14 @@ public interface AuthenticationManager {
 	 * @return
 	 */
 	public LoginResponse login(LoginRequest request, String tokenIssuer);
+	
+	/**
+	 * Get the date/time the user was last logged in
+	 * 
+	 * @param userInfo
+	 * @return
+	 */
+	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo);
 	
 	@Deprecated
 	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId);

@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 
@@ -126,6 +127,13 @@ public interface BaseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse login(LoginRequest request) throws SynapseException;
+	
+	/**
+	 * Get the date/time when the requesting user was last authenticated.
+	 * @return
+	 * @throws SynapseException
+	 */
+	AuthenticatedOn getAuthenticatedOn() throws SynapseException;
 
 	/**
 	 * Log into Synapse

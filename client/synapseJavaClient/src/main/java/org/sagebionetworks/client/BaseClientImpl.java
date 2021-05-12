@@ -38,6 +38,7 @@ import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -79,6 +80,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
 	private static final String SESSION_ID_COOKIE = "sessionID";
+	private static final String AUTHENTICATED_ON = "authenticatedOn";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
@@ -152,6 +154,12 @@ public class BaseClientImpl implements BaseClient {
 		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
+	
+	@Override
+	public AuthenticatedOn getAuthenticatedOn() throws SynapseException {
+		return getJSONEntity(authEndpoint, AUTHENTICATED_ON, AuthenticatedOn.class);
+	}
+
 
 	/**
 	 * @category Authentication

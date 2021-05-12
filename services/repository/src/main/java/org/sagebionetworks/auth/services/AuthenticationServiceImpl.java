@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -256,6 +257,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public LoginResponse login(LoginRequest request, String tokenIssuer) {
 		return authManager.login(request, tokenIssuer);
+	}
+
+	@Override
+	public AuthenticatedOn getAuthenticatedOn(long userId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return authManager.getAuthenticatedOn(userInfo);
 	}
 
 	@Override

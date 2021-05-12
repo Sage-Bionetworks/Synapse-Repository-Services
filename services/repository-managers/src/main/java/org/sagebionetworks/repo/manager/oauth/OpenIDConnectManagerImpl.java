@@ -381,6 +381,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Pairwise Pseudonymous Identifier (PPID)
 		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
+		
+		// Ensure the client is permitted to use this refresh token
+		if (!oauthClientId.equals(verifiedClientId)) {
+			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant);
+		}
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
 
@@ -399,7 +405,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
 		String refreshTokenId = null;
 		if (issueRefreshToken) {
-
 			OAuthRefreshTokenAndMetadata refreshToken = oauthRefreshTokenManager
 					.createRefreshToken(authorizationRequest.getUserId(),
 							oauthClientId,

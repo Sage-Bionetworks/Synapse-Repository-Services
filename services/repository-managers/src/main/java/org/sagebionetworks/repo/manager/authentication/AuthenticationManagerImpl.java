@@ -1,15 +1,18 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
@@ -247,9 +250,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 		return getLoginResponseAfterSuccessfulPasswordAuthentication(userId, tokenIssuer);
 	}
+	
+	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo) {
+		// Note the date will be null if the user has not logged in
+		Date authenticatedOn = authDAO.getAuthenticatedOn(userInfo.getId());
+		AuthenticatedOn result = new AuthenticatedOn();
+		result.setAuthenticatedOn(authenticatedOn);
+		return result;
+	}
 
 	/**
-	 * Validate authenticationReceipt and then checks that the password is correct for the given pricipalId
+	 * Validate authenticationReceipt and then checks that the password is correct for the given principalId
 	 * @param userId id of the user
 	 * @param password password of the user
 	 * @param authenticationReceipt Can be null. When valid, does not throttle attempts on consecutive incorrect passwords.

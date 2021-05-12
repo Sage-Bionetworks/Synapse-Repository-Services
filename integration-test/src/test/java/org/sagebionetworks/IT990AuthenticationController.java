@@ -21,6 +21,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -118,6 +119,12 @@ public class IT990AuthenticationController {
 	@AfterClass
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteUser(userToDelete);
+	}
+	
+	@Test
+	public void testGetAuthenticatedOn() throws Exception {
+		AuthenticatedOn authenticatedOn = synapse.getAuthenticatedOn();
+		assertNotNull(authenticatedOn.getAuthenticatedOn());
 	}
 	
 	@Test

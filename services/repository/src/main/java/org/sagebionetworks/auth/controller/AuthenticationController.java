@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -148,6 +149,24 @@ public class AuthenticationController {
 			UriComponentsBuilder uriComponentsBuilder
 			) throws NotFoundException {
 		return authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
+	}
+	
+	/**
+	 * Retrieve the date/time the requesting user was last authenticated, either by presenting
+	 * their password or by logging in with a recognized identity provider, like Google.
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTHENTICATED_ON, method = RequestMethod.GET)
+	public @ResponseBody
+	AuthenticatedOn getAuthenticatedOn(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) throws NotFoundException {
+		return authenticationService.getAuthenticatedOn(userId);
 	}
 
 	@Deprecated

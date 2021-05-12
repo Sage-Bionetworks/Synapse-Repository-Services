@@ -915,6 +915,37 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 
+	@Test
+	public void testGetTokenResponseWithAuthorizationCode_mismatchedClient() {
+		String otherClientId = "456"; // client id in auth code does not match the one making the request
+
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		when(mockOauthClientDao.isOauthClientVerified(otherClientId)).thenReturn(true);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(otherClientId)).thenReturn(clientSpecificEncodingSecret);
+
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+
+		boolean includeIdToken = true;
+		boolean includeUserInfo = true;
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
+
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		String code = authResponse.getAccess_code();
+
+		OAuthBadRequestException e  = assertThrows(OAuthBadRequestException.class, () -> {
+			// method under test
+			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, otherClientId, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		});
+		
+		assertEquals(OAuthErrorCode.invalid_grant, e.getError());
+	}
+
 	private OAuthRefreshTokenAndMetadata createRotatedToken() {
 		OAuthRefreshTokenAndMetadata refreshToken = new OAuthRefreshTokenAndMetadata();
 		refreshToken.setRefreshToken("new refresh token");
