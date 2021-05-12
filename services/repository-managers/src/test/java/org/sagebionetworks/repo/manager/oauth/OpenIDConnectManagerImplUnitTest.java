@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -580,6 +580,22 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 	
+	@Test
+	public void testAuthorizeClientInvalidRedirURI() throws Exception {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		authorizationRequest.setRedirectUri("http://unregistered_uri.com");
+
+		// method under test
+		OAuthBadRequestException e = assertThrows(OAuthBadRequestException.class, ()-> {
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		});
+		
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());		
+	}
+
 	@Test
 	public void testPPID() {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);

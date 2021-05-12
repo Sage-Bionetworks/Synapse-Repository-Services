@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -252,6 +253,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo) {
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthenticatedException("Cannot retrieve authentication time stamp for anonymous user.");
+		}
 		// Note the date will be null if the user has not logged in
 		Date authenticatedOn = authDAO.getAuthenticatedOn(userInfo.getId());
 		AuthenticatedOn result = new AuthenticatedOn();

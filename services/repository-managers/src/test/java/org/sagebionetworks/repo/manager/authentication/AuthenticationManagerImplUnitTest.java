@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -261,6 +262,18 @@ public class AuthenticationManagerImplUnitTest {
 		AuthenticatedOn authenticatedOn = authManager.getAuthenticatedOn(userInfo);
 		
 		assertEquals(authDate, authenticatedOn.getAuthenticatedOn());
+	}
+
+	@Test
+	public void testAuthenticatedOnAnonymous() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+
+		// method under test
+		assertThrows(UnauthenticatedException.class, ()->{
+			authManager.getAuthenticatedOn(userInfo);
+		});
+
 	}
 
 	///////////////////////////////////////////////////////////
