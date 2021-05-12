@@ -104,9 +104,9 @@ public class DownloadListQueryWorkerIntegrationTest {
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
 			assertNotNull(response);
-			assertNotNull(response.getReponseDetails());
-			assertTrue(response.getReponseDetails() instanceof AvailableFilesResponse);
-			AvailableFilesResponse details = (AvailableFilesResponse) response.getReponseDetails();
+			assertNotNull(response.getResponseDetails());
+			assertTrue(response.getResponseDetails() instanceof AvailableFilesResponse);
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getResponseDetails();
 			assertNotNull(details.getPage());
 			List<DownloadListItemResult> page = details.getPage();
 			assertEquals(1, page.size());

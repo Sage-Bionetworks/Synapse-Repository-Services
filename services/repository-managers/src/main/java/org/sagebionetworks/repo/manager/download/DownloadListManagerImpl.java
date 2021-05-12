@@ -102,10 +102,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(requestBody, "requestBody");
 		ValidateArgument.required(requestBody.getRequestDetails(), "requestBody.requestDetails");
 		if (requestBody.getRequestDetails() instanceof AvailableFilesRequest) {
-			return new DownloadListQueryResponse().setReponseDetails(
+			return new DownloadListQueryResponse().setResponseDetails(
 					queryAvailableFiles(userInfo, (AvailableFilesRequest) requestBody.getRequestDetails()));
 		}else if(requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
-			return new DownloadListQueryResponse().setReponseDetails(
+			return new DownloadListQueryResponse().setResponseDetails(
 					getListStatistics(userInfo, (FilesStatisticsRequest) requestBody.getRequestDetails()));
 		}
 		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());

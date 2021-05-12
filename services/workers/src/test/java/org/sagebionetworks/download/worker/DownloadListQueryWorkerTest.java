@@ -66,7 +66,7 @@ public class DownloadListQueryWorkerTest {
 		jobStatus.setStartedByUserId(startedByUserId);
 
 		responseBody = new DownloadListQueryResponse();
-		responseBody.setReponseDetails(new AvailableFilesResponse());
+		responseBody.setResponseDetails(new AvailableFilesResponse());
 	}
 
 	@Test

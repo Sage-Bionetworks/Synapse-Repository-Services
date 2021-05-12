@@ -511,7 +511,7 @@ public class DownloadListManagerImplTest {
 		// call under test
 		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
 		assertNotNull(response);
-		assertEquals(details, response.getReponseDetails());
+		assertEquals(details, response.getResponseDetails());
 		verify(mockDownloadListDao).getListStatistics(any(), eq(userOne.getId()));
 	}
 	
@@ -540,7 +540,7 @@ public class DownloadListManagerImplTest {
 		// call under test
 		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
 		assertNotNull(response);
-		assertEquals(expectedAvailable, response.getReponseDetails());
+		assertEquals(expectedAvailable, response.getResponseDetails());
 	}
 
 	/**
