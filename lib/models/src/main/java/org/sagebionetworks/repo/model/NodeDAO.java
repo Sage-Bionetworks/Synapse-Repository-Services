@@ -553,7 +553,7 @@ public interface NodeDAO {
 	 * @param request
 	 * @return
 	 */
-	ChildStatsResponse getChildernStats(ChildStatsRequest request);
+	ChildStatsResponse getChildrenStats(ChildStatsRequest request);
 
 	/**
 	 * Count the number of children in this container.

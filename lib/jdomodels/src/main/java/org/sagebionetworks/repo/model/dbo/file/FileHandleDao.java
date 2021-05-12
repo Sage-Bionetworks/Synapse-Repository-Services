@@ -1,10 +1,13 @@
-package org.sagebionetworks.repo.model.dao;
+package org.sagebionetworks.repo.model.dbo.file;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
@@ -140,8 +143,40 @@ public interface FileHandleDao {
 	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 	
 	/**
+	 * Updates the status of the given batch of file handle ids for any that is in the given currentStatus
+	 * 
+	 * @param ids The batch of ids to update
+	 * @param newStatus The new status to assign
+	 * @param currentStatus The current status for the update to apply
+	 */
+	void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus);
+	
+	/**
+	 * Get the given list of file handles, filtering those that are not in the given status
+	 * 
+	 * @param ids The batch of file handles
+	 * @param status The status to filter by
+	 * @return
+	 */
+	List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status);
+	
+	/**
+	 * @param ids
+	 * @param updatedOnBeforeDays Filter on the updatedOn, only fetch data for file handles that have been update more than the given number of days ago. If 0 no filter is applied
+	 * @return The plain DBO object for the file handles with the given id
+	 */
+	List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays);
+	
+	/**
 	 * Deleted all file data
 	 */
 	void truncateTable();
+
+	/**
+	 * Creates a batch from the given list of DBOs
+	 * 
+	 * @param dbos
+	 */
+	void createBatchDbo(List<DBOFileHandle> dbos);
 	
 }

@@ -8,9 +8,12 @@ import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
  * DTO for sending file handle data to kinesis
  */
 public class FileHandleRecord implements AwsKinesisLogRecord {
+
+	public static final String STREAM_NAME = "fileHandleData";
 	
 	private long id;
 	private long createdOn;
+	private long updatedOn;
 	private String status;
 	private boolean isPreview;
 	private Long contentSize;
@@ -34,6 +37,15 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 
 	public FileHandleRecord withCreatedOn(long createdOn) {
 		this.createdOn = createdOn;
+		return this;
+	}
+	
+	public long getUpdatedOn() {
+		return updatedOn;
+	}
+	
+	public FileHandleRecord withUpdatedOn(long updatedOn) {
+		this.updatedOn = updatedOn;
 		return this;
 	}
 
@@ -106,7 +118,7 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, contentSize, createdOn, id, instance, isPreview, key, stack, status);
+		return Objects.hash(bucket, contentSize, createdOn, id, instance, isPreview, key, stack, status, updatedOn);
 	}
 
 	@Override
@@ -121,16 +133,17 @@ public class FileHandleRecord implements AwsKinesisLogRecord {
 			return false;
 		}
 		FileHandleRecord other = (FileHandleRecord) obj;
-		return Objects.equals(bucket, other.bucket) && contentSize == other.contentSize && createdOn == other.createdOn && id == other.id
-				&& Objects.equals(instance, other.instance) && isPreview == other.isPreview && Objects.equals(key, other.key)
-				&& Objects.equals(stack, other.stack) && Objects.equals(status, other.status);
+		return Objects.equals(bucket, other.bucket) && Objects.equals(contentSize, other.contentSize) && createdOn == other.createdOn
+				&& id == other.id && Objects.equals(instance, other.instance) && isPreview == other.isPreview
+				&& Objects.equals(key, other.key) && Objects.equals(stack, other.stack) && Objects.equals(status, other.status)
+				&& updatedOn == other.updatedOn;
 	}
 
 	@Override
 	public String toString() {
-		return "FileHandleRecord [id=" + id + ", createdOn=" + createdOn + ", status=" + status + ", isPreview=" + isPreview
-				+ ", contentSize=" + contentSize + ", bucket=" + bucket + ", key=" + key + ", stack=" + stack + ", instance=" + instance
-				+ "]";
+		return "FileHandleRecord [id=" + id + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", status=" + status
+				+ ", isPreview=" + isPreview + ", contentSize=" + contentSize + ", bucket=" + bucket + ", key=" + key + ", stack=" + stack
+				+ ", instance=" + instance + "]";
 	}
 
 }

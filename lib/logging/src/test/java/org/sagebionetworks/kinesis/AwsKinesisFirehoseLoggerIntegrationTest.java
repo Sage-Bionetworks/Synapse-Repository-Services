@@ -55,7 +55,7 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 	}
 	
 	@Test
-	public void test() throws Exception {
+	public void testLogBatch() throws Exception {
 		// This is more than 5MiB worth of data, it sends 2 batch requests one with 4 records and one with 2
 		int recordsNumber = 50000;
 		
@@ -74,7 +74,7 @@ public class AwsKinesisFirehoseLoggerIntegrationTest {
 			
 			return Pair.create(delivered, null);
 		});
-	}
+	}	
 	
 	// We query directly with Athena, the stream is setup to deliver to a table that uses partition projection so that there is no need for "repairing"
 	// the table as Athena will infer the partitions automatically

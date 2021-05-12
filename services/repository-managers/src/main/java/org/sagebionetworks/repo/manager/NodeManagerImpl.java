@@ -36,8 +36,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -804,7 +804,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		// EntityManager handles all of the business logic for this call.
-		return nodeDao.getChildernStats(request);
+		return nodeDao.getChildrenStats(request);
 	}
 
 	@Override

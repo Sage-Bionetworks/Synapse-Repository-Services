@@ -6,17 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,7 +33,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.kinesis.AwsKinesisDeliveryException;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
@@ -38,12 +43,12 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
-import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandleAssociationScannerJobManagerUnitTest {
@@ -89,7 +94,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 	
 	@Test
-	public void processScanRangeRequest() {
+	public void processScanRangeRequest() throws RecoverableMessageException {
 		
 		List<ScannedFileHandleAssociation> associations = Arrays.asList(
 				new ScannedFileHandleAssociation(1L, 1L),
@@ -115,7 +120,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size());
 		
@@ -127,7 +132,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 
 	@Test
-	public void processScanRangeRequestWithDuplicates() {
+	public void processScanRangeRequestWithDuplicates() throws RecoverableMessageException {
 		
 		List<ScannedFileHandleAssociation> associations = Arrays.asList(
 				new ScannedFileHandleAssociation(1L, 1L),
@@ -154,7 +159,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		
 		List<FileHandleAssociationRecord> records = recordsCaptor.getValue();
@@ -167,7 +172,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 	
 	@Test
-	public void processScanRangeRequestWithMultipleBatches() throws InterruptedException {
+	public void processScanRangeRequestWithMultipleBatches() throws InterruptedException, RecoverableMessageException {
 		
 		// 3 batches, the last batch is not full
 		List<ScannedFileHandleAssociation> associations = IntStream.range(0, FileHandleAssociationScannerJobManagerImpl.KINESIS_BATCH_SIZE * 3 - 1).boxed().map(i ->
@@ -206,7 +211,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(expectedBatches.size() + 1)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.KINESIS_STREAM_NAME), recordsCaptor.capture());
+		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock, times(expectedBatches.size())).currentTimeMillis();
 		verify(mockClock, times(expectedBatches.size() - 1)).sleep(FileHandleAssociationScannerJobManagerImpl.FLUSH_DELAY_MS);
 		
@@ -224,7 +229,69 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), associations.size());
 		
 	}
-
+	
+	@Test
+	public void processScanRangeRequestWithRecoverableException() {
+		
+		Iterator<ScannedFileHandleAssociation> mockIterator = Mockito.mock(Iterator.class);
+		Iterable<ScannedFileHandleAssociation> mockIterable = Mockito.mock(Iterable.class);
+		
+		RecoverableMessageException ex = new RecoverableMessageException("Something wrong");
+		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
+		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
+		when(mockIterator.hasNext()).thenReturn(true);
+		when(mockIterator.next()).thenThrow(ex);
+		when(mockIterable.iterator()).thenReturn(mockIterator);
+		when(mockAssociationManager.scanRange(any(), any())).thenReturn(mockIterable);
+		when(mockClock.currentTimeMillis()).thenReturn(456L);		
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()-> {			
+			// Call under test
+			manager.processScanRangeRequest(scanRangeRequest);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockStackStatusDao).isStackReadWrite();
+		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
+		verify(mockClock).currentTimeMillis();
+		verifyZeroInteractions(mockKinesisLogger);
+		verifyZeroInteractions(mockStackStatusDao);
+		
+	}
+	
+	@Test
+	public void processScanRangeRequestWithKinesisException() throws RecoverableMessageException {
+		
+		List<ScannedFileHandleAssociation> associations = Arrays.asList(
+				new ScannedFileHandleAssociation(1L, 1L),
+				new ScannedFileHandleAssociation(2L, 2L)
+		);
+		
+		long batchTimestamp = 123L;
+		
+		AwsKinesisDeliveryException ex = new AwsKinesisDeliveryException("Could not deliver");
+		
+		when(mockStatusDao.exist(anyLong())).thenReturn(true);
+		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
+		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
+		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
+		doThrow(ex).when(mockKinesisLogger).logBatch(any(), any());
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			manager.processScanRangeRequest(scanRangeRequest);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockStackStatusDao, times(2)).isStackReadWrite();
+		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
+		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), anyList());
+		verify(mockClock).currentTimeMillis();
+		verifyZeroInteractions(mockStatusDao);
+	}
 	
 	@Test
 	public void processScanRangeRequestWithNoRequest() {
@@ -284,7 +351,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(false); 
 		
-		String errorMessage = assertThrows(ReadOnlyException.class, () -> {
+		String errorMessage = assertThrows(RecoverableMessageException .class, () -> {
 			// Call under test
 			manager.processScanRangeRequest(scanRangeRequest);
 		}).getMessage();

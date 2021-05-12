@@ -156,4 +156,20 @@ public interface AthenaSupport {
 	 */
 	<T> AthenaQueryResult<T> getQueryResults(String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader);
 
+	/**
+	 * Retrieves a single page of results from the query identified by the given queryExecutionId, using
+	 * the given mapper to transform the {@link Row rows} in the Athena {@link ResultSet}.
+	 * 
+	 * @param <T>
+	 * 
+	 * @param queryExecutionId The id of the query
+	 * @param rowMapper        A row mapper to map a {@link Row} to T
+	 * @param pageToken        The pageToken returned by the Athena query. If more results are available
+	 *                         the next page token is included in the {@link AthenaQueryResultPage
+	 *                         response}, if null fetches the first page excluding the row header
+	 * @param limit            The max number of rows to fetch (max allowed 1000)
+	 * @return A page of results mapped using the given {@link RowMapper}
+	 */
+	<T> AthenaQueryResultPage<T> getQueryResultsPage(String queryExecutionId, RowMapper<T> rowMapper, String pageToken, int limit);
+ 
 }

@@ -122,6 +122,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -1819,7 +1820,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public ChildStatsResponse getChildernStats(ChildStatsRequest request) {
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getParentId(), "parentId");
 		ValidateArgument.required(request.getIncludeTypes(), "includeTypes");
@@ -1864,7 +1865,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	public static List<String> getTypeNames(List<EntityType> includeTypes){
 		List<String> results = new LinkedList<String>();
-		for(EntityType type: includeTypes){
+		if (includeTypes==null) {
+			return results;
+		}
+		for(EntityType type: includeTypes) {
+			if (type==null) continue;
+			
 			results.add(type.name());
 		}
 		return results;
@@ -2039,9 +2045,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long modifiedOn = System.currentTimeMillis();
 		Long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
 		String label = request.getSnapshotLabel() != null ? request.getSnapshotLabel() : revisionNumber.toString();
-		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
-				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
-		return revisionNumber;
+		try {
+			this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
+					request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
+			return revisionNumber;
+		} catch (DuplicateKeyException e) {
+			if (e.getMessage().contains("UNIQUE_REVISION_LABEL")) {
+				throw new IllegalArgumentException(String.format("The label '%s' has already been used for a version of this entity", label), e);
+			} else {
+				throw(e);
+			}
+		}
 	}
 
 	@Override

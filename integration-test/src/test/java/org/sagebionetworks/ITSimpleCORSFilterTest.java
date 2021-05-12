@@ -66,7 +66,7 @@ public class ITSimpleCORSFilterTest {
         urlBuilder.append("/version");
         SimpleHttpRequest request = new SimpleHttpRequest();
         Map<String, String> requestHeaders = new HashMap<>();
-        requestHeaders.put("sessionToken", synapse.getCurrentSessionToken());
+        requestHeaders.put("Authorization", "Bearer "+synapse.getAccessToken());
         request.setHeaders(requestHeaders);
         request.setUri(urlBuilder.toString());
 

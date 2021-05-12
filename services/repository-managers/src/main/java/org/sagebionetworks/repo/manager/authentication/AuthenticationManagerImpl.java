@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.authentication;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -57,6 +59,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	private Clock clock;
 
 	@Override
 	public Long getPrincipalId(String sessionToken) {
@@ -207,16 +212,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
-			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
+			throw new IllegalArgumentException("Cannot \"unsign\" the terms of use");
 		}
 		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 
-	/**
-	 * Note: We explicitly removed the transaction annotation from this method (see:
-	 * PLFM-6562). Most login calls will not result in any database changes. A new
-	 * transaction will only be created if a database change is needed.
-	 */
+	@Deprecated
 	@Override
 	public LoginResponse loginForSession(LoginRequest request){
 		ValidateArgument.required(request, "loginRequest");
@@ -272,11 +273,18 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
+	@Deprecated
 	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId){
+	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId){
 		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(principalId);
 	}
 
+	@Override
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer){
+		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer);
+	}
+
+	@Deprecated
 	LoginResponse getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(long principalId){
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		//generate session tokens for user after successful check
@@ -288,9 +296,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenHelper.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
+		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
 	
+	@Deprecated
 	/**
 	 * Create a login response from the session and the new authentication receipt
 	 * 
@@ -298,7 +308,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @param newReceipt
 	 * @return
 	 */
-	private LoginResponse createLoginResponse(Session session, String newReceipt) {
+	private static LoginResponse createLoginResponse(Session session, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setSessionToken(session.getSessionToken());
 		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
@@ -306,7 +316,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return response;
 	}
 
-	private LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
+	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setAccessToken(accessToken);
 		response.setAcceptsTermsOfUse(acceptsTermsOfUse);

@@ -140,6 +140,7 @@
 							<org.sagebionetworks.id.generator.database.username>${org.sagebionetworks.id.generator.database.username}</org.sagebionetworks.id.generator.database.username>
 							<org.sagebionetworks.google.cloud.enabled>${org.sagebionetworks.google.cloud.enabled}</org.sagebionetworks.google.cloud.enabled>
 							<org.sagebionetworks.google.cloud.key>${org.sagebionetworks.google.cloud.key}</org.sagebionetworks.google.cloud.key>
+							<org.sagebionetworks.sts.iam.arn>${org.sagebionetworks.sts.iam.arn}</org.sagebionetworks.sts.iam.arn>
 						</systemProperties>
 					</container>
 					<configuration>

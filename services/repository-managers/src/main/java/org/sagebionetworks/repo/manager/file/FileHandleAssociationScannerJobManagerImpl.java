@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.kinesis.AwsKinesisDeliveryException;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
@@ -14,14 +15,13 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
-import org.sagebionetworks.repo.model.exception.ReadOnlyException;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -52,7 +52,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	}
 
 	@Override
-	public int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableException {
+	public int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableMessageException {
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getJobId(), "The request.jobId");
 		ValidateArgument.required(request.getAssociationType(), "The request.associationType");
@@ -71,18 +71,19 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		long batchTimestamp = clock.currentTimeMillis();
 		
 		Iterable<ScannedFileHandleAssociation> iterable = associationManager.scanRange(request.getAssociationType(), request.getIdRange());
-		
+
 		int totalRecords = 0;
-		
+
 		for (ScannedFileHandleAssociation association : iterable) {
+
 			Set<FileHandleAssociationRecord> associationRecords = FileHandleScannerUtils.mapAssociation(request.getAssociationType(), association, batchTimestamp);
-			
+
 			if (associationRecords.isEmpty()) {
 				continue;
 			}
-			
+
 			recordsBatch.addAll(associationRecords);
-			
+
 			if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
 				totalRecords += flushRecordsBatch(recordsBatch);
 				batchTimestamp = clock.currentTimeMillis();
@@ -95,13 +96,13 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 				}
 			}
 		}
-		
+
 		if (!recordsBatch.isEmpty()) {
 			totalRecords += flushRecordsBatch(recordsBatch);
 		}
-		
+
 		statusDao.increaseJobCompletedCount(request.getJobId(), totalRecords);
-		
+
 		return totalRecords;
 		
 	}
@@ -171,19 +172,23 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		return ThreadLocalRandom.current().nextInt(MAX_DELAY_SEC + 1);
 	}
 	
-	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) {
+	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) throws RecoverableMessageException {
 		validateStackReadWrite();
 		int size = recordsBatch.size();
-		kinesisLogger.logBatch(FileHandleAssociationRecord.KINESIS_STREAM_NAME, new ArrayList<>(recordsBatch));
+		try {
+			kinesisLogger.logBatch(FileHandleAssociationRecord.STREAM_NAME, new ArrayList<>(recordsBatch));
+		} catch (AwsKinesisDeliveryException e) {
+			throw new RecoverableMessageException(e);
+		}
 		recordsBatch.clear();
 		return size;
 	}
 	
-	private void validateStackReadWrite() {
+	private void validateStackReadWrite() throws RecoverableMessageException {
 		if (stackStatusDao.isStackReadWrite()) {
 			return;
 		}
-		throw new ReadOnlyException("The stack was in read-only mode.");
+		throw new RecoverableMessageException("The stack was in read-only mode.");
 	}
 
 }

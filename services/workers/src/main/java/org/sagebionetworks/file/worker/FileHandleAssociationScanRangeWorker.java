@@ -9,7 +9,6 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
-import org.sagebionetworks.repo.model.exception.RecoverableException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -64,10 +63,10 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 			LOG.info(requestToString(request) + " COMPLETED: " + count + " associations (Spent " + (System.currentTimeMillis() - start) + " ms)");
 		} catch (NotFoundException e) {
 			LOG.warn(e.getMessage(), e);
-		} catch (RecoverableException e) {
+		} catch (RecoverableMessageException e) {
 			LOG.warn(requestToString(request) + " RETRYING: " + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_JOB_RETRY_COUNT);
-			throw new RecoverableMessageException(e.getMessage(), e);
+			throw e;
 		} catch (Throwable e) {
 			LOG.error(requestToString(request) + " FAILED: " + e.getMessage(), e);
 			logWorkerCountMetric(METRIC_JOB_FAILED_COUNT);

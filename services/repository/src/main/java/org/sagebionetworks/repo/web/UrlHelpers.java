@@ -170,6 +170,7 @@ public class UrlHelpers {
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	public static final String ACCOUNT = "/account";
+	public static final String ACCOUNT_V2 = "/account2";
 	public static final String EMAIL_VALIDATION = "/emailValidation";
 	public static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT+EMAIL_VALIDATION;
 	public static final String ACCOUNT_ID_EMAIL_VALIDATION = ACCOUNT+ID+EMAIL_VALIDATION;
@@ -1134,6 +1135,7 @@ public class UrlHelpers {
 	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
 
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
+	public static final String AUTH_TERMS_OF_USE_V2 = "/termsOfUse2";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
@@ -1142,8 +1144,10 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
+	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String WELL_KNOWN = "/.well-known";
 	// The OIDC spec' defines the following as <issuer>/.well-known/openid-configuration
 	// See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
@@ -1178,7 +1182,8 @@ public class UrlHelpers {
 
 
 	public static final String AUTH_LOGIN = "/login";
-	public static final String AUTH_LOGIN_2 = "/login2";	
+	public static final String AUTH_LOGIN_2 = "/login2";
+	
 	/**
 	 * API for creating integration test users
 	 */

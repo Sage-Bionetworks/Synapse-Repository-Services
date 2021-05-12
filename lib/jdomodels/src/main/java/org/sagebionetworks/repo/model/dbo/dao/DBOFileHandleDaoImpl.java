@@ -9,8 +9,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,12 +26,13 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -39,6 +43,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -69,6 +74,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
+	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -113,7 +119,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		return FileMetadataUtils.createDTOFromDBO(dbo);
 	}
 
-	private DBOFileHandle getDBO(String id) throws NotFoundException {
+	DBOFileHandle getDBO(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
@@ -324,6 +330,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public void createBatch(List<FileHandle> list) {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
+		createBatchDbo(dbos);
+	}
+	
+	@WriteTransaction
+	@Override
+	public void createBatchDbo(List<DBOFileHandle> dbos) {
 		for (DBOFileHandle dbo : dbos) {
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
@@ -333,6 +345,60 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
 		return jdbcTemplate.queryForObject(SQL_IS_MATCHING_MD5, Boolean.class, sourceFileHandleId, targetFileHandleId);
+	}
+	
+	@Override
+	public List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status) {
+		ValidateArgument.required(status, "The status");
+		
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		String sql = SQL_SELECT_BATCH + " AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS;
+		
+		MapSqlParameterSource paramSource = new MapSqlParameterSource()
+				.addValue("ids", ids)
+				.addValue(COL_FILES_STATUS, status.name());
+		
+		return namedJdbcTemplate.query(sql, paramSource, ROW_MAPPER);
+	}
+	
+	@Override
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
+		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		StringBuilder sql = new StringBuilder(SQL_SELECT_BATCH);
+		
+		if (updatedOnBeforeDays > 0) {
+			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
+		}
+		
+		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
+		
+		return namedJdbcTemplate.query(sql.toString(), paramSource, DBO_MAPPER);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
+		ValidateArgument.required(newStatus, "The newStatus");
+		ValidateArgument.required(currentStatus, "The currentStatus");
+		
+		if (ids == null || ids.isEmpty()) {
+			return;
+		}
+		
+		jdbcTemplate.batchUpdate(SQL_UPDATE_STATUS_BATCH, ids, ids.size(), (PreparedStatement ps, Long id) -> {
+			int paramIndex = 1;
+			ps.setString(paramIndex++, newStatus.name());
+			ps.setLong(paramIndex++, id);
+			ps.setString(paramIndex++, currentStatus.name());
+		});
+		
 	}
 
 	@WriteTransaction

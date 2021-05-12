@@ -20,6 +20,8 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -64,8 +66,10 @@ public class IT990AuthenticationController {
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(PASSWORD);
-		
-		userToDelete = adminSynapse.createUser(nu);
+
+		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
+		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
+		userToDelete = Long.parseLong(accessTokenSubject);
 		
 		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();
@@ -95,8 +99,8 @@ public class IT990AuthenticationController {
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
 		request.setAuthenticationReceipt(receipt);
-		receipt = synapse.login(request).getAuthenticationReceipt();
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+		receipt = synapse.loginForAccessToken(request).getAuthenticationReceipt();
+		synapse.signTermsOfUse(synapse.getAccessToken());
 	}
 	
 	@Before
@@ -158,10 +162,22 @@ public class IT990AuthenticationController {
 
 	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(PASSWORD);
+		request.setAuthenticationReceipt(receipt);
+		synapse.login(request);
 		String sessionToken = synapse.getCurrentSessionToken();
-		
+		// Accept the terms
+		synapse.signTermsOfUse(sessionToken, true);
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
+	}
+
+	@Test
+	public void testSignTermsViaAccessToken() throws Exception {
+		String accessToken = synapse.getAccessToken();
+		synapse.signTermsOfUse(accessToken);
 	}
 
 	@Test
@@ -258,6 +274,26 @@ public class IT990AuthenticationController {
 	 * @throws SynapseException 
 	 */
 	@Test
+	public void testValidateOAuthAuthenticationCodeForAccessTokenAndLogin() throws SynapseException {
+		try {
+			OAuthValidationRequest request = new OAuthValidationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
+			// this invalid code will trigger a SynapseForbiddenException
+			request.setAuthenticationCode("test auth code");
+			synapse.validateOAuthAuthenticationCodeForAccessToken(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
 	public void testCreateAccountViaOAuth2() throws SynapseException {
 		try {
 			OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
@@ -267,6 +303,27 @@ public class IT990AuthenticationController {
 			request.setAuthenticationCode("test auth code");
 			request.setUserName("uname");
 			synapse.createAccountViaOAuth2(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+	
+	/**
+	 * Since a browser is need to get a real authentication code, we are just testing
+	 * that everything is wires up correctly.
+	 * @throws SynapseException 
+	 */
+	@Test
+	public void testCreateAccountViaOAuth2ForAccessToken() throws SynapseException {
+		try {
+			OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
+			// this invalid code will trigger a SynapseForbiddenException
+			request.setAuthenticationCode("test auth code");
+			request.setUserName("uname");
+			synapse.createAccountViaOAuth2ForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK

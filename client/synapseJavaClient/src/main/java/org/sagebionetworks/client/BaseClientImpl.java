@@ -93,6 +93,8 @@ public class BaseClientImpl implements BaseClient {
 
 	private String authorizationHeader;
 	
+	private boolean acceptsTermsOfUse;
+	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
 
@@ -133,6 +135,7 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @param request
@@ -146,6 +149,7 @@ public class BaseClientImpl implements BaseClient {
 		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
 
@@ -161,23 +165,41 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
 		setBearerAuthorizationToken(response.getAccessToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
+	
+	@Override
+	public void setAcceptsTermsOfUse(boolean b) {
+		acceptsTermsOfUse = b;
+	}
+	
+	protected boolean acceptsTermsOfUse() {
+		return acceptsTermsOfUse;
+	}
 
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(authEndpoint, "/session");
+		if (defaultGETDELETEHeaders.containsKey(SESSION_TOKEN_HEADER)) {
+			deleteUri(authEndpoint, "/session");
+		}
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+	}
+
+	public void logoutForAccessToken() throws SynapseException {
+		removeAuthorizationHeader();
 	}
 
 	//================================================================================
 	// Setters and Getters
 	//================================================================================
 	
+	@Deprecated
 	/**
 	 * Authenticate the synapse client with an existing session token
 	 * 
@@ -188,6 +210,8 @@ public class BaseClientImpl implements BaseClient {
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
 	}
 
+
+	@Deprecated
 	/**
 	 * Get the current session token used by this client.
 	 * 
@@ -230,6 +254,16 @@ public class BaseClientImpl implements BaseClient {
 	protected String getAuthorizationHeader() {
 		return authorizationHeader;
 	}
+	
+	@Override
+	public String getAccessToken() {
+		if (authorizationHeader==null || !authorizationHeader.
+				startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) {
+			throw new IllegalStateException("Missing bearer token header.");
+		}
+		return authorizationHeader.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
+	}
+	
 	/**
 	 * Remove the Authorization Header
 	 */
@@ -342,6 +376,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	protected void revalidateSession() throws SynapseException {
 		Session session = new Session();
 		String currentSessionToken = getCurrentSessionToken();
@@ -355,7 +390,6 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
-	
 
 	//================================================================================
 	// Upload & Download related helping functions

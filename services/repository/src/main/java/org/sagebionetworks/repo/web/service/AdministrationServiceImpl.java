@@ -1,26 +1,27 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -59,6 +60,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	private UserManager userManager;
 	
 	@Autowired
+	private AuthenticationManager authManager;
+	
+	@Autowired
 	private StackStatusManager stackStatusManager;
 	
 	@Autowired
@@ -87,6 +91,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	FeatureManager featureManager;
+	
+	@Autowired
+	OIDCTokenHelper oidcTokenHelper;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -156,34 +163,27 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 	
 	@Override
-	public EntityId createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
+	public LoginResponse createOrGetTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
 		adminCheck(userId);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		DBOCredential cred = new DBOCredential();
-		DBOTermsOfUseAgreement touAgreement = null;
 		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
 			passwordValidator.validatePassword(userSpecs.getPassword());
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
-		if (userSpecs.getSession() != null) {
-			touAgreement = new DBOTermsOfUseAgreement();
-			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 
-			token = new DBOSessionToken();
-			token.setSessionToken(userSpecs.getSession().getSessionToken());
-		}
-		
+		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+		touAgreement.setAgreesToTermsOfUse(userSpecs.getTou());
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
+		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
 		
-		EntityId id = new EntityId();
-		id.setId(user.getId().toString());
-		return id;
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
 	}
+	
 	@Override
 	public void deleteUser(Long userId, String id) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
