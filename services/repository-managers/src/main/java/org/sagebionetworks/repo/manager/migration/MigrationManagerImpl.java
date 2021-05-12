@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,7 +13,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumReque
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupManifest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
@@ -48,11 +50,15 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Iterables;
 
 
@@ -65,21 +71,22 @@ import com.google.common.collect.Iterables;
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
+	public static final String MANIFEST_KEY_TEMPLATE = "%1$s/manifest.json";
 	public static String backupBucket = StackConfigurationSingleton.singleton().getSharedS3BackupBucket();
 	public static String stack = StackConfigurationSingleton.singleton().getStack();
 	public static String instance = StackConfigurationSingleton.singleton().getStackInstance();
 	
 	@Autowired
-	MigratableTableDAO migratableTableDao;
+	private MigratableTableDAO migratableTableDao;
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
 	@Autowired
-	BackupFileStream backupFileStream;
+	private BackupFileStream backupFileStream;
 	@Autowired
-	SynapseS3Client s3Client;
+	private SynapseS3Client s3Client;
 	@Autowired
-	FileProvider fileProvider;
-	
+	private FileProvider fileProvider;
+
 	/**
 	 * The list of migration listeners
 	 */
@@ -413,19 +420,43 @@ public class MigrationManagerImpl implements MigrationManager {
 		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
 		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
 		validateUser(user);
+		List<MigrationType> secondaryTypes = getSecondaryTypes(request.getMigrationType());
+		BackupManifest manifest = new BackupManifest().setOriginalRequest(request).setSecondaryTypes(secondaryTypes);
+		String backupKey = createNewBackupKey(stack, instance, request.getMigrationType());
+		putManifestToS3(backupKey, manifest);
 		// Start the stream for the primary
 		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao
 				.streamDatabaseObjects(request.getMigrationType(), request.getMinimumId(), request.getMaximumId(), request.getBatchSize());
 		// Concatenate all secondary data streams to the main stream.
-		for (MigrationType secondaryType : getSecondaryTypes(request.getMigrationType())) {
+		for (MigrationType secondaryType : secondaryTypes) {
 			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao
 					.streamDatabaseObjects(secondaryType, request.getMinimumId(), request.getMaximumId(), request.getBatchSize());
 			dataStream = Iterables.concat(dataStream, secondaryStream);
 		}
 		// Create the backup and upload it to S3.
-		return backupStreamToS3(request.getMigrationType(), dataStream, request.getAliasType(), request.getBatchSize());
+		return backupStreamToS3(request.getMigrationType(), dataStream, request.getAliasType(), request.getBatchSize(), backupKey);
 	}
 	
+	/**
+	 * Put the given manifest to S3.
+	 * @param manifestKey
+	 * @param manifest
+	 */
+	void putManifestToS3(String backupKey, BackupManifest manifest) {
+		try {
+			String manifestKey = createManifestKey(backupKey);
+			byte[] bytes = EntityFactory.createJSONStringForEntity(manifest).getBytes(StandardCharsets.UTF_8);
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentLength(bytes.length);
+			metadata.setContentDisposition("application/json name=manifest.json");
+			metadata.setContentType("application/json");
+			metadata.setContentEncoding("UTF-8");
+			s3Client.putObject(new PutObjectRequest(backupBucket, manifestKey, new ByteArrayInputStream(bytes), metadata));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Stream the data to a temporary file and upload it to S3.
 	 * 
@@ -435,7 +466,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @return
 	 * @throws IOException 
 	 */
-	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize) throws IOException {
+	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize, String key) throws IOException {
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationBackup", ".zip");
 		OutputStream fos = null;
@@ -445,7 +476,6 @@ public class MigrationManagerImpl implements MigrationManager {
 			fos.flush();
 			fos.close();
 			// Upload the file to S3
-			String key = createNewBackupKey(stack, instance, type);
 			s3Client.putObject(backupBucket, key, temp);
 			BackupTypeResponse response = new BackupTypeResponse();
 			response.setBackupFileKey(key);
@@ -460,6 +490,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 	
+	
 	/**
 	 * Create new key to to store a backup file in S3.
 	 * 
@@ -468,6 +499,15 @@ public class MigrationManagerImpl implements MigrationManager {
 	 */
 	public static String createNewBackupKey(String stack, String instance, MigrationType type) {
 		return String.format(BACKUP_KEY_TEMPLATE, stack, instance, type, UUID.randomUUID().toString());
+	}
+	
+	/**
+	 * Create the manifest key for the given base key.
+	 * @param baseKey
+	 * @return
+	 */
+	public static String createManifestKey(String baseKey) {
+		return String.format(MANIFEST_KEY_TEMPLATE, baseKey);
 	}
 
 	/*
@@ -484,34 +524,55 @@ public class MigrationManagerImpl implements MigrationManager {
 		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
 		ValidateArgument.required(request.getBackupFileKey(), "request.backupFileKey");
 		validateUser(user);
-		// If given a range then delete all data for that range.
-		if(request.getMinimumRowId() != null && request.getMaximumRowId() != null) {
-			deleteByRange(request.getMigrationType(), request.getMinimumRowId(), request.getMaximumRowId());
-		}
-		
 		// Stream all of the data to a local temporary file.
 		File temp = fileProvider.createTempFile("MigrationRestore", ".zip");
-		InputStream fis = null;
 		try {
-			// download the file from S3
-			GetObjectRequest getObjectRequest = new GetObjectRequest(backupBucket, request.getBackupFileKey());
 			// the client will write the file data to the temp file.
-			s3Client.getObject(getObjectRequest, temp);
-			fis = fileProvider.createFileInputStream(temp);
-			// Stream over the resulting file.
-			RestoreTypeResponse response = restoreStream(fis, request.getMigrationType(), request.getAliasType(), request.getBatchSize());
-			// delete the file from S3
-			s3Client.deleteObject(backupBucket, request.getBackupFileKey());
-			return response;
+			s3Client.getObject(new GetObjectRequest(backupBucket, request.getBackupFileKey()), temp);
+			try(InputStream fis = fileProvider.createFileInputStream(temp)){
+				// Stream over the resulting file.
+				return restoreStream(fis, getManifest(request));
+			}
 		}finally {
-			// Unconditionally close the stream
-			IOUtils.closeQuietly(fis);
 			// Delete the temporary file if it exists.
 			if(temp != null) {
 				temp.delete();
 			}
 		}
 	}
+	
+
+	/**
+	 * Get the manifest associated with the given request.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public BackupManifest getManifest(RestoreTypeRequest request) {
+		String manifestKey = createManifestKey(request.getBackupFileKey());
+		if(s3Client.doesObjectExist(backupBucket, manifestKey)) {
+			// all new backup requests will include a manifest in S3.
+			try(InputStream in = s3Client.getObject(new GetObjectRequest(backupBucket, manifestKey)).getObjectContent()){
+				String json = IOUtils.toString(in, StandardCharsets.UTF_8.name());
+				return EntityFactory.createEntityFromJSONString(json, BackupManifest.class);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			/*
+			 * Old backup requests do not include a manifest in S3. For such cases we must
+			 * build a manifest using a combination of data from the restore request plus
+			 * secondary data from this server. Note: This path will be removed when the code
+			 * to generate manifests in S3 is deployed to production.
+			 */
+			return new BackupManifest()
+					.setOriginalRequest(new BackupTypeRangeRequest().setMigrationType(request.getMigrationType())
+							.setAliasType(request.getAliasType()).setBatchSize(request.getBatchSize())
+							.setMaximumId(request.getMaximumRowId()).setMinimumId(request.getMinimumRowId()))
+					.setSecondaryTypes(getSecondaryTypes(request.getMigrationType()));
+		}
+	}
+	
 
 	/**
 	 * Restore all of the data from the provided stream.
@@ -526,19 +587,21 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @return
 	 */
 	@Override
-	public RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType,
-			BackupAliasType backupAliasType, long batchSize) {
+	public RestoreTypeResponse restoreStream(InputStream input, BackupManifest manifest) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
-		if(!this.migratableTableDao.isMigrationTypeRegistered(primaryType)) {
+		if(!this.migratableTableDao.isMigrationTypeRegistered(manifest.getOriginalRequest().getMigrationType())) {
 			// ignore types that are not registered.
 			response.setRestoredRowCount(0L);
 			return response;
 		}
+		
+		// delete all primary and secondary data for the ranges defined in the manifest.
+		deleteByRange(manifest);
+		
 		long rowCount = 0;
-		List<MigrationType> secondaryTypes = getSecondaryTypes(primaryType);
 		// Start reading the stream.
-		Iterable<MigratableDatabaseObject<?,?>> iterable = this.backupFileStream.readBackupFile(input, backupAliasType);
-		MigrationType currentType = primaryType;
+		Iterable<MigratableDatabaseObject<?,?>> iterable = this.backupFileStream.readBackupFile(input, manifest.getOriginalRequest().getAliasType());
+		MigrationType currentType = manifest.getOriginalRequest().getMigrationType();
 		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
 		for(MigratableDatabaseObject<?,?> rowToRestore: iterable) {
 			MigrationType rowType = rowToRestore.getMigratableTableType();
@@ -548,8 +611,8 @@ public class MigrationManagerImpl implements MigrationManager {
 			}
 			
 			// If over the batch size or a type switch push the current batch.
-			if(currentBatch.size() >= batchSize || !rowType.equals(currentType)) {
-				restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+			if(currentBatch.size() >= manifest.getOriginalRequest().getBatchSize() || !rowType.equals(currentType)) {
+				restoreBatch(currentType, currentBatch);
 				currentBatch = new LinkedList<>();
 			}
 			currentType = rowType;
@@ -557,7 +620,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			rowCount++;
 		}
 		// push the remaining rows
-		restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
+		restoreBatch(currentType, currentBatch);
 		// prepare the response.
 		response.setRestoredRowCount(rowCount);
 		return response;
@@ -566,10 +629,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * Restore a single batch of rows for the given type.
 	 * @param currentType
-	 * @param secondaryTypes
 	 * @param currentBatch
 	 */
-	void restoreBatch(MigrationType currentType, MigrationType primaryType, List<MigrationType> secondaryTypes,
+	void restoreBatch(MigrationType currentType,
 			List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
 			// push the data to the database
@@ -609,17 +671,22 @@ public class MigrationManagerImpl implements MigrationManager {
 	
 	/**
 	 * Delete all primary and secondary data for the given ID range.
-	 * @param type
-	 * @param minimumId minimum ID (inclusive).
-	 * @param maximumId maximum ID (exclusive).
+	 * @param manifest manifest defines both the ranges and secondary types.
 	 */
-	void deleteByRange(MigrationType type, long minimumId, long maximumId) {
-		if(this.migratableTableDao.isMigrationTypeRegistered(type)) {
-			List<MigrationType> secondaryTypes = getSecondaryTypes(type);
-			for(MigrationType secondaryType: secondaryTypes) {
-				this.migratableTableDao.deleteByRange(secondaryType, minimumId, maximumId);
+	void deleteByRange(BackupManifest manifest) {
+		if(manifest.getOriginalRequest().getMaximumId() != null && manifest.getOriginalRequest().getMinimumId() != null) {
+			long minimumId = manifest.getOriginalRequest().getMinimumId();
+			long maximumId = manifest.getOriginalRequest().getMaximumId();
+			if(manifest.getSecondaryTypes() != null) {
+				for(MigrationType secondaryType: manifest.getSecondaryTypes()) {
+					if(migratableTableDao.isMigrationTypeRegistered(secondaryType)){
+						this.migratableTableDao.deleteByRange(secondaryType, minimumId, maximumId);
+					}
+				}
 			}
-			this.migratableTableDao.deleteByRange(type, minimumId, maximumId);
+			if(migratableTableDao.isMigrationTypeRegistered(manifest.getOriginalRequest().getMigrationType())){
+				this.migratableTableDao.deleteByRange(manifest.getOriginalRequest().getMigrationType(), minimumId, maximumId);
+			}
 		}
 	}
 

@@ -1,0 +1,15 @@
+{
+	"description": "Manifest of all metadata associated with a single backup file",
+	"properties": {
+		"originalRequest": {
+			"$ref": "org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest"
+		},
+		"secondaryTypes": {
+			"description": "The secondary types according to the source of the backup.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+			}
+		}
+	}
+}
