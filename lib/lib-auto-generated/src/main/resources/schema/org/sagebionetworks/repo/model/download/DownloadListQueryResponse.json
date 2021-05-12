@@ -6,7 +6,7 @@
 		}
 	],
 	"properties": {
-		"reponseDetails": {
+		"responseDetails": {
 			"description": "The response details type is determined by the request details type.",
 			"$ref": "org.sagebionetworks.repo.model.download.QueryResponseDetails"
 		}
