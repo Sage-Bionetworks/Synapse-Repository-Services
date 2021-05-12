@@ -1,19 +1,17 @@
 package org.sagebionetworks.table.query;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class ArrayHasPredicateTest {
@@ -27,7 +25,7 @@ public class ArrayHasPredicateTest {
 		ArrayHasPredicate element = new ArrayHasPredicate(columnReferenceLHS, not, ArrayHasPredicateValue);
 		assertEquals("bar HAS ( 1 )", element.toString());
 	}
-
+	
 	@Test
 	public void testArrayHasPredicateToSQLNot() throws ParseException{
 		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
@@ -42,11 +40,16 @@ public class ArrayHasPredicateTest {
 		Predicate predicate = new TableQueryParser("foo has (1,'2',3)").predicate();
 		ArrayHasPredicate element = predicate.getFirstElementOfType(ArrayHasPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
-		assertNotNull(values);
-		assertEquals(3, values.size());
-		assertEquals("1", values.get(0).toSqlWithoutQuotes());
-		assertEquals("2", values.get(1).toSqlWithoutQuotes());
-		assertEquals("3", values.get(2).toSqlWithoutQuotes());
+
+		List<String> expectedValues = Arrays.asList(
+				"1", "2", "3"
+		);
+				
+		List<String> values = StreamSupport.stream(element.getRightHandSideValues().spliterator(), false)
+				.map( l -> l.toSqlWithoutQuotes())
+				.collect(Collectors.toList());
+		
+		assertEquals(expectedValues, values);
 	}
+	
 }
