@@ -935,9 +935,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.isOauthClientVerified(otherClientId)).thenReturn(true);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(otherClientId)).thenReturn(clientSpecificEncodingSecret);
 
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
@@ -950,7 +948,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
-		OAuthBadRequestException e  = assertThrows(OAuthBadRequestException.class, () -> {
+		when(mockOauthDao.redeemAuthorizationCode(code)).thenReturn(authorizationRequest);
+				
+ 		OAuthBadRequestException e  = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
 			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, otherClientId, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		});
