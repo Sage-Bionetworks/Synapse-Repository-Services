@@ -30,10 +30,13 @@ import org.sagebionetworks.repo.manager.UserCredentialValidator;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
@@ -245,6 +248,32 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockUserCredentialValidator).checkPassword(userId, password);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
+	}
+	
+	@Test
+	public void testAuthenticatedOn() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(userId);
+		Date authDate = new Date(123L);
+		
+		when(mockAuthDAO.getAuthenticatedOn(userId)).thenReturn(authDate);
+		
+		// method under test
+		AuthenticatedOn authenticatedOn = authManager.getAuthenticatedOn(userInfo);
+		
+		assertEquals(authDate, authenticatedOn.getAuthenticatedOn());
+	}
+
+	@Test
+	public void testAuthenticatedOnAnonymous() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+
+		// method under test
+		assertThrows(UnauthenticatedException.class, ()->{
+			authManager.getAuthenticatedOn(userInfo);
+		});
+
 	}
 
 	///////////////////////////////////////////////////////////

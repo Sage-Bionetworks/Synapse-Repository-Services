@@ -21,5 +21,6 @@ public enum OAuthErrorCode {
 	invalid_scope,
 	insufficient_scope,
 	unsupported_token_type,
-	login_required
+	login_required,
+	invalid_redirect_uri
 }

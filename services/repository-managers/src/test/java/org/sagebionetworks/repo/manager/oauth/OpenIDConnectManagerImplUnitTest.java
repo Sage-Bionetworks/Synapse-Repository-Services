@@ -81,7 +81,6 @@ import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
@@ -289,8 +288,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
 		});
-		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
-		assertEquals("invalid_request Redirect URI is not a valid url: some invalid uri", ex.getMessage());
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, ex.getError());
+		assertEquals("invalid_redirect_uri Redirect URI is not a valid url: some invalid uri", ex.getMessage());
 	}
 
 	@Test
@@ -439,8 +438,8 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
 		});
-		assertEquals(OAuthErrorCode.invalid_request, ex.getError());
-		assertEquals("invalid_request Redirect URI is not a valid url: some other redir uri", ex.getMessage());
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, ex.getError());
+		assertEquals("invalid_redirect_uri Redirect URI is not a valid url: some other redir uri", ex.getMessage());
 	}
 	
 	@Test
@@ -580,6 +579,22 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 	
+	@Test
+	public void testAuthorizeClientInvalidRedirURI() throws Exception {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		authorizationRequest.setRedirectUri("http://unregistered_uri.com");
+
+		// method under test
+		OAuthBadRequestException e = assertThrows(OAuthBadRequestException.class, ()-> {
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		});
+		
+		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());		
+	}
+
 	@Test
 	public void testPPID() {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
@@ -915,6 +930,37 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 
+	@Test
+	public void testGetTokenResponseWithAuthorizationCode_mismatchedClient() {
+		String otherClientId = "456"; // client id in auth code does not match the one making the request
+
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		when(mockOauthClientDao.isOauthClientVerified(otherClientId)).thenReturn(true);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(otherClientId)).thenReturn(clientSpecificEncodingSecret);
+
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
+		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+
+		boolean includeIdToken = true;
+		boolean includeUserInfo = true;
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
+
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		String code = authResponse.getAccess_code();
+
+		OAuthBadRequestException e  = assertThrows(OAuthBadRequestException.class, () -> {
+			// method under test
+			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, otherClientId, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		});
+		
+		assertEquals(OAuthErrorCode.invalid_grant, e.getError());
+	}
+
 	private OAuthRefreshTokenAndMetadata createRotatedToken() {
 		OAuthRefreshTokenAndMetadata refreshToken = new OAuthRefreshTokenAndMetadata();
 		refreshToken.setRefreshToken("new refresh token");
@@ -1036,7 +1082,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		String scope = "openid offline_access authorize"; // Authorize was not previously granted
 
 		// method under test
-		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.generateTokenResponseWithRefreshToken(refreshToken, OAUTH_CLIENT_ID, scope, OAUTH_ENDPOINT));
+		OAuthBadRequestException e = assertThrows(OAuthBadRequestException.class, () -> openIDConnectManagerImpl.generateTokenResponseWithRefreshToken(refreshToken, OAUTH_CLIENT_ID, scope, OAUTH_ENDPOINT));
+		assertEquals(OAuthErrorCode.invalid_scope, e.getError());
 	}
 
 	@Test

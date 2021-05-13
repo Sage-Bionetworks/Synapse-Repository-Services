@@ -129,10 +129,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
 		} catch (IllegalArgumentException e) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e);
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_redirect_uri, e);
 		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_redirect_uri, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
 		if (authorizationRequest.getResponseType()==null) {
@@ -381,6 +381,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Pairwise Pseudonymous Identifier (PPID)
 		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
+		
+		// Ensure the client is permitted to use this refresh token
+		if (!oauthClientId.equals(verifiedClientId)) {
+			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant);
+		}
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
 
@@ -399,7 +405,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
 		String refreshTokenId = null;
 		if (issueRefreshToken) {
-
 			OAuthRefreshTokenAndMetadata refreshToken = oauthRefreshTokenManager
 					.createRefreshToken(authorizationRequest.getUserId(),
 							oauthClientId,
@@ -438,7 +443,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Ensure the client is permitted to use this refresh token
 		if (!refreshTokenMetadata.getClientId().equals(verifiedClientId)) {
 			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
-			throw new IllegalArgumentException("invalid_grant");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant);
 		}
 
 		if (scopes.isEmpty()) {
@@ -446,7 +451,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			scopes = refreshTokenMetadata.getScopes();
 		} else if (!refreshTokenMetadata.getScopes().containsAll(scopes)) { // Ensure the requested scopes are a subset of previously authorized scopes and claims
 			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
-			throw new IllegalArgumentException("invalid_scope");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_scope);
 		}
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
