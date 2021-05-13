@@ -15,6 +15,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class UsersEntityAccessInfo {
 
 	Long entityId;
+	Long benefactorId;
 	AuthorizationStatus authroizationStatus;
 	UsersRestrictionStatus accessRestrictions;
 	
@@ -26,6 +27,7 @@ public class UsersEntityAccessInfo {
 		ValidateArgument.required(context.getPermissionsState().getEntityId(),"context.getPermissionState.entityId");
 		ValidateArgument.required(status, "AuthorizationStatus");
 		this.entityId = context.getPermissionsState().getEntityId();
+		this.benefactorId = context.getPermissionsState().getBenefactorId();
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authroizationStatus = status;
 	}
@@ -75,6 +77,21 @@ public class UsersEntityAccessInfo {
 		return this;
 	}
 
+
+	/**
+	 * @return the benefactorId
+	 */
+	public Long getBenefactorId() {
+		return benefactorId;
+	}
+
+	/**
+	 * @param benefactorId the benefactorId to set
+	 */
+	public UsersEntityAccessInfo setBenefactorId(Long benefactorId) {
+		this.benefactorId = benefactorId;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {

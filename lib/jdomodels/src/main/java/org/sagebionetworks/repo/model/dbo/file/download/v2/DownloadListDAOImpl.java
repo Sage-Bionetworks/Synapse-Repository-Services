@@ -29,9 +29,13 @@ import java.util.stream.IntStream;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.model.download.Action;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -63,6 +67,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	
 	public static final String DOWNLOAD_LIST_STATISTICS_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/DownloadListStatistics.sql");
+	
+	public static final String TEMP_ACTION_REQUIRED_TEMPLATE = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/TempActionRequired-ddl.sql");
 
 	private static final int BATCH_SIZE = 10000;
 
@@ -102,6 +109,24 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		stats.setNumberOfFilesRequiringAction(
 				stats.getTotalNumberOfFiles() - stats.getNumberOfFilesAvailableForDownload());
 		return stats;
+	};
+	
+	private static final RowMapper<ActionRequiredCount> ACTION_MAPPER = (ResultSet rs, int rowNum) -> {
+		ActionType type = ActionType.valueOf(rs.getString("ACTION_TYPE"));
+		Long actionId = rs.getLong("ACTION_ID");
+		Long count = rs.getLong("COUNT");
+		Action action = null;
+		switch (type) {
+		case ACCESS_REQUIREMENT:
+			action = new MeetAccessRequirement().setAccessRequirementId(actionId);
+			break;
+		case DOWNLOAD_PERMISSION:
+			action = new RequestDownload().setBenefactorId(actionId);
+			break;
+		default:
+			throw new IllegalStateException("Unknown type: " + type.name());
+		}
+		return new ActionRequiredCount().setNumberOfFilesRequiringAction(count).setAction(action);
 	};
 
 	@WriteTransaction
@@ -388,11 +413,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		long limit = batchSize;
 		long offset = 0L;
 		do {
-			// Gather a single batch of distinct entity IDs from the user's download list
-			batch = jdbcTemplate.queryForList(
-					"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
-							+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
-					Long.class, userId, limit, offset);
+			batch = getBatchOfFileIdsFromUsersDownloadList(userId, limit, offset);
 			offset += limit;
 			if (batch.isEmpty()) {
 				break;
@@ -406,6 +427,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return tableName;
 	}
 
+	
 	@WriteTransaction
 	@Override
 	public List<Long> getAvailableFilesFromDownloadList(EntityAccessCallback accessCallback, Long userId,
@@ -476,6 +498,101 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			return namedJdbcTemplate.queryForObject(sql, params,STATS_MAPPER);
+		} finally {
+			dropTemporaryTable(tempTableName);
+		}
+	}
+	
+	/**
+	 * Helper to add the given batch of entity IDs to a temporary table.
+	 * 
+	 * @param entityIdsToAdd
+	 * @param tableName
+	 */
+	void addBatchOfActionsToTempTable(FileActionRequired[] actions, String tableName) {
+		if (actions.length < 1) {
+			return;
+		}
+		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID) VALUES (?,?,?)", tableName);
+		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				FileActionRequired required = actions[i];
+				ps.setLong(1, required.getFileId());
+				RequiredAction action = required.getAction();
+				if(action instanceof MeetAccessRestriction) {
+					ps.setString(2, ActionType.ACCESS_REQUIREMENT.name());
+					ps.setLong(3, ((MeetAccessRestriction)action).getAccessRequirementId());
+				}else if(action instanceof RequestDownloadPermission) {
+					ps.setString(2, ActionType.DOWNLOAD_PERMISSION.name());
+					ps.setLong(3, ((RequestDownloadPermission)action).getBenefactorId());
+				}else {
+					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
+				}
+			}
+			@Override
+			public int getBatchSize() {
+				return actions.length;
+			}
+		});
+	}
+	
+	/**
+	 * Create a temporary table of all actions the user must
+	 * @param callback
+	 * @param userId
+	 * @param batchSize
+	 * @return
+	 */
+	String createTemporaryTableOfActionsRequired(EntityActionRequiredCallback callback, Long userId, int batchSize) {
+		String tableName = "U" + userId + "A";
+		String sql = String.format(TEMP_ACTION_REQUIRED_TEMPLATE,tableName);
+		jdbcTemplate.update(sql);
+
+		List<Long> batch = null;
+		long limit = batchSize;
+		long offset = 0L;
+		do {
+			batch = getBatchOfFileIdsFromUsersDownloadList(userId, limit, offset);
+			offset += limit;
+			if (batch.isEmpty()) {
+				break;
+			}
+			// Determine the sub-set that the user can actually download.
+			List<FileActionRequired> actions = callback.filter(batch);
+			// Add the sub-set to the temporary table.
+			addBatchOfActionsToTempTable(actions.toArray(new FileActionRequired[actions.size()]), tableName);
+		} while (batch.size() == batchSize);
+
+		return tableName;
+	}
+
+	/**
+	 * Get a batch of file IDs from the user's download list.
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<Long> getBatchOfFileIdsFromUsersDownloadList(Long userId, long limit, long offset) {
+		// Gather a single batch of distinct entity IDs from the user's download list
+		return jdbcTemplate.queryForList(
+				"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
+						+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
+				Long.class, userId, limit, offset);
+	}
+
+	@WriteTransaction
+	@Override
+	public List<ActionRequiredCount> getActionsRequiredFromDownloadList(EntityActionRequiredCallback callback,
+			Long userId, Long limit, Long offset) {
+		/*
+		 * Build a temp table of all actions the user must take to gain access to files on their download list.
+		 */
+		String tempTableName = createTemporaryTableOfActionsRequired(callback, userId, BATCH_SIZE);
+		try {
+			String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM %s ORDER BY COUNT DESC", tempTableName);
+			return jdbcTemplate.query(sql, ACTION_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
 		}

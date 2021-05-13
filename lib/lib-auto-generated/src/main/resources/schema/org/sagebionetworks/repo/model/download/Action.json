@@ -1,0 +1,9 @@
+{
+	"description": "An action that the user must take in order to download a file.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string"
+		}
+	}
+}
