@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -81,7 +81,6 @@ import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
