@@ -179,6 +179,12 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Captor
 	private ArgumentCaptor<OIDCClaimName> oidcClaimNameCaptor;
 	
+	@Captor
+	private ArgumentCaptor<String> authorizationCodeCaptor;
+	
+	@Captor
+	private ArgumentCaptor<OIDCAuthorizationRequest> authorizationRequestCaptor;
+	
 	private UserInfo userInfo;
 	private UserInfo anonymousUserInfo;
 	private Date now;
@@ -512,33 +518,31 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeClient() throws Exception {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.now()).thenReturn(new Date());
-
+		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 		assertNotNull(code);
-		String decrypted = mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
 		
-		OIDCAuthorizationRequest authRequestFromCode = new OIDCAuthorizationRequest();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(decrypted);
-		authRequestFromCode.initializeFromJSONObject(adapter);
+		verify(mockOauthDao).createAuthorizationCode(authorizationCodeCaptor.capture(), authorizationRequestCaptor.capture());
+		assertEquals(code, authorizationCodeCaptor.getValue());
+				
+		OIDCAuthorizationRequest captiuredAuthRequest = authorizationRequestCaptor.getValue();
 		
 		// make sure authorizedAt was set
-		assertNotNull(authRequestFromCode.getAuthorizedAt());
+		assertNotNull(captiuredAuthRequest.getAuthorizedAt());
 		
-		// if we update the original request with the fields set by the server, it should match the retrieved value
+		// if we update the original request with the fields set by the server, it should match the captured value
 		authorizationRequest.setUserId(USER_ID);
-		authorizationRequest.setAuthorizedAt(authRequestFromCode.getAuthorizedAt());
+		authorizationRequest.setAuthorizedAt(captiuredAuthRequest.getAuthorizedAt());
 		authorizationRequest.setAuthenticatedAt(now);
-		assertEquals(authorizationRequest, authRequestFromCode);
+		assertEquals(authorizationRequest, captiuredAuthRequest);
 	}
 
 	@Test
@@ -666,10 +670,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode() {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
@@ -681,6 +683,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		boolean includeUserInfo = true;
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
+		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
@@ -706,6 +709,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 
+		verify(mockOauthDao).redeemAuthorizationCode(authorizationCodeCaptor.capture());
+		assertEquals(code, authorizationCodeCaptor.getValue());
+		
 		// verifying the mock token indirectly verifies all param's were correctly passed to oidcTokenHelper.createOIDCIdToken()
 		assertEquals(expectedIdToken, tokenResponse.getId_token());
 		// just spot check a few fields to make sure everything's wired up
@@ -730,10 +736,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode_noRefreshToken() {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
@@ -747,6 +751,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
 		// Remove the offline_access scope, which will prevent a refresh token from being issued
 		authorizationRequest.setScope(OAuthScope.openid.name());
+
+		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
@@ -764,6 +770,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		
+		verify(mockOauthDao).redeemAuthorizationCode(authorizationCodeCaptor.capture());
+		assertEquals(code, authorizationCodeCaptor.getValue());
 		
 		// verifying the mock token indirectly verifies all param's were correctly passed to oidcTokenHelper.createOIDCIdToken()
 		assertEquals(expectedIdToken, tokenResponse.getId_token());
@@ -796,38 +805,28 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode_invalidAuthCode() {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
-		String incorrectlyEncryptedCode = "some invalid code";
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(incorrectlyEncryptedCode)).thenThrow(new RuntimeException());
+		String invalidAuthCode = "some invalid code";
+		
+		when(mockOauthDao.redeemAuthorizationCode(invalidAuthCode)).thenThrow(new NotFoundException());
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
-			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(incorrectlyEncryptedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(invalidAuthCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		});
 		assertEquals(OAuthErrorCode.invalid_grant, ex.getError());
-		assertEquals("invalid_grant Invalid authorization code: some invalid code", ex.getMessage());
-
-		// this code is not a valid AuthorizationRequest object
-		String invalidAuthorizationObjectCode = "not correctly serialized json";
-
-		assertThrows(IllegalStateException.class, () -> {
-			// method under test
-			openIDConnectManagerImpl.generateTokenResponseWithAuthorizationCode(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
-		});
 	}
 
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode_expiredAuthCode() throws Exception {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		// let's doctor the authorization time stamp to be long ago
 		when(mockClock.now()).thenReturn(new Date(System.currentTimeMillis()-100000L));
 		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		
@@ -846,15 +845,14 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode_mismatchRedirectURI() {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 
@@ -868,9 +866,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetTokenResponseWithAuthorizationCode_noOpenIdScope() {
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(now);
@@ -879,6 +875,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null); // omit the 'openid' scope.  This should suppress the idToken
+		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
