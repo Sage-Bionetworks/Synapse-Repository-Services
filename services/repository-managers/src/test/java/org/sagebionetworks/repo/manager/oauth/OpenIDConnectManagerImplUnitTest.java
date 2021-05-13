@@ -533,16 +533,16 @@ public class OpenIDConnectManagerImplUnitTest {
 		verify(mockOauthDao).createAuthorizationCode(authorizationCodeCaptor.capture(), authorizationRequestCaptor.capture());
 		assertEquals(code, authorizationCodeCaptor.getValue());
 				
-		OIDCAuthorizationRequest captiuredAuthRequest = authorizationRequestCaptor.getValue();
+		OIDCAuthorizationRequest capturedAuthRequest = authorizationRequestCaptor.getValue();
 		
 		// make sure authorizedAt was set
-		assertNotNull(captiuredAuthRequest.getAuthorizedAt());
+		assertNotNull(capturedAuthRequest.getAuthorizedAt());
 		
 		// if we update the original request with the fields set by the server, it should match the captured value
 		authorizationRequest.setUserId(USER_ID);
-		authorizationRequest.setAuthorizedAt(captiuredAuthRequest.getAuthorizedAt());
+		authorizationRequest.setAuthorizedAt(capturedAuthRequest.getAuthorizedAt());
 		authorizationRequest.setAuthenticatedAt(now);
-		assertEquals(authorizationRequest, captiuredAuthRequest);
+		assertEquals(authorizationRequest, capturedAuthRequest);
 	}
 
 	@Test

@@ -784,7 +784,7 @@ public class SqlConstants {
 	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
-	
+
 	// AuthenticatedOn
 	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";
 	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
@@ -1067,8 +1067,8 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"IS_VERIFIED";
 
 	
-	public static final String DDL_OAUTH_AUTHORIZATION_CODE = 							"schema/OAuthClient-ddl.sql";
-	public static final String TABLE_OAUTH_AUTHORIZATION_CODE = 						"OAUTH_CLIENT";
+	public static final String DDL_OAUTH_AUTHORIZATION_CODE = 							"schema/OAuthAuthorizationCode-ddl.sql";
+	public static final String TABLE_OAUTH_AUTHORIZATION_CODE = 						"OAUTH_AUTHORIZATION_CODE";
 	public static final String COL_OAUTH_AUTHORIZATION_CODE_CODE = 						"AUTH_CODE";
 	public static final String COL_OAUTH_AUTHORIZATION_CODE_REQUEST = 					"AUTHORIZATION_REQUEST";	
 

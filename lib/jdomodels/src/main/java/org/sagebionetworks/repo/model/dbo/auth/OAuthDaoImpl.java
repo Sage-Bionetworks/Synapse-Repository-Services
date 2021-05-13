@@ -114,7 +114,7 @@ public class OAuthDaoImpl implements OAuthDao {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-		basicDao.createOrUpdate(dbo);
+		basicDao.createNew(dbo);
 		return;
 	}
 
@@ -122,7 +122,7 @@ public class OAuthDaoImpl implements OAuthDao {
 	@Override
 	public OIDCAuthorizationRequest redeemAuthorizationCode(String authorizationCode) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_OAUTH_AUTHORIZATION_CODE_CODE.toLowerCase(), authorizationCode);
+		param.addValue("authCode", authorizationCode);
 		DBOAuthorizationCode dbo = basicDao.getObjectByPrimaryKey(DBOAuthorizationCode.class, param);
 		OIDCAuthorizationRequest result = null;
 		try {
