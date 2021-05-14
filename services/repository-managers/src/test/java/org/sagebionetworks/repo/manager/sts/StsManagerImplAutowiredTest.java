@@ -73,6 +73,8 @@ public class StsManagerImplAutowiredTest {
 	private static final StackConfiguration CONFIG = StackConfigurationSingleton.singleton();
 	private static final String EXTERNAL_S3_BUCKET = CONFIG.getExternalS3TestBucketName();
 	private static final String SYNAPSE_BUCKET = CONFIG.getS3Bucket();
+	// Note: Bucket managed by Sage IT, a bucket owned by an
+	// account different to that of the account uploading via STS, see PLFM-6679
 	private static final String STS_TEST_EXTERNAL_S3_BUCKET = "dev.sts-test.sagebase.org";
 
 	@Autowired
@@ -309,6 +311,7 @@ public class StsManagerImplAutowiredTest {
 	
 	@Test
 	public void testSTSWithBucketOwnerFullControlCannedACL() throws Exception {
+		// Relevant to PLFM-6679
 		// Only run this test if the STS Arn is set up.
 		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
 		
@@ -363,6 +366,7 @@ public class StsManagerImplAutowiredTest {
 	
 	@Test
 	public void testSTSWithNoCannedACL() throws Exception {
+		// Relevant to PLFM-6679
 		// Only run this test if the STS Arn is set up.
 		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
 
@@ -398,6 +402,7 @@ public class StsManagerImplAutowiredTest {
 	
 	@Test
 	public void testSTSWithInvalidCannedACL() throws Exception {
+		// Relevant to PLFM-6679
 		// Only run this test if the STS Arn is set up.
 		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
 
