@@ -27,20 +27,6 @@
 			]
 		},
 		{
-			"Sid": "PutObject",
-			"Effect": "Deny",
-			"Action": ["s3:PutObject"],
-			"Resource": [
-				"arn:aws:s3:::${bucketWithFolder}",
-				"arn:aws:s3:::${bucketWithFolder}/*"
-			]
-			 ,"Condition": {
-                "StringNotEquals": {
-                   "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-            }
-		},
-		{
 			"Sid": "DenyOwnerTxt",
 			"Effect": "Deny",
 			"Action": ["*"],
