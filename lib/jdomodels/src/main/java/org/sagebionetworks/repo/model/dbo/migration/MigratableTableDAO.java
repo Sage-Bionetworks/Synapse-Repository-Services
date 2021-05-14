@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
+import org.sagebionetworks.repo.model.migration.TypeData;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -126,7 +127,7 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @param minimumId inclusive
 	 * @param maximumId exclusive
 	 */
-	public int deleteByRange(MigrationType type, long minimumId, long maximumId);
+	public int deleteByRange(TypeData type, long minimumId, long maximumId);
 
 	/**
 	 * Calculate the ID ranges with the optimal number of rows for the given type.
@@ -151,5 +152,12 @@ public interface MigratableTableDAO extends MigrationTypeProvider {
 	 * @return
 	 */
 	public List<RangeChecksum> calculateBatchChecksums(BatchChecksumRequest request);
+	
+	/**
+	 * Get the type data for the given migration type.
+	 * @param type
+	 * @return
+	 */
+	public TypeData getTypeData(MigrationType type);
 
 }
