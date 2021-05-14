@@ -1604,7 +1604,13 @@ public class TableViewIntegrationTest {
 		
 		//HAS "val1" or "val3" should also cover both values
 		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1', 'val3')", 2);
-
+		
+		//HAS_LIKE "Val%" should cover both
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS_LIKE ('Val%')", 2);
+		
+		//HAS_LIKE "Val3" should cover only the second one
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS_LIKE ('Val3')", 1);
+		
 		//modify annotation values by using updates to table view
 		QueryResultBundle results = waitForRowCount(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
 
@@ -1620,6 +1626,8 @@ public class TableViewIntegrationTest {
 
 		//check view is updated
 		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('newVal1', 'newVal6')", 2);
+		
+		waitForRowCount(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS_LIKE ('new%2', 'NEWVAL5')", 2);
 		
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());

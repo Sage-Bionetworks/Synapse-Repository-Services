@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_SCOPE_HASH;
@@ -24,8 +25,10 @@ import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
@@ -162,6 +165,28 @@ class OAuthDaoImplTest {
 		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
 		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON));
 
+	}
+	
+	@Test
+	public void testAuthorizatioonCodeRoundTrip() {
+		String authorizationCode = UUID.randomUUID().toString();
+		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
+		authorizationRequest.setClientId("101");
+		authorizationRequest.setUserId("999");
+		authorizationRequest.setAuthenticatedAt(new Date());
+		
+		// method under test
+		oauthDao.createAuthorizationCode(authorizationCode, authorizationRequest);
+		
+		// method under test
+		OIDCAuthorizationRequest retrieved = oauthDao.redeemAuthorizationCode(authorizationCode);
+		
+		assertEquals(authorizationRequest, retrieved);
+		
+		// method under test (can't redeem an auth code twice)
+		assertThrows(NotFoundException.class, () -> {
+			oauthDao.redeemAuthorizationCode(authorizationCode);
+		});
 	}
 
 }

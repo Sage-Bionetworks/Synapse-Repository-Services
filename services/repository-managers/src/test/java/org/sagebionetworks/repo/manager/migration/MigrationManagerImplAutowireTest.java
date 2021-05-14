@@ -19,24 +19,28 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.UserGroupDoaObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
@@ -56,10 +60,10 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -78,42 +82,30 @@ public class MigrationManagerImplAutowireTest {
 	
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;
+
+	@Autowired
+	private TableEntityManager tableEntityManager;
+
+	@Autowired
+	private EntityManager entityManager;
+
+	@Autowired
+	private ColumnModelManager columnManager;
 	
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	private StackStatusDao stackStatusDao;
 
 	@Autowired
-	TableEntityManager tableEntityManager;
+	private IdGenerator idGenerator;
 	
 	@Autowired
-	TableManagerSupport tableManagerSupport;
-
-	@Autowired
-	EntityManager entityManager;
-
-	@Autowired
-	ColumnModelManager columnManager;
-
-	@Autowired
-	ConnectionFactory connectionFactory;
-
-	@Autowired
-	ProjectSettingsManager projectSettingsManager;
-
-	@Autowired
-	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
-	@Autowired
-	FileHandleManager fileHandleManager;
+	private TableTransactionDao tableTransactionDao;
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
-
-	@Autowired
-	IdGenerator idGenerator;
+	private UserGroupDoaObjectHelper userGroupHelper;
 	
 	@Autowired
-	TableTransactionDao tableTransactionDao;
+	private DBOBasicDao basicDao;
 
 	private List<String> toDelete;
 	private UserInfo adminUser;
@@ -442,6 +434,66 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(new Long(projects.size()*2), restoreReponse.getRestoredRowCount());
 		// validate all of the data was restored.
 		validateProjectsRestored();
+	}
+	
+	/**
+	 * This
+	 * @throws Exception 
+	 */
+	@TemporaryCode(author="jhill",comment="To be removed after all of userGroup secondary types are converted to primary types.")
+	@Test
+	public void testUserGroupRemoveSecondarySetup() throws Exception {
+		
+		UserGroup userGroup = userGroupHelper.create((c)->{});
+		long principalId = Long.parseLong(userGroup.getId());
+		
+		DBOCredential cred = new DBOCredential();
+		cred.setPrincipalId(principalId);
+		cred.setSecretKey(HMACUtils.newHMACSHA1Key());
+		basicDao.createNew(cred);
+		
+		DBOGroupMembers member = new DBOGroupMembers();
+		member.setGroupId(principalId);
+		member.setMemberId(principalId);
+		basicDao.createNew(member);
+		
+		DBOSessionToken token = new DBOSessionToken();
+		token.setPrincipalId(principalId);
+		token.setSessionToken(UUID.randomUUID().toString());
+		basicDao.createNew(token);
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setAgreesToTermsOfUse(true);
+		tou.setPrincipalId(principalId);
+		basicDao.createNew(tou);
+		
+		MigrationType type =  MigrationType.PRINCIPAL;
+		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
+		long batchSize = 2;
+		long minId = principalId;
+		long maxId = principalId;
+		
+		BackupTypeRangeRequest request = new BackupTypeRangeRequest();
+		request.setMigrationType(type);
+		request.setAliasType(backupType);
+		request.setBatchSize(batchSize);
+		request.setMinimumId(minId);
+		request.setMaximumId(maxId);
+		// call under test
+		BackupTypeResponse backupResponse = migrationManager.backupRequest(adminUser, request);
+
+		// restore the data from the backup
+		RestoreTypeRequest restoreRequest = new RestoreTypeRequest();
+		restoreRequest.setMigrationType(type);
+		restoreRequest.setAliasType(backupType);
+		restoreRequest.setBatchSize(batchSize);
+		restoreRequest.setBackupFileKey(backupResponse.getBackupFileKey());
+		restoreRequest.setMaximumRowId(principalId);
+		restoreRequest.setMinimumRowId(principalId);
+		
+		// call under test
+		RestoreTypeResponse restoreReponse = migrationManager.restoreRequest(adminUser, restoreRequest);
+		assertNotNull(restoreReponse);
 	}
 	
 	/**

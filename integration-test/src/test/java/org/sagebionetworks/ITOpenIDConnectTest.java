@@ -325,6 +325,10 @@ public class ITOpenIDConnectTest {
 		}
 
 		// we can also authorize the client using client_secret_post
+		
+		// first, get a new authorization code
+		oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		// now authorize the client
 		{
 			SimpleHttpRequest request = new SimpleHttpRequest();
 			request.setUri(config.getAuthenticationServicePublicEndpoint()+"/oauth2/token");

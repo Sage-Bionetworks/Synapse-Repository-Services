@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumReque
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupManifest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
@@ -226,7 +227,6 @@ public interface MigrationManager {
 	 * @param batchSize
 	 * @return
 	 */
-	RestoreTypeResponse restoreStream(InputStream input, MigrationType primaryType, BackupAliasType backupAliasType,
-			long batchSize);
+	RestoreTypeResponse restoreStream(InputStream input, BackupManifest manifest);
 
 }

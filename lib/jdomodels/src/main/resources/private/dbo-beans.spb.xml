@@ -150,6 +150,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationCode" />
 				<!-- Statistics -->
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyProjectFiles" />

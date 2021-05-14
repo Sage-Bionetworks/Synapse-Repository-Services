@@ -1066,6 +1066,12 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"IS_VERIFIED";
 
+	
+	public static final String DDL_OAUTH_AUTHORIZATION_CODE = 							"schema/OAuthAuthorizationCode-ddl.sql";
+	public static final String TABLE_OAUTH_AUTHORIZATION_CODE = 						"OAUTH_AUTHORIZATION_CODE";
+	public static final String COL_OAUTH_AUTHORIZATION_CODE_CODE = 						"AUTH_CODE";
+	public static final String COL_OAUTH_AUTHORIZATION_CODE_REQUEST = 					"AUTHORIZATION_REQUEST";	
+
 	public static final String DDL_AUTHORIZATION_CONSENT = 								"schema/AuthorizationConsent-ddl.sql";
 	public static final String TABLE_AUTHORIZATION_CONSENT = 							"AUTHORIZATION_CONSENT";
 	public static final String COL_AUTHORIZATION_CONSENT_ID = 							"ID";
