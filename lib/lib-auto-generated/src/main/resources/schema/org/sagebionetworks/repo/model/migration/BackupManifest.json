@@ -1,14 +1,29 @@
 {
 	"description": "Manifest of all metadata associated with a single backup file",
 	"properties": {
-		"originalRequest": {
-			"$ref": "org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest"
+		"primaryType": {
+			"$ref": "org.sagebionetworks.repo.model.migration.TypeData"
+		},
+		"aliasType": {
+			"$ref": "org.sagebionetworks.repo.model.daemon.BackupAliasType"
+		},
+		"batchSize": {
+			"description": "The batch size determines the maximum number of rows that will be loaded into memory at one time.",
+			"type": "integer"
+		},
+		"minimumId": {
+			"type": "integer",
+			"description": "The first ID in the range of IDs (inclusive)"
+		},
+		"maximumId": {
+			"type": "integer",
+			"description": "The last ID in the range of IDs (inclusive)"
 		},
 		"secondaryTypes": {
 			"description": "The secondary types according to the source of the backup.",
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+				"$ref": "org.sagebionetworks.repo.model.migration.TypeData"
 			}
 		}
 	}

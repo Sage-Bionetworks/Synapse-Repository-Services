@@ -1,0 +1,12 @@
+{
+	"description": "Data about a migration type according to the migration source.",
+	"properties": {
+		"migrationType": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		},
+		"backupIdColumnName": {
+			"description": "The database column name of the backupId for this type.",
+			"type": "string"
+		}
+	}
+}

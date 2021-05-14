@@ -15,7 +15,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -71,8 +71,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
+import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 
@@ -140,6 +140,8 @@ public class MigrationManagerImplTest {
 	List<IdRange> ranges;
 	String backupKey;
 	BackupManifest manifest;
+	TypeData nodeTypeData;
+	TypeData revisionTypeData;
 	
 	@BeforeEach
 	public void before() throws IOException{
@@ -216,11 +218,11 @@ public class MigrationManagerImplTest {
 		
 		backupKey = "backupkey";
 		
-		manifest = new BackupManifest()
-				.setOriginalRequest(
-						new BackupTypeRangeRequest().setBatchSize(batchSize).setMigrationType(MigrationType.NODE)
-								.setAliasType(backupAlias).setMaximumId(100L).setMinimumId(10L))
-				.setSecondaryTypes(Arrays.asList(MigrationType.NODE_REVISION));
+		nodeTypeData = new TypeData().setMigrationType(MigrationType.NODE).setBackupIdColumnName("ID");
+		revisionTypeData = new TypeData().setMigrationType(MigrationType.NODE_REVISION).setBackupIdColumnName("OWNER_NODE_ID");
+		
+		manifest = new BackupManifest().setBatchSize(batchSize).setPrimaryType(nodeTypeData).setAliasType(backupAlias)
+				.setMaximumId(100L).setMinimumId(10L).setSecondaryTypes(Arrays.asList(revisionTypeData));
 	}
 	
 	@Test
@@ -539,16 +541,16 @@ public class MigrationManagerImplTest {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
 		
 		batchSize = 1000L;
-		manifest.getOriginalRequest().setBatchSize(batchSize);
+		manifest.setBatchSize(batchSize);
 		
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
 		assertNotNull(response);
 		
-		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, manifest.getOriginalRequest().getMinimumId(),
-				manifest.getOriginalRequest().getMaximumId());
-		verify(mockDao).deleteByRange(MigrationType.NODE, manifest.getOriginalRequest().getMinimumId(),
-				manifest.getOriginalRequest().getMaximumId());
+		verify(mockDao).deleteByRange(nodeTypeData, manifest.getMinimumId(),
+				manifest.getMaximumId());
+		verify(mockDao).deleteByRange(revisionTypeData, manifest.getMinimumId(),
+				manifest.getMaximumId());
 		
 		// count should match 
 		assertEquals(new Long(allObjects.size()), response.getRestoredRowCount());
@@ -569,17 +571,17 @@ public class MigrationManagerImplTest {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
 		
-		manifest.getOriginalRequest().setBatchSize(1L);
+		manifest.setBatchSize(1L);
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
 		assertNotNull(response);
 		// count should match 
 		assertEquals(new Long(allObjects.size()), response.getRestoredRowCount());
 		
-		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, manifest.getOriginalRequest().getMinimumId(),
-				manifest.getOriginalRequest().getMaximumId());
-		verify(mockDao).deleteByRange(MigrationType.NODE, manifest.getOriginalRequest().getMinimumId(),
-				manifest.getOriginalRequest().getMaximumId());
+		verify(mockDao).deleteByRange(revisionTypeData, manifest.getMinimumId(),
+				manifest.getMaximumId());
+		verify(mockDao).deleteByRange(nodeTypeData, manifest.getMinimumId(),
+				manifest.getMaximumId());
 		
 		verify(mockDao, times(4)).createOrUpdate(any(MigrationType.class), anyList());
 		// each row should be its own batch
@@ -595,7 +597,7 @@ public class MigrationManagerImplTest {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
 		
-		manifest.getOriginalRequest().setMaximumId(null);
+		manifest.setMaximumId(null);
 		
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
@@ -618,7 +620,7 @@ public class MigrationManagerImplTest {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
 		
-		manifest.getOriginalRequest().setMinimumId(null);
+		manifest.setMinimumId(null);
 		
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
@@ -662,8 +664,8 @@ public class MigrationManagerImplTest {
 		// count should match 
 		assertEquals(new Long(nodeStream.size()), response.getRestoredRowCount());
 		
-		verify(mockDao).deleteByRange(MigrationType.NODE, manifest.getOriginalRequest().getMinimumId(), manifest.getOriginalRequest().getMaximumId());
-		verify(mockDao, never()).deleteByRange(eq(MigrationType.NODE_REVISION), anyLong(), anyLong());
+		verify(mockDao).deleteByRange(nodeTypeData, manifest.getMinimumId(), manifest.getMaximumId());
+		verify(mockDao, never()).deleteByRange(eq(revisionTypeData), anyLong(), anyLong());
 
 		verify(mockDao, times(1)).createOrUpdate(any(MigrationType.class), anyList());
 		// primary should be added but not secondary.
@@ -680,16 +682,18 @@ public class MigrationManagerImplTest {
 	public void testGetManifestWithNoS3Manifest() {
 		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
 		when(mockS3Client.doesObjectExist(any(), any())).thenReturn(false);
+		when(mockDao.getTypeData(MigrationType.NODE)).thenReturn(nodeTypeData);
+		when(mockDao.getTypeData(MigrationType.NODE_REVISION)).thenReturn(revisionTypeData);
+		
 		String manifestKey = MigrationManagerImpl.createManifestKey(restoreTypeRequest.getBackupFileKey());
 		// Call under test
 		BackupManifest manifest = manager.getManifest(restoreTypeRequest);
 
-		BackupManifest expected = new BackupManifest()
-				.setOriginalRequest(new BackupTypeRangeRequest().setMigrationType(restoreTypeRequest.getMigrationType())
+		BackupManifest expected = new BackupManifest().setPrimaryType(nodeTypeData)
 						.setAliasType(restoreTypeRequest.getAliasType()).setBatchSize(restoreTypeRequest.getBatchSize())
 						.setMaximumId(restoreTypeRequest.getMaximumRowId())
-						.setMinimumId(restoreTypeRequest.getMinimumRowId()))
-				.setSecondaryTypes(Arrays.asList(MigrationType.NODE_REVISION));
+						.setMinimumId(restoreTypeRequest.getMinimumRowId())
+				.setSecondaryTypes(Arrays.asList(revisionTypeData));
 		assertEquals(expected, manifest);
 		verify(mockDao).getObjectForType(MigrationType.NODE);
 		verify(mockS3Client).doesObjectExist(MigrationManagerImpl.backupBucket, manifestKey);
@@ -700,9 +704,8 @@ public class MigrationManagerImplTest {
 	public void testGetManifestWithS3Manifest() throws Exception {
 		when(mockS3Client.doesObjectExist(any(), any())).thenReturn(true);
 
-		BackupManifest s3Manifest = new BackupManifest().setOriginalRequest(
-				new BackupTypeRangeRequest().setMigrationType(MigrationType.NODE).setMinimumId(1L).setMaximumId(14L))
-				.setSecondaryTypes(Arrays.asList(MigrationType.NODE_REVISION));
+		BackupManifest s3Manifest = new BackupManifest().setPrimaryType(nodeTypeData).setMinimumId(1L).setMaximumId(14L)
+				.setSecondaryTypes(Arrays.asList(revisionTypeData));
 
 		S3Object mockS3Object = Mockito.mock(S3Object.class);
 		S3ObjectInputStream objectStream = Mockito.spy(new S3ObjectInputStream(new ByteArrayInputStream(
@@ -731,6 +734,8 @@ public class MigrationManagerImplTest {
 		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.getTypeData(MigrationType.NODE)).thenReturn(nodeTypeData);
+		when(mockDao.getTypeData(MigrationType.NODE_REVISION)).thenReturn(revisionTypeData);
 		
 		restoreTypeRequest.setMaximumRowId(null);
 		restoreTypeRequest.setMinimumRowId(null);
@@ -749,7 +754,7 @@ public class MigrationManagerImplTest {
 		verify(mockFile).delete();
 		
 		// delete by range should not occur when the range is missing.
-		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
+		verify(mockDao, never()).deleteByRange(any(TypeData.class), anyLong(), anyLong());
 	}
 	
 	
@@ -761,6 +766,8 @@ public class MigrationManagerImplTest {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
 		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
 		when(mockDao.isMigrationTypeRegistered(any())).thenReturn(true);
+		when(mockDao.getTypeData(MigrationType.NODE)).thenReturn(nodeTypeData);
+		when(mockDao.getTypeData(MigrationType.NODE_REVISION)).thenReturn(revisionTypeData);
 		
 		long max = 99L;
 		long min = 3L;
@@ -779,9 +786,9 @@ public class MigrationManagerImplTest {
 		verify(mockFile).delete();
 		
 		// should delete the primary
-		verify(mockDao).deleteByRange(MigrationType.NODE, min, max);
+		verify(mockDao).deleteByRange(nodeTypeData, min, max);
 		// should delete the secondary
-		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, min, max);
+		verify(mockDao).deleteByRange(revisionTypeData, min, max);
 	}
 	
 	
@@ -874,15 +881,15 @@ public class MigrationManagerImplTest {
 		
 		long minimumId = 3L;
 		long maximumId = 45L;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		
 		// call under test
 		manager.deleteByRange(manifest);
 		// should delete the primary
-		verify(mockDao).deleteByRange(MigrationType.NODE, minimumId, maximumId);
+		verify(mockDao).deleteByRange(nodeTypeData, minimumId, maximumId);
 		// should delete the secondary
-		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, minimumId, maximumId);
+		verify(mockDao).deleteByRange(revisionTypeData, minimumId, maximumId);
 		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE);
 		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE_REVISION);
 	}
@@ -891,8 +898,8 @@ public class MigrationManagerImplTest {
 	public void testDeleteByRangeWitNullMax() throws IOException {
 		Long minimumId = 3L;
 		Long maximumId = null;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		
 		// call under test
 		manager.deleteByRange(manifest);
@@ -904,8 +911,8 @@ public class MigrationManagerImplTest {
 	public void testDeleteByRangeWitNullMin() throws IOException {
 		Long minimumId = null;
 		Long maximumId = 45L;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		
 		// call under test
 		manager.deleteByRange(manifest);
@@ -917,8 +924,8 @@ public class MigrationManagerImplTest {
 	public void testDeleteByRangeWitNullBoth() throws IOException {
 		Long minimumId = null;
 		Long maximumId = null;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		
 		// call under test
 		manager.deleteByRange(manifest);
@@ -930,15 +937,16 @@ public class MigrationManagerImplTest {
 	public void testDeleteByRangeWithNotRegisteredPrimary() {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(false);
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		
 		long minimumId = 3L;
 		long maximumId = 45L;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		// call under test
 		manager.deleteByRange(manifest);
-		verify(mockDao, never()).deleteByRange(eq(MigrationType.NODE), anyLong(), anyLong());
+		verify(mockDao, never()).deleteByRange(eq(nodeTypeData), anyLong(), anyLong());
 		// should delete the secondary
-		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, minimumId, maximumId);
+		verify(mockDao).deleteByRange(revisionTypeData, minimumId, maximumId);
 	}
 	
 	@Test
@@ -947,13 +955,13 @@ public class MigrationManagerImplTest {
 		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(false);
 		long minimumId = 3L;
 		long maximumId = 45L;
-		manifest.getOriginalRequest().setMinimumId(minimumId);
-		manifest.getOriginalRequest().setMaximumId(maximumId);
+		manifest.setMinimumId(minimumId);
+		manifest.setMaximumId(maximumId);
 		// call under test
 		manager.deleteByRange(manifest);
 		
-		verify(mockDao, never()).deleteByRange(eq(MigrationType.NODE_REVISION), anyLong(), anyLong());
-		verify(mockDao).deleteByRange(MigrationType.NODE, minimumId, maximumId);
+		verify(mockDao, never()).deleteByRange(eq(revisionTypeData), anyLong(), anyLong());
+		verify(mockDao).deleteByRange(nodeTypeData, minimumId, maximumId);
 	}
 	
 	@Test

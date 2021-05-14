@@ -234,7 +234,10 @@ public class DMLUtils {
 		StringBuilder main = new StringBuilder();
 		main.append("DELETE FROM ");
 		main.append(mapping.getTableName());
-		addBackupRange(main, mapping);
+		main.append(" WHERE `%s` BETWEEN :");
+		main.append(DMLUtils.BIND_MIN_ID);
+		main.append(" AND :");
+		main.append(DMLUtils.BIND_MAX_ID);
 		return main.toString();
 	}
 	
