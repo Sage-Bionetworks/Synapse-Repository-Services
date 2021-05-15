@@ -31,9 +31,12 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
@@ -1389,5 +1392,53 @@ public class DownloadListDaoImplTest {
 			assertNotNull(item.getAddedOn());
 		}
 	}
+	
+	@Test
+	public void testGetActionsRequiredFromDownloadList() {
+		int numberOfProject = 3;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(9, files.size());
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+		
+		MeetAccessRequirement restrictionOne = new MeetAccessRequirement().setAccessRequirementId(999L);
+		RequestDownload downloadOne = new RequestDownload().setBenefactorId(888L);
+		MeetAccessRequirement restrictionTwo = new MeetAccessRequirement().setAccessRequirementId(777L);
+		
+		List<FileActionRequired> actionsRequired = Arrays.asList(
+				new FileActionRequired().withFileId(fileIds.get(0)).withAction(restrictionOne),
+				new FileActionRequired().withFileId(fileIds.get(2)).withAction(downloadOne),
+				new FileActionRequired().withFileId(fileIds.get(3)).withAction(restrictionOne),
+				new FileActionRequired().withFileId(fileIds.get(5)).withAction(downloadOne),
+				new FileActionRequired().withFileId(fileIds.get(6)).withAction(downloadOne),
+				new FileActionRequired().withFileId(fileIds.get(8)).withAction(restrictionTwo)
+		);
+
+		List<DownloadListItem> items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+		
+		items = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null))
+				.collect(Collectors.toList());
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, items);
+		
+		long limit = 100L;
+		long offset = 0L;
+				
+		List<ActionRequiredCount> expected = Arrays.asList(
+				new ActionRequiredCount().setAction(downloadOne).setNumberOfFilesRequiringAction(6L),
+				new ActionRequiredCount().setAction(restrictionOne).setNumberOfFilesRequiringAction(4L),
+				new ActionRequiredCount().setAction(restrictionTwo).setNumberOfFilesRequiringAction(2L)
+		);
+		
+		// call under test
+		List<ActionRequiredCount> result = downloadListDao.getActionsRequiredFromDownloadList(l -> actionsRequired,
+				userOneIdLong, limit, offset);
+		assertEquals(expected, result);
+	}
+	
 
 }

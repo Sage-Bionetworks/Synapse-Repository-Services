@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.download.Action;
+
 /**
  * An action that the user must take to gain access to this file.
  *
@@ -9,7 +11,7 @@ import java.util.Objects;
 public class FileActionRequired {
 
 	private long fileId;
-	private RequiredAction action;
+	private Action action;
 	/**
 	 * @return the fileId
 	 */
@@ -26,13 +28,13 @@ public class FileActionRequired {
 	/**
 	 * @return the action
 	 */
-	public RequiredAction getAction() {
+	public Action getAction() {
 		return action;
 	}
 	/**
 	 * @param action the action to set
 	 */
-	public FileActionRequired withAction(RequiredAction action) {
+	public FileActionRequired withAction(Action action) {
 		this.action = action;
 		return this;
 	}

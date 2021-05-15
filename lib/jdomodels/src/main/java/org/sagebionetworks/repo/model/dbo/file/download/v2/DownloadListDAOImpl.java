@@ -68,6 +68,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public static final String DOWNLOAD_LIST_STATISTICS_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/DownloadListStatistics.sql");
 	
+	public static final String DOWNLOAD_LIST_ACTION_REQUIRED_TEMPLATE = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/DownloadListActionRequired.sql");
+	
 	public static final String TEMP_ACTION_REQUIRED_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/TempActionRequired-ddl.sql");
 
@@ -519,13 +522,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				FileActionRequired required = actions[i];
 				ps.setLong(1, required.getFileId());
-				RequiredAction action = required.getAction();
-				if(action instanceof MeetAccessRestriction) {
+				Action action = required.getAction();
+				if(action instanceof MeetAccessRequirement) {
 					ps.setString(2, ActionType.ACCESS_REQUIREMENT.name());
-					ps.setLong(3, ((MeetAccessRestriction)action).getAccessRequirementId());
-				}else if(action instanceof RequestDownloadPermission) {
+					ps.setLong(3, ((MeetAccessRequirement)action).getAccessRequirementId());
+				}else if(action instanceof RequestDownload) {
 					ps.setString(2, ActionType.DOWNLOAD_PERMISSION.name());
-					ps.setLong(3, ((RequestDownloadPermission)action).getBenefactorId());
+					ps.setLong(3, ((RequestDownload)action).getBenefactorId());
 				}else {
 					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
 				}
@@ -591,8 +594,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		 */
 		String tempTableName = createTemporaryTableOfActionsRequired(callback, userId, BATCH_SIZE);
 		try {
-			String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM %s ORDER BY COUNT DESC", tempTableName);
-			return jdbcTemplate.query(sql, ACTION_MAPPER);
+			String sql = String.format(DOWNLOAD_LIST_ACTION_REQUIRED_TEMPLATE, tempTableName);
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("principalId", userId);
+			params.addValue("limit", limit);
+			params.addValue("offset", offset);
+			return namedJdbcTemplate.query(sql, params, ACTION_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
 		}
