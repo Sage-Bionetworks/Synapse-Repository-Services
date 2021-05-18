@@ -649,6 +649,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			Long rootId = getRootWiki(key.getOwnerObjectId(), key.getOwnerObjectType());
 			// Delete the wiki using both the root and the id 
 			jdbcTemplate.update(SQL_DELETE_USING_ID_AND_ROOT, new Long(key.getWikiPageId()), rootId);
+			
+			// Send the delete message
+			transactionalMessenger.sendMessageAfterCommit(new MessageToSend().
+					withChangeType(ChangeType.DELETE).withObjectId(key.getWikiPageId()).withObjectType(ObjectType.WIKI));
 		}catch(NotFoundException e){
 			// Nothing to do if the wiki does not exist.
 		}
