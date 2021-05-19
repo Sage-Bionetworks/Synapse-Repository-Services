@@ -6,13 +6,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -55,6 +55,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
+
+	@Autowired
+	private TrashManager trashManager;
 	
 	private static final Map<Class<? extends ProjectSetting>, ProjectSettingsType> TYPE_MAP = ImmutableMap.of(
 		UploadDestinationListSetting.class, ProjectSettingsType.upload
@@ -147,6 +150,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		validateProjectSetting(projectSetting, userInfo);
 
+		// Can't add an StsStorageLocation to a non-empty entity.
+		if (!isEntityEmptyWithTrash(parentId) && isStsStorageLocationSetting(projectSetting)) {
+			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
+		}
+
 		String id = projectSettingsDao.create(projectSetting);
 		return projectSettingsDao.get(id);
 	}
@@ -166,6 +174,18 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		
 		validateProjectSetting(projectSetting, userInfo);
 
+		// Can't add or modify an StsStorageLocation on a non-empty entity.
+		if (!isEntityEmptyWithTrash(projectSetting.getProjectId())) {
+			if (isStsStorageLocationSetting(projectSetting)) {
+				throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
+			}
+
+			ProjectSetting oldSetting = projectSettingsDao.get(projectSetting.getId());
+			if (isStsStorageLocationSetting(oldSetting)) {
+				throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
+			}
+		}
+
 		projectSettingsDao.update(projectSetting);
 	}
 
@@ -180,7 +200,18 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		
+		// Can't delete an StsStorageLocation on a non-empty entity.
+		if (!isEntityEmptyWithTrash(projectSetting.getProjectId()) &&
+				isStsStorageLocationSetting(projectSetting)) {
+			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
+		}
+
 		projectSettingsDao.delete(id);
+	}
+
+	// Helper method to check that the given entity has no children (either in the node hierarchy or in the trash can).
+	boolean isEntityEmptyWithTrash(String entityId) {
+		return !nodeManager.doesNodeHaveChildren(entityId) && !trashManager.doesEntityHaveTrashedChildren(entityId);
 	}
 
 	@Override

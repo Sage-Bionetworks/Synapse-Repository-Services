@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -56,6 +57,7 @@ import com.google.common.collect.Lists;
 public class ProjectSettingsManagerImplUnitTest {
 	private UserInfo userInfo;
 
+	private static final long OLD_STORAGE_LOCATION_ID = 2;
 	private static final long PARENT_STORAGE_LOCATION_ID = 3;
 	private static final String PROJECT_ID = "3523";
 	private static final String PROJECT_SETTINGS_ID = "21521";
@@ -89,6 +91,9 @@ public class ProjectSettingsManagerImplUnitTest {
 	
 	@Mock
 	private StorageLocationProcessor<? extends StorageLocationSetting> mockStorageLocationProcessor;
+
+	@Mock
+	private TrashManager mockTrashManager;
 
 	@InjectMocks
 	@Spy
@@ -216,6 +221,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
@@ -287,6 +294,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
@@ -329,6 +338,50 @@ public class ProjectSettingsManagerImplUnitTest {
 				uploadDestinationListSetting), "An STS-enabled folder cannot add other upload destinations");
 		verify(mockProjectSettingDao, never()).create(any());
 	}
+
+	@Test
+	public void createProjectSetting_CannotAddStsToNonEmptyFolder() {
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+
+		// Method under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
+				uploadDestinationListSetting), "Can't enable STS in a non-empty folder");
+		verify(mockProjectSettingDao, never()).create(any());
+	}
+
+	@Test
+	public void createProjectSetting_CanAddNonStsToNonEmptyFolder() {
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+
+		// Method under test.
+		ProjectSetting result = projectSettingsManagerImpl.createProjectSetting(userInfo,
+				uploadDestinationListSetting);
+		assertSame(uploadDestinationListSetting, result);
+		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+		verify(mockProjectSettingDao).create(uploadDestinationListSetting);
+	}
 	
 	@Test
 	public void testCreateProjectSettingAutofillType() {
@@ -337,6 +390,8 @@ public class ProjectSettingsManagerImplUnitTest {
 				AuthorizationStatus.authorized());
 		
 		// STS stuff
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 		
@@ -362,6 +417,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -400,7 +457,86 @@ public class ProjectSettingsManagerImplUnitTest {
 				uploadDestinationListSetting), "An STS-enabled folder cannot add other upload destinations");
 		verify(mockProjectSettingDao, never()).update(any());
 	}
-	
+
+	@Test
+	public void updateProjectSetting_CannotAddStsToNonEmptyFolder() {
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
+				uploadDestinationListSetting), "Can't enable STS in a non-empty folder");
+		verify(mockProjectSettingDao, never()).update(any());
+	}
+
+	@Test
+	public void updateProjectSetting_CanAddNonStsToNonEmptyFolder() {
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
+		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
+		verify(mockProjectSettingDao).update(uploadDestinationListSetting);
+	}
+
+	@Test
+	public void updateProjectSetting_CannotRemoveStsFromNonEmptyFolder() {
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		UploadDestinationListSetting oldProjectSetting = new UploadDestinationListSetting();
+		oldProjectSetting.setLocations(ImmutableList.of(OLD_STORAGE_LOCATION_ID));
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(oldProjectSetting);
+
+		S3StorageLocationSetting oldStorageLocationSetting = new S3StorageLocationSetting();
+		oldStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(OLD_STORAGE_LOCATION_ID)).thenReturn(oldStorageLocationSetting);
+
+		// Method under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
+				uploadDestinationListSetting), "Can't disable STS in a non-empty folder");
+		verify(mockProjectSettingDao, never()).update(any());
+	}
+
+	@Test
+	public void updateProjectSetting_CanUpdateNonStsInNonEmptyFolder() {
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		UploadDestinationListSetting oldProjectSetting = new UploadDestinationListSetting();
+		oldProjectSetting.setLocations(ImmutableList.of(OLD_STORAGE_LOCATION_ID));
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(oldProjectSetting);
+
+		S3StorageLocationSetting oldStorageLocationSetting = new S3StorageLocationSetting();
+		oldStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(OLD_STORAGE_LOCATION_ID)).thenReturn(oldStorageLocationSetting);
+
+		// Method under test.
+		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
+		verify(mockProjectSettingDao).update(uploadDestinationListSetting);
+	}
+
 	@Test
 	public void testUpdateProjectSettingWithNoId() {
 
@@ -435,6 +571,9 @@ public class ProjectSettingsManagerImplUnitTest {
 		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
+		
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
@@ -450,6 +589,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 
 		// Method under test.
 		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
@@ -468,6 +609,74 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertThrows(UnauthorizedException.class, () -> projectSettingsManagerImpl.deleteProjectSetting(userInfo,
 				PROJECT_SETTINGS_ID), "Cannot delete settings from this project");
 		verify(mockProjectSettingDao, never()).delete(any());
+	}
+
+	@Test
+	public void deleteProjectSetting_CannotDeleteStsFromNonEmptyProject() {
+		// Mock dependencies.
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.deleteProjectSetting(userInfo,
+				PROJECT_SETTINGS_ID), "Can't disable STS in a non-empty folder");
+		verify(mockProjectSettingDao, never()).delete(any());
+	}
+
+	@Test
+	public void deleteProjectSetting_CanDeleteNonStsFromNonEmptyProject() {
+		// Mock dependencies.
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
+		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
+		verify(mockProjectSettingDao).delete(PROJECT_SETTINGS_ID);
+	}
+
+	@Test
+	public void isEntityEmptyWithTrash_HasChildren() {
+		// Mock dependencies.
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(true);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isEntityEmptyWithTrash(PROJECT_ID);
+		assertFalse(result);
+
+		// We never call trash.
+		verifyZeroInteractions(mockTrashManager);
+	}
+
+	@Test
+	public void isEntityEmptyWithTrash_NoChildrenHasTrash() {
+		// Mock dependencies.
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(true);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isEntityEmptyWithTrash(PROJECT_ID);
+		assertFalse(result);
+	}
+
+	@Test
+	public void isEntityEmptyWithTrash_NoChildrenNoTrash() {
+		// Mock dependencies.
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isEntityEmptyWithTrash(PROJECT_ID);
+		assertTrue(result);
 	}
 
 	@Test
