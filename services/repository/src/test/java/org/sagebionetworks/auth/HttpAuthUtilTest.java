@@ -97,12 +97,11 @@ class HttpAuthUtilTest {
 
 		// not Basic Authentication
 		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer 1a2b3c");
-		// method under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
-		});
 		
-		assertEquals("Invalid Authorization header for basic authentication (Missing \"Basic \" prefix)", ex.getMessage());
+		// method under test
+		Optional<UserNameAndPassword> credentials = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+
+		assertFalse(credentials.isPresent());
 	}
 	
 	@Test

@@ -49,7 +49,7 @@ public class HttpAuthUtil {
 	public static Optional<UserNameAndPassword> getBasicAuthenticationCredentials(HttpServletRequest httpRequest) throws IllegalArgumentException {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 
-		if (StringUtils.isBlank(header)) {
+		if (StringUtils.isBlank(header) || header.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) {
 			return Optional.empty();
 		}
 
