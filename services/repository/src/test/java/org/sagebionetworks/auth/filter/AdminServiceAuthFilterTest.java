@@ -110,11 +110,11 @@ public class AdminServiceAuthFilterTest {
 	}
 	@Test
 	public void testDoFilterInternalWithBearerToken() throws Exception {
-		Optional<UserNameAndPassword> credentials = Optional.empty();
+		when(mockRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn("Bearer xxxxx");
 
 		// Call under test
-		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
-
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+		
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));

@@ -24,14 +24,14 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 		super(config, consumer, new StackConfigKeyAndSecretProvider(config, StackConfiguration.SERVICE_ADMIN));
 	}
 	
-//	@Override
-//	protected Optional<UserNameAndPassword> getCredentialsFromRequest(HttpServletRequest httpRequest) {
-//		try {
-//			return HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
-//		} catch (IllegalArgumentException e) {
-//			return Optional.empty();
-//		}
-//	}
+	@Override
+	protected Optional<UserNameAndPassword> getCredentialsFromRequest(HttpServletRequest httpRequest) {
+		try {
+			return HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+		} catch (IllegalArgumentException e) {
+			return Optional.empty();
+		}
+	}
 
 	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
 	@Override
