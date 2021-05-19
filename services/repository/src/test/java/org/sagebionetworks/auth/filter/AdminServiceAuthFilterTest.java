@@ -108,4 +108,18 @@ public class AdminServiceAuthFilterTest {
 		verifyNoMoreInteractions(mockFilterChain);
 		assertEquals(StackConfiguration.SERVICE_ADMIN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME));
 	}
+	@Test
+	public void testDoFilterInternalWithBearerToken() throws Exception {
+		Optional<UserNameAndPassword> credentials = Optional.empty();
+
+		// Call under test
+		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
+
+		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
+
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
+		
+		assertEquals(mockRequest, requestCaptor.getValue());
+		verifyNoMoreInteractions(mockFilterChain);
+	}
 }

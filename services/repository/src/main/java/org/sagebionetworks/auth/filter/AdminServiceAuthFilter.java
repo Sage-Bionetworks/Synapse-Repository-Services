@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.util.TemporaryCode;
@@ -23,6 +24,15 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 		super(config, consumer, new StackConfigKeyAndSecretProvider(config, StackConfiguration.SERVICE_ADMIN));
 	}
 	
+//	@Override
+//	protected Optional<UserNameAndPassword> getCredentialsFromRequest(HttpServletRequest httpRequest) {
+//		try {
+//			return HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
+//		} catch (IllegalArgumentException e) {
+//			return Optional.empty();
+//		}
+//	}
+
 	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
 	@Override
 	protected boolean credentialsRequired() {
