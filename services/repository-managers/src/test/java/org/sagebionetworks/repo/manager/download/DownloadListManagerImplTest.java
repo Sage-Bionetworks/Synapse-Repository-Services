@@ -31,16 +31,19 @@ import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
-import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.ActionReqiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -572,6 +575,27 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testQueryDownloadListWithRequiresAction() {
+		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setNumberOfFilesRequiringAction(3L));
+		ActionReqiredRequest request = new ActionReqiredRequest();
+		queryRequestBody.setRequestDetails(request);
+		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+	
+		ActionRequiredResponse expected = new ActionRequiredResponse();
+		expected.setNextPageToken(null);
+		expected.setPage(page);
+		
+		// call under test
+		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
+		assertNotNull(response);
+		assertEquals(expected, response.getResponseDetails());
+		
+		Long limit = 51L;
+		Long offest = 0L;
+		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit), eq(offest));
+	}
+	
+	@Test
 	public void testCreateActionRequiredWithAuthorized() {
 		List<UsersEntityAccessInfo> batchInfo = Arrays.asList(
 				new UsersEntityAccessInfo(accessContext,
@@ -656,6 +680,61 @@ public class DownloadListManagerImplTest {
 		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
 		assertEquals(expected, actions);
 	}
+	
+	@Test
+	public void testQueryActionRequired() {
+		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setNumberOfFilesRequiringAction(3L));
+		ActionReqiredRequest request = new ActionReqiredRequest();
+		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+		// call under test
+		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
+		assertNotNull(resonse);
+		assertEquals(page, resonse.getPage());
+		assertNull(resonse.getNextPageToken());
+		Long limit = 51L;
+		Long offest = 0L;
+		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit), eq(offest));
+	}
+	
+	@Test
+	public void testQueryActionRequiredWithNextPage() {
+		Long limit = 10L;
+		Long offset = 20L;
+		List<ActionRequiredCount> page = createActionRequiredPageOfSize((int) (limit+1));
+		ActionReqiredRequest request = new ActionReqiredRequest().setNextPageToken(new NextPageToken(limit,offset).toToken());
+		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
+		// call under test
+		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
+		assertNotNull(resonse);
+		assertEquals(page, resonse.getPage());
+		Long nextOffset = 30L;
+		assertEquals(new NextPageToken(limit,nextOffset).toToken(), resonse.getNextPageToken());
+		verify(mockDownloadListDao).getActionsRequiredFromDownloadList(any(), eq(userOne.getId()), eq(limit+1L), eq(offset));
+	}
+	
+	@Test
+	public void testQueryActionRequiredWithAnonymous() {
+		ActionReqiredRequest request = new ActionReqiredRequest();
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.queryActionRequired(anonymousUser, request);
+		}).getMessage();
+		assertEquals("You must login to access your download list", message);
+		verify(mockDownloadListDao, never()).getActionsRequiredFromDownloadList(any(), any(), any(), any());
+	}
+	
+	/**
+	 * Helper to create a page of results of the given size.
+	 * @param size
+	 * @return
+	 */
+	List<ActionRequiredCount> createActionRequiredPageOfSize(int size){
+		List<ActionRequiredCount> page = new ArrayList<>(size);
+		for(int i=0; i<size; i++) {
+			page.add(new ActionRequiredCount().setNumberOfFilesRequiringAction(new Long(i)));
+		}
+		return page;
+	}
 
 	/**
 	 * Helper to setup both the return of getFilesAvailableToDownloadFromDownloadList() 
@@ -683,4 +762,5 @@ public class DownloadListManagerImplTest {
 			return reponse;
 		}).when(mockDownloadListDao).getListStatistics(any(), any());
 	}
+
 }
