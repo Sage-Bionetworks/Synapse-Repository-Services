@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,8 +12,14 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.ActionReqiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -23,8 +30,11 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.QueryResponseDetails;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
@@ -107,8 +117,30 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}else if(requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
 					getListStatistics(userInfo, (FilesStatisticsRequest) requestBody.getRequestDetails()));
+		}else if(requestBody.getRequestDetails() instanceof ActionReqiredRequest) {
+			return new DownloadListQueryResponse().setResponseDetails(
+					queryActionRequired(userInfo, (ActionReqiredRequest) requestBody.getRequestDetails()));
 		}
 		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());
+	}
+
+	/**
+	 * Query the current user's download list for files that require some action to be taken in order to download
+	 * the file.
+	 * @param userInfo
+	 * @param requestDetails
+	 * @return
+	 */
+	ActionRequiredResponse queryActionRequired(UserInfo userInfo, ActionReqiredRequest requestDetails) {
+		validateUser(userInfo);
+		NextPageToken pageToken = new NextPageToken(requestDetails.getNextPageToken());
+
+		List<ActionRequiredCount> page = downloadListDao.getActionsRequiredFromDownloadList(
+				createEntityActionRequiredCallback(userInfo), userInfo.getId(), pageToken.getLimitForQuery(),
+				pageToken.getOffset());
+
+		return new ActionRequiredResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
+				.setPage(page);
 	}
 
 	/**
@@ -147,6 +179,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	FilesStatisticsResponse getListStatistics(UserInfo user, FilesStatisticsRequest statsResquest) {
+		validateUser(user);
 		return downloadListDao.getListStatistics(createAccessCallback(user), user.getId());
 	}
 
@@ -175,6 +208,50 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized()).map(e -> e.getEntityId())
 					.collect(Collectors.toList());
 		};
+	}
+	
+	/**
+	 * Create a callback to filter the entities that require action in order to be downloaded.
+	 * 
+	 * @param userInfo
+	 * @return
+	 */
+	EntityActionRequiredCallback createEntityActionRequiredCallback(UserInfo userInfo) {
+		return (List<Long> enityIds) -> {
+			// Determine which files of this batch the user can download.
+			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, enityIds,
+					ACCESS_TYPE.DOWNLOAD);
+			// map the access information into actions.
+			return DownloadListManagerImpl.createActionRequired(batchInfo);
+		};
+	}
+	
+	/**
+	 * For the given batch of UsersEntityAccessInfo create a list of actions that the user will need to 
+	 * take in order to download any file that they are currently not authorized to download.
+	 * @param batchInfo
+	 * @return
+	 */
+	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo){
+		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
+		for (UsersEntityAccessInfo info : batchInfo) {
+			ValidateArgument.required(info.getAuthroizationStatus(), "info.authroizationStatus");
+			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
+			if (!info.getAuthroizationStatus().isAuthorized()) {
+				if (info.getAccessRestrictions().hasUnmet()) {
+					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
+						if (status.isUnmet()) {
+							actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
+									new MeetAccessRequirement().setAccessRequirementId(status.getRequirementId())));
+						}
+					}
+				} else {
+					actions.add(new FileActionRequired().withFileId(info.getEntityId())
+							.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
+				}
+			}
+		}
+		return actions;
 	}
 
 	/**

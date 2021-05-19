@@ -27,15 +27,20 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
+import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -46,8 +51,10 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
@@ -69,6 +76,11 @@ public class DownloadListManagerImplTest {
 	private RemoveBatchOfFilesFromDownloadListRequest toRemoveRequest = null;
 	private AvailableFilesRequest availableRequest;
 	private DownloadListQueryRequest queryRequestBody;
+	private AccessContext accessContext;
+	private UserEntityPermissionsState permissionsState;
+	private UsersRestrictionStatus restrictionStatus;
+	private long entityId;
+	private long benefactorId;
 
 	@BeforeEach
 	public void before() {
@@ -91,6 +103,12 @@ public class DownloadListManagerImplTest {
 		
 		queryRequestBody = new DownloadListQueryRequest();
 		queryRequestBody.setRequestDetails(availableRequest);
+		
+		entityId = 999L;
+		benefactorId = 888L;
+		permissionsState = new UserEntityPermissionsState(entityId).withBenefactorId(benefactorId);
+		restrictionStatus = new UsersRestrictionStatus(entityId, userOne.getId());
+		accessContext = new AccessContext().withUser(userOne).withPermissionsState(permissionsState).withRestrictionStatus(restrictionStatus);
 	}
 
 	@Test
@@ -485,10 +503,10 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAvailableFilesWithAnonymous() {
+	public void testGetListStatisticsWithAnonymous() {
 		String message = assertThrows(UnauthorizedException.class, ()->{
 			// call under test
-			manager.queryAvailableFiles(anonymousUser, availableRequest);
+			manager.getListStatistics(anonymousUser, new FilesStatisticsRequest());
 		}).getMessage();
 		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
 		verifyNoMoreInteractions(mockDownloadListDao);
@@ -526,6 +544,16 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testQueryAvailableFilesWithAnonymous() {
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.queryAvailableFiles(anonymousUser, availableRequest);
+		}).getMessage();
+		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
+		verifyNoMoreInteractions(mockDownloadListDao);
+	}
+	
+	@Test
 	public void testQueryDownloadListWithStatistics() {
 		
 		List<DownloadListItemResult> resultPage = new ArrayList<>(4);
@@ -541,6 +569,92 @@ public class DownloadListManagerImplTest {
 		DownloadListQueryResponse response = manager.queryDownloadList(userOne, queryRequestBody);
 		assertNotNull(response);
 		assertEquals(expectedAvailable, response.getResponseDetails());
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithAuthorized() {
+		List<UsersEntityAccessInfo> batchInfo = Arrays.asList(
+				new UsersEntityAccessInfo(accessContext,
+						AuthorizationStatus.authorized()));
+
+		List<FileActionRequired> expected = Collections.emptyList();
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithNoRestrictions() {
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		
+		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithMetRestrictions() {
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
+		restrictionStatus.setHasUnmet(false);
+
+		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithMixedRestrictions() {
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
+		restrictionStatus.setHasUnmet(true);
+
+		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(321L)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
+	}
+	
+	@Test
+	public void testCreateActionRequiredWithNullRestrictionStatus() {
+		accessContext.withRestrictionStatus(null);
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			DownloadListManagerImpl.createActionRequired(batchInfo);
+		}).getMessage();
+
+		assertEquals("info.accessRestrictions() is required.", message);
+	}
+	
+	
+	@Test
+	public void testCreateActionRequiredWithMultipleUnmetRestrictions() {
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L));
+		restrictionStatus.addRestrictionStatus(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(321L));
+		restrictionStatus.setHasUnmet(true);
+
+		List<FileActionRequired> expected = Arrays.asList(
+				new FileActionRequired().withFileId(entityId)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
+				new FileActionRequired().withFileId(entityId)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(321L))
+		);
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
 	}
 
 	/**

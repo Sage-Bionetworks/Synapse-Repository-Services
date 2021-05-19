@@ -23,8 +23,8 @@ public class UsersEntityAccessInfo {
 
 	public UsersEntityAccessInfo(AccessContext context, AuthorizationStatus status) {
 		ValidateArgument.required(context, "context");
-		ValidateArgument.required(context.getPermissionsState(),"context.getPermissionState");
-		ValidateArgument.required(context.getPermissionsState().getEntityId(),"context.getPermissionState.entityId");
+		ValidateArgument.required(context.getPermissionsState(),"context.permissionState");
+		ValidateArgument.required(context.getPermissionsState().getEntityId(),"context.permissionState.entityId");
 		ValidateArgument.required(status, "AuthorizationStatus");
 		this.entityId = context.getPermissionsState().getEntityId();
 		this.benefactorId = context.getPermissionsState().getBenefactorId();
@@ -83,14 +83,6 @@ public class UsersEntityAccessInfo {
 	 */
 	public Long getBenefactorId() {
 		return benefactorId;
-	}
-
-	/**
-	 * @param benefactorId the benefactorId to set
-	 */
-	public UsersEntityAccessInfo setBenefactorId(Long benefactorId) {
-		this.benefactorId = benefactorId;
-		return this;
 	}
 
 	@Override
