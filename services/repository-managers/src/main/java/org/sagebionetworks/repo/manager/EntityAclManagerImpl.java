@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.collections.Transform;
@@ -26,8 +25,6 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -134,16 +131,10 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 
 		// Can't override ACL inheritance if the entity lives inside an STS-enabled folder.
-		// Note that even though the method  is called getProjectId(), it can actually refer to either a Project or a
-		// Folder.
-		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo,
-				entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		if (projectSetting.isPresent() && !KeyFactory.equals(projectSetting.get().getProjectId(), entityId)) {
-			// If the project setting is defined on the current entity, you can still override ACL inheritance.
-			// Overriding ACL inheritance is only blocked for child entities.
-			if (projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
-				throw new IllegalArgumentException("Cannot override ACLs in a child of an STS-enabled folder");
-			}
+		// If the project setting is defined on the current entity, you can still override ACL inheritance.
+		// Overriding ACL inheritance is only blocked for child entities.
+		if (projectSettingsManager.entityIsWithinSTSEnabledFolder(entityId)) {
+			throw new IllegalArgumentException("Cannot override ACLs in a child of an STS-enabled folder");
 		}
 
 		// Before we can update the ACL we must grab the lock on the node.

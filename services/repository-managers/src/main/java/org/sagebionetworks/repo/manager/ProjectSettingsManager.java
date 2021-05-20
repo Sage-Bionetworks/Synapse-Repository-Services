@@ -27,7 +27,7 @@ public interface ProjectSettingsManager {
 
 	void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
-	<T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	<T extends ProjectSetting> Optional<T> getProjectSettingForNode(String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -55,5 +55,12 @@ public interface ProjectSettingsManager {
 
 	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> storageLocationIds) throws DatastoreException,
 			NotFoundException;
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return true iff entityId is a descendant of an STS Enabled folder and not an STS Folder itself
+	 */
+	boolean entityIsWithinSTSEnabledFolder(String entityId);
 	
 }

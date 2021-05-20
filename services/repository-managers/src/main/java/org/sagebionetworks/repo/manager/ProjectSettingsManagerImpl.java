@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -89,7 +90,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
+	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
 		
 		ProjectSetting projectSetting = null;
@@ -139,7 +140,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	
 		
 		// Can't create project settings if a parent has an StsStorageLocation.
-		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
+		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(parentId, ProjectSettingsType.upload,
 				ProjectSetting.class);
 		if (parentSetting.isPresent() && isStsStorageLocationSetting(parentSetting.get())) {
 			throw new IllegalArgumentException("Can't override project settings in an STS-enabled folder path");
@@ -344,5 +345,25 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			return false;
 		}
 	}
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return true iff entityId is a descendant of an STS Enabled folder and not an STS Folder itself
+	 */
+	@Override
+	public boolean entityIsWithinSTSEnabledFolder(String entityId) {
+		// Note that even though the method  is called getProjectId(), it can actually refer to either a Project or a
+		// Folder.
+		Optional<UploadDestinationListSetting> projectSetting = getProjectSettingForNode(
+				entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		if (projectSetting.isPresent() && !KeyFactory.equals(projectSetting.get().getProjectId(), entityId)) {
+			if (isStsStorageLocationSetting(projectSetting.get())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 
 }
