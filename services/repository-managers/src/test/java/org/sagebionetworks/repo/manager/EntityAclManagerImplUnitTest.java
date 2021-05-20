@@ -311,7 +311,7 @@ public class EntityAclManagerImplUnitTest {
 
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+		when(mockProjectSettingsManager.getProjectSettingForNode(fileId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
 
@@ -336,7 +336,7 @@ public class EntityAclManagerImplUnitTest {
 
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
+		when(mockProjectSettingsManager.getProjectSettingForNode(folderId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		// It doesn't actually matter whether the folder is STS or not, because the permissions we're overriding are
 		// on the same folder as the folder with the project settings.
@@ -363,7 +363,7 @@ public class EntityAclManagerImplUnitTest {
 
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+		when(mockProjectSettingsManager.getProjectSettingForNode(fileId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
 

@@ -116,14 +116,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 	
 	private void preventCreateWithinSTSFolder(String entityId) {
-		// Can't override ACL inheritance if the entity lives inside an STS-enabled folder.
-		// If the project setting is defined on the current entity, you can still override ACL inheritance.
-		// Overriding ACL inheritance is only blocked for child entities.
+		// Can't create an access requirement if the entity lives inside an STS-enabled folder.
+		// If the project setting is defined on the current entity, you can still create an access requirement.
+		// Creating ARs is only blocked for child entities.
 		if (projectSettingsManager.entityIsWithinSTSEnabledFolder(entityId)) {
 			throw new IllegalArgumentException("Cannot add an access requirement to a child of an STS-enabled folder");
 		}
-
-		
 	}
 
 	@WriteTransaction

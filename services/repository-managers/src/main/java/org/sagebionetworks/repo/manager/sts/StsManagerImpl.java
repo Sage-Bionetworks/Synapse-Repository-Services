@@ -84,7 +84,7 @@ public class StsManagerImpl implements StsManager {
 
 		// Entity must have an STS-enabled storage location.
 		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
-				userInfo, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+				entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		if (!projectSetting.isPresent()) {
 			throw new IllegalArgumentException("Entity must have a project setting");
 		}
@@ -176,7 +176,7 @@ public class StsManagerImpl implements StsManager {
 		Long parentStorageLocationId = null;
 		boolean parentStsEnabled = false;
 		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
-				userInfo, parentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+				parentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		if (projectSetting.isPresent()) {
 			// Short-cut: Just grab the first storage location ID. We only compare storage location IDs if STS is
 			// enabled, and folders with STS enabled can't have multiple storage locations.
@@ -233,7 +233,7 @@ public class StsManagerImpl implements StsManager {
 			// and for restoring from the trash can, so the folder's current parent hierarchy might not match the
 			// original parent hierarchy.
 			Optional<UploadDestinationListSetting> oldParentProjectSetting = projectSettingsManager
-					.getProjectSettingForNode(userInfo, oldParentId, ProjectSettingsType.upload,
+					.getProjectSettingForNode(oldParentId, ProjectSettingsType.upload,
 							UploadDestinationListSetting.class);
 			if (oldParentProjectSetting.isPresent()) {
 				// Similar shortcut as per above.
@@ -244,7 +244,7 @@ public class StsManagerImpl implements StsManager {
 
 		// Check new parent project settings.
 		Optional<UploadDestinationListSetting> newProjectSetting = projectSettingsManager
-				.getProjectSettingForNode(userInfo, newParentId, ProjectSettingsType.upload,
+				.getProjectSettingForNode(newParentId, ProjectSettingsType.upload,
 						UploadDestinationListSetting.class);
 		if (newProjectSetting.isPresent()) {
 			// Similar shortcut as per above.
