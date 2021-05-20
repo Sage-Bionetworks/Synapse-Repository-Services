@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -42,6 +41,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -723,6 +723,11 @@ public class DBOFileHandleDaoImplTest {
 		external.setCreatedOn(now);
 		batch.add(external);
 		fileHandleDao.createBatch(batch);
+		
+		// Align the auto-assigned modfiedOn
+		s3.setModifiedOn(fileHandleDao.get(s3.getId()).getModifiedOn());
+		external.setModifiedOn(fileHandleDao.get(external.getId()).getModifiedOn());
+		
 		assertEquals(s3, fileHandleDao.get(s3.getId()));
 		assertEquals(external, fileHandleDao.get(external.getId()));
 
