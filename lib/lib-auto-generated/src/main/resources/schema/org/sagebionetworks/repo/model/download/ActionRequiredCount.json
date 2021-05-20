@@ -1,0 +1,13 @@
+{
+	"description": "Represents a single action that the user will need to take in order to download one or more files.",
+	"properties": {
+		"action": {
+			"description": "The action the user will need to take in order to download the files",
+			"$ref": "org.sagebionetworks.repo.model.download.Action"
+		},
+		"count": {
+			"type": "integer",
+			"description": "The number of files that require this action."
+		}
+	}
+}

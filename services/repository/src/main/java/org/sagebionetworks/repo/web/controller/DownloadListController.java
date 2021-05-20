@@ -147,7 +147,8 @@ public class DownloadListController {
 	 * <a href="${GET.download.list.query.async.get.asyncToken}">GET
 	 * /download/list/query/async/get/{asyncToken}</a>
 	 * </p>
-	 * There are three types of queries that can be run against the user's download list:
+	 * There are three types of queries that can be run against the user's download
+	 * list:
 	 * <table border="1">
 	 * <tr>
 	 * <th>requestDetails</th>
@@ -155,14 +156,33 @@ public class DownloadListController {
 	 * <th>description</th>
 	 * </tr>
 	 * <tr>
-	 * <td><a href="${org.sagebionetworks.repo.model.download.AvailableFilesRequest}">AvailableFilesRequest</a></td>
-	 * <td><a href="${org.sagebionetworks.repo.model.download.AvailableFilesResponse}">AvailableFilesResponse</a></td>
-	 * <td>Request to get a single page of the files that are available for the user to download from their download list.</td>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.AvailableFilesRequest}">AvailableFilesRequest</a></td>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.AvailableFilesResponse}">AvailableFilesResponse</a></td>
+	 * <td>Request to get a single page of the files that are available for the user
+	 * to download from their download list.</td>
 	 * </tr>
 	 * <tr>
-	 * <td><a href="${org.sagebionetworks.repo.model.download.FilesStatisticsRequest}">FilesStatisticsRequest</a></td>
-	 * <td><a href="${org.sagebionetworks.repo.model.download.FilesStatisticsResponse}">FilesStatisticsResponse</a></td>
-	 * <td>Request to get the statistics about the files on the user's download list.</td>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.FilesStatisticsRequest}">FilesStatisticsRequest</a></td>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.FilesStatisticsResponse}">FilesStatisticsResponse</a></td>
+	 * <td>Request to get the statistics about the files on the user's download
+	 * list.</td>
+	 * </tr>
+	 * <tr>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.ActionRequiredRequest}">ActionRequiredRequest</a></td>
+	 * <td><a href=
+	 * "${org.sagebionetworks.repo.model.download.ActionRequiredResponse}">ActionRequiredResponse</a></td>
+	 * <td>Some files on a user's download list might be unavailable for the user to
+	 * download. For example, the user might need to accept the terms-of-use
+	 * associated with a file before they will be able to download the file. Or, the
+	 * user might need to request permission to download a file from the file's
+	 * owner. This query response returns a summary of the actions that the user
+	 * will need to take in order to download one or more files from their download
+	 * list. file.
 	 * </tr>
 	 * </table>
 	 * </p>

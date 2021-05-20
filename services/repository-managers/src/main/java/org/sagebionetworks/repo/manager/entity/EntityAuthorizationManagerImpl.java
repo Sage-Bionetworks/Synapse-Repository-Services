@@ -80,7 +80,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		AuthorizationStatus lastResult = null;
 		for (ACCESS_TYPE accessType : accessTypes) {
 			lastResult = determineAccess(userInfo, KeyFactory.stringToKey(entityId), stateProvider, accessType)
-					.getAuthroizationStatus();
+					.getAuthorizationStatus();
 			if (!lastResult.isAuthorized()) {
 				return lastResult;
 			}
@@ -97,7 +97,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		UserEntityPermissionsState state = usersEntityPermissionsDao
 				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(parentId)).stream()
 				.findFirst().get();
-		return determineCreateAccess(userInfo, state, entityCreateType).getAuthroizationStatus();
+		return determineCreateAccess(userInfo, state, entityCreateType).getAuthorizationStatus();
 	}
 
 	@Override
@@ -107,7 +107,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		UserEntityPermissionsState state = usersEntityPermissionsDao
 				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(entityId)).stream()
 				.findFirst().get();
-		return determineCreateAccess(userInfo, state, state.getEntityType()).getAuthroizationStatus();
+		return determineCreateAccess(userInfo, state, state.getEntityType()).getAuthorizationStatus();
 	}
 
 	@Override
@@ -141,7 +141,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 		permissions.setCanEnableInheritance(
 				determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(entityIdLong))
-						.getAuthroizationStatus().isAuthorized());
+						.getAuthorizationStatus().isAuthorized());
 		return permissions;
 
 	}
@@ -156,7 +156,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	 */
 	private AuthorizationStatus determineAccess(Long entityId, EntityStateProvider provider, ACCESS_TYPE accessType,
 			UserInfo user) {
-		return determineAccess(user, entityId, provider, accessType).getAuthroizationStatus();
+		return determineAccess(user, entityId, provider, accessType).getAuthorizationStatus();
 	}
 
 	@Override
@@ -334,7 +334,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
 				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		return determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(KeyFactory.stringToKey(entityId)))
-				.getAuthroizationStatus();
+				.getAuthorizationStatus();
 	}
 
 	UsersEntityAccessInfo determineCanDeleteACL(UserInfo userInfo, UserEntityPermissionsState permissionsState) {

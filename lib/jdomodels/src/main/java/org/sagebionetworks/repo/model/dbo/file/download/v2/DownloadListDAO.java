@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
@@ -113,5 +114,16 @@ public interface DownloadListDAO {
 	 * @return
 	 */
 	FilesStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long id);
+	
+	/**
+	 * Get a single page of actions required to download one or more files from the user's download list.
+	 * @param callback
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<ActionRequiredCount> getActionsRequiredFromDownloadList(EntityActionRequiredCallback callback,
+			Long userId, Long limit, Long offset);
 
 }
