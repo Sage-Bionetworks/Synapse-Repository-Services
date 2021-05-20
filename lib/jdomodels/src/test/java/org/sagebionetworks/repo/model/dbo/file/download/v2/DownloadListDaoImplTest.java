@@ -1429,9 +1429,9 @@ public class DownloadListDaoImplTest {
 		long offset = 0L;
 				
 		List<ActionRequiredCount> expected = Arrays.asList(
-				new ActionRequiredCount().setAction(downloadOne).setNumberOfFilesRequiringAction(6L),
-				new ActionRequiredCount().setAction(restrictionOne).setNumberOfFilesRequiringAction(4L),
-				new ActionRequiredCount().setAction(restrictionTwo).setNumberOfFilesRequiringAction(2L)
+				new ActionRequiredCount().setAction(downloadOne).setCount(6L),
+				new ActionRequiredCount().setAction(restrictionOne).setCount(4L),
+				new ActionRequiredCount().setAction(restrictionTwo).setCount(2L)
 		);
 		
 		// call under test
@@ -1476,7 +1476,7 @@ public class DownloadListDaoImplTest {
 		long offset = 2L;
 				
 		List<ActionRequiredCount> expected = Arrays.asList(
-				new ActionRequiredCount().setAction(restrictionTwo).setNumberOfFilesRequiringAction(2L)
+				new ActionRequiredCount().setAction(restrictionTwo).setCount(2L)
 		);
 		
 		// call under test
@@ -1546,7 +1546,7 @@ public class DownloadListDaoImplTest {
 		long limit = 100L;
 		long offset = 0L;	
 		List<ActionRequiredCount> expected = Arrays.asList(
-				new ActionRequiredCount().setAction(restrictionOne).setNumberOfFilesRequiringAction(2L)
+				new ActionRequiredCount().setAction(restrictionOne).setCount(2L)
 		);
 		
 		// call under test
@@ -1561,8 +1561,8 @@ public class DownloadListDaoImplTest {
 				new FileActionRequired().withFileId(fileIds.get(5)).withAction(restrictionTwo)
 		);	
 		expected = Arrays.asList(
-				new ActionRequiredCount().setAction(restrictionOne).setNumberOfFilesRequiringAction(2L),
-				new ActionRequiredCount().setAction(restrictionTwo).setNumberOfFilesRequiringAction(1L)
+				new ActionRequiredCount().setAction(restrictionOne).setCount(2L),
+				new ActionRequiredCount().setAction(restrictionTwo).setCount(1L)
 		);
 		
 		// call under test

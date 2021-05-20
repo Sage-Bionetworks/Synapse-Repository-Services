@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
-import org.sagebionetworks.repo.model.download.ActionReqiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -128,7 +128,7 @@ public class DownloadListQueryWorkerIntegrationTest {
 		List<DownloadListItem> batch = Arrays.asList(new DownloadListItem().setFileEntityId(file.getId()));
 		downloadListDao.addBatchOfFilesToDownloadList(user.getId(), batch);
 
-		DownloadListQueryRequest request = new DownloadListQueryRequest().setRequestDetails(new ActionReqiredRequest());
+		DownloadListQueryRequest request = new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest());
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
 			assertNotNull(response);
@@ -137,7 +137,7 @@ public class DownloadListQueryWorkerIntegrationTest {
 			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
 			assertNotNull(details.getPage());
 			List<ActionRequiredCount> expected = Arrays
-					.asList(new ActionRequiredCount().setNumberOfFilesRequiringAction(1L)
+					.asList(new ActionRequiredCount().setCount(1L)
 							.setAction(new RequestDownload().setBenefactorId(benefactorId)));
 			assertEquals(expected, details.getPage());
 		}, MAX_WAIT_MS, MAX_RETRIES);

@@ -129,7 +129,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		default:
 			throw new IllegalStateException("Unknown type: " + type.name());
 		}
-		return new ActionRequiredCount().setNumberOfFilesRequiringAction(count).setAction(action);
+		return new ActionRequiredCount().setCount(count).setAction(action);
 	};
 
 	@WriteTransaction
@@ -521,14 +521,15 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				FileActionRequired required = actions[i];
-				ps.setLong(1, required.getFileId());
+				int index = 0;
+				ps.setLong(++index, required.getFileId());
 				Action action = required.getAction();
 				if(action instanceof MeetAccessRequirement) {
-					ps.setString(2, ActionType.ACCESS_REQUIREMENT.name());
-					ps.setLong(3, ((MeetAccessRequirement)action).getAccessRequirementId());
+					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
+					ps.setLong(++index, ((MeetAccessRequirement)action).getAccessRequirementId());
 				}else if(action instanceof RequestDownload) {
-					ps.setString(2, ActionType.DOWNLOAD_PERMISSION.name());
-					ps.setLong(3, ((RequestDownload)action).getBenefactorId());
+					ps.setString(++index, ActionType.DOWNLOAD_PERMISSION.name());
+					ps.setLong(++index, ((RequestDownload)action).getBenefactorId());
 				}else {
 					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
 				}
@@ -579,10 +580,10 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 */
 	List<Long> getBatchOfFileIdsFromUsersDownloadList(Long userId, long limit, long offset) {
 		// Gather a single batch of distinct entity IDs from the user's download list
-		return jdbcTemplate.queryForList(
-				"SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM " + TABLE_DOWNLOAD_LIST_ITEM_V2
-						+ " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? LIMIT ? OFFSET ?",
-				Long.class, userId, limit, offset);
+		return jdbcTemplate.queryForList("SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM "
+				+ TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? ORDER BY "
+				+ COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", " + COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER
+				+ " LIMIT ? OFFSET ?", Long.class, userId, limit, offset);
 	}
 
 	@WriteTransaction

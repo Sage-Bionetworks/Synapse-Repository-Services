@@ -41,7 +41,7 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
-import org.sagebionetworks.repo.model.download.ActionReqiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
@@ -356,10 +356,10 @@ public class DownloadListManagerImplTest {
 	public void testCreateAccessCallbackFilter() {
 		List<Long> inputIds = Arrays.asList(1L, 2L, 3L);
 		List<UsersEntityAccessInfo> accessResults = Arrays.asList(
-				new UsersEntityAccessInfo().withEntityId(1L).withAuthroizationStatus(AuthorizationStatus.authorized()),
+				new UsersEntityAccessInfo().withEntityId(1L).withAuthorizationStatus(AuthorizationStatus.authorized()),
 				new UsersEntityAccessInfo().withEntityId(2L)
-						.withAuthroizationStatus(AuthorizationStatus.accessDenied("nope")),
-				new UsersEntityAccessInfo().withEntityId(3L).withAuthroizationStatus(AuthorizationStatus.authorized()));
+						.withAuthorizationStatus(AuthorizationStatus.accessDenied("nope")),
+				new UsersEntityAccessInfo().withEntityId(3L).withAuthorizationStatus(AuthorizationStatus.authorized()));
 		when(mockEntityAuthorizationManager.batchHasAccess(any(), any(), any())).thenReturn(accessResults);
 
 		EntityAccessCallback callback = manager.createAccessCallback(userOne);
@@ -576,8 +576,8 @@ public class DownloadListManagerImplTest {
 	
 	@Test
 	public void testQueryDownloadListWithRequiresAction() {
-		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setNumberOfFilesRequiringAction(3L));
-		ActionReqiredRequest request = new ActionReqiredRequest();
+		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setCount(3L));
+		ActionRequiredRequest request = new ActionRequiredRequest();
 		queryRequestBody.setRequestDetails(request);
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
 	
@@ -683,8 +683,8 @@ public class DownloadListManagerImplTest {
 	
 	@Test
 	public void testQueryActionRequired() {
-		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setNumberOfFilesRequiringAction(3L));
-		ActionReqiredRequest request = new ActionReqiredRequest();
+		List<ActionRequiredCount> page = Arrays.asList(new ActionRequiredCount().setCount(3L));
+		ActionRequiredRequest request = new ActionRequiredRequest();
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
 		// call under test
 		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
@@ -701,7 +701,7 @@ public class DownloadListManagerImplTest {
 		Long limit = 10L;
 		Long offset = 20L;
 		List<ActionRequiredCount> page = createActionRequiredPageOfSize((int) (limit+1));
-		ActionReqiredRequest request = new ActionReqiredRequest().setNextPageToken(new NextPageToken(limit,offset).toToken());
+		ActionRequiredRequest request = new ActionRequiredRequest().setNextPageToken(new NextPageToken(limit,offset).toToken());
 		when(mockDownloadListDao.getActionsRequiredFromDownloadList(any(), any(), any(), any())).thenReturn(page);
 		// call under test
 		ActionRequiredResponse resonse = manager.queryActionRequired(userOne, request);
@@ -714,7 +714,7 @@ public class DownloadListManagerImplTest {
 	
 	@Test
 	public void testQueryActionRequiredWithAnonymous() {
-		ActionReqiredRequest request = new ActionReqiredRequest();
+		ActionRequiredRequest request = new ActionRequiredRequest();
 		String message = assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			manager.queryActionRequired(anonymousUser, request);
@@ -731,7 +731,7 @@ public class DownloadListManagerImplTest {
 	List<ActionRequiredCount> createActionRequiredPageOfSize(int size){
 		List<ActionRequiredCount> page = new ArrayList<>(size);
 		for(int i=0; i<size; i++) {
-			page.add(new ActionRequiredCount().setNumberOfFilesRequiringAction(new Long(i)));
+			page.add(new ActionRequiredCount().setCount(new Long(i)));
 		}
 		return page;
 	}

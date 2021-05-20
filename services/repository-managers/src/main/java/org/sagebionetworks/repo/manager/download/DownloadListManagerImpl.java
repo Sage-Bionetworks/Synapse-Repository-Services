@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
-import org.sagebionetworks.repo.model.download.ActionReqiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
@@ -117,9 +117,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}else if(requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
 					getListStatistics(userInfo, (FilesStatisticsRequest) requestBody.getRequestDetails()));
-		}else if(requestBody.getRequestDetails() instanceof ActionReqiredRequest) {
+		}else if(requestBody.getRequestDetails() instanceof ActionRequiredRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
-					queryActionRequired(userInfo, (ActionReqiredRequest) requestBody.getRequestDetails()));
+					queryActionRequired(userInfo, (ActionRequiredRequest) requestBody.getRequestDetails()));
 		}
 		throw new IllegalArgumentException("Unknown type: " + requestBody.getRequestDetails().getConcreteType());
 	}
@@ -131,7 +131,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param requestDetails
 	 * @return
 	 */
-	ActionRequiredResponse queryActionRequired(UserInfo userInfo, ActionReqiredRequest requestDetails) {
+	ActionRequiredResponse queryActionRequired(UserInfo userInfo, ActionRequiredRequest requestDetails) {
 		validateUser(userInfo);
 		NextPageToken pageToken = new NextPageToken(requestDetails.getNextPageToken());
 
@@ -205,7 +205,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, enityIds,
 					ACCESS_TYPE.DOWNLOAD);
 			// filter out any entity that the user is not authorized to download.
-			return batchInfo.stream().filter(e -> e.getAuthroizationStatus().isAuthorized()).map(e -> e.getEntityId())
+			return batchInfo.stream().filter(e -> e.getAuthorizationStatus().isAuthorized()).map(e -> e.getEntityId())
 					.collect(Collectors.toList());
 		};
 	}
@@ -217,9 +217,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	EntityActionRequiredCallback createEntityActionRequiredCallback(UserInfo userInfo) {
-		return (List<Long> enityIds) -> {
+		return (List<Long> entityIds) -> {
 			// Determine which files of this batch the user can download.
-			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, enityIds,
+			List<UsersEntityAccessInfo> batchInfo = entityAuthorizationManager.batchHasAccess(userInfo, entityIds,
 					ACCESS_TYPE.DOWNLOAD);
 			// map the access information into actions.
 			return DownloadListManagerImpl.createActionRequired(batchInfo);
@@ -235,9 +235,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo){
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
 		for (UsersEntityAccessInfo info : batchInfo) {
-			ValidateArgument.required(info.getAuthroizationStatus(), "info.authroizationStatus");
+			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
 			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
-			if (!info.getAuthroizationStatus().isAuthorized()) {
+			if (!info.getAuthorizationStatus().isAuthorized()) {
 				if (info.getAccessRestrictions().hasUnmet()) {
 					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
 						if (status.isUnmet()) {

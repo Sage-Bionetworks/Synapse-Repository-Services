@@ -16,7 +16,7 @@ public class UsersEntityAccessInfo {
 
 	Long entityId;
 	Long benefactorId;
-	AuthorizationStatus authroizationStatus;
+	AuthorizationStatus authorizationStatus;
 	UsersRestrictionStatus accessRestrictions;
 	
 	public UsersEntityAccessInfo(){}
@@ -29,7 +29,7 @@ public class UsersEntityAccessInfo {
 		this.entityId = context.getPermissionsState().getEntityId();
 		this.benefactorId = context.getPermissionsState().getBenefactorId();
 		this.accessRestrictions = context.getRestrictionStatus();
-		this.authroizationStatus = status;
+		this.authorizationStatus = status;
 	}
 
 	/**
@@ -50,15 +50,15 @@ public class UsersEntityAccessInfo {
 	/**
 	 * @return the authroizationStatus
 	 */
-	public AuthorizationStatus getAuthroizationStatus() {
-		return authroizationStatus;
+	public AuthorizationStatus getAuthorizationStatus() {
+		return authorizationStatus;
 	}
 
 	/**
 	 * @param authroizationStatus the authroizationStatus to set
 	 */
-	public UsersEntityAccessInfo withAuthroizationStatus(AuthorizationStatus authroizationStatus) {
-		this.authroizationStatus = authroizationStatus;
+	public UsersEntityAccessInfo withAuthorizationStatus(AuthorizationStatus authroizationStatus) {
+		this.authorizationStatus = authroizationStatus;
 		return this;
 	}
 
@@ -87,7 +87,7 @@ public class UsersEntityAccessInfo {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessRestrictions, authroizationStatus, entityId);
+		return Objects.hash(accessRestrictions, authorizationStatus, entityId);
 	}
 
 	@Override
@@ -100,13 +100,13 @@ public class UsersEntityAccessInfo {
 		}
 		UsersEntityAccessInfo other = (UsersEntityAccessInfo) obj;
 		return Objects.equals(accessRestrictions, other.accessRestrictions)
-				&& Objects.equals(authroizationStatus, other.authroizationStatus)
+				&& Objects.equals(authorizationStatus, other.authorizationStatus)
 				&& Objects.equals(entityId, other.entityId);
 	}
 
 	@Override
 	public String toString() {
-		return "UsersEntityAccessInfo [entityId=" + entityId + ", authroizationStatus=" + authroizationStatus
+		return "UsersEntityAccessInfo [entityId=" + entityId + ", authroizationStatus=" + authorizationStatus
 				+ ", accessRestrictions=" + accessRestrictions + "]";
 	}
 

@@ -5,7 +5,7 @@
 			"description": "The action the user will need to take in order to download the files",
 			"$ref": "org.sagebionetworks.repo.model.download.Action"
 		},
-		"numberOfFilesRequiringAction": {
+		"count": {
 			"type": "integer",
 			"description": "The number of files that require this action."
 		}
