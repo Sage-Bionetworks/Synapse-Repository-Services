@@ -953,19 +953,19 @@ public class DBOFileHandleDaoImplTest {
 
 		DBOFileHandle dbo1 = fileHandleDao.getDBO(file1.getId());
 		DBOFileHandle dbo2 = fileHandleDao.getDBO(file2.getId());
-		DBOFileHandle dbo3 = fileHandleDao.getDBO(file2.getId());
+		DBOFileHandle dbo3 = fileHandleDao.getDBO(file3.getId());
 		
 		List<Long> ids = Arrays.asList(file1.getId(), file2.getId()).stream().map(id-> Long.valueOf(id)).collect(Collectors.toList());
 		
 		// Call under test
 		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, 0);
 		
-		assertEquals(Arrays.asList(ids), updatedIds);
+		assertEquals(ids, updatedIds);
 		
 		assertNotEquals(dbo1, fileHandleDao.getDBO(file1.getId().toString()));
 		assertNotEquals(dbo2, fileHandleDao.getDBO(file2.getId().toString()));
 		
-		// Should not have been updated
+		// Should not have been updated (not in the list)
 		assertEquals(dbo3, fileHandleDao.getDBO(file3.getId().toString()));
 				
 		dbo1 = fileHandleDao.getDBO(file1.getId());
@@ -1000,19 +1000,19 @@ public class DBOFileHandleDaoImplTest {
 
 		DBOFileHandle dbo1 = fileHandleDao.getDBO(file1.getId().toString());
 		DBOFileHandle dbo2 = fileHandleDao.getDBO(file2.getId().toString());
-		DBOFileHandle dbo3 = fileHandleDao.getDBO(file2.getId().toString());
+		DBOFileHandle dbo3 = fileHandleDao.getDBO(file3.getId().toString());
 		
-		List<Long> ids = Arrays.asList(file1.getId(), file2.getId(), file3.getId());
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
 		
 		// Call under test
 		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, updatedOnBeforeDays);
 		
-		assertEquals(Arrays.asList(file1.getId(), file3.getId()), updatedIds);
+		assertEquals(Arrays.asList(file1.getId()), updatedIds);
 		
 		assertNotEquals(dbo1, fileHandleDao.getDBO(file1.getId().toString()));
 		// Should not have been updated
 		assertEquals(dbo2, fileHandleDao.getDBO(file2.getId().toString()));
-		assertNotEquals(dbo3, fileHandleDao.getDBO(file3.getId().toString()));
+		assertEquals(dbo3, fileHandleDao.getDBO(file3.getId().toString()));
 				
 		dbo1 = fileHandleDao.getDBO(file1.getId().toString());
 		dbo2 = fileHandleDao.getDBO(file2.getId().toString());
@@ -1020,9 +1020,8 @@ public class DBOFileHandleDaoImplTest {
 		
 		assertEquals(FileHandleStatus.UNLINKED.name(), dbo1.getStatus());
 		assertEquals(FileHandleStatus.AVAILABLE.name(), dbo2.getStatus());
-		assertEquals(FileHandleStatus.UNLINKED.name(), dbo3.getStatus());
+		assertEquals(FileHandleStatus.AVAILABLE.name(), dbo3.getStatus());
 		
 		assertTrue(dbo1.getUpdatedOn().after(createdOn));
-		assertTrue(dbo3.getUpdatedOn().after(createdOn));
 	}
 }
