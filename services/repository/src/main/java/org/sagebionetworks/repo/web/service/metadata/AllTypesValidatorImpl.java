@@ -95,7 +95,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator {
 				String parentId = entity.getParentId();
 				if (parentId != null) {
 					Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager
-							.getProjectSettingForNode(parentId, ProjectSettingsType.upload,
+							.getProjectSettingForNode(event.getUserInfo(), parentId, ProjectSettingsType.upload,
 									UploadDestinationListSetting.class);
 					if (projectSetting.isPresent() && projectSettingsManager.isStsStorageLocationSetting(
 							projectSetting.get())) {

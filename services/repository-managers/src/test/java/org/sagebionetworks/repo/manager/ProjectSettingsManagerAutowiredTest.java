@@ -163,17 +163,17 @@ public class ProjectSettingsManagerAutowiredTest {
 		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate);
 
-		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(projectId,
+		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForNode(childId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
 
-		setting = projectSettingsManager.getProjectSettingForNode(childChildId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
@@ -181,7 +181,7 @@ public class ProjectSettingsManagerAutowiredTest {
 
 	@Test
 	public void testFindInParents() {
-		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(childChildId,
+		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertFalse(setting.isPresent());
 
@@ -191,7 +191,7 @@ public class ProjectSettingsManagerAutowiredTest {
 		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate);
 
-		setting = projectSettingsManager.getProjectSettingForNode(childChildId,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(1, setting.get().getLocations().size());
@@ -203,15 +203,15 @@ public class ProjectSettingsManagerAutowiredTest {
 				externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate2);
 
-		setting = projectSettingsManager.getProjectSettingForNode(childChildId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(2, setting.get().getLocations().size());
-		setting = projectSettingsManager.getProjectSettingForNode(childId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(2, setting.get().getLocations().size());
-		setting = projectSettingsManager.getProjectSettingForNode(projectId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(1, setting.get().getLocations().size());
@@ -223,15 +223,15 @@ public class ProjectSettingsManagerAutowiredTest {
 				externalLocationSetting.getStorageLocationId(), externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate3);
 
-		setting = projectSettingsManager.getProjectSettingForNode(childChildId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(3, setting.get().getLocations().size());
-		setting = projectSettingsManager.getProjectSettingForNode(childId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(2, setting.get().getLocations().size());
-		setting = projectSettingsManager.getProjectSettingForNode(projectId, ProjectSettingsType.upload,
+		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
 		assertTrue(setting.isPresent());
 		assertEquals(1, setting.get().getLocations().size());

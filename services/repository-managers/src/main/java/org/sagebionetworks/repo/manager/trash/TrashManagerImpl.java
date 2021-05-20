@@ -194,7 +194,7 @@ public class TrashManagerImpl implements TrashManager {
 				// STS folder. This is to ensure that our STS folders don't end up in a bad state. (Note that restoring
 				// to the same original folder is always allowed.)
 				Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
-						newParentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+						currentUser, newParentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
 				if (projectSetting.isPresent() && projectSettingsManager.isStsStorageLocationSetting(
 						projectSetting.get())) {
 					throw new IllegalArgumentException("Entities can be restored to STS-enabled folders only if " +
