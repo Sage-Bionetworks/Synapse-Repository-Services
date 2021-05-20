@@ -1618,6 +1618,18 @@ public class NodeDAOImplTest {
 		assertTrue(results.isEmpty());
 	}
 	
+	@Test 
+	public void testGetEntityHeaderByReferenceNullRef() throws Exception {
+		List<Reference> request = new LinkedList<Reference>();
+		Reference ref = new Reference();
+		ref.setTargetId(null);
+		request.add(ref);
+		//call under test
+		List<EntityHeader> results = nodeDao.getEntityHeader(request);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
 	@Test
 	public void testGetEntityHeaderByReferenceNull() throws Exception {
 		List<Reference> request = null;
