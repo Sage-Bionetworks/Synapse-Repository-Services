@@ -340,7 +340,7 @@ public class EntityAclManagerImplUnitTest {
 //		projectSetting.setProjectId(folderId);
 //		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
 //				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
-		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(true);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(false);
 		// It doesn't actually matter whether the folder is STS or not, because the permissions we're overriding are
 		// on the same folder as the folder with the project settings.
 
@@ -369,7 +369,7 @@ public class EntityAclManagerImplUnitTest {
 //		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
 //				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 //		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
-		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(true);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(fileId)).thenReturn(false);
 
 		// Call under test.
 		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);
