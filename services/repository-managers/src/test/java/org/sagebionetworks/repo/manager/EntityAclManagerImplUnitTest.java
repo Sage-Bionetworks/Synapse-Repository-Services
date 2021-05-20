@@ -309,11 +309,13 @@ public class EntityAclManagerImplUnitTest {
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+//		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+//		projectSetting.setProjectId(folderId);
+//		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+//				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+//		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+		
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(fileId)).thenReturn(true);
 
 		// Call under test - throws exception.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityAclManager.overrideInheritance(acl, mockUser));
@@ -334,10 +336,11 @@ public class EntityAclManagerImplUnitTest {
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
 		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
 
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+//		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+//		projectSetting.setProjectId(folderId);
+//		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
+//				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(true);
 		// It doesn't actually matter whether the folder is STS or not, because the permissions we're overriding are
 		// on the same folder as the folder with the project settings.
 
@@ -361,11 +364,12 @@ public class EntityAclManagerImplUnitTest {
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
 		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
 
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folderId);
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
+//		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+//		projectSetting.setProjectId(folderId);
+//		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+//				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+//		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(true);
 
 		// Call under test.
 		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);

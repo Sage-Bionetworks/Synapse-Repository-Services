@@ -34,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -91,6 +92,8 @@ public class AccessRequirementManagerImplUnitTest {
 	CreatedIssue mockProject;
 	@Mock
 	ProjectInfo mockProjectInfo;
+	@Mock
+	private ProjectSettingsManager mockProjectSettingsManager;
 
 	private Map<String, String> fields;
 
@@ -156,6 +159,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockProjectInfo.getProjectId()).thenReturn("projectId");
 		when(mockProjectInfo.getIssueTypeId()).thenReturn(10000L);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(false);
 
 		fields = new HashMap<String, String>();
 		fields.put("Synapse Principal ID", "id1");
