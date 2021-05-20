@@ -173,7 +173,7 @@ public class DownloadListController {
 	 * </tr>
 	 * <tr>
 	 * <td><a href=
-	 * "${org.sagebionetworks.repo.model.download.ActionReqiredRequest}">ActionReqiredRequest</a></td>
+	 * "${org.sagebionetworks.repo.model.download.ActionRequiredRequest}">ActionRequiredRequest</a></td>
 	 * <td><a href=
 	 * "${org.sagebionetworks.repo.model.download.ActionRequiredResponse}">ActionRequiredResponse</a></td>
 	 * <td>Some files on a user's download list might be unavailable for the user to
