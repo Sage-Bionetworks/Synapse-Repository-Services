@@ -143,13 +143,16 @@ public interface FileHandleDao {
 	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 	
 	/**
-	 * Updates the status of the given batch of file handle ids for any that is in the given currentStatus
+	 * Updates the status of the given batch of file handle ids for any that is in the given currentStatus and were modified before the given number of days
 	 * 
 	 * @param ids The batch of ids to update
 	 * @param newStatus The new status to assign
 	 * @param currentStatus The current status for the update to apply
+	 * @param updatedOnBeforeDays Does not update file handles that were modified after the given number of days. If 0 no filter is applied.
+	 * 
+	 * @return The list of file handle ids that were actually modified
 	 */
-	void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus);
+	List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays);
 	
 	/**
 	 * Get the given list of file handles, filtering those that are not in the given status

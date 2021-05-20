@@ -57,7 +57,7 @@ public class FileHandleStreamWorkerIntegrationTest {
 		
 		fileHandleDao.truncateTable();
 
-		// We need to set an old timetamp manuall so that the file handle is not filtered out
+		// We need to set an old timestamp manually so that the file handle is not filtered out
 		Timestamp createdOn = Timestamp.from(Instant.now().minus(FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER + 1, ChronoUnit.DAYS));
 		
 		fileHandleId = idGenerator.generateNewId(IdType.FILE_IDS).toString();

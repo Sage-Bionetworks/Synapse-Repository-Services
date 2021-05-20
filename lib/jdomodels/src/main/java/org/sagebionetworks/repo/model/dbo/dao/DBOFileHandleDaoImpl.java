@@ -15,6 +15,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +49,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -384,20 +387,46 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	@Override
 	@WriteTransaction
-	public void updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus) {
+	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
 		ValidateArgument.required(newStatus, "The newStatus");
 		ValidateArgument.required(currentStatus, "The currentStatus");
+		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
 		
 		if (ids == null || ids.isEmpty()) {
-			return;
+			return Collections.emptyList();
 		}
 		
-		jdbcTemplate.batchUpdate(SQL_UPDATE_STATUS_BATCH, ids, ids.size(), (PreparedStatement ps, Long id) -> {
-			int paramIndex = 1;
-			ps.setString(paramIndex++, newStatus.name());
-			ps.setLong(paramIndex++, id);
-			ps.setString(paramIndex++, currentStatus.name());
+		StringBuilder sql = new StringBuilder(SQL_UPDATE_STATUS_BATCH);
+		
+		if (updatedOnBeforeDays > 0) {
+			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
+		}
+		
+		int[] updatedRows = jdbcTemplate.batchUpdate(sql.toString(), new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				int paramIndex = 1;
+				ps.setString(paramIndex++, newStatus.name());
+				ps.setLong(paramIndex++, ids.get(i));
+				ps.setString(paramIndex++, currentStatus.name());
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return ids.size();
+			}
 		});
+		
+		List<Long> updatedIds = new ArrayList<>(ids.size());
+
+		for (int i = 0; i < updatedRows.length; i++) {
+			if (updatedRows[i] > 0) {
+				updatedIds.add(ids.get(i));
+			}
+		}
+		
+		return updatedIds;
 		
 	}
 
