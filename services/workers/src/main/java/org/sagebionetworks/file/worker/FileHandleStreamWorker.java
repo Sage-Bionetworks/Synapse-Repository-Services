@@ -19,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class FileHandleStreamWorker implements  BatchChangeMessageDrivenRunner {
 	
-	static final int UPDATED_ON_DAYS_FILTER = 30;
+	// We only stream file handles that have been updated more than 1 day ago, this is to avoid collecting smaller parquet files for newly created file handles
+	// Note that eventually even new file handles will be streamed in batches when we replay the changes, but we only process file handles that are older than 30 days anyway
+	static final int UPDATED_ON_DAYS_FILTER = 1;
 
 	private FileHandleDao fileHandleDao;
 	private AwsKinesisFirehoseLogger kinesisLogger;
