@@ -100,6 +100,12 @@ public class AliasEnumTest {
 	}
 	
 	@Test
+	public void testValidateEmailWithLongTopLevelDomain() {
+		// PLFM-6743
+		AliasEnum.USER_EMAIL.validateAlias("foo.bar@company.longtopleveldomain");
+	}
+	
+	@Test
 	public void testValidORCID() {
 		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222-3333");
 	}
