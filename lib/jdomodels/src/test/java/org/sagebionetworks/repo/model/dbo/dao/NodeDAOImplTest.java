@@ -4324,6 +4324,19 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetEntityPropertiesForVersionWithNonexistentVersion() throws Exception {
+		// PLFM-6632, improving message for this error
+		Node node = nodeDao.createNewNode(privateCreateNew("testEntityProperties"));
+		String id = node.getId();
+		Long version = node.getVersionNumber();
+		Long nonExistentVersion = version + 1;
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			nodeDao.getEntityPropertyAnnotationsForVersion(id, nonExistentVersion);
+		});
+		assertEquals(ex.getMessage(), String.format("Cannot find a node with id %s and version %d", id, nonExistentVersion));
+	}
+	
+	@Test
 	public void testGetName() {
 		String name = "some name to test for";
 		Node node = nodeDao.createNewNode(privateCreateNew(name));
