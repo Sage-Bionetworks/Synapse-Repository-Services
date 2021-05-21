@@ -962,5 +962,48 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertTrue(result);
 		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
 	}
+	
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_FALSE() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+
+		// method under test
+		assertFalse(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
+
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_NoSettings() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(null);
+
+		// method under test
+		assertFalse(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
+
+//	@Test
+//	public void testEntityIsWithinSTSEnabledFolder_IsStsSetting() {
+//		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+//		
+//		S3StorageLocationSetting parentStorageLocationSetting = new S3StorageLocationSetting();
+//		parentStorageLocationSetting.setStsEnabled(true);
+//		when(mockStorageLocationDAO.get(PARENT_STORAGE_LOCATION_ID)).thenReturn(parentStorageLocationSetting);
+//
+//		
+//		
+//		
+////		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+////		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+////				AuthorizationStatus.authorized());
+//
+////		UploadDestinationListSetting parentProjectSetting = new UploadDestinationListSetting();
+////		parentProjectSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID));
+////		doReturn(Optional.of(parentProjectSetting)).when(projectSettingsManagerImpl).getProjectSettingForNode(null, PROJECT_ID,
+////				ProjectSettingsType.upload, ProjectSetting.class);
+//
+//
+//		// method under test
+//		assertTrue(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+//	}
 
 }

@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
@@ -237,6 +238,25 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCreateLockAccessRequirementUnderSTSFolder() throws Exception {
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+
+		Set<String> ars = new HashSet<String>();
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(ars);
+		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
+
+		// method under test
+		assertThrows(IllegalArgumentException.class, ()->{
+			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
+		});
+
+		verify(jiraClient, never()).createIssue(anyObject());
+	}
+
+	@Test
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
@@ -287,6 +307,21 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(ar.getIsIDURequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+	}
+
+	@Test
+	public void testCreateACTAccessRequirementUnderSTSFolder() {
+		AccessRequirement toCreate = createExpectedAR();
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+		
+		// method under test
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			arm.createAccessRequirement(userInfo, toCreate);
+		});
+		
+		// test that the right AR was created
+		verify(accessRequirementDAO, never()).create(any());
 	}
 
 	@Test
