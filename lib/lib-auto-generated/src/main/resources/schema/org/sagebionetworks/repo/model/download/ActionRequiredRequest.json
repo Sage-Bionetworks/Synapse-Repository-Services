@@ -1,0 +1,18 @@
+{
+	"description": "Request to get a single page of actions that the user must take to download one or more files from their download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.QueryRequestDetails"
+		}
+	],
+	"properties": {
+		"nextPageToken": {
+			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results.",
+			"type": "string"
+		},
+		"concreteType": {
+			"type": "string",
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.ActionRequiredRequest'"
+		}
+	}
+}

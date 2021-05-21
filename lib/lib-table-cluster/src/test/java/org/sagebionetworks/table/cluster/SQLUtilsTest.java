@@ -1662,7 +1662,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testTranslateColumnTypeToAnnotationType(){
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.STRING));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN));
+		assertEquals(AnnotationType.BOOLEAN, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN));
 		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DATE));
 		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DOUBLE));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.ENTITYID));
@@ -2571,6 +2571,67 @@ public class SQLUtilsTest {
 		annotationModel.setColumnType(ColumnType.STRING);
 		annotationModel.setMaximumSize(11L);
 		// call under test - this should not throw an exception
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithBooleanAnnotation() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(12L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.BOOLEAN);
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithNullMaxSizeAnnotation() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(12L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(null);
+		
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithNullMaxSizeColumn() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(null);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(12L);
+		
+		// call under test
 		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
 	}
 

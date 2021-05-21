@@ -1,0 +1,14 @@
+{
+	"description": "In order to download a one or more files, the user will need to be granted the 'DOWNLOAD' permission.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.Action"
+		}
+	],
+	"properties": {
+		"benefactorId": {
+			"description": "The benefactor is the ID of the Entity with the ACL that controls access to one or more files.",
+			"type": "integer"
+		}
+	}
+}

@@ -1164,6 +1164,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		Set<Long> entityIdSet = Sets.newHashSetWithExpectedSize(references.size());
 		for(Reference ref:references){
+			if (ref.getTargetId()==null) continue;
 			Long id = KeyFactory.stringToKey(ref.getTargetId());
 			entityIdSet.add(id);
 		}
@@ -1176,6 +1177,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Create the results driven by the input
 		List<EntityHeader> finalResults = new ArrayList<EntityHeader>(references.size());
 		for(Reference ref: references){
+			if (ref.getTargetId()==null) continue;
 			Long id = KeyFactory.stringToKey(ref.getTargetId());
 			EntityHeader original = idToHeader.get(id);
 			if(original != null){
@@ -1193,6 +1195,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Override
 	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
+		if (entityIds.isEmpty()) return Collections.EMPTY_LIST;
 		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
 		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,ENTITY_HEADER_ROWMAPPER);
 	}

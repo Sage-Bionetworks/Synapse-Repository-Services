@@ -63,6 +63,17 @@ public class EntityDeciderFunctionsTest {
 		context = new AccessContext().withUser(nonAdminUser).withPermissionsState(permissionState)
 				.withRestrictionStatus(restrictionStatus);
 	}
+	
+	
+	@Test
+	public void testUsersEntityAccessInfoWithBenefactor() {
+		Long benefactorId = 789L;
+		permissionState.withBenefactorId(benefactorId);
+		context = new AccessContext().withUser(adminUser).withPermissionsState(permissionState);
+		// call under test
+		UsersEntityAccessInfo info = new UsersEntityAccessInfo(context, AuthorizationStatus.authorized());
+		assertEquals(info.getBenefactorId(), benefactorId);
+	}
 
 	@Test
 	public void testGrantIfAdminWithAdmin() {

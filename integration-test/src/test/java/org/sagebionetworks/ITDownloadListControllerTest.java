@@ -116,8 +116,8 @@ public class ITDownloadListControllerTest {
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.QueryDownloadList, queryRequest, body -> {
 			assertTrue(body instanceof DownloadListQueryResponse);
 			DownloadListQueryResponse response = (DownloadListQueryResponse) body;
-			assertTrue(response.getReponseDetails() instanceof AvailableFilesResponse);
-			AvailableFilesResponse details = (AvailableFilesResponse) response.getReponseDetails();
+			assertTrue(response.getResponseDetails() instanceof AvailableFilesResponse);
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getResponseDetails();
 			assertNotNull(details.getPage());
 			assertEquals(1, details.getPage().size());
 			DownloadListItemResult item = details.getPage().get(0);
@@ -144,8 +144,8 @@ public class ITDownloadListControllerTest {
 		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.QueryDownloadList, queryRequest, body -> {
 			assertTrue(body instanceof DownloadListQueryResponse);
 			DownloadListQueryResponse response = (DownloadListQueryResponse) body;
-			assertTrue(response.getReponseDetails() instanceof FilesStatisticsResponse);
-			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getReponseDetails();
+			assertTrue(response.getResponseDetails() instanceof FilesStatisticsResponse);
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
 			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(1L)
 					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(fileSize)
 					.setTotalNumberOfFiles(1L);
