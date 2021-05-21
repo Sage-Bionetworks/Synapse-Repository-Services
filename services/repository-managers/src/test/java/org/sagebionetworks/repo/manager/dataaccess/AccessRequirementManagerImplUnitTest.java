@@ -320,7 +320,6 @@ public class AccessRequirementManagerImplUnitTest {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
 		
-		// test that the right AR was created
 		verify(accessRequirementDAO, never()).create(any());
 	}
 
