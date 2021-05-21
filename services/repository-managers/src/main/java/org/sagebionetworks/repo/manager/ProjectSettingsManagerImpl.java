@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -344,5 +345,25 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			return false;
 		}
 	}
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return true iff entityId is a descendant of an STS Enabled folder and not an STS Folder itself
+	 */
+	@Override
+	public boolean entityIsWithinSTSEnabledFolder(String entityId) {
+		// Note that even though the method  is called getProjectId(), it can actually refer to either a Project or a
+		// Folder.
+		Optional<UploadDestinationListSetting> projectSetting = getProjectSettingForNode(
+				null, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		if (projectSetting.isPresent() && !KeyFactory.equals(projectSetting.get().getProjectId(), entityId)) {
+			if (isStsStorageLocationSetting(projectSetting.get())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 
 }

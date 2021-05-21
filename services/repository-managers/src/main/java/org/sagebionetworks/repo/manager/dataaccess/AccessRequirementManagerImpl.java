@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -62,6 +63,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private JiraClient jiraClient;
 
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
+
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
 		ValidateArgument.required(ar.getAccessType(), "AccessType");
 		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
@@ -110,6 +114,15 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
+	
+	private void preventCreateWithinSTSFolder(String entityId) {
+		// Can't create an access requirement if the entity lives inside an STS-enabled folder.
+		// If the project setting is defined on the current entity, you can still create an access requirement.
+		// Creating ARs is only blocked for child entities.
+		if (projectSettingsManager.entityIsWithinSTSEnabledFolder(entityId)) {
+			throw new IllegalArgumentException("Cannot apply an access requirement to a child of an STS-enabled folder.");
+		}
+	}
 
 	@WriteTransaction
 	@Override
@@ -119,6 +132,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
 		populateCreationFields(userInfo, accessRequirement);
+		
+		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
+			if (RestrictableObjectType.ENTITY==rod.getType()) {
+				preventCreateWithinSTSFolder(rod.getId());
+			}
+		}
+		
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
 
@@ -157,6 +177,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
+		preventCreateWithinSTSFolder(entityId);
+		
 		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
 		String jiraKey = JRJCHelper.createRestrictIssue(jiraClient,
 				userInfo.getId().toString(),
@@ -206,6 +228,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
+
+		for (RestrictableObjectDescriptor rod : toUpdate.getSubjectIds()) {
+			if (RestrictableObjectType.ENTITY==rod.getType()) {
+				preventCreateWithinSTSFolder(rod.getId());
+			}
+		}
 
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())
