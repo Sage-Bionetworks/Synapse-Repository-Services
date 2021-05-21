@@ -381,6 +381,23 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
+	public void testUpdateInSTSFolder() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		// can't modify an AR if one of its entities in within an STS Folder
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+		});
+	}
+
+	@Test
 	public void testUpdateNoneExistingAR() {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";

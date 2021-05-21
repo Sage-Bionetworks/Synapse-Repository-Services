@@ -120,7 +120,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		// If the project setting is defined on the current entity, you can still create an access requirement.
 		// Creating ARs is only blocked for child entities.
 		if (projectSettingsManager.entityIsWithinSTSEnabledFolder(entityId)) {
-			throw new IllegalArgumentException("Cannot add an access requirement to a child of an STS-enabled folder");
+			throw new IllegalArgumentException("Cannot apply an access requirement to a child of an STS-enabled folder.");
 		}
 	}
 
@@ -134,7 +134,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		populateCreationFields(userInfo, accessRequirement);
 		
 		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
-			if (rod.getType()==RestrictableObjectType.ENTITY) {
+			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
 			}
 		}
@@ -228,6 +228,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
+
+		for (RestrictableObjectDescriptor rod : toUpdate.getSubjectIds()) {
+			if (RestrictableObjectType.ENTITY==rod.getType()) {
+				preventCreateWithinSTSFolder(rod.getId());
+			}
+		}
 
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())
