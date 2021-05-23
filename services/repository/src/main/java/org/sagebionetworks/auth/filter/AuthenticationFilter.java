@@ -3,6 +3,7 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthException;
@@ -78,9 +80,28 @@ public class AuthenticationFilter implements Filter {
 			sessionToken = req.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		}
 
-		// Determine the caller's identity
 		Long userId = null;
-		String accessToken = null;
+		
+		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
+		
+		// there is a chance that an access token was passed as a session token
+		if (null!=sessionToken) {
+			try {
+				UUID.fromString(sessionToken);
+				// the session token is a UUID, so it is not an access token
+			} catch (IllegalArgumentException e1) {
+				// the session token is *not* a UUID
+				try {
+					// is it a JWT?
+					JSONWebTokenHelper.getSubjectFromJWTAccessToken(sessionToken);
+					// based on the format, the session token is an access token
+					accessToken = sessionToken;
+					sessionToken = null;
+				} catch (IllegalArgumentException e2) {
+					// Cannot say that the session token is an access token
+				}
+			}
+		}
 
 		// A session token maps to a specific user
 		if (!isTokenEmptyOrNull(sessionToken)) {
@@ -108,7 +129,6 @@ public class AuthenticationFilter implements Filter {
 			}
 			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
 		} else {
-			accessToken=HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
