@@ -149,4 +149,26 @@ public class ITAccessTokenTest {
 		}		
 	}
 
+	@Test
+	public void testPassAccessTokenAsSessionToken() throws Exception {
+		String accessTokenForUser1 = getAccessTokenForUser1("openid modify view download");
+
+		try {
+			// We use the bearer token to authorize the client 
+			synapseClientLackingCredentials.setSessionToken(accessTokenForUser1);
+			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
+			// as User1.
+
+			project = new Project();
+			project.setName("access token as session token test");
+			project = synapseClientLackingCredentials.createEntity(project);
+			assertNotNull(project.getId());
+			project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);
+			
+		} finally {
+			synapseClientLackingCredentials.setSessionToken(null);
+		}
+
+	}
+	
 }
