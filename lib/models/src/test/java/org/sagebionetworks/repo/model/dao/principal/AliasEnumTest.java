@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.principal;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -42,9 +43,11 @@ public class AliasEnumTest {
 		}
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalUserTooShort() {
-		AliasEnum.USER_NAME.validateAlias("12");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_NAME.validateAlias("12");
+		});
 	}
 
 	@Test
@@ -52,9 +55,11 @@ public class AliasEnumTest {
 		AliasEnum.USER_NAME.validateAlias("123");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalUserOtherChars() {
-		AliasEnum.USER_NAME.validateAlias("has!@#$%^&*()otherchars");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_NAME.validateAlias("has!@#$%^&*()otherchars");
+		});
 	}
 
 	@Test
@@ -79,19 +84,23 @@ public class AliasEnumTest {
 		}
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalTeamTooShort() {
-		AliasEnum.TEAM_NAME.validateAlias("12");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.TEAM_NAME.validateAlias("12");
+		});
 	}
 
 	@Test
 	public void testValidatePrincipalTeamLongEnough() {
 		AliasEnum.TEAM_NAME.validateAlias("123");
 	}
-
-	@Test(expected = IllegalArgumentException.class)
+	
+	@Test
 	public void testValidatePrincipalTeamOtherChars() {
-		AliasEnum.TEAM_NAME.validateAlias("has!@#$%^&*()otherchars");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.TEAM_NAME.validateAlias("has!@#$%^&*()otherchars");
+		});
 	}
 
 	@Test
@@ -100,9 +109,15 @@ public class AliasEnumTest {
 	}
 	
 	@Test
-	public void testValidateEmailWithLongTopLevelDomain() {
+	public void testValidateEmailTopLevelDomain() {
 		// PLFM-6743
-		AliasEnum.USER_EMAIL.validateAlias("foo.bar@company.longtopleveldomain");
+		// 63 x's
+		String email = "foo@company.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		AliasEnum.USER_EMAIL.validateAlias(email);
+		// 64 x's
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_EMAIL.validateAlias(email + "x");
+		});
 	}
 	
 	@Test
@@ -117,27 +132,38 @@ public class AliasEnumTest {
 		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222-333X");
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongPrefix() {
-		AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-2222-3333");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-2222-3333");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength2() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-222-33");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-222-33");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength3() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-");
+		});
 	}
-	@Test(expected=IllegalArgumentException.class)
+	
+	@Test
 	public void testORCIDLetters() {
-		AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-xxxx-yyyy");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-xxxx-yyyy");
+		});
 	}
 }
