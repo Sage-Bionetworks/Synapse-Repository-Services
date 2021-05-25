@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dao.principal;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.Test;
@@ -13,12 +12,9 @@ public class AliasEnumTest {
 	public void testValidateAliasNull() {
 		// Each type should not allow null
 		for (AliasEnum ae : AliasEnum.values()) {
-			try {
+			assertThrows(IllegalArgumentException.class, () -> {
 				ae.validateAlias(null);
-				fail("Should have failed");
-			} catch (IllegalArgumentException e) {
-				// expected
-			}
+			});
 		}
 	}
 
@@ -30,17 +26,15 @@ public class AliasEnumTest {
 
 	@Test
 	public void testValidatePrincipalUserSpaces() {
-		try {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			AliasEnum.USER_NAME.validateAlias("has spaces");
-			fail("should have failed because it contains spaces.");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("letters"));
-			assertTrue(e.getMessage().contains("numbers"));
-			assertTrue(e.getMessage().contains("underscore"));
-			assertTrue(e.getMessage().contains("dash"));
-			assertTrue(e.getMessage().contains("dot"));
-			assertTrue(e.getMessage().contains("3 characters long"));
-		}
+		});
+		assertTrue(ex.getMessage().contains("letters"));
+		assertTrue(ex.getMessage().contains("numbers"));
+		assertTrue(ex.getMessage().contains("underscore"));
+		assertTrue(ex.getMessage().contains("dash"));
+		assertTrue(ex.getMessage().contains("dot"));
+		assertTrue(ex.getMessage().contains("3 characters long"));
 	}
 
 	@Test
@@ -70,18 +64,16 @@ public class AliasEnumTest {
 
 	@Test
 	public void testValidatePrincipalTeamAt() {
-		try {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			AliasEnum.TEAM_NAME.validateAlias("has@chars");
-			fail("should have failed because it contains spaces.");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("letters"));
-			assertTrue(e.getMessage().contains("numbers"));
-			assertTrue(e.getMessage().contains("underscore"));
-			assertTrue(e.getMessage().contains("dash"));
-			assertTrue(e.getMessage().contains("dot"));
-			assertTrue(e.getMessage().contains("space"));
-			assertTrue(e.getMessage().contains("3 characters long"));
-		}
+		});
+		assertTrue(ex.getMessage().contains("letters"));
+		assertTrue(ex.getMessage().contains("numbers"));
+		assertTrue(ex.getMessage().contains("underscore"));
+		assertTrue(ex.getMessage().contains("dash"));
+		assertTrue(ex.getMessage().contains("dot"));
+		assertTrue(ex.getMessage().contains("space"));
+		assertTrue(ex.getMessage().contains("3 characters long"));
 	}
 
 	@Test
