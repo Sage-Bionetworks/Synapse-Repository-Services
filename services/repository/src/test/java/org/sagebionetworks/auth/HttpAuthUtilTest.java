@@ -236,7 +236,7 @@ class HttpAuthUtilTest {
 
 		verify(httpResponse).setStatus(status.value());
 		verify(httpResponse).setContentType("application/json");
-		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(httpResponse).setHeader("WWW-Authenticate", "Bearer realm=\"Synapse Repository Services\"");
 		verify(mockWriter).println("{\"reason\":\"bad request\"}");
 	}
 
@@ -264,7 +264,7 @@ class HttpAuthUtilTest {
 		
 		verify(httpResponse).setStatus(401);
 		verify(httpResponse).setContentType("application/json");
-		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(httpResponse).setHeader("WWW-Authenticate", "Bearer realm=\"Synapse Repository Services\"");
 		verify(mockWriter).println("{\"reason\":\"missing token\"}");
 		
 	}
