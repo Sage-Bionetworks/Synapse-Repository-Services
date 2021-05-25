@@ -8,6 +8,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -51,7 +52,11 @@ public class ActivityManagerImpl implements ActivityManager {
 	@Override
 	public String createActivity(UserInfo userInfo, Activity activity)
 			throws DatastoreException, InvalidModelException {		
-
+		
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Cannot create activity with anonymous user.");
+		}
+		
 		// for idGenerator based id on create, regardless of what is passed
 		activity.setId(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
 
