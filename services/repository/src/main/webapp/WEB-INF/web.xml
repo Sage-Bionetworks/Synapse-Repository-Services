@@ -81,6 +81,21 @@
 	</filter-mapping>
 
 	<filter>
+		<filter-name>simpleCORSFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>simpleCORSFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
 		<filter-name>authFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
@@ -122,23 +137,6 @@
 		<url-pattern>/repo/v1/admin/*</url-pattern>
 		<url-pattern>/repo/v1/migration/*</url-pattern>
 		<url-pattern>/repo/v1/testing/*</url-pattern>
-	</filter-mapping>
-
-	<!-- This filter will look for the session token as a cookie, if it finds
-    it, the token will be added to the header of the request -->
-	<filter>
-		<filter-name>simpleCORSFilter</filter-name>
-		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
-		<init-param>
-			<!-- Make sure the init-params are passed through the proxy to the bean -->
-			<param-name>targetFilterLifecycle</param-name>
-			<param-value>true</param-value>
-		</init-param>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>simpleCORSFilter</filter-name>
-		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
 	<filter>

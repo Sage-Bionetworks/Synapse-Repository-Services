@@ -90,4 +90,9 @@ public class HttpClientImpl implements SimpleHttpClient {
 	public void clearAllCookies() {
 		client.clearAllCookies();
 	}
+
+	@Override
+	public SimpleHttpResponse options(SimpleHttpRequest request) throws ClientProtocolException, IOException {
+		return client.options(request);
+	}
 }
