@@ -81,5 +81,30 @@ public class ITSimpleCORSFilterTest {
         assertNotNull(response.getFirstHeader("access-control-allow-origin"));
         assertEquals("*", response.getFirstHeader("access-control-allow-origin").getValue());
     }
+    
+    // make sure the CORS request does not check authorization (PLFM-6756)
+    @Test
+    public void testNotAuthorizationOnCORSRequest() throws Exception {
+        StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
+        urlBuilder.append("/version");
+        SimpleHttpRequest request = new SimpleHttpRequest();
+        Map<String, String> requestHeaders = new HashMap<>();
+        requestHeaders.put("Authorization", "Bearer not-a-valid-access-token");
+        // the CORS filter requires this header to recognize the request as a preflight request
+        requestHeaders.put("Access-Control-Request-Method", "GET"); 
+        
+        request.setHeaders(requestHeaders);
+        request.setUri(urlBuilder.toString());
+    	
+        SimpleHttpResponse response = simpleHttpClient.options(request);
+        
+        // Previously we would return a 401 response.
+        // We now return a 200 response with the expected CORS/preflight response headers
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode());
+        assertNotNull(response.getFirstHeader("access-control-allow-origin"));
+        assertNotNull(response.getFirstHeader("Access-Control-Allow-Methods"));
+        
+    }
 
 }

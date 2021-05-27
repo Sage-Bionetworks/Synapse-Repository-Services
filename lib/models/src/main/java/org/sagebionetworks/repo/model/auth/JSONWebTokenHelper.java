@@ -15,14 +15,12 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.util.ValidateArgument;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.UnsupportedJwtException;
 
 public class JSONWebTokenHelper {
 	public static final String RSA = "RSA";
@@ -99,7 +97,7 @@ public class JSONWebTokenHelper {
 	public static String getSubjectFromJWTAccessToken(String accessToken) {
 		try {
 			return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
-		} catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
+		} catch (JwtException e) {
 			throw new IllegalArgumentException(e);
 		}
 	}

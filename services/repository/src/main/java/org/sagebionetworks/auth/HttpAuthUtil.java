@@ -153,7 +153,7 @@ public class HttpAuthUtil {
 		//      http://www.ietf.org/rfc/rfc2617.txt
 		resp.setContentType("application/json");
 		if (status.equals(HttpStatus.UNAUTHORIZED)) {
-			resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
+			resp.setHeader("WWW-Authenticate", "Bearer realm=\"Synapse Repository Services\"");
 		}
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		try {
