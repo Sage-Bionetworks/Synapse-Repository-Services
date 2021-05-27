@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.download;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -41,7 +43,17 @@ public interface DownloadListManager {
 
 	/**
 	 * Clear the user's download list.
+	 * 
 	 * @param userInfo
 	 */
 	void clearDownloadList(UserInfo userInfo);
+
+	/**
+	 * Add files to the user's download list from either a view query or folder.
+	 * 
+	 * @param userInfo
+	 * @param requestBody
+	 * @return
+	 */
+	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, AddToDownloadListRequest requestBody);
 }
