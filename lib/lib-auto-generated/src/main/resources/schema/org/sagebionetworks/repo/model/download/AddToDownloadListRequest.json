@@ -10,8 +10,8 @@
 			"description": "Results from this view query will be added to the user's download list.  This parameter should be excluded when adding files from a folder.",
 			"$ref": "org.sagebionetworks.repo.model.table.Query"
 		},
-		"folderId": {
-			"description": "The synID of a folder to add all of the children from the folder to the user's download list.  This parameter should be excluded when adding files from a query.",
+		"parentId": {
+			"description": "The synID of a folder or project to add all of the children files to the user's download list.  This parameter should be excluded when adding files from a query.",
 			"type": "string"
 		},
 		"useVersionNumber": {

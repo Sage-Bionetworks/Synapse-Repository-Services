@@ -9,10 +9,6 @@
 		"numberOfFilesAdded": {
 			"description": "The number of files that were added to the user's download list.",
 			"type": "integer"
-		},
-		"totalNumberOfFliesOnDownloadList": {
-			"description": "The total number of files on the user's download list.",
-			"type": "integer"
 		}
 	}
 }
