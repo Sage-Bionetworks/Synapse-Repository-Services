@@ -65,26 +65,26 @@ public class V2WikiTranslationUtils {
 	 * @param attachments
 	 * @return
 	 */
-	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dboPage, List<String> fileHandleIds, V2DBOWikiMarkdown dboMarkdown){
-		if(dboPage == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
+	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<String> fileHandleIds, V2DBOWikiMarkdown dboMarkdown){
+		if(dtoPage == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
 		if(fileHandleIds == null) throw new IllegalArgumentException("List of attachments cannot be null");
 		if(dboMarkdown == null) throw new IllegalArgumentException("Markdown file handle id cannot be null");
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setAttachmentFileHandleIds(fileHandleIds);
-		page.setId(dboPage.getId().toString());
-		page.setEtag(dboPage.getEtag());
+		page.setId(dtoPage.getId().toString());
+		page.setEtag(dtoPage.getEtag());
 		page.setTitle(dboMarkdown.getTitle());
-		page.setCreatedBy(dboPage.getCreatedBy().toString());
-		if(dboPage.getCreatedOn() != null){
-			page.setCreatedOn(new Date(dboPage.getCreatedOn()));
+		page.setCreatedBy(dtoPage.getCreatedBy().toString());
+		if(dtoPage.getCreatedOn() != null){
+			page.setCreatedOn(new Date(dtoPage.getCreatedOn()));
 		}
 		page.setModifiedBy(dboMarkdown.getModifiedBy().toString());
-		if(dboPage.getModifiedOn() != null){
+		if(dtoPage.getModifiedOn() != null){
 			page.setModifiedOn(new Date(dboMarkdown.getModifiedOn()));
 		}
-		if(dboPage.getParentId() != null){
-			page.setParentWikiId(dboPage.getParentId().toString());
+		if(dtoPage.getParentId() != null){
+			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
 		page.setMarkdownFileHandleId(dboMarkdown.getFileHandleId().toString());
 		
