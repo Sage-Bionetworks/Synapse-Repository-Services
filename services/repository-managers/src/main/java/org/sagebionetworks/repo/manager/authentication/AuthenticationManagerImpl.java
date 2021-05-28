@@ -8,10 +8,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -21,7 +18,6 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -40,12 +36,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
-
-
 	@Autowired
 	private AuthenticationDAO authDAO;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private AuthenticationReceiptTokenGenerator authenticationReceiptTokenGenerator;
 
@@ -68,41 +60,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private Clock clock;
 
 	@Override
-	public Long getPrincipalId(String sessionToken) {
-		Long principalId = authDAO.getPrincipal(sessionToken);
-		if (principalId == null) {
-			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
-		}
-		return principalId;
-	}
-	
-	@Override
-	@WriteTransaction
-	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException {
-		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
-		if (principalId == null) {
-			// Check to see why the token is invalid
-			Long userId = authDAO.getPrincipal(sessionToken);
-			if (userId == null) {
-				throw new UnauthenticatedException("The session token (" + sessionToken + ") is invalid");
-			}
-			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
-		}
-		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId)) {
-			throw new TermsOfUseException();
-		}
-		authDAO.revalidateSessionTokenIfNeeded(principalId);
-		return principalId;
-	}
-
-	@Override
-	@WriteTransaction
-	public void invalidateSessionToken(String sessionToken) {
-		authDAO.deleteSessionToken(sessionToken);
-	}
-	
-	@Override
 	@WriteTransaction
 	public void setPassword(Long principalId, String password) {
 		passwordValidator.validatePassword(password);
@@ -124,9 +81,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
 		}
 
-		//change password and invalidate previous session token
 		setPassword(userId, changePasswordInterface.getNewPassword());
-		authDAO.deleteSessionToken(userId);
 		userCredentialValidator.forceResetLoginThrottle(userId);
 		return userId;
 	}
@@ -174,35 +129,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@WriteTransaction
-	public Session getSessionToken(long principalId) throws NotFoundException {
-		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(principalId);
-		
-		// Make the session token if none was returned
-		if (session == null) {
-			session = new Session();
-		}
-		
-		// Set a new session token if necessary
-		if (session.getSessionToken() == null) {
-			UserGroup ug = userGroupDAO.get(principalId);
-			if (ug == null) {
-				throw new NotFoundException("The user (" + principalId + ") does not exist");
-			}
-			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
-			String token = authDAO.changeSessionToken(principalId, null);
-			boolean toU = authDAO.hasUserAcceptedToU(principalId);
-			session.setSessionToken(token);
-			
-			// Make sure to fetch the ToU state
-			session.setAcceptsTermsOfUse(toU);
-		}
-		
-		return session;
-	}
-
-	@Override
 	public PasswordResetSignedToken createPasswordResetToken(long userId) throws NotFoundException {
 		return passwordResetTokenGenerator.getToken(userId);
 	}
@@ -219,22 +145,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new IllegalArgumentException("Cannot \"unsign\" the terms of use");
 		}
 		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
-	}
-
-	@Deprecated
-	@Override
-	public LoginResponse loginForSession(LoginRequest request){
-		ValidateArgument.required(request, "loginRequest");
-		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
-		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-
-		final long userId = findUserIdForAuthentication(request.getUsername());
-		final String password = request.getPassword();
-		final String authenticationReceipt = request.getAuthenticationReceipt();
-
-		validateAuthReceiptAndCheckPassword(userId, password, authenticationReceipt);
-
-		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
 	}
 
 	@Override
@@ -288,23 +198,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	@Deprecated
-	@Override
-	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId){
-		return getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(principalId);
-	}
-
 	@Override
 	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer){
 		return getLoginResponseAfterSuccessfulPasswordAuthentication(principalId, issuer);
-	}
-
-	@Deprecated
-	LoginResponse getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(long principalId){
-		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
-		//generate session tokens for user after successful check
-		Session session = getSessionToken(principalId);
-		return createLoginResponse(session, newAuthenticationReceipt);
 	}
 
 	LoginResponse getLoginResponseAfterSuccessfulPasswordAuthentication(long principalId, String issuer) {
@@ -315,22 +211,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
 	}
 	
-	@Deprecated
-	/**
-	 * Create a login response from the session and the new authentication receipt
-	 * 
-	 * @param session
-	 * @param newReceipt
-	 * @return
-	 */
-	private static LoginResponse createLoginResponse(Session session, String newReceipt) {
-		LoginResponse response = new LoginResponse();
-		response.setSessionToken(session.getSessionToken());
-		response.setAcceptsTermsOfUse(session.getAcceptsTermsOfUse());
-		response.setAuthenticationReceipt(newReceipt);
-		return response;
-	}
-
 	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {
 		LoginResponse response = new LoginResponse();
 		response.setAccessToken(accessToken);

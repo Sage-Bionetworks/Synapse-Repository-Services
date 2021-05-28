@@ -259,31 +259,6 @@ public class PrincipalManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCreateNewAccountForSession() throws Exception {
-		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
-		emailValidationSignedToken.setEmail(user.getEmail());
-		emailValidationSignedToken.setCreatedOn(now);
-		emailValidationSignedToken.setHmac("signed");
-		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
-		accountSetupInfo.setFirstName(FIRST_NAME);
-		accountSetupInfo.setLastName(LAST_NAME);
-		accountSetupInfo.setPassword(PASSWORD);
-		accountSetupInfo.setUsername(USER_NAME);
-		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
-		manager.createNewAccountForSession(accountSetupInfo);
-		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
-		verify(mockUserManager).createUser(newUserCaptor.capture());
-		NewUser user = newUserCaptor.getValue();
-		assertEquals(FIRST_NAME, user.getFirstName());
-		assertEquals(LAST_NAME, user.getLastName());
-		assertEquals(USER_NAME, user.getUserName());
-		assertEquals(EMAIL, user.getEmail());
-		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).loginForSessionWithNoPasswordCheck(USER_ID);
-	}
-
-	@Test
 	public void testCreateNewAccount() throws Exception {
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();

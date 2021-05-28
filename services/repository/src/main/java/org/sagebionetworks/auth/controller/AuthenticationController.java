@@ -112,7 +112,7 @@ public class AuthenticationController {
 
 	/**
 	 * This method only exists for backwards compatibility.
-	 * Use {@link #login(LoginRequest)}.
+	 * Use {@link #login2(LoginRequest)}.
 	 */
 	@Deprecated
 	@RequiredScope({})
@@ -120,20 +120,30 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(
-			@RequestBody LoginCredentials credentials)
+			@RequestBody LoginCredentials credentials,
+			UriComponentsBuilder uriComponentsBuilder)
 			throws NotFoundException {
 		LoginRequest request = DeprecatedUtils.createLoginRequest(credentials);
-		LoginResponse loginResponse =  authenticationService.loginForSession(request);
-		return DeprecatedUtils.createSession(loginResponse);
+		LoginResponse loginResponseForLogin2 = authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
+		LoginResponse loginResponseForLogin = DeprecatedUtils.createLoginResponseFromLogin2Response(
+				loginResponseForLogin2);
+		return DeprecatedUtils.createSession(loginResponseForLogin);
 	}
 	
+	/**
+	 * This method only exists for backwards compatibility.
+	 * Use {@link #login2(LoginRequest)}.
+	 */
 	@Deprecated
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_LOGIN, method = RequestMethod.POST)
 	public @ResponseBody
-	LoginResponse loginForSessionToken(@RequestBody LoginRequest request) throws NotFoundException {
-		return authenticationService.loginForSession(request);
+	LoginResponse loginForSessionToken(@RequestBody LoginRequest request,
+			UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
+		return DeprecatedUtils.createLoginResponseFromLogin2Response(
+				authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder))
+		);
 	}
 
 	/**
@@ -169,33 +179,6 @@ public class AuthenticationController {
 		return authenticationService.getAuthenticatedOn(userId);
 	}
 
-	@Deprecated
-	/**
-	 * Refresh a session token to render it usable for another 24 hours.
-	 */
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
-	public void revalidate(
-			@RequestBody Session session)
-			throws NotFoundException {
-		authenticationService.revalidate(session.getSessionToken());
-	}
-
-	@Deprecated
-	/**
-	 * Deauthenticate a session token. This will sign out all active sessions
-	 * using the session token.
-	 */
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
-	public void deauthenticate(HttpServletRequest request) {
-		String sessionToken = request
-				.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		authenticationService.invalidateSessionToken(sessionToken);
-	}
-
 	/**
 	 * Sends an email for resetting a user's password. <br/>
 	 * @param passwordResetEndpoint the Portal's url prefix for handling password resets.
@@ -219,16 +202,6 @@ public class AuthenticationController {
 			@RequestBody ChangePasswordInterface request)
 			throws NotFoundException {
 		authenticationService.changePassword(request);
-	}
-
-	@Deprecated
-	@RequiredScope({modify})
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
-	public void signTermsOfUseSessionToken(
-			@RequestBody Session session)
-			throws NotFoundException {
-		authenticationService.signTermsOfUseSession(session);
 	}
 
 	/**
@@ -299,16 +272,6 @@ public class AuthenticationController {
 		return authenticationService.getOAuthAuthenticationUrl(request);
 	}
 
-	@Deprecated
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_SESSION, method = RequestMethod.POST)
-	public @ResponseBody
-	Session validateOAuthSessionAndReturnSession(@RequestBody OAuthValidationRequest request)
-			throws Exception {
-		return authenticationService.validateOAuthAuthenticationCodeAndLoginForSession(request);
-	}
-
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -357,16 +320,6 @@ public class AuthenticationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
 		return authenticationService.bindExternalID(userId, request);
-	}
-	
-	@Deprecated
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ACCOUNT, method = RequestMethod.POST)
-	public @ResponseBody
-	Session createAccountViaOAuth2ForSession(@RequestBody OAuthAccountCreationRequest request)
-			throws Exception {
-		return authenticationService.createAccountViaOauthForSession(request);
 	}
 	
 	/**

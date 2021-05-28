@@ -3,12 +3,10 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
-import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.controller.EndpointHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -53,7 +51,7 @@ public class PrincipalController {
 	 * <p>
 	 * This call is used to determine if an alias is currently available.
 	 * </p>
-	 * <p>A session token is not required for this call.</p>
+	 * <p>Authentication is not required for this call.</p>
 	 * Each value of each <a
 	 * href="${org.sagebionetworks.repo.model.principal.AliasType}"
 	 * >AliasType</a> must have a unique string representation. While some
@@ -103,22 +101,11 @@ public class PrincipalController {
 		serviceProvider.getPrincipalService().newAccountEmailValidation(user, portalEndpoint);
 	}
 	
-	@Deprecated
-	@RequiredScope({})
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
-	@ResponseBody
-	public Session createNewAccountForSession(
-			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		LoginResponse response = serviceProvider.getPrincipalService().createNewAccountForSession(accountSetupInfo);
-		return DeprecatedUtils.createSession(response);
-	}
-	
 	/**
 	 * This service completes the email validation process for setting up a new account. The client must provide the
 	 * validation token which was sent by email. The request will be rejected if the validation token is missing or
 	 * invalid or if the requested user name is not available. After successful account creation the user is logged in
-	 * and a session token returned to the client.
+	 * and an access token returned to the client.
 	 * 
 	 * @param accountSetupInfo user's first name, last name, requested user name, password, and validation token
 	 * @return an access token, allowing the client to begin making authenticated requests

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,8 +25,6 @@ import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessToken;
@@ -37,7 +34,6 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -117,18 +113,6 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testRevalidateToU() throws Exception {
-		// A boolean flag should let us get past this call
-		service.revalidate(sessionToken, false);
-
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
-		.thenThrow(new TermsOfUseException());
-
-		// But it should default to true
-		assertThrows(TermsOfUseException.class, ()->service.revalidate(sessionToken));
-	}
-	
-	@Test
 	public void testSignTermsOfUse() {
 		AccessToken accessToken = new AccessToken();
 		accessToken.setAccessToken(ACCESS_TOKEN);
@@ -154,27 +138,6 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authUrl, response.getAuthorizationUrl());
 	}
 	
-	
-	@Test
-	public void testValidateOAuthAuthenticationCodeForSession() throws NotFoundException{
-		OAuthValidationRequest request = new OAuthValidationRequest();
-		request.setAuthenticationCode("some code");
-		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setRedirectUrl("https://domain.com");
-		ProvidedUserInfo info = new ProvidedUserInfo();
-		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
-		PrincipalAlias alias = new PrincipalAlias();
-		long userId = 3456L;
-		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
-		Session session = new Session();
-		session.setSessionToken("token");
-		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
-		//call under test
-		Session result = service.validateOAuthAuthenticationCodeAndLoginForSession(request);
-		assertEquals(session, result);
-	}
 	
 	@Test
 	public void testValidateOAuthAuthenticationCode() throws NotFoundException{
@@ -203,27 +166,6 @@ public class AuthenticationServiceImplTest {
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
-	}
-	
-	@Test
-	public void testCreateAccountViaOauthForSession() throws NotFoundException{
-		OAuthAccountCreationRequest request = new OAuthAccountCreationRequest();
-		request.setAuthenticationCode("some code");
-		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setRedirectUrl("https://domain.com");
-		request.setUserName("uname");
-		ProvidedUserInfo info = new ProvidedUserInfo();
-		info.setUsersVerifiedEmail("first.last@domain.com");
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
-		
-		when(mockUserManager.createUser((NewUser)any())).thenReturn(userId);
-		Session session = new Session();
-		session.setSessionToken("token");
-		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
-		
-		//call under test
-		Session result = service.createAccountViaOauthForSession(request);
-		assertEquals(session, result);
 	}
 	
 	@Test
@@ -258,25 +200,6 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).createUser(captor.capture());
 		assertEquals(newUser, captor.getValue());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
-	}
-	
-	@Test
-	public void testValidateOAuthAuthenticationCodeForSessionEmailNull() throws NotFoundException{
-		OAuthValidationRequest request = new OAuthValidationRequest();
-		request.setAuthenticationCode("some code");
-		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setRedirectUrl("https://domain.com");
-		ProvidedUserInfo info = new ProvidedUserInfo();
-		info.setUsersVerifiedEmail(null);
-		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
-		PrincipalAlias alias = new PrincipalAlias();
-		long userId = 3456L;
-		alias.setPrincipalId(userId);
-		Session session = new Session();
-		session.setSessionToken("token");
-
-		//call under test
-		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLoginForSession(request));
 	}
 	
 	@Test
@@ -334,32 +257,6 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).unbindAlias(aliasName, AliasType.USER_ORCID, principalId);
 	}
 	
-	
-	@Test
-	public void testLogin() {
-		when(mockAuthenticationManager.loginForSession(loginRequest)).thenReturn(loginResponse);
-
-		// call under test
-		LoginResponse response = service.loginForSession(loginRequest);
-		assertNotNull(response);
-		assertEquals(loginResponse, response);
-	}
-	
-	/**
-	 * Test for PLFM-3914
-	 * 
-	 */
-	@Test
-	public void testLoginNotFound() {
-		// NotFoundException should be converted to UnauthenticatedException;
-		try {
-			// call under test
-			service.loginForSession(loginRequest);
-		} catch (UnauthenticatedException e) {
-			assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, e.getMessage());
-		}
-	}
-
 	@Test
 	public void testChangePassword(){
 		ChangePasswordWithToken changePassword = new ChangePasswordWithToken();

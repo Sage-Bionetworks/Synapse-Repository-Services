@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -51,16 +50,13 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
-import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.DefaultClaims;
 
 @ExtendWith({MockitoExtension.class})
@@ -175,51 +171,6 @@ public class AuthenticationFilterTest {
 		assertTrue(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(anonymous));
 	}
 	
-	@Test
-	public void testSessionToken_asHeader() throws Exception {
-		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockFilterChain filterChain = new MockFilterChain();
-		
-		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
-
-		// method under test
-		filter.doFilter(request, response, filterChain);
-		
-		// Session token should be recognized
-		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
-		ServletRequest modRequest = filterChain.getRequest();
-		assertNotNull(modRequest);
-		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(userId.toString(), sessionUserId);
-	}
-	
-	@Test
-	public void testSessionToken_asParameter() throws Exception {
-		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockFilterChain filterChain = new MockFilterChain();
-		
-		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
-
-		// method under test
-		filter.doFilter(request, response, filterChain);
-
-		// Session token should be recognized
-		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
-		ServletRequest modRequest = filterChain.getRequest();
-		assertNotNull(modRequest);
-		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(userId.toString(), sessionUserId);
-	}
 	
 	@Test
 	public void testSessionToken_isNull() throws Exception {

@@ -4,10 +4,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHENTICATED_ON_PRINCIPAL_ID;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,11 +22,9 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
@@ -58,7 +54,6 @@ public class DBOAuthenticationDAOImplTest {
 	
 	private Long userId;
 	private DBOCredential credential;
-	private DBOSessionToken sessionToken;
 	private DBOAuthenticatedOn authOn;
 	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
@@ -84,11 +79,6 @@ public class DBOAuthenticationDAOImplTest {
 		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		credential = basicDAO.createNew(credential);
-		
-		sessionToken = new DBOSessionToken();
-		sessionToken.setPrincipalId(userId);
-		sessionToken.setSessionToken("Hsssssss...");
-		sessionToken = basicDAO.createNew(sessionToken);
 		
 		authOn = new DBOAuthenticatedOn();
 		authOn.setPrincipalId(userId);
@@ -123,73 +113,6 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
-	public void testCheckSessionNotSharedBetweenDomains() {
-		Session session = authDAO.getSessionTokenIfValid(userId);
-		assertNotNull(session);
-	}
-
-	@Test
-	public void testSigningOffOnlySignsOffOneDomain() {
-		// Log in to none, log out
-		assertTrue(authDAO.checkUserCredentials(userId, credential.getPassHash()));
-		Session session = authDAO.getSessionTokenIfValid(userId);
-		authDAO.deleteSessionToken(sessionToken.getSessionToken());
-
-		// You are still logged in to synapse
-		session = authDAO.getSessionTokenIfValid(userId);
-		assertNotNull(session);
-	}
-
-	@Test
-	public void testSessionTokenCRUD() throws Exception {
-		// Get by username
-		Session session = authDAO.getSessionTokenIfValid(userId);
-		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
-		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
-
-		// Get by token
-		Long id = authDAO.getPrincipalIfValid(sessionToken.getSessionToken());
-		assertEquals(credential.getPrincipalId(), id);
-		
-		// Get by token, without restrictions
-		Long principalId = authDAO.getPrincipal(sessionToken.getSessionToken());
-		assertEquals(credential.getPrincipalId(), principalId);
-		
-		// Delete
-		authDAO.deleteSessionToken(sessionToken.getSessionToken());
-		session = authDAO.getSessionTokenIfValid(userId);
-		assertNull(session.getSessionToken());
-		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
-		
-		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
-		assertTrue(!userEtag.equals(changedEtag));
-		
-		// Change to a string
-		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(credential.getPrincipalId(), foobarSessionToken);
-		session = authDAO.getSessionTokenIfValid(userId);
-		assertEquals(foobarSessionToken, session.getSessionToken());
-		
-		// Verify that the parent group's etag has changed
-		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
-		assertTrue(!userEtag.equals(changedEtag));
-		
-		// Change to a UUID
-		authDAO.changeSessionToken(credential.getPrincipalId(), null);
-		session = authDAO.getSessionTokenIfValid(userId);
-		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
-		assertFalse(sessionToken.getSessionToken().equals(session.getSessionToken()));
-		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
-		
-		// Verify that the parent group's etag has changed
-		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
-		assertTrue(!userEtag.equals(changedEtag));
-	}
-	
-	@Test
 	public void testGetWithoutToUAcceptance() throws Exception {
 		touAgreement.setAgreesToTermsOfUse(false);
 		basicDAO.update(touAgreement);
@@ -199,39 +122,6 @@ public class DBOAuthenticationDAOImplTest {
 		tou.setAgreesToTermsOfUse(Boolean.FALSE);
 		basicDAO.createOrUpdate(tou);
 		
-		Session session = authDAO.getSessionTokenIfValid(userId);
-		assertNotNull(session);
-		
-		Long id = authDAO.getPrincipalIfValid(sessionToken.getSessionToken());
-		assertNotNull(id);
-	}
-	
-	@Test
-	public void testSessionTokenRevalidation() throws Exception {
-		// Test fast!  Only one second before expiration!
-		Date now = authOn.getAuthenticatedOn();
-		authOn.setAuthenticatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
-		basicDAO.update(authOn);
-
-		// Still valid
-		Session session = authDAO.getSessionTokenIfValid(userId, now);
-		assertNotNull(session);
-		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
-
-		// Right on the dot!  Too bad, that's invalid :P
-		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
-		assertNull(session);
-		
-		// Session should no longer be valid
-		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
-		assertNull(session);
-
-		// Session is valid again
-		assertTrue(authDAO.revalidateSessionTokenIfNeeded(credential.getPrincipalId()));
-		session = authDAO.getSessionTokenIfValid(userId);
-		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
 	
 	@Test
@@ -287,7 +177,6 @@ public class DBOAuthenticationDAOImplTest {
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, false);
 		assertFalse(authDAO.hasUserAcceptedToU(userId));
-		assertNotNull(authDAO.getSessionTokenIfValid(userId));
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
@@ -338,16 +227,6 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
-	}
-
-	@Test
-	public void testDeleteSessionToken_byPrincipalId(){
-		String sessionToken = authDAO.changeSessionToken(userId, null);
-		assertNotNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
-
-		//method under test
-		authDAO.deleteSessionToken(userId);
-		assertNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
 	}
 	
 	@Test

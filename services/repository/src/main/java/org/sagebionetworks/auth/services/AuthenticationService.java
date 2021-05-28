@@ -1,7 +1,5 @@
 package org.sagebionetworks.auth.services;
 
-import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
@@ -11,7 +9,6 @@ import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -27,36 +24,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface AuthenticationService {
 	
 	/**
-	 * Revalidates a session token and checks if the user has accepted the terms of use.
-	 * @return The principalId of the user holding the token
-	 * @throws UnauthorizedException If the token has expired or is otherwise not valid.
-	 * @throws TermsOfUseException If the user has not accepted the terms of use.
-	 */
-	public Long revalidate(String sessionToken) throws NotFoundException;
-	
-	/**
-	 * Revalidates a session token
-	 * See {@link #revalidate(String)}
-	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
-	 */
-	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
-	
-	/**
-	 * Invalidates a session token
-	 */
-	public void invalidateSessionToken(String sessionToken);
-
-	/**
 	 * Changes the password of the user
-	 * Also invalidates the user's session token
 	 */
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
-	
-	@Deprecated
-	/**
-	 * Identifies a user via session token and signs that user's terms of use
-	 */
-	public void signTermsOfUseSession(Session session) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via access token and signs that user's terms of use
@@ -97,30 +67,14 @@ public interface AuthenticationService {
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 
-	@Deprecated
-	public Session validateOAuthAuthenticationCodeAndLoginForSession(
-			OAuthValidationRequest request) throws NotFoundException;
-	
 	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException;
 	
-	@Deprecated
-	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) throws NotFoundException;
-
 	public LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) throws NotFoundException;
 
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 
 	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
-
-	/**
-	 * Authenticates username and password combination
-	 * User can use an authentication receipt from previous login to skip extra security checks
-	 * 
-	 * @return a LoginResponse if username/password is valid
-	 * @throws org.sagebionetworks.repo.model.UnauthenticatedException If the credentials are incorrect
-	 */
-	public LoginResponse loginForSession(LoginRequest request);
 
 	/**
 	 * Authenticates username and password combination

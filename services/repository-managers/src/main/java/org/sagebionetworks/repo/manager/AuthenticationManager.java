@@ -1,40 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
-public interface AuthenticationManager {
-	/**
-	 * Looks for the user holding the given session token
-	 * @throws UnauthorizedException If the token has expired
-	 */
-	public Long getPrincipalId(String sessionToken);
-	
-	/**
-	 * Looks for the given session token
-	 * Also revalidates the session token if valid
-	 * 
-	 * @param checkToU Should an exception be thrown if the terms of use haven't been signed?
-	 * @return The principal ID of the holder
-	 * @throws UnauthorizedException If the token is not valid
-	 * @throws TermsOfUseException If the user has not signed the terms of use
-	 */
-	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException;
-	
-	/**
-	 * Deletes the given session token, thereby invalidating it
-	 */
-	public void invalidateSessionToken(String sessionToken);
-	
+public interface AuthenticationManager {	
 	/**
 	 * Set a user's password without any authorization checks
 	 */
@@ -57,12 +32,6 @@ public interface AuthenticationManager {
 	public void changeSecretKey(Long principalId);
 	
 	/**
-	 * Returns the user's session token
-	 * If the user's token is invalid or expired, a new one is created and returned
-	 */
-	public Session getSessionToken(long principalId) throws NotFoundException;
-
-	/**
 	 * Creates a token tha can be used to reset a user's password
 	 */
 	public PasswordResetSignedToken createPasswordResetToken(long principalId) throws NotFoundException;
@@ -76,10 +45,6 @@ public interface AuthenticationManager {
 	 * Sets whether the user has accepted or rejected the terms of use
 	 */
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
-
-
-	@Deprecated
-	public LoginResponse loginForSession(LoginRequest request);
 
 	/**
 	 * Log user in using information from the LoginRequest
@@ -97,9 +62,6 @@ public interface AuthenticationManager {
 	 * @return
 	 */
 	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo);
-	
-	@Deprecated
-	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId);
 	
 	/**
 	 * Bypass password check and just create a login response for the user.

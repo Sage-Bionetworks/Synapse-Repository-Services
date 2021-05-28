@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.feature.Feature;
@@ -168,7 +167,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		DBOCredential cred = new DBOCredential();
-		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
 			passwordValidator.validatePassword(userSpecs.getPassword());
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
@@ -179,7 +177,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement, token);
+		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement);
 		
 		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
 	}

@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -59,30 +58,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private PersonalAccessTokenManager personalAccessTokenManager;
 	
-	@Override
-	@WriteTransaction
-	public Long revalidate(String sessionToken) throws NotFoundException {
-		return revalidate(sessionToken, true);
-	}
-	
-	@Override
-	@WriteTransaction
-	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
-		if (sessionToken == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		return authManager.checkSessionToken(sessionToken, checkToU);
-	}
-
-	@Override
-	@WriteTransaction
-	public void invalidateSessionToken(String sessionToken) {
-		if (sessionToken == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		authManager.invalidateSessionToken(sessionToken);
-	}
-
 	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
@@ -90,26 +65,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		messageManager.sendPasswordChangeConfirmationEmail(userId);
 	}
 
-	@Deprecated
-	@Override
-	@WriteTransaction
-	public void signTermsOfUseSession(Session session) throws NotFoundException {
-		if (session.getSessionToken() == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		if (session.getAcceptsTermsOfUse() == null) {
-			throw new IllegalArgumentException("Terms of use acceptance may not be null");
-		}
-		
-		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
-		UserInfo userInfo = userManager.getUserInfo(principalId);
-		
-		// Save the state of acceptance
-		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
-			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
-		}
-	}
-	
 	@Override
 	@WriteTransaction
 	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException {
@@ -157,22 +112,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		return response;
 	}
 
-	@Deprecated
-	@Override
-	public Session validateOAuthAuthenticationCodeAndLoginForSession(
-			OAuthValidationRequest request) throws NotFoundException {
-		// Use the authentication code to lookup the user's information.
-		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
-				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		if(providedInfo.getUsersVerifiedEmail() == null){
-			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
-		}
-		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
-		// Return the user's session token
-		return authManager.getSessionToken(emailAlias.getPrincipalId());
-	}
-	
 	@Override
 	public LoginResponse validateOAuthAuthenticationCodeAndLogin(
 			OAuthValidationRequest request, String tokenIssuer) throws NotFoundException {
@@ -187,27 +126,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// Return the user's access token
 		return authManager.loginWithNoPasswordCheck(emailAlias.getPrincipalId(), tokenIssuer);
-	}
-	
-	@Deprecated
-	@WriteTransaction
-	public Session createAccountViaOauthForSession(OAuthAccountCreationRequest request) {
-		// Use the authentication code to lookup the user's information.
-		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
-				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		if(providedInfo.getUsersVerifiedEmail() == null){
-			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
-		}
-		// create account with the returned user info.
-		NewUser newUser = new NewUser();
-		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
-		newUser.setFirstName(providedInfo.getFirstName());
-		newUser.setLastName(providedInfo.getLastName());
-		newUser.setUserName(request.getUserName());
-		long newPrincipalId = userManager.createUser(newUser);
-		
-		Session session = authManager.getSessionToken(newPrincipalId);
-		return session;
 	}
 	
 	@WriteTransaction
@@ -246,12 +164,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
 		AliasType aliasType = oauthManager.getAliasTypeForProvider(provider);
 		userManager.unbindAlias(aliasName, aliasType, userId);
-	}
-
-	@Deprecated
-	@Override
-	public LoginResponse loginForSession(LoginRequest request) {
-			return authManager.loginForSession(request);
 	}
 
 	@Override
