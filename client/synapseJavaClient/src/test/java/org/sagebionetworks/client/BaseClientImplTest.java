@@ -167,13 +167,10 @@ public class BaseClientImplTest {
 	@Test
 	public void testLogout() throws Exception {
 		baseClient.setSessionToken("some token");
-		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
+
 		baseClient.deleteSessionTokenHeader();
-		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).delete(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
-				captor.getValue().getUri());
+		
+		assertNull(baseClient.getCurrentSessionToken());
 	}
 	
 	@Test
