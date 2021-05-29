@@ -41,7 +41,7 @@ public class IT045CookieAuthentication {
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
-		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getCurrentSessionToken());
+		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getAccessToken());
 	}
 	
 	@AfterClass
@@ -63,8 +63,4 @@ public class IT045CookieAuthentication {
 		
 	}
 
-	@Test
-	public void testRepoCookieAuthenticate(){
-		//TODO Can we make a repository call with a cookie
-	}
 }

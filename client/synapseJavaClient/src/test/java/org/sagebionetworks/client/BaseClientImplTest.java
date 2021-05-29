@@ -169,7 +169,7 @@ public class BaseClientImplTest {
 		baseClient.setSessionToken("some token");
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
-		baseClient.logout();
+		baseClient.deleteSessionTokenHeader();
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).delete(captor.capture());
 		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
@@ -190,26 +190,6 @@ public class BaseClientImplTest {
 		assertNull(baseClient.getAccessToken());
 	}
 	
-	@Test (expected = SynapseClientException.class)
-	public void testRevalidateSessionNotLogin() throws Exception {
-		baseClient.revalidateSession();
-	}
-
-	@Test
-	public void testRevalidateSession() throws Exception {
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
-				.thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		baseClient.setSessionToken("token");
-		baseClient.revalidateSession();
-		ArgumentCaptor<SimpleHttpRequest> requestCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
-		verify(mockClient).put(requestCaptor.capture(), bodyCaptor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
-				requestCaptor.getValue().getUri());
-		assertEquals("{\"sessionToken\":\"token\"}", bodyCaptor.getValue());
-	}
-
 	@Test
 	public void testInvalidateAPIKey() throws Exception {
 		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);

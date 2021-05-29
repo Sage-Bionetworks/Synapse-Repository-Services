@@ -125,9 +125,7 @@ public class AuthenticationController {
 			throws NotFoundException {
 		LoginRequest request = DeprecatedUtils.createLoginRequest(credentials);
 		LoginResponse loginResponseForLogin2 = authenticationService.login(request, EndpointHelper.getEndpoint(uriComponentsBuilder));
-		LoginResponse loginResponseForLogin = DeprecatedUtils.createLoginResponseFromLogin2Response(
-				loginResponseForLogin2);
-		return DeprecatedUtils.createSession(loginResponseForLogin);
+		return DeprecatedUtils.createSessionFromLogin2Response(loginResponseForLogin2);
 	}
 	
 	/**

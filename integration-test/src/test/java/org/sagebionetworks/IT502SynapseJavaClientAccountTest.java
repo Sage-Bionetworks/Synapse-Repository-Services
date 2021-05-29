@@ -104,14 +104,14 @@ public class IT502SynapseJavaClientAccountTest {
 		accountSetupInfo.setPassword(UUID.randomUUID().toString());
 		String username = UUID.randomUUID().toString();
 		accountSetupInfo.setUsername(username);
-		Session session = synapseAnonymous.createNewAccount(accountSetupInfo);
-		assertNotNull(session.getSessionToken());
+		LoginResponse loginResponse = synapseAnonymous.createNewAccountForAccessToken(accountSetupInfo);
+		assertNotNull(loginResponse.getAccessToken());
 		// need to get the ID of the new user to delete it
 		SynapseClientImpl sc = new SynapseClientImpl();
-		sc.setSessionToken(session.getSessionToken());
+		sc.setSessionToken(loginResponse.getAccessToken());
 		SynapseClientHelper.setEndpoints(sc);
 		sc.setUsername(username);
-		sc.signTermsOfUse(session.getSessionToken(), true);
+		sc.signTermsOfUse(loginResponse.getAccessToken());
 		UserProfile up = sc.getMyProfile();
 		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}

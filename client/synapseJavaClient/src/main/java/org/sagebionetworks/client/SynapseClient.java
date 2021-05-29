@@ -76,20 +76,17 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
@@ -325,9 +322,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint) throws SynapseException;
 	
-	@Deprecated
-	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
-	
 	/**
 	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid access token
 	 * @param accountSetupInfo  Note:  Caller may override the first/last name, but not the email, given in 'newAccountEmailValidation' 
@@ -400,14 +394,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
-
-	@Deprecated
-	/**
-	 * Returns an access token and UserProfile object
-	 * 
-	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
-	 */
-	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
 	 * Create a new Entity.
@@ -1890,12 +1876,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
 
-	@Deprecated
-	/**
-	 * Signs the terms of use for utilization of Synapse, as identified by a session token
-	 */
-	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
-
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token
 	 */
@@ -1919,24 +1899,6 @@ public interface SynapseClient extends BaseClient {
 	OAuthUrlResponse getOAuth2AuthenticationUrl(OAuthUrlRequest request)
 			throws SynapseException;
 	
-	@Deprecated
-	/**
-	 * After a user has been authenticated at an OAuthProvider's web page, the
-	 * provider will redirect the browser to the provided redirectUrl. The
-	 * provider will add a query parameter to the redirectUrl called "code" that
-	 * represent the authorization code for the user. This method will use the
-	 * authorization code to validate the user and fetch information about the
-	 * user from the OAuthProvider. If successful, a session token for the user
-	 * will be returned.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws SynapseException
-	 * @throws NotFoundException if the user does not exist in Synapse.
-	 */
-	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
-			throws SynapseException;
-	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -1953,28 +1915,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	LoginResponse validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request)
 			throws SynapseException;
-	
-	@Deprecated
-	/**
-	 * 
-	 * After a user has been authenticated at an OAuthProvider's web page, the
-	 * provider will redirect the browser to the provided redirectUrl. The
-	 * provider will add a query parameter to the redirectUrl called "code" that
-	 * represent the authorization code for the user. This method will use the
-	 * authorization code to validate the user and fetch the user's email address
-	 * from the OAuthProvider. If there is no existing account using the email address
-	 * from the provider then a new account will be created, the user will be authenticated,
-	 * and a session will be returned.
-	 * 
-	 * If the email address from the provider is already associated with an account or
-	 * if the passed user name is used by another account then the request will
-	 * return HTTP Status 409 Conflict.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws SynapseException
-	 */
-	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
 	
 	/**
 	 * 

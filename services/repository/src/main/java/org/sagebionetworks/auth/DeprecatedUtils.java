@@ -48,4 +48,9 @@ public class DeprecatedUtils {
 		return result;
 	}
 	
+	@Deprecated
+	public static Session createSessionFromLogin2Response(LoginResponse response) {
+		return createSession(createLoginResponseFromLogin2Response(response));
+	}
+	
 }

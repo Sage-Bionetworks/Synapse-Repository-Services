@@ -150,7 +150,7 @@ public class IT990AuthenticationController {
 
 	@Test
 	public void testLoginThenLogout() throws Exception {
-		synapse.logout();
+		synapse.deleteSessionTokenHeader();
 		assertNull(synapse.getCurrentSessionToken());
 	}
 
@@ -176,9 +176,9 @@ public class IT990AuthenticationController {
 		synapse.login(request);
 		String sessionToken = synapse.getCurrentSessionToken();
 		// Accept the terms
-		synapse.signTermsOfUse(sessionToken, true);
+		synapse.signTermsOfUse(sessionToken);
 		// Reject the terms
-		synapse.signTermsOfUse(sessionToken, false);
+		synapse.signTermsOfUse(sessionToken);
 	}
 
 	@Test
@@ -226,7 +226,7 @@ public class IT990AuthenticationController {
 		System.out.println(apikey);
 		
 		// Use the API key
-		synapse.logout();
+		synapse.deleteSessionTokenHeader();
 		synapse.setUsername(username);
 		synapse.setApiKey(apikey);
 		
@@ -268,7 +268,7 @@ public class IT990AuthenticationController {
 			request.setRedirectUrl("https://www.synapse.org");
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
-			synapse.validateOAuthAuthenticationCode(request);
+			synapse.validateOAuthAuthenticationCodeForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -309,7 +309,7 @@ public class IT990AuthenticationController {
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			request.setUserName("uname");
-			synapse.createAccountViaOAuth2(request);
+			synapse.createAccountViaOAuth2ForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
