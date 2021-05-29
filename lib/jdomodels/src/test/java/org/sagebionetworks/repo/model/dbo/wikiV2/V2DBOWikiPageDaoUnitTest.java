@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.model.dbo.wikiV2;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,12 +28,14 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -68,7 +72,19 @@ public class V2DBOWikiPageDaoUnitTest {
 	private ArgumentCaptor<MessageToSend> messageToSendCaptor;
 	
 	@Captor
-	private ArgumentCaptor<V2DBOWikiOwner> wikiDboCaptor;
+	private ArgumentCaptor<DatabaseObject> dboCaptor;
+	
+	@Captor
+	private ArgumentCaptor<V2DBOWikiPage> wikiPageDboCaptor;
+	
+	@Captor
+	private ArgumentCaptor<V2DBOWikiOwner> wikiOwnerDboCaptor;
+	
+	@Captor
+	private ArgumentCaptor<V2DBOWikiMarkdown> wikiMarkdownDboCaptor;
+	
+	@Captor
+	private ArgumentCaptor<List<V2DBOWikiAttachmentReservation>> attachmentBatchCaptor;
 	
 	private static final Long OWNER_ID = 101L;
 	private static final Long WIKI_ID = 202L;
@@ -109,11 +125,20 @@ public class V2DBOWikiPageDaoUnitTest {
 		// method under test
 		wikiPageDao.create(toCreate, fileNameToFileHandleMap, OWNER_ID.toString(), ObjectType.ENTITY, newFileHandleIds);
 		
-		// TODO
-		verify(basicDao.createNew(toCreate)); // V2DBOWikiPage see line 299 in V2DBOWikiPageDaoImpl
-		verify(basicDao.createNew(toCreate)); // V2DBOWikiOwner see line 480 in V2DBOWikiPageDaoImpl
-		verify(basicDao.createBatch(batch)); // List<V2DBOWikiAttachmentReservation> see line 276 in V2DBOWikiPageDaoImpl
-		verify(basicDao.createNew(toCreate)); // V2DBOWikiMarkdown see line 286 in V2DBOWikiPageDaoImpl
+		verify(basicDao, times(3)).createNew(dboCaptor.capture()); 
+		List<DatabaseObject> createdDbos = dboCaptor.getAllValues();
+		
+		V2DBOWikiPage createdDboWikiPage = (V2DBOWikiPage)createdDbos.get(0);
+		assertEquals(dbo.getId(), createdDboWikiPage.getId());
+		
+		V2DBOWikiOwner createdDboWikiOwner = (V2DBOWikiOwner)createdDbos.get(1); 
+		assertEquals(OWNER_ID, createdDboWikiOwner.getOwnerId());
+		assertEquals(WIKI_ID, createdDboWikiOwner.getRootWikiId());
+		
+		V2DBOWikiMarkdown createdDboMarkdown = (V2DBOWikiMarkdown)createdDbos.get(2); 
+		assertEquals(WIKI_ID, createdDboMarkdown.getWikiId());
+		assertEquals(Long.parseLong(MARKDOWN_FILE_HANDLE_ID), createdDboMarkdown.getFileHandleId());
+		assertEquals(0L, createdDboMarkdown.getMarkdownVersion());
 		
 		verify(transactionalMessenger).sendMessageAfterCommit(messageToSendCaptor.capture());
 		assertEquals(ChangeType.CREATE, messageToSendCaptor.getValue().getChangeType());
@@ -155,25 +180,49 @@ public class V2DBOWikiPageDaoUnitTest {
 		// method under test
 		wikiPageDao.updateWikiPage(toUpdate, fileNameToFileHandleMap, OWNER_ID.toString(), ObjectType.ENTITY, newFileHandleIds);
 		
-		verify(basicDao.update(toUpdate)); //  V2DBOWikiPage see line 389 in V2DBOWikiPageDaoImpl
-		verify(basicDao.createNew(toCreate)); // V2DBOWikiMarkdown see line 351 in V2DBOWikiPageDaoImpl
-		verify(basicDao.createBatch(batch)); // List<V2DBOWikiAttachmentReservation> see line 359 in V2DBOWikiPageDaoImpl
-
+		verify(basicDao).update(wikiPageDboCaptor.capture());
+		assertEquals(WIKI_ID, wikiPageDboCaptor.getValue().getId());
+		assertEquals(WIKI_ID, wikiPageDboCaptor.getValue().getRootId());
+		assertNull(wikiPageDboCaptor.getValue().getParentId());
+		
+		verify(basicDao).createNew(wikiMarkdownDboCaptor.capture());
+		assertEquals(WIKI_ID, wikiMarkdownDboCaptor.getValue().getWikiId());
+		assertEquals(Long.parseLong(MARKDOWN_FILE_HANDLE_ID), wikiMarkdownDboCaptor.getValue().getFileHandleId());
+		assertEquals(MARKDOWN_VERSION+1L, wikiMarkdownDboCaptor.getValue().getMarkdownVersion());
+		
 		verify(transactionalMessenger).sendMessageAfterCommit((V2DBOWikiPage)any(), eq(ChangeType.UPDATE));
 	}
 	
 	@Test
 	public void testUpdateOrderHint() {
 		V2WikiOrderHint orderHint = new V2WikiOrderHint();
+		String etag = "ETAG";
+		orderHint.setEtag(etag);
+		orderHint.setOwnerId(OWNER_ID.toString());
+		orderHint.setOwnerObjectType(ObjectType.ENTITY);
 		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(OWNER_ID.toString());
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		key.setWikiPageId(WIKI_ID.toString());
 		
+		V2DBOWikiOwner wikiOwner = new V2DBOWikiOwner();
+		wikiOwner.setRootWikiId(WIKI_ID);
+		wikiOwner.setOwnerId(OWNER_ID);
+		
+		when(jdbcTemplate.query(eq("SELECT * FROM V2_WIKI_OWNERS WHERE ROOT_WIKI_ID = ?"),
+				(TableMapping<V2DBOWikiOwner>)any(TableMapping.class), eq(WIKI_ID))).
+				thenReturn(Collections.singletonList(wikiOwner));
+
 		// method under test
 		wikiPageDao.updateOrderHint(orderHint, key);
 		
 	
-		verify(basicDao).update(wikiDboCaptor.capture());
-		wikiDboCaptor.getValue().getRootWikiId()
-		wikiDboCaptor.getValue()
+		verify(basicDao).update(wikiOwnerDboCaptor.capture());
+		assertEquals(WIKI_ID, wikiOwnerDboCaptor.getValue().getRootWikiId());
+		assertEquals(MigrationType.V2_WIKI_OWNERS, wikiOwnerDboCaptor.getValue().getMigratableTableType());
+		assertEquals(etag, wikiOwnerDboCaptor.getValue().getEtag());
+		assertEquals(OWNER_ID, wikiOwnerDboCaptor.getValue().getOwnerId());
+		assertEquals(ObjectType.ENTITY, wikiOwnerDboCaptor.getValue().getOwnerType());
 
 		verify(transactionalMessenger).sendMessageAfterCommit(messageToSendCaptor.capture());
 		assertEquals(ChangeType.UPDATE, messageToSendCaptor.getValue().getChangeType());
@@ -190,7 +239,7 @@ public class V2DBOWikiPageDaoUnitTest {
 		// method under test
 		wikiPageDao.delete(pageKey);
 		
-		verify(jdbcTemplate).update("DELETE FROM V2_WIKI_PAGE WHERE ID = ? AND ROOT_ID = ?", WIKI_ID, WIKI_ID);
+		verify(jdbcTemplate).update("DELETE FROM V2_WIKI_PAGE WHERE ID = ? AND ROOT_ID = ?", WIKI_ID, null);
 		
 		verify(transactionalMessenger).sendMessageAfterCommit(messageToSendCaptor.capture());
 		assertEquals(ChangeType.DELETE, messageToSendCaptor.getValue().getChangeType());
