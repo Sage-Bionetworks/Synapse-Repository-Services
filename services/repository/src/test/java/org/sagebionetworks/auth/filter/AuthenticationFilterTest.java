@@ -294,7 +294,6 @@ public class AuthenticationFilterTest {
 		 // user is trying to 'sneak in' a validated userId
 		requestParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] {"101010101"});
 		when(mockHttpRequest.getParameterMap()).thenReturn(requestParams);
-		when(mockHttpRequest.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
