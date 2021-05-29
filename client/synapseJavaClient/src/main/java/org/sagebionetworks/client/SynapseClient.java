@@ -127,6 +127,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -3494,6 +3496,28 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
+	
+	
+	/**
+	 * Start an asynchronous job to add files from the given view query or folder to the user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startAddToDownloadList(AddToDownloadListRequest request)
+			throws SynapseException;
+
+
+	/**
+	 * Get the results of the asynchronous job to add files to a user's download list.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	AddToDownloadListResponse getAddToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 	
 	/**
 	 * Change the {@link DataType} of the given Entity.

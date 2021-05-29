@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -166,6 +168,18 @@ public class ITDownloadListControllerTest {
 		// all under test
 		synapse.clearDownloadList();
 
+	}
+	
+	@Test
+	public void testAddToDownloadListWithParent() throws SynapseException {
+		FileEntity file = setupFileEntity();
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setParentId(file.getParentId());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AddToDownloadList, request, body -> {
+			assertTrue(body instanceof AddToDownloadListResponse);
+			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS).getResponse();
 	}
 
 	/**

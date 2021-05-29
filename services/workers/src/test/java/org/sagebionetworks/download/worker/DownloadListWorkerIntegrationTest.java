@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -45,7 +47,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DownloadListQueryWorkerIntegrationTest {
+public class DownloadListWorkerIntegrationTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
 	
@@ -141,6 +143,20 @@ public class DownloadListQueryWorkerIntegrationTest {
 							.setAction(new RequestDownload().setBenefactorId(benefactorId)));
 			assertEquals(expected, details.getPage());
 		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	@Test
+	public void testAddToDownloadListWorkerWithFolder() throws Exception {
+		
+		Node file = createFileHierarchy(ACCESS_TYPE.READ);
+		
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setParentId(file.getParentId());
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, request, (AddToDownloadListResponse response) -> {
+			assertNotNull(response);
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
 	}
 
 	/**

@@ -163,6 +163,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -6014,5 +6016,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
 		String url = DOWNLOAD_LIST_QUERY + ASYNC_GET + asyncJobToken;
 		return (DownloadListQueryResponse) getAsynchJobResponse(url, DownloadListQueryResponse.class, getRepoEndpoint());
+	}
+
+	@Override
+	public String startAddToDownloadList(AddToDownloadListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.AddToDownloadList, request);
+	}
+
+	@Override
+	public AddToDownloadListResponse getAddToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		String url = DOWNLOAD_LIST_ADD + ASYNC_GET + asyncJobToken;
+		return (AddToDownloadListResponse) getAsynchJobResponse(url, AddToDownloadListResponse.class, getRepoEndpoint());
 	}
 }

@@ -876,11 +876,25 @@ public class DownloadListManagerImplTest {
 		String parentId = "syn123";
 		boolean useVersion = false;
 		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean())).thenReturn(count);
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		// Call under test
 		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, useVersion);
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).addChildrenToDownloadList(userOne.getId(), 123L, useVersion);
+		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 
+	@Test
+	public void testAddToDownloadListFolderWithUnauthorized() {
+		String parentId = "syn123";
+		boolean useVersion = false;
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, ()->{
+			// Call under test
+			manager.addToDownloadList(userOne, parentId, useVersion);
+		});
+		verifyNoMoreInteractions(mockDownloadListDao);
+		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
+	}
 }

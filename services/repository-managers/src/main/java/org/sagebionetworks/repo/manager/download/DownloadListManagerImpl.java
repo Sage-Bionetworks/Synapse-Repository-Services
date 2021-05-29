@@ -314,6 +314,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion) {
+		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();;
 		return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
 				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion));
 	}

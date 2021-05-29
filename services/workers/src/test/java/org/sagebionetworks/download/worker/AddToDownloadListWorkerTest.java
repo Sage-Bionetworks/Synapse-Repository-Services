@@ -56,7 +56,7 @@ public class AddToDownloadListWorkerTest {
 		user = new UserInfo(isAdmin, startedByUserId);
 
 		requestBody = new AddToDownloadListRequest();
-		requestBody.setFolderId("syn123");
+		requestBody.setParentId("syn123");
 
 		jobStatus = new AsynchronousJobStatus();
 		jobStatus.setJobId(jobId);
