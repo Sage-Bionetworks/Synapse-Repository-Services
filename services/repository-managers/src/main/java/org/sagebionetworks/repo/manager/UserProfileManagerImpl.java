@@ -200,7 +200,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public void removeFavorite(UserInfo userInfo, String entityId)
 			throws DatastoreException {
 		if (authorizationManager.isAnonymousUser(userInfo)) {
-			throw new UnauthorizedException("Cannot add favorite for anonymous user.");
+			throw new UnauthorizedException("Cannot remove favorite for anonymous user.");
 		}
 		favoriteDAO.remove(userInfo.getId().toString(), entityId);
 	}
