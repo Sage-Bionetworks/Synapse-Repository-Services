@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +13,6 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -186,6 +187,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public Favorite addFavorite(UserInfo userInfo, String entityId)
 			throws DatastoreException, InvalidModelException {
+		if (authorizationManager.isAnonymousUser(userInfo)) {
+			throw new UnauthorizedException("Cannot add favorite for anonymous user.");
+		}
 		Favorite favorite = new Favorite();
 		favorite.setPrincipalId(userInfo.getId().toString());
 		favorite.setEntityId(entityId);
@@ -195,6 +199,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public void removeFavorite(UserInfo userInfo, String entityId)
 			throws DatastoreException {
+		if (authorizationManager.isAnonymousUser(userInfo)) {
+			throw new UnauthorizedException("Cannot add favorite for anonymous user.");
+		}
 		favoriteDAO.remove(userInfo.getId().toString(), entityId);
 	}
 
@@ -202,6 +209,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
+		if (authorizationManager.isAnonymousUser(userInfo)) {
+			return PaginatedResults.createWithLimitAndOffset(Collections.EMPTY_LIST, (long)limit,(long)offset);
+		}
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
 	}
 
