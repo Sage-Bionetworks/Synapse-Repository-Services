@@ -328,6 +328,17 @@ public class UserProfileManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testUpdateAnonymousUserProfile() throws Exception {
+		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			userProfileManager.updateUserProfile(userInfo, userProfile);
+		});
+		
+		verify(mockProfileDAO, never()).update(any(UserProfile.class));
+	}
+	
+	@Test
 	public void testGetGroupsMinusPublic(){
 		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
 		// should get a new copy

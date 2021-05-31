@@ -171,6 +171,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		clearAliasFields(updated);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
+		if (authorizationManager.isAnonymousUser(userInfo)) {
+			throw new UnauthorizedException("Cannot update user profile for anonymous user.");
+		}
 		
 		if(updated.getProfilePicureFileHandleId() != null){
 			// The user must own the file handle to set it as a picture.
