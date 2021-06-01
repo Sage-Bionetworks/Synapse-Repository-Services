@@ -20,6 +20,12 @@ public interface FileHandleAssociationScannerJobManager {
 	int processScanRangeRequest(FileHandleAssociationScanRangeRequest request) throws RecoverableMessageException, NotFoundException;
 	
 	/**
+	 * @param jobId The id of the job
+	 * @return True if all the scan range requests were completed for the job with the given id
+	 */
+	boolean isScanJobCompleted(long jobId);
+	
+	/**
 	 * @param idlePeriod The idle period
 	 * @return True if a scan job does not exist or if it hasn't been updated for the given amount of days
 	 */

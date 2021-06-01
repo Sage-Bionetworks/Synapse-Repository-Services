@@ -112,6 +112,13 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		ValidateArgument.requirement(daysNum > 0, "The number of days must be greater than zero.");
 		return !statusDao.existsWithinLast(daysNum);
 	}
+
+	@Override
+	public boolean isScanJobCompleted(long jobId) {
+		DBOFilesScannerStatus status = statusDao.get(jobId);
+		
+		return status.getJobsStartedCount() > 0 && status.getJobsCompletedCount() >= status.getJobsStartedCount();
+	}
 	
 	@Override
 	public void startScanJob() {
