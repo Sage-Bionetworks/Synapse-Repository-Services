@@ -26,10 +26,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.joda.time.Instant;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
@@ -75,6 +79,7 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -106,6 +111,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -128,6 +134,10 @@ import com.google.common.collect.Lists;
  * 
  */
 public class FileHandleManagerImpl implements FileHandleManager {
+	
+	private static final String CLOUD_WATCH_NAMESPACE_PREFIX = "File Handles";
+	
+	private static final String CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED = "UnavailableFileHandleAccessed";
 
 	private static final String FILE_DOWNLOAD_RECORD_TYPE = FileDownloadRecord.class.getSimpleName().toLowerCase();
 
@@ -154,31 +164,31 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 
 	@Autowired
-	SynapseS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
-	SynapseGoogleCloudStorageClient googleCloudStorageClient;
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
-	ProjectSettingsManager projectSettingsManager;
+	private ProjectSettingsManager projectSettingsManager;
 	
 	@Autowired
-	StorageLocationDAO storageLocationDAO;
+	private StorageLocationDAO storageLocationDAO;
 
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	
 	@Autowired
-	FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	
 	@Autowired
-	ObjectRecordQueue objectRecordQueue;
+	private ObjectRecordQueue objectRecordQueue;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -188,7 +198,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransferManager transferManager;
+	
+	@Autowired
+	private Consumer cloudWatchQueue;
 
+	@Autowired
+	private StackConfiguration config;
 	/**
 	 * Used by spring
 	 */
@@ -298,7 +313,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(userInfo, handle);
 	}
 	
 	String getRedirectURLForFileHandle(UserInfo userInfo,
@@ -315,7 +330,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		
-		String url = getURLForFileHandle(fileHandle);
+		String url = getURLForFileHandle(userInfo, fileHandle);
 		
 		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
 		
@@ -328,7 +343,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @param handle
 	 * @return
 	 */
-	String getURLForFileHandle(FileHandle handle) {
+	String getURLForFileHandle(UserInfo userInfo, FileHandle handle) {
+		// If the user tries to access a file handle that is not available we send a metric to cloud watch where an alarm will be triggered
+		if (!FileHandleStatus.AVAILABLE.equals(handle.getStatus())) {
+			unavailableFileHandleAccessed(userInfo, handle);
+		}
+		
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -351,6 +371,24 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new IllegalArgumentException("Unknown FileHandle class: " + handle.getClass().getName());
 		}
 	}
+	
+	private void unavailableFileHandleAccessed(UserInfo userInfo, FileHandle handle) {
+		
+		log.warn(String.format("An unavailable file handle was accessed by user %s: %s", userInfo.getId(), handle));
+		
+		ProfileData cloudWatchData = new ProfileData();
+		
+		cloudWatchData.setNamespace(CLOUD_WATCH_NAMESPACE_PREFIX + " - " + config.getStackInstance());
+		cloudWatchData.setName(CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED);
+		cloudWatchData.setTimestamp(Instant.now().toDate());
+		cloudWatchData.setValue(Double.valueOf(handle.getId()));
+		
+		// We do not use a unit as the value of the metric is the file handle id itself
+		cloudWatchData.setUnit(StandardUnit.None.name());
+		
+		cloudWatchQueue.addProfileData(cloudWatchData);
+	}
+	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
 		// Create a pre-signed url
@@ -1190,7 +1228,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setFileHandle(handle);
 						}
 						if(request.getIncludePreSignedURLs()) {
-							String url = getURLForFileHandle(handle);
+							String url = getURLForFileHandle(userInfo, handle);
 							
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
@@ -1206,7 +1244,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 								CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 								String previewId = hasPreview.getPreviewId();
 								if (previewFileHandles.containsKey(previewId)) {
-									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId));
+									String previewURL = getURLForFileHandle(userInfo, previewFileHandles.get(previewId));
 									fr.setPreviewPreSignedURL(previewURL);
 								}
 							}

@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryProcessor;
 import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +16,8 @@ import com.amazonaws.services.athena.model.Row;
  */
 @Service
 public class FileHandleUnlinkedQueryProcessor implements RecurrentAthenaQueryProcessor<Long> {
+	
+	static final int UPDATED_ON_DAYS_LIMIT = 30;
 	
 	static RowMapper<Long> ROW_MAPPER = (Row row) -> {
 		return Long.valueOf(row.getData().get(0).getVarCharValue());
@@ -40,7 +42,8 @@ public class FileHandleUnlinkedQueryProcessor implements RecurrentAthenaQueryPro
 
 	@Override
 	public void processQueryResultsPage(List<Long> resultsPage) {
-		fileHandleDao.updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		// Note that we do not update file handles that have been set as AVAILABLE within the last 30 days, this allows to restore file handles without being unlinked again
+		fileHandleDao.updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, UPDATED_ON_DAYS_LIMIT);
 	}
 
 }

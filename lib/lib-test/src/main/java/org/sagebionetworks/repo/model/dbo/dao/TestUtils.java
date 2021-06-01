@@ -17,11 +17,11 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 import com.amazonaws.util.BinaryUtils;
 
@@ -62,6 +62,7 @@ public class TestUtils {
 		meta.setId(fileHandleId);
 		meta.setEtag(UUID.randomUUID().toString());
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		return meta;
 	}
 
@@ -85,6 +86,7 @@ public class TestUtils {
 		meta.setId(fileHandleId);
 		meta.setEtag(UUID.randomUUID().toString());
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		return meta;
 	}
 
@@ -120,6 +122,7 @@ public class TestUtils {
 		meta.setEtag(UUID.randomUUID().toString());
 		meta.setId(fileHandleId);
 		meta.setIsPreview(true);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		return meta;
 	}
 
@@ -143,6 +146,7 @@ public class TestUtils {
 		meta.setCreatedBy(createdById);
 		meta.setFileName("External");
 		meta.setEtag(UUID.randomUUID().toString());
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		return meta;
 	}
 
