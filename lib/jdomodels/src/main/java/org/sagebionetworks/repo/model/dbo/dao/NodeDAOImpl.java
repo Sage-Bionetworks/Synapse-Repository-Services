@@ -330,6 +330,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = :"+COL_NODE_ID +" AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
 	private static final String SELECT_USER_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", R."+COL_REVISION_USER_ANNOS_JSON+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + " = ";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
+	private static final String CANNOT_FIND_A_NODE_WITH_ID_AND_VERSION = "Cannot find a node with id %s and version %d";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -835,7 +836,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return annos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
+			throw new NotFoundException(String.format(CANNOT_FIND_A_NODE_WITH_ID_AND_VERSION, id, version));
 		}
 	}
 
@@ -1807,10 +1808,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(includeTypes, "includeTypes");
 		ValidateArgument.requirement(!includeTypes.isEmpty(), "Must have at least one type for includeTypes");
+		List<String> typeNames = getTypeNames(includeTypes);
+		ValidateArgument.requirement(!typeNames.isEmpty(), "Must have at least one valid type name for includeTypes");
 		ValidateArgument.required(sortDirection, "sortDirection");
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
-		parameters.put(BIND_NODE_TYPES , getTypeNames(includeTypes));
+		parameters.put(BIND_NODE_TYPES , typeNames);
 		parameters.put(BIND_NODE_IDS , childIdsToExclude);
 		parameters.put(BIND_LIMIT , limit);
 		parameters.put(BIND_OFFSET , offset);

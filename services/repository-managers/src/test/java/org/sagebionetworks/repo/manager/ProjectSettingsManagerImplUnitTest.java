@@ -962,5 +962,51 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertTrue(result);
 		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
 	}
+	
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_ParentNotSTS() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		
+		S3StorageLocationSetting parentStorageLocationSetting = new S3StorageLocationSetting();
+		parentStorageLocationSetting.setStsEnabled(false); // NOT STS
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(parentStorageLocationSetting);
+
+		// method under test
+		assertFalse(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
+
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_ParentHasStsSetting() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		
+		S3StorageLocationSetting parentStorageLocationSetting = new S3StorageLocationSetting();
+		parentStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(parentStorageLocationSetting);
+
+		// method under test
+		assertTrue(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
+
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_NoSettings() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(null);
+
+		// method under test
+		assertFalse(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
+
+	@Test
+	public void testEntityIsWithinSTSEnabledFolder_FolderHasOwnStsSetting() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		// make the setting on the folder itself rather than on the parent project
+		uploadDestinationListSetting.setProjectId(NODE_ID);
+		
+		// method under test
+		assertFalse(projectSettingsManagerImpl.entityIsWithinSTSEnabledFolder(NODE_ID));
+	}
 
 }

@@ -88,6 +88,9 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
+		
+		verify(mockHttpResponse).setHeader("Cache-Control", "no-store");
+		verify(mockHttpResponse).setHeader("Pragma", "no-cache");
 	}
 
 	@Test

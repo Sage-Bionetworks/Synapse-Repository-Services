@@ -56,4 +56,11 @@ public interface ProjectSettingsManager {
 	List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> storageLocationIds) throws DatastoreException,
 			NotFoundException;
 	
+	/**
+	 * 
+	 * @param entityId
+	 * @return true iff entityId is a descendant of an STS Enabled folder and not an STS Folder itself
+	 */
+	boolean entityIsWithinSTSEnabledFolder(String entityId);
+	
 }

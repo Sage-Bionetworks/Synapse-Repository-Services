@@ -3348,6 +3348,20 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetChildrenNullTypeInList(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Collections.singletonList(null);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		});
+	}
+	
+	@Test
 	public void testGetChildrenNullSortByt(){
 		String parentId = "syn123";
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
@@ -4333,6 +4347,19 @@ public class NodeDAOImplTest {
 
 		assertEquals(oldEntityPropertyAnnotations.getStringAnnotations(), retrievedOldVersion.getStringAnnotations());
 		assertEquals(newEntityPropertiesAnnotations.getStringAnnotations(), retrievedNewVersion.getStringAnnotations());
+	}
+	
+	@Test
+	public void testGetEntityPropertiesForVersionWithNonexistentVersion() throws Exception {
+		// PLFM-6632, improving message for this error
+		Node node = nodeDao.createNewNode(privateCreateNew("testEntityProperties"));
+		String id = node.getId();
+		Long version = node.getVersionNumber();
+		Long nonExistentVersion = version + 1;
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			nodeDao.getEntityPropertyAnnotationsForVersion(id, nonExistentVersion);
+		});
+		assertEquals(ex.getMessage(), String.format("Cannot find a node with id %s and version %d", id, nonExistentVersion));
 	}
 	
 	@Test

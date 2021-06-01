@@ -18,6 +18,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
 
@@ -94,7 +95,11 @@ public class JSONWebTokenHelper {
 	}
 	
 	public static String getSubjectFromJWTAccessToken(String accessToken) {
-		return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
+		try {
+			return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
+		} catch (JwtException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 
