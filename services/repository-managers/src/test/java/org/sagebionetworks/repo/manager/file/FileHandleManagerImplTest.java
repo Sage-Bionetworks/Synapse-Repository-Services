@@ -699,8 +699,9 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
-	public void testCreateExternalFileHandleAnonymous(){
+	public void testCreateExternalFileHandleAnonymous() {
 		ExternalFileHandle efh = createFileHandle();
+		// Method under test
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, efh));
 	}
 	
@@ -904,7 +905,8 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateExternalS3FileHandleAnonymous(){
+	public void testCreateExternalS3FileHandleAnonymous() {
+		// method under test
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalS3FileHandle(anonymousUser, externals3FileHandle));
 	}
 	
@@ -1175,7 +1177,8 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
-	public void testCreateExternalGoogleCloudFileHandleAnonymous(){
+	public void testCreateExternalGoogleCloudFileHandleAnonymous() {
+		// method under test
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalGoogleCloudFileHandle(anonymousUser, externalGoogleCloudFileHandle));
 	}
 
@@ -1459,7 +1462,8 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
-	public void testCreateExternalObjectStoreFileHandleAnonymous(){
+	public void testCreateExternalObjectStoreFileHandleAnonymous() {
+		// method under test
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, externalObjectStoreFileHandle));
 	}
 	
@@ -1493,7 +1497,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateS3FileHandleAnonymouse() {		
+	public void testCreateS3FileHandleAnonymous() {		
 		// method under test
 		assertThrows(IllegalArgumentException.class, () -> manager.createS3FileHandleCopy(anonymousUser, "123", null, null));
 	}
@@ -2034,6 +2038,7 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCopyFileHandlesAnonymous() {
+		// method under test
 		assertThrows(UnauthorizedException.class, () -> manager.copyFileHandles(anonymousUser, new BatchFileHandleCopyRequest()));
 	}
 
