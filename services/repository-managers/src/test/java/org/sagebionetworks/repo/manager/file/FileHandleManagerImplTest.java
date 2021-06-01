@@ -1499,7 +1499,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateS3FileHandleAnonymous() {		
 		// method under test
-		assertThrows(IllegalArgumentException.class, () -> manager.createS3FileHandleCopy(anonymousUser, "123", null, null));
+		assertThrows(UnauthorizedException.class, () -> manager.createS3FileHandleCopy(anonymousUser, "123", null, null));
 	}
 
 	@Test
