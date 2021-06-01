@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -64,6 +65,9 @@ public class FileHandleAssociationScanRangeWorkerTest {
 	@Test
 	public void testRun() throws RecoverableMessageException, Exception {
 		
+		boolean allJobsCompleted = false;
+		
+		when(mockManager.isScanJobCompleted(anyLong())).thenReturn(allJobsCompleted);
 		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
 		
 		// Call under test
@@ -72,7 +76,29 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);
 		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
+		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobCompletedCount");
 		verify(mockWorkerLogger).logWorkerTimeMetric(eq(FileHandleAssociationScanRangeWorker.class), anyLong(), eq(expectedDimensions));
+		verifyNoMoreInteractions(mockWorkerLogger);
+	}
+	
+	@Test
+	public void testRunWithAllJobsCompleted() throws RecoverableMessageException, Exception {
+		
+		boolean allJobsCompleted = true;
+		
+		when(mockManager.isScanJobCompleted(anyLong())).thenReturn(allJobsCompleted);
+		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
+		
+		// Call under test
+		worker.run(mockCallback, mockMessage);
+		
+		verify(mockNotifier).fromSqsMessage(mockMessage);
+		verify(mockManager).processScanRangeRequest(request);
+		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
+		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobCompletedCount");
+		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "AllJobsCompletedCount");
+		verify(mockWorkerLogger).logWorkerTimeMetric(eq(FileHandleAssociationScanRangeWorker.class), anyLong(), eq(expectedDimensions));
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 	
 	@Test
