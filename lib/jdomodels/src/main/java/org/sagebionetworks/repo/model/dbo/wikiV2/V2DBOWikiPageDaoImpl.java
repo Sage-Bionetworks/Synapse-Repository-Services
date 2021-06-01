@@ -377,6 +377,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		basicDao.update(dbo);
 		
+		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().
+				withChangeType(ChangeType.UPDATE).withObjectId(key.getWikiPageId()).withObjectType(ObjectType.WIKI));
+
 		return getWikiOrderHint(key);
 		
 	}
@@ -649,6 +652,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			Long rootId = getRootWiki(key.getOwnerObjectId(), key.getOwnerObjectType());
 			// Delete the wiki using both the root and the id 
 			jdbcTemplate.update(SQL_DELETE_USING_ID_AND_ROOT, new Long(key.getWikiPageId()), rootId);
+			
+			// Send the delete message
+			transactionalMessenger.sendMessageAfterCommit(new MessageToSend().
+					withChangeType(ChangeType.DELETE).withObjectId(key.getWikiPageId()).withObjectType(ObjectType.WIKI));
 		}catch(NotFoundException e){
 			// Nothing to do if the wiki does not exist.
 		}
@@ -828,19 +835,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} catch (NotFoundException e) {
 			// Nothing to do if none found
 		}
-	}
-
-	@WriteTransaction
-	@Override
-	public void updateWikiEtag(WikiPageKey key, String etag) {
-		if (key == null) {
-			throw new IllegalArgumentException("Key cannot be null.");
-		}
-		if (etag == null) {
-			throw new IllegalArgumentException("Etag cannot be null.");
-		}
-		String wikiId = key.getWikiPageId();
-		jdbcTemplate.update(SQL_UPDATE_WIKI_ETAG, etag, wikiId);
 	}
 
 	@Override
