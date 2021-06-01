@@ -3348,6 +3348,20 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetChildrenNullTypeInList(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Collections.singletonList(null);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		});
+	}
+	
+	@Test
 	public void testGetChildrenNullSortByt(){
 		String parentId = "syn123";
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
