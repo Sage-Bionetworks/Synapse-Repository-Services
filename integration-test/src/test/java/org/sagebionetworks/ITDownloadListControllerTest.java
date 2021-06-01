@@ -60,8 +60,8 @@ public class ITDownloadListControllerTest {
 	}
 
 	@BeforeEach
-	public void beforeEach() {
-
+	public void beforeEach() throws SynapseException {
+		synapse.clearUsersDownloadList();
 	}
 
 	@AfterEach
@@ -166,8 +166,21 @@ public class ITDownloadListControllerTest {
 		assertEquals(expectedAddResponse, addResponse);
 
 		// all under test
-		synapse.clearDownloadList();
-
+		synapse.clearUsersDownloadList();
+		
+		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest()
+				.setRequestDetails(new FilesStatisticsRequest());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.QueryDownloadList, queryRequest, body -> {
+			assertTrue(body instanceof DownloadListQueryResponse);
+			DownloadListQueryResponse response = (DownloadListQueryResponse) body;
+			assertTrue(response.getResponseDetails() instanceof FilesStatisticsResponse);
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(0L)
+					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(0L)
+					.setTotalNumberOfFiles(0L);
+			assertEquals(expected, details);
+		}, MAX_WAIT_MS).getResponse();
 	}
 	
 	@Test
