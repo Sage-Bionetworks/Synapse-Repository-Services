@@ -1090,7 +1090,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			throw new UnauthorizedException("Anonymous cannot upload files.");
+			throw new UnauthorizedException("Anonymous cannot copy files.");
 		}
 		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
 		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
@@ -1270,7 +1270,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			throw new UnauthorizedException("Anonymous cannot upload files.");
+			throw new UnauthorizedException("Anonymous cannot copy files.");
 		}
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
