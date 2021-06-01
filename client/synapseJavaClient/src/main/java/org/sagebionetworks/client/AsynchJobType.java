@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 /**
  * Maps job types to the URL prefix needed for each type.
  * 
@@ -60,7 +61,8 @@ public enum AsynchJobType {
 	CreateJsonSchema(SCHEMA_TYPE_CREATE, CreateSchemaResponse.class, RestEndpointType.repo),
 	GetValidationSchema(SCHEMA_TYPE_VALIDATION, GetValidationSchemaResponse.class, RestEndpointType.repo),
 	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo),
-	QueryDownloadList(DOWNLOAD_LIST_QUERY, DownloadListQueryResponse.class, RestEndpointType.repo);
+	QueryDownloadList(DOWNLOAD_LIST_QUERY, DownloadListQueryResponse.class, RestEndpointType.repo),
+	AddToDownloadList(DOWNLOAD_LIST_ADD, AddToDownloadListResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;

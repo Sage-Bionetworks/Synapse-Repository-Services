@@ -126,4 +126,16 @@ public interface DownloadListDAO {
 	List<ActionRequiredCount> getActionsRequiredFromDownloadList(EntityActionRequiredCallback callback,
 			Long userId, Long limit, Long offset);
 
+
+	/**
+	 * Add all of the children for the given parentId to the user's download list.
+	 * 
+	 * @param id
+	 * @param parentId
+	 * @param useVersion When true, the current version of the file will be used.
+	 *                   When false, the version number will be null;
+	 * @return The total number of files added.
+	 */
+	Long addChildrenToDownloadList(Long id, Long parentId, boolean useVersion);
+
 }

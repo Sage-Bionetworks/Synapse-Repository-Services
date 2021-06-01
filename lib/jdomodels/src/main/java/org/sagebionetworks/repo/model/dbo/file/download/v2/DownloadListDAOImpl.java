@@ -7,7 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
@@ -604,6 +604,19 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		} finally {
 			dropTemporaryTable(tempTableName);
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public Long addChildrenToDownloadList(Long userId, Long parentId, boolean useVersion) {
+		String versionString = useVersion ? "CURRENT_REV_NUM" : "-1";
+		String sql = String.format("INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " ("
+				+ COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + "," + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ","
+				+ COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER + "," + COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + ")  SELECT ?, "
+				+ COL_NODE_ID + ", %s, NOW(3) FROM " + TABLE_NODE + " WHERE " + COL_NODE_PARENT_ID + " = ? AND "
+				+ COL_NODE_TYPE + " = '" + EntityType.file.name() + "'", versionString);
+		createOrUpdateDownloadList(userId);
+		return (long) jdbcTemplate.update(sql, userId, parentId);
 	}
 
 }

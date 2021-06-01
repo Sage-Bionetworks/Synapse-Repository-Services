@@ -1571,4 +1571,132 @@ public class DownloadListDaoImplTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testAddChildrenToDownloadListWithUseVersionTrue() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		boolean useVersion = true;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		assertEquals(3L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(2L)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
+	@Test
+	public void testAddChildrenToDownloadListWithFilesAlreadyOnListDifferentVersion() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+		
+		List<DownloadListItem> alreadyOnList = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(1L)
+		);
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
+		
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		boolean useVersion = true;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		assertEquals(3L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(1l),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(2L)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
+	@Test
+	public void testAddChildrenToDownloadListWithFilesAlreadyOnListSameVersion() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+		
+		List<DownloadListItem> alreadyOnList = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L)
+		);
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
+		
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		boolean useVersion = true;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		assertEquals(2L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
+				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(2L)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
+	@Test
+	public void testAddChildrenToDownloadListWithUseVersionFalse() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		boolean useVersion = false;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		assertEquals(3L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(null)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
+	@Test
+	public void testAddChildrenToDownloadListWithFilesAndFolders() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 1;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(1, files.size());
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		// The folder should not appear on the download list.
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "dir", "" + 4, "" + 5));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(KeyFactory.keyToString(parentId));
+			n.setNodeType(EntityType.folder);
+		});
+		boolean useVersion = true;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		assertEquals(1L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
 }

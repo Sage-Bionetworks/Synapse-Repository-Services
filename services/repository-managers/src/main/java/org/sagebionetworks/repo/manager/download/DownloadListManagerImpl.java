@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
@@ -17,11 +18,13 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
-import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -31,13 +34,14 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
-import org.sagebionetworks.repo.model.download.QueryResponseDetails;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +53,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
 	public static final String ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding '%s' files to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
+	
+	public static boolean DEFAULT_USE_VERSION = true;
 
 	/**
 	 * The maximum number of file that can be added/removed in a single batch.
@@ -280,6 +286,42 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			throw new UnauthorizedException(YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST);
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public AddToDownloadListResponse addToDownloadList(UserInfo userInfo, AddToDownloadListRequest requestBody) {
+		validateUser(userInfo);
+		ValidateArgument.required(requestBody, "requestBody");
+		if(requestBody.getParentId() != null && requestBody.getQuery() != null) {
+			throw new IllegalArgumentException("Please provide request.parentId or request.query() but not both.");
+		}
+		boolean useVersionNumber = requestBody.getUseVersionNumber()==null ? DEFAULT_USE_VERSION : requestBody.getUseVersionNumber();
+		if(requestBody.getQuery() != null) {
+			return addToDownloadList(userInfo, requestBody.getQuery(), useVersionNumber);
+		}else if(requestBody.getParentId() != null) {
+			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber);
+		}else {
+			throw new IllegalArgumentException("Must include either request.parentId or request.query().");
+		}
+	}
+
+	/**
+	 * Add all of the files from the given parentId to the user's download list.
+	 * @param userInfo
+	 * @param parentId
+	 * @param useVersion
+	 * @return
+	 */
+	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion) {
+		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();;
+		return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
+				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion));
+	}
+
+	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, Query query, boolean useVersion) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
