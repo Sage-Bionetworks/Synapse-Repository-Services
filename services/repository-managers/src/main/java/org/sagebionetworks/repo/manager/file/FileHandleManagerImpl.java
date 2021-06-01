@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -456,6 +457,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalFileHandle fileHandle) {
 		if (userInfo == null)
 			throw new IllegalArgumentException("UserInfo cannot be null");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		if (fileHandle == null)
 			throw new IllegalArgumentException("FileHandle cannot be null");
 		if (fileHandle.getExternalURL() == null)
@@ -489,6 +493,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
@@ -588,6 +595,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
+		if (AuthorizationUtils.isUserAnonymous(Long.parseLong(request.getUserId()))) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		try {
 			
 			// This will return the default storage location if the input is null
@@ -895,6 +905,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
 		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
@@ -963,6 +976,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(UserInfo userInfo,
 												   GoogleCloudFileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
 		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
@@ -1030,6 +1046,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
 		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
 		ValidateArgument.required(proxyFileHandle.getContentSize(), "ProxyFileHandle.contentSize");
@@ -1070,6 +1089,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {
 		ValidateArgument.required(userInfo, "UserInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
 		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
 				"Either the fileName or the contentType needs to be set");
@@ -1247,6 +1269,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
 		ValidateArgument.requirement(request.getCopyRequests().size() <= MAX_REQUESTS_PER_CALL, MAX_REQUESTS_PER_CALL_MESSAGE);
