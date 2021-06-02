@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupport
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -133,6 +134,7 @@ public class PreviewWorkerTest {
 		change.setChangeType(ChangeType.UPDATE);
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
 		worker.run(mockProgressCallback, change);
@@ -145,6 +147,7 @@ public class PreviewWorkerTest {
 	public void testPreviewGenerationNotSupported() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		PreviewGenerationNotSupportedException expectedException = new PreviewGenerationNotSupportedException("Test does not allow it!");
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
@@ -159,6 +162,7 @@ public class PreviewWorkerTest {
 		// the message should not be returned, so it will stay on the queue.
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		TemporarilyUnavailableException expectedException = new TemporarilyUnavailableException();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
@@ -176,6 +180,7 @@ public class PreviewWorkerTest {
 	public void testAmazonS3Exception_ErrorCode_NoSuchKey() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
 		exceptionBuilder.setErrorCode("NoSuchKey");
@@ -189,6 +194,7 @@ public class PreviewWorkerTest {
 	public void testAmazonS3Exception_ErrorCode_AccessDenied() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
 		exceptionBuilder.setErrorCode("AccessDenied");
@@ -203,6 +209,7 @@ public class PreviewWorkerTest {
 	public void testAmazonS3Exception_OtherErrorCodes() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		AmazonS3ExceptionBuilder exceptionBuilder = new AmazonS3ExceptionBuilder();
 		exceptionBuilder.setErrorCode("SomethingDifferent");
@@ -218,6 +225,7 @@ public class PreviewWorkerTest {
 	public void testCannotDetermineBucketLocationException() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new CannotDetermineBucketLocationException());
@@ -233,6 +241,7 @@ public class PreviewWorkerTest {
 		// should not be returned as processed.
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		Exception expectedException = new Exception();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
@@ -245,6 +254,7 @@ public class PreviewWorkerTest {
 	public void testEOFError() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		Exception expectedException = new RuntimeException();
 		expectedException.initCause(new EOFException());
@@ -259,6 +269,7 @@ public class PreviewWorkerTest {
 		// We cannot recover from this type of exception so the message should be returned.
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		IllegalArgumentException expectedException = new IllegalArgumentException();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
@@ -272,6 +283,7 @@ public class PreviewWorkerTest {
 		// We cannot recover from this type of exception so the message should be returned.
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		IIOException causeException = new javax.imageio.IIOException("Error reading PNG image data");
 		RuntimeException expectedException = new RuntimeException(causeException);
@@ -287,6 +299,7 @@ public class PreviewWorkerTest {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
 		meta.setContentSize(0L);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		when(mockPreveiwManager.generatePreview(meta)).thenReturn(null);
 		// Fire!
@@ -336,6 +349,7 @@ public class PreviewWorkerTest {
 		change.setTimestamp(Date.from(Instant.now().minus(Period.ofDays(1)).plusSeconds(1)));
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
 		worker.run(mockProgressCallback, change);
