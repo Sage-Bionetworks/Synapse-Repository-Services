@@ -1,15 +1,16 @@
-package org.sagebionetworks.repo.manager.file;
+package org.sagebionetworks.upload.multipart;
 
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.util.StringUtils;
+
+import com.amazonaws.services.s3.model.StorageClass;
 
 public class MultipartUtils {
 
@@ -47,5 +48,12 @@ public class MultipartUtils {
 			}
 		}
 		return String.format(FILE_TOKEN_TEMPLATE, base, userId, UUID.randomUUID().toString(), fileName);
+	}
+	
+	public static StorageClass getS3StorageClass(StorageLocationSetting storageLocationSetting) {
+		if (storageLocationSetting instanceof S3StorageLocationSetting) {
+			return StorageClass.IntelligentTiering;
+		}
+		return null;
 	}
 }

@@ -1,8 +1,9 @@
-package org.sagebionetworks.repo.manager.file;
+package org.sagebionetworks.upload.multipart;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +19,8 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+
+import com.amazonaws.services.s3.model.StorageClass;
 
 @ExtendWith(MockitoExtension.class)
 public class MultipartUtilsTest {
@@ -157,6 +160,33 @@ public class MultipartUtilsTest {
 		assertNotNull(key);
 		assertTrue(key.startsWith(userId));
 		assertTrue(key.endsWith(fileName));
+	}
+	
+	@Test
+	public void testGetS3StorageClassForS3StorageLocation() {
+		S3StorageLocationSetting location = new S3StorageLocationSetting();
+		
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(location);
+		
+		assertEquals(StorageClass.IntelligentTiering, storageClass);
+	}
+	
+	@Test
+	public void testGetS3StorageClassForOtherStorageLocation() {
+		ProxyStorageLocationSettings location = new ProxyStorageLocationSettings();
+		
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(location);
+		
+		assertNull(storageClass);
+	}
+	
+	@Test
+	public void testGetS3StorageClassForNullStorageLocation() {
+		S3StorageLocationSetting location = null;
+		
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(location);
+		
+		assertNull(storageClass);
 	}
 
 }
