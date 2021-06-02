@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
@@ -34,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -91,6 +93,8 @@ public class AccessRequirementManagerImplUnitTest {
 	CreatedIssue mockProject;
 	@Mock
 	ProjectInfo mockProjectInfo;
+	@Mock
+	private ProjectSettingsManager mockProjectSettingsManager;
 
 	private Map<String, String> fields;
 
@@ -156,6 +160,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockProjectInfo.getProjectId()).thenReturn("projectId");
 		when(mockProjectInfo.getIssueTypeId()).thenReturn(10000L);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(false);
 
 		fields = new HashMap<String, String>();
 		fields.put("Synapse Principal ID", "id1");
@@ -233,6 +238,25 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCreateLockAccessRequirementUnderSTSFolder() throws Exception {
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+
+		Set<String> ars = new HashSet<String>();
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(ars);
+		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
+
+		// method under test
+		assertThrows(IllegalArgumentException.class, ()->{
+			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
+		});
+
+		verify(jiraClient, never()).createIssue(anyObject());
+	}
+
+	@Test
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
@@ -251,6 +275,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 	}
 
 	@Test
@@ -279,8 +304,23 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+	}
+
+	@Test
+	public void testCreateACTAccessRequirementUnderSTSFolder() {
+		AccessRequirement toCreate = createExpectedAR();
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+		
+		// method under test
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			arm.createAccessRequirement(userInfo, toCreate);
+		});
+		
+		verify(accessRequirementDAO, never()).create(any());
 	}
 
 	@Test
@@ -336,6 +376,23 @@ public class AccessRequirementManagerImplUnitTest {
 		toUpdate.setId(1L);
 		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+		});
+	}
+
+	@Test
+	public void testUpdateInSTSFolder() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		// can't modify an AR if one of its entities in within an STS Folder
+		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(TEST_ENTITY_ID)).thenReturn(true);
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
 	}
@@ -455,6 +512,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
@@ -781,7 +839,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(RestrictableObjectType.ENTITY, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.DOWNLOAD));
 		assertEquals(RestrictableObjectType.TEAM, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.PARTICIPATE));
 		try {
-			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.UPLOAD);
+			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.READ);
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}

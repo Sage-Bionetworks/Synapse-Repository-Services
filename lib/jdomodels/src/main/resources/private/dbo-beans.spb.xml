@@ -21,6 +21,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBONotificationEmail" />
@@ -95,8 +96,7 @@
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
-								
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
+				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission" />
@@ -116,7 +116,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewScope" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewSnapshot" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 				<bean class="org.sagebionetworks.repo.model.dbo.loginlockout.DBOUnsuccessfulLoginLockout"/>
 
@@ -142,6 +141,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.v2.DBODownloadList" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.v2.DBODownloadListItem" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
@@ -149,6 +150,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthRefreshToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPersonalAccessToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationCode" />
 				<!-- Statistics -->
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyProjectFiles" />
@@ -158,6 +160,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
+				<!-- Files Scanner Status -->
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -184,6 +188,7 @@
 		<property name="databaseObjectRegister" >
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBONotificationEmail" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
@@ -239,7 +244,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewSnapshot" />
 				
-				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
@@ -260,6 +264,7 @@
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
+				<bean class="org.sagebionetworks.repo.model.dbo.file.download.v2.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
 			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
@@ -276,7 +281,7 @@
 				
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
-		
+						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

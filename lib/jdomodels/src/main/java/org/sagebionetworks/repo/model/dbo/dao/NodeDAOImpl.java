@@ -1,92 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.apache.commons.lang3.NotImplementedException;
-import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.IdAndAlias;
-import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LimitExceededException;
-import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeIdAndType;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
-import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
-import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
-import org.sagebionetworks.repo.model.entity.Direction;
-import org.sagebionetworks.repo.model.entity.NameIdType;
-import org.sagebionetworks.repo.model.entity.SortBy;
-import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.file.ChildStatsRequest;
-import org.sagebionetworks.repo.model.file.ChildStatsResponse;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.MessageToSend;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.query.QueryTools;
-import org.sagebionetworks.repo.model.schema.BoundObjectType;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.SnapshotRequest;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.SerializationUtils;
-import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
@@ -132,6 +45,97 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import org.apache.commons.lang3.NotImplementedException;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.IdAndAlias;
+import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LimitExceededException;
+import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeIdAndType;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
+import org.sagebionetworks.repo.model.entity.SortBy;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
+import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.query.QueryTools;
+import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.SerializationUtils;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 /**
  * This is a basic implementation of the NodeDAO.
  * 
@@ -140,16 +144,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
-	/**
-	 * MySQL have a default limit on the maximum recursion calls that can be made on a recursive CTE
-	 */
-	private static final int MAX_PATH_RECURSION = 1000;
+	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
-	/**
-	 * Max path depth for a node hierarchy.
-	 */
-	private static final int MAX_PATH_DEPTH = 100;
-
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -274,7 +271,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String ENTITY_HEADER_SELECT = "SELECT N." + COL_NODE_ID + ", R." + COL_REVISION_LABEL + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", " + SQL_SELECT_BENEFACTOR_N + ", R." + COL_REVISION_NUMBER
 			+ ", N." + COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", R." + COL_REVISION_MODIFIED_BY + ", R."
-			+ COL_REVISION_MODIFIED_ON;
+			+ COL_REVISION_MODIFIED_ON + ", N." + COL_NODE_CURRENT_REV;
 	
 	private static final String JOIN_NODE_REVISION = TABLE_NODE+" N"+
 			" JOIN "+TABLE_REVISION+" R"+
@@ -333,6 +330,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_ANNOTATIONS_ONLY_FROM_AND_WHERE_CLAUSE_PREFIX = " FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = :"+COL_NODE_ID +" AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + "=";
 	private static final String SELECT_USER_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", R."+COL_REVISION_USER_ANNOS_JSON+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + " = ";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
+	private static final String CANNOT_FIND_A_NODE_WITH_ID_AND_VERSION = "Cannot find a node with id %s and version %d";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -388,11 +386,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT rr."
 			+ COL_REVISION_NUMBER + ", rr." + COL_REVISION_LABEL + ", rr."
 			+ COL_REVISION_COMMENT + ", rr." + COL_REVISION_MODIFIED_BY + ", rr."
-			+ COL_REVISION_MODIFIED_ON 
-			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_REVISION + " rr left outer join "
+			+ COL_REVISION_MODIFIED_ON + ", n." + COL_NODE_CURRENT_REV
+			+ ", ff." + COL_FILES_CONTENT_MD5 + ", ff." + COL_FILES_CONTENT_SIZE + " FROM " + TABLE_NODE + " n, "
+			+ TABLE_REVISION + " rr left outer join "
 			+ TABLE_FILES+" ff on (rr."+COL_REVISION_FILE_HANDLE_ID+" = ff."+COL_FILES_ID+") WHERE rr."
-			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY rr." + COL_REVISION_NUMBER
-			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME +
+			" AND rr." + COL_REVISION_OWNER_NODE + " = n." + COL_NODE_ID +
+			" ORDER BY rr." + COL_REVISION_NUMBER + " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	/**
 	 * A sql query returning results for entity headers with a specific MD5 value
@@ -419,10 +419,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
-			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
 
+	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
+			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+	
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
@@ -437,6 +440,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			header.setName(rs.getString(COL_NODE_NAME));
 			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
 			header.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
 			header.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
@@ -550,14 +554,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		// Make sure to set the corret revision number
 		dto.setVersionNumber(revisionNumber);
-		
+
 		DBORevision dboRevision = NodeUtils.transalteNodeToDBORevision(dto);
 		
 		DBONode dboNode = NodeUtils.translateNodeToDBONode(dto);
 		
 		// Set the initial max revision the same as the current revision number
 		dboNode.setMaxRevNumber(revisionNumber);
-		
+
 		// Start it with a new e-tag
 		dboNode.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dboNode).withChangeType(ChangeType.CREATE).withUserId(dboNode.getCreatedBy()));
@@ -694,7 +698,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM NODES AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
-						+ " AND C.DISTANCE < " + MAX_PATH_RECURSION
+						+ " AND C.DISTANCE < " + NodeConstants.MAX_PATH_DEPTH_PLUS_ONE
 				+ ")"
 				+ " SELECT ID FROM NODES ORDER BY DISTANCE DESC LIMIT ?", Long.class, parentId, limit);
 	}
@@ -832,7 +836,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return annos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
-			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
+			throw new NotFoundException(String.format(CANNOT_FIND_A_NODE_WITH_ID_AND_VERSION, id, version));
 		}
 	}
 
@@ -947,6 +951,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
 				newScope, newReferences, nodeId, currentRevision);
 	}
+	
+	@Override
+	@WriteTransaction
+	public boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId) {
+		ValidateArgument.required(nodeId, "The nodeId");
+		ValidateArgument.required(versionNumber, "The versionNumber");
+		ValidateArgument.required(fileHandleId, "The fileHandleId");
+		
+		final Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		final Long fileHandleIdLong = NodeUtils.translateFileHandleId(fileHandleId);
+		
+		return jdbcTemplate.update(UPDATE_REVISION_FILE_HANDLE, fileHandleIdLong, nodeIdLong, versionNumber) > 0;
+	}
 
 	@WriteTransaction
 	@Override
@@ -1049,6 +1066,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));
+				info.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV));
 				info.setContentMd5(rs.getString(COL_FILES_CONTENT_MD5));
 				info.setContentSize(rs.getString(COL_FILES_CONTENT_SIZE));
 				return info;
@@ -1147,6 +1165,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		Set<Long> entityIdSet = Sets.newHashSetWithExpectedSize(references.size());
 		for(Reference ref:references){
+			if (ref.getTargetId()==null) continue;
 			Long id = KeyFactory.stringToKey(ref.getTargetId());
 			entityIdSet.add(id);
 		}
@@ -1159,6 +1178,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Create the results driven by the input
 		List<EntityHeader> finalResults = new ArrayList<EntityHeader>(references.size());
 		for(Reference ref: references){
+			if (ref.getTargetId()==null) continue;
 			Long id = KeyFactory.stringToKey(ref.getTargetId());
 			EntityHeader original = idToHeader.get(id);
 			if(original != null){
@@ -1166,6 +1186,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(ref.getTargetVersionNumber() != null){
 					clone.setVersionLabel(ref.getTargetVersionNumber().toString());
 					clone.setVersionNumber(ref.getTargetVersionNumber());
+					clone.setIsLatestVersion(original.getVersionNumber().equals(ref.getTargetVersionNumber()));
 				}
 				finalResults.add(clone);
 			}
@@ -1175,6 +1196,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Override
 	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
+		if (entityIds.isEmpty()) return Collections.EMPTY_LIST;
 		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
 		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,ENTITY_HEADER_ROWMAPPER);
 	}
@@ -1242,8 +1264,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(path.isEmpty()) {
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		if(path.size() >= MAX_PATH_DEPTH) {
-			throw new IllegalStateException("Path depth limit of: "+MAX_PATH_DEPTH+" exceeded for: "+nodeId);
+		if(path.size() > NodeConstants.MAX_PATH_DEPTH) {
+			throw new IllegalStateException("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
 	}
 	
@@ -1786,10 +1808,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(includeTypes, "includeTypes");
 		ValidateArgument.requirement(!includeTypes.isEmpty(), "Must have at least one type for includeTypes");
+		List<String> typeNames = getTypeNames(includeTypes);
+		ValidateArgument.requirement(!typeNames.isEmpty(), "Must have at least one valid type name for includeTypes");
 		ValidateArgument.required(sortDirection, "sortDirection");
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
-		parameters.put(BIND_NODE_TYPES , getTypeNames(includeTypes));
+		parameters.put(BIND_NODE_TYPES , typeNames);
 		parameters.put(BIND_NODE_IDS , childIdsToExclude);
 		parameters.put(BIND_LIMIT , limit);
 		parameters.put(BIND_OFFSET , offset);
@@ -1802,7 +1826,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public ChildStatsResponse getChildernStats(ChildStatsRequest request) {
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getParentId(), "parentId");
 		ValidateArgument.required(request.getIncludeTypes(), "includeTypes");
@@ -1847,7 +1871,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	public static List<String> getTypeNames(List<EntityType> includeTypes){
 		List<String> results = new LinkedList<String>();
-		for(EntityType type: includeTypes){
+		if (includeTypes==null) {
+			return results;
+		}
+		for(EntityType type: includeTypes) {
+			if (type==null) continue;
+			
 			results.add(type.name());
 		}
 		return results;
@@ -2022,9 +2051,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long modifiedOn = System.currentTimeMillis();
 		Long revisionNumber = this.getCurrentRevisionNumber(nodeIdString);
 		String label = request.getSnapshotLabel() != null ? request.getSnapshotLabel() : revisionNumber.toString();
-		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
-				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
-		return revisionNumber;
+		try {
+			this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
+					request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
+			return revisionNumber;
+		} catch (DuplicateKeyException e) {
+			if (e.getMessage().contains("UNIQUE_REVISION_LABEL")) {
+				throw new IllegalArgumentException(String.format("The label '%s' has already been used for a version of this entity", label), e);
+			} else {
+				throw(e);
+			}
+		}
 	}
 
 	@Override
@@ -2060,10 +2097,45 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new NotFoundException("No JSON schema found for 'syn"+nodeId+"'");
 		}
 	}
+	
+	@Override
+	public Integer getEntityPathDepth(String entityId, int maxDepth) {
+		ValidateArgument.required(entityId, "entityId");
+		return jdbcTemplate.queryForObject(ENTITY_DEPTH_SQL, (ResultSet rs, int rowNum) -> {
+			int max = rs.getInt("MAX_DEPTH");
+			if (rs.wasNull()) {
+				throw new NotFoundException("Not found entityId: '" + entityId+"'");
+			}
+			return max;
+		}, KeyFactory.stringToKey(entityId), maxDepth);
+	}
 
 	@Override
 	public Long getEntityIdOfFirstBoundSchema(Long nodeId) {
-		return getEntityIdOfFirstBoundSchema(nodeId, MAX_PATH_DEPTH);
+		return getEntityIdOfFirstBoundSchema(nodeId, NodeConstants.MAX_PATH_DEPTH_PLUS_ONE );
+	}
+
+	@Override
+	public void truncateAll() {
+		/*
+		 * This is a workaround for the MySQL cascade delete limit on hierarchies deeper
+		 * than 15. We find and delete the last 10 nodes based on node IDs (excluding
+		 * bootstrap node), in a loop until no more nodes are found.
+		 */
+		SqlParameterSource listParams = new MapSqlParameterSource("bootstrapIds",
+				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds());
+		while (true) {
+			List<Long> idsToDelete = namedParameterJdbcTemplate.queryForList(
+					"SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID
+							+ " NOT IN(:bootstrapIds) ORDER BY " + COL_NODE_ID + " DESC LIMIT 10",
+					listParams, Long.class);
+			if (idsToDelete.isEmpty()) {
+				break;
+			}
+			SqlParameterSource deleteParams = new MapSqlParameterSource("toDelete", idsToDelete);
+			namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN(:toDelete)",
+					deleteParams);
+		}
 	}
 
 }

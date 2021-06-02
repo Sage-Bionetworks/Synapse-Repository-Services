@@ -1,27 +1,31 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
+import org.sagebionetworks.repo.model.file.IdRange;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -31,21 +35,21 @@ import com.google.common.collect.Sets;
 public class FileHandleAssociationManagerImplTest {
 
 	@Mock
-	FileHandleAssociationProvider mockProvider;
+	private FileHandleAssociationProvider mockProvider;
+	
+	@Mock
+	private FileHandleAssociationScanner mockScanner;
 
 	@Mock
-	FileHandleDao mockFileHandleDao;
+	private FileHandleDao mockFileHandleDao;
 
-	FileHandleAssociationManagerImpl fileHandleAssociationManager;
+	@InjectMocks
+	private FileHandleAssociationManagerImpl fileHandleAssociationManager;
 
 	@BeforeEach
 	public void before() {
-
-		HashMap<FileHandleAssociateType, FileHandleAssociationProvider> mockMap = new HashMap<FileHandleAssociateType, FileHandleAssociationProvider>();
-		mockMap.put(FileHandleAssociateType.TableEntity, mockProvider);
-
-		fileHandleAssociationManager = new FileHandleAssociationManagerImpl(mockFileHandleDao);
-		fileHandleAssociationManager.setProviderMap(mockMap);
+		fileHandleAssociationManager.configureProviderMap(Collections.singletonMap(FileHandleAssociateType.TableEntity, mockProvider));
+		fileHandleAssociationManager.configureScannerMap(Collections.singletonMap(FileHandleAssociateType.TableEntity, mockScanner));
 	}
 
 	@Test
@@ -127,6 +131,53 @@ public class FileHandleAssociationManagerImplTest {
 		verify(mockProvider, times(1)).getFileHandleIdsDirectlyAssociatedWithObject(anyList(), anyString());
 		
 		assertEquals(ImmutableSet.copyOf(fileHandleIds), result);
+	}
+	
+	@Test
+	public void testGetIdRange() {
+
+		IdRange expected = new IdRange(1, 10);
+		
+		when(mockScanner.getIdRange()).thenReturn(expected);
+		
+		// Call under test
+		IdRange result = fileHandleAssociationManager.getIdRange(FileHandleAssociateType.TableEntity);
+		
+		assertEquals(expected, result);
+		
+		verify(mockScanner).getIdRange();
+		
+	}
+	
+	@Test
+	public void testGetMaxIdRangeSize() {
+		
+		long expectedMaxIdRange = 10;
+		
+		when(mockScanner.getMaxIdRangeSize()).thenReturn(expectedMaxIdRange);
+		
+		// Call under test
+		long result = fileHandleAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.TableEntity);
+		
+		assertEquals(expectedMaxIdRange, result);
+		
+	}
+	
+	public void testScanRange() {
+		
+		Iterable<ScannedFileHandleAssociation> expected = new ArrayList<>();
+		
+		when(mockScanner.scanRange(any())).thenReturn(expected);
+		
+		IdRange range = new IdRange(1, 10);
+		
+		// Call under test
+		Iterable<ScannedFileHandleAssociation> result = fileHandleAssociationManager.scanRange(FileHandleAssociateType.TableEntity, range);
+		
+		assertEquals(expected, result);
+		
+		verify(mockScanner).scanRange(range);
+		
 	}
 
 }

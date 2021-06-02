@@ -405,4 +405,6 @@ public interface EvaluationService {
 	EvaluationRoundListResponse getAllEvaluationRounds(Long userId, String evaluationId, EvaluationRoundListRequest request);
 
 	void deleteEvaluationRound(Long userId, String evaluationId, String evaluationRoundId);
+
+	void migrateEvaluationSubmissionQuota(Long userId, String evaluationId);
 }

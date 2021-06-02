@@ -1,37 +1,43 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+@ExtendWith(MockitoExtension.class)
 public class RequestFileHandleAssociationProviderTest {
 
 	@Mock
 	private RequestDAO mockRequestDao;
+	
 	@Mock
 	private RequestInterface mockRequest;
+	
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+	
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	
+	@InjectMocks
 	private RequestFileHandleAssociationProvider provider;
 	
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		provider = new RequestFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "requestDao", mockRequestDao);
-	}
-
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObjectForACTAccessRequirement() {
 		String requestId = "1";
@@ -69,4 +75,10 @@ public class RequestFileHandleAssociationProviderTest {
 	public void testGetObjectTypeForAssociatedType() {
 		assertEquals(ObjectType.DATA_ACCESS_REQUEST, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.DataAccessRequestAttachment, provider.getAssociateType());
+	}
+		
 }

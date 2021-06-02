@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -29,8 +31,12 @@ public class SubmissionUtils {
 	}
 
 	private static void copyToSerializedField(Submission dto, DBOSubmission dbo) {
+		dbo.setSubmissionSerialized(writeSerializedField(dto));
+	}
+	
+	public static byte[] writeSerializedField(Submission dto) {
 		try {
-			dbo.setSubmissionSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -83,10 +89,28 @@ public class SubmissionUtils {
 	}
 
 	private static Submission copyFromSerializedField(DBOSubmission dbo) {
+		return readSerializedField(dbo.getSubmissionSerialized());
+	}
+	
+	public static Submission readSerializedField(byte[] serializedField) {
 		try {
-			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSubmissionSerialized());
+			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	public static Set<String> extractAllFileHandleIds(Submission submission) {
+		Set<String> associatedIds = new HashSet<String>();
+		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {
+			associatedIds.addAll(submission.getAttachments());
+		}
+		if (submission.getDucFileHandleId() != null) {
+			associatedIds.add(submission.getDucFileHandleId());
+		}
+		if (submission.getIrbFileHandleId() != null) {
+			associatedIds.add(submission.getIrbFileHandleId());
+		}
+		return associatedIds;
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -8,9 +9,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_IS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,33 +28,35 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
@@ -65,15 +73,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
-	private static final String SQL_SELECT_CREATORS = "SELECT " + COL_FILES_CREATED_BY + "," + COL_FILES_ID + " FROM " + TABLE_FILES
-			+ " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " )";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
-	private static final String UPDATE_STORAGE_LOCATION_ID_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STORAGE_LOCATION_ID + " = :id, " 
-			+ COL_FILES_ETAG + " = UUID() WHERE " + COL_FILES_STORAGE_LOCATION_ID + " IN ( " + IDS_PARAM + " )";
-
+	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -84,19 +88,33 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			+ COL_FILES_BUCKET_NAME + " = ? AND `"
 			+ COL_FILES_KEY + "` = ?";
 	
-	@Autowired
+	private static final String SQL_IS_MATCHING_MD5 = "SELECT COUNT(S." + COL_FILES_ID + ") > 0"
+			+ " FROM " + TABLE_FILES + " S JOIN " + TABLE_FILES + " T"
+			+ " ON S." + COL_FILES_CONTENT_MD5 + " = T." + COL_FILES_CONTENT_MD5
+			+ " WHERE S." + COL_FILES_ID + "= ?"
+			+ " AND T." + COL_FILES_ID + "= ?";
+	
 	private TransactionalMessenger transactionalMessenger;
 		
-	@Autowired
 	private DBOBasicDao basicDao;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	public DBOFileHandleDaoImpl(TransactionalMessenger transactionalMessenger, DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.transactionalMessenger = transactionalMessenger;
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+	}
 
-	private TableMapping<DBOFileHandle> rowMapping = new DBOFileHandle().getTableMapping();
+	private static final TableMapping<DBOFileHandle> DBO_MAPPER = new DBOFileHandle().getTableMapping();
+	
+	private static final RowMapper<FileHandle> ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		return FileMetadataUtils.createDTOFromDBO(DBO_MAPPER.mapRow(rs, rowNum));
+	};
 
 	@Override
 	public FileHandle get(String id) throws DatastoreException, NotFoundException {
@@ -104,7 +122,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		return FileMetadataUtils.createDTOFromDBO(dbo);
 	}
 
-	private DBOFileHandle getDBO(String id) throws NotFoundException {
+	DBOFileHandle getDBO(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
@@ -127,7 +145,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
-			throw new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
+			throw new FileHandleLinkedException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id, e);
 		}
 	}
 
@@ -193,24 +211,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
-	}
-
-	@Deprecated
-	@Override
-	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
-		final Multimap<String, String> resultMap = ArrayListMultimap.create();
-
-		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
-		// the selects here
-		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, SqlConstants.MAX_LONGS_PER_IN_CLAUSE / 2)) {
-			namedJdbcTemplate.query(SQL_SELECT_CREATORS, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch),
-					rs -> {
-						String creator = rs.getString(COL_FILES_CREATED_BY);
-						String id = rs.getString(COL_FILES_ID);
-						resultMap.put(creator, id);
-					});
-		}
-		return resultMap;
 	}
 	
 	@Override
@@ -290,16 +290,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) {
-		Map<String, FileHandle> resultMap = Maps.newHashMap();
+		Map<String, FileHandle> resultMap = new HashMap<>();
 
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
 		for (List<String> fileHandleIdsBatch : Iterables.partition(idsList, 100)) {
-			List<DBOFileHandle> handles = namedJdbcTemplate.query(SQL_SELECT_BATCH,
-					new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), rowMapping);
-			for (DBOFileHandle handle : handles) {
-				resultMap.put(handle.getIdString(), FileMetadataUtils.createDTOFromDBO(handle));
-			}
+			
+			namedJdbcTemplate.query(SQL_SELECT_BATCH, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), ROW_MAPPER).forEach( handle -> {
+				resultMap.put(handle.getId(), handle);
+			});
+			
 		}
 		return resultMap;
 	}
@@ -315,36 +315,130 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
-		}
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
 	}
 	
 	@Override
 	public long getMaxId() throws DatastoreException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
-		} catch (NullPointerException e) {
-			return 0L;
+		Long maxId = jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
+		
+		if (maxId == null) {
+			maxId = 0L;
 		}
+		
+		return maxId;
 	}
 
 	@WriteTransaction
 	@Override
 	public void createBatch(List<FileHandle> list) {
 		List<DBOFileHandle> dbos = FileMetadataUtils.createDBOsFromDTOs(list);
+		createBatchDbo(dbos);
+	}
+	
+	@WriteTransaction
+	@Override
+	public void createBatchDbo(List<DBOFileHandle> dbos) {
 		for (DBOFileHandle dbo : dbos) {
 			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 		basicDao.createBatch(dbos);
 	}
+	
+	@Override
+	public boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId) {
+		return jdbcTemplate.queryForObject(SQL_IS_MATCHING_MD5, Boolean.class, sourceFileHandleId, targetFileHandleId);
+	}
+	
+	@Override
+	public List<FileHandle> getFileHandlesBatchByStatus(List<Long> ids, FileHandleStatus status) {
+		ValidateArgument.required(status, "The status");
+		
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		String sql = SQL_SELECT_BATCH + " AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS;
+		
+		MapSqlParameterSource paramSource = new MapSqlParameterSource()
+				.addValue("ids", ids)
+				.addValue(COL_FILES_STATUS, status.name());
+		
+		return namedJdbcTemplate.query(sql, paramSource, ROW_MAPPER);
+	}
+	
+	@Override
+	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
+		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		StringBuilder sql = new StringBuilder(SQL_SELECT_BATCH);
+		
+		if (updatedOnBeforeDays > 0) {
+			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
+		}
+		
+		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
+		
+		return namedJdbcTemplate.query(sql.toString(), paramSource, DBO_MAPPER);
+	}
+	
+	@Override
+	@WriteTransaction
+	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
+		ValidateArgument.required(newStatus, "The newStatus");
+		ValidateArgument.required(currentStatus, "The currentStatus");
+		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
+		
+		if (ids == null || ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		StringBuilder sql = new StringBuilder(SQL_UPDATE_STATUS_BATCH);
+		
+		if (updatedOnBeforeDays > 0) {
+			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
+		}
+		
+		int[] updatedRows = jdbcTemplate.batchUpdate(sql.toString(), new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				int paramIndex = 1;
+				ps.setString(paramIndex++, newStatus.name());
+				ps.setLong(paramIndex++, ids.get(i));
+				ps.setString(paramIndex++, currentStatus.name());
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return ids.size();
+			}
+		});
+		
+		List<Long> updatedIds = new ArrayList<>(ids.size());
+
+		for (int i = 0; i < updatedRows.length; i++) {
+			if (updatedRows[i] > 0) {
+				updatedIds.add(ids.get(i));
+			}
+		}
+		
+		return updatedIds;
+		
+	}
 
 	@WriteTransaction
 	@Override
 	public void truncateTable() {
-		jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+		try {
+			jdbcTemplate.update("SET FOREIGN_KEY_CHECKS = ?", false);
+			jdbcTemplate.update("DELETE FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" > -1");
+		}finally {
+			jdbcTemplate.update("SET FOREIGN_KEY_CHECKS = ?", true);
+		}
 	}
 
 }

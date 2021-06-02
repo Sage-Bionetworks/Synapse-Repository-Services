@@ -80,7 +80,7 @@ public class DockerManagerImplAutowiredTest {
 		// test to see if we can push to the project.  Answer should be yes!
 		List<String> scope = new ArrayList<String>();
 		scope.add(TYPE+":"+repositoryPath+":push");
-		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserInfo.getId());
+		String accessToken = oidcTokenHelper.createInternalTotalAccessToken(adminUserInfo.getId());
 		
 		DockerAuthorizationToken token = dockerManager.authorizeDockerAccess(adminUserInfo, accessToken, SERVICE, scope);
 		assertNotNull(token.getToken());

@@ -63,7 +63,7 @@ public class JRJCHelperTest {
 		assertEquals(TEST_DATA_OBJECT_ID, customFields.get("id3"));
 		List<Map<String,Object>> components = (List<Map<String,Object>>)customFields.get("components");
 		Map<String,Object> expectedComponent = new HashMap<String,Object>();
-		expectedComponent.put("name", "Data Restriction Request");
+		expectedComponent.put("id", "14865");
 		List<Map<String,Object>> expectedComponents = Collections.singletonList(expectedComponent);
 		assertEquals(expectedComponents, components);
 		assertEquals("projectId", issueInput.getProjectId());

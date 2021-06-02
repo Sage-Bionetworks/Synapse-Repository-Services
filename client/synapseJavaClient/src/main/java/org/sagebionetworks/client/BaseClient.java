@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 
@@ -21,10 +22,17 @@ public interface BaseClient {
 	 */
 	public void appendUserAgent(String toAppend);
 
+	@Deprecated
 	/**
 	 * Authenticate the Synapse client with an existing session token
 	 */
 	public void setSessionToken(String sessionToken);
+	
+	/**
+	 * Set whether the user accepts the Synapse terms of use
+	 * @param b
+	 */
+	public void setAcceptsTermsOfUse(boolean b);
 	
 	/**
 	 * Set a uname and password as a Basic Authorization header.
@@ -48,12 +56,20 @@ public interface BaseClient {
 	 */
 	public void setBearerAuthorizationToken(String bearerToken);
 
+	@Deprecated
 	/**
 	 * Get the current session token used by this client.
 	 * 
 	 * @return the session token
 	 */
 	public String getCurrentSessionToken();
+
+	/**
+	 * Get the current access token used by this client.
+	 * 
+	 * @return the access token
+	 */
+	public String getAccessToken();
 
 	/**
 	 * Get the endpoint of the repository service
@@ -102,19 +118,39 @@ public interface BaseClient {
 	 */
 	public void setUserIpAddress(String ipAddress);
 
+	@Deprecated
 	/**
 	 * Log into Synapse
 	 * 
 	 * @param request
-	 * @return
+	 * @return a session token for subsequent requests
 	 * @throws SynapseException
 	 */
 	LoginResponse login(LoginRequest request) throws SynapseException;
+	
+	/**
+	 * Get the date/time when the requesting user was last authenticated.
+	 * @return
+	 * @throws SynapseException
+	 */
+	AuthenticatedOn getAuthenticatedOn() throws SynapseException;
 
+	/**
+	 * Log into Synapse
+	 * 
+	 * @param request
+	 * @return an access token for subsequent requests
+	 * @throws SynapseException
+	 */
+	LoginResponse loginForAccessToken(LoginRequest request) throws SynapseException;
+
+	@Deprecated
 	/**
 	 * Log out of Synapse
 	 */
 	public void logout() throws SynapseException;
+
+	public void logoutForAccessToken() throws SynapseException;
 
 	public void invalidateApiKey() throws SynapseException;
 

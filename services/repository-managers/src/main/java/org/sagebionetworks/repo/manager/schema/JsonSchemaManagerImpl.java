@@ -64,6 +64,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
+	
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -216,6 +217,11 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
 		response.setValidationSchema(validationSchema);
+		
+		// If this is a dry run, then we do not keep the resulting schema.
+		if(Boolean.TRUE.equals(request.getDryRun())) {
+			jsonSchemaDao.deleteSchemaVersion(info.getVersionId());
+		}
 		return response;
 	}
 	
@@ -422,9 +428,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		if (visitedStack.contains($id)) {
 			throw new IllegalArgumentException("Schema $id: '" + $id + "' has a circular dependency");
 		}
+		boolean isTopLevel = visitedStack.isEmpty();
 		visitedStack.push($id);
 		// get the base schema
-		JsonSchema baseSchema = getSchema($id);
+		JsonSchema baseSchema = getSchema($id, isTopLevel);
 		if (baseSchema.getDefinitions() == null) {
 			baseSchema.setDefinitions(new LinkedHashMap<String, JsonSchema>());
 		}
@@ -464,7 +471,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * @return
 	 */
 	@Override
-	public JsonSchema getSchema(String $id) {
+	public JsonSchema getSchema(String $id, boolean isTopLevel) {
 		ValidateArgument.required($id, "id");
 		String versionId = getSchemaVersionId($id);
 		JsonSchema result = jsonSchemaDao.getSchema(versionId);
@@ -474,6 +481,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		 * version.
 		 */
 		result.set$id($id);
+		if(isTopLevel) {
+			// the absolute $id is needed for the top level. See: PLFM-6515
+			result.set$id(JsonSchemaManager.createAbsolute$id($id));
+		}
 		return result;
 	}
 

@@ -5,11 +5,10 @@ import java.util.List;
 /**
  * Custom "HAS" predicate for searching multi-value columns.
  *
- * <HAS predicate> ::= <row value constructor> [ NOT ] IN <in predicate value>
+ * <HAS predicate> ::= <row value constructor> [ NOT ] IN <in predicate value> 
  *
- * Example:
+ * Examples:
  * columnName HAS ("value1", "value2", "value3")
- *
  *
  * See  https://sagebionetworks.jira.com/wiki/spaces/PLFM/pages/817168468/Multiple+Value+Annotations
  *
@@ -18,22 +17,27 @@ import java.util.List;
  * NOTE the implemented {@link HasPredicate} interface is not for the "HAS" keyword, but, instead an interface for any predicate
  */
 public class ArrayHasPredicate extends SQLElement implements HasPredicate {
+	
+	private static final String KEYWORD = "HAS";
 
 	ColumnReference columnReferenceLHS;
 	Boolean not;
 	InPredicateValue inPredicateValue;
-
-	public ArrayHasPredicate(ColumnReference columnReferenceLHS, Boolean not,
-					   InPredicateValue inPredicateValue) {
-		super();
+	
+	public ArrayHasPredicate(ColumnReference columnReferenceLHS, Boolean not, InPredicateValue inPredicateValue) {
 		this.columnReferenceLHS = columnReferenceLHS;
 		this.not = not;
 		this.inPredicateValue = inPredicateValue;
+	}
+	
+	public String getKeyWord() {
+		return KEYWORD;
 	}
 
 	public Boolean getNot() {
 		return not;
 	}
+	
 	public InPredicateValue getInPredicateValue() {
 		return inPredicateValue;
 	}
@@ -45,7 +49,8 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 		if (this.not != null) {
 			builder.append("NOT ");
 		}
-		builder.append("HAS ( ");
+		builder.append(getKeyWord());
+		builder.append(" ( ");
 		inPredicateValue.toSql(builder, parameters);
 		builder.append(" )");
 	}

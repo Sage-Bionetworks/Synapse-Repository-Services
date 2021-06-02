@@ -286,7 +286,7 @@ public class TableModelUtilsTest {
 			TableModelUtils.validateRowValue("true", cm, 1, 3);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,3] was not a valid DATE. Invalid format: \"true\"", e.getMessage());
+			assertEquals("Value at [1,3] was not a valid DATE. Invalid format: \"true\" is malformed at \"rue\"", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean
@@ -531,6 +531,16 @@ public class TableModelUtilsTest {
 		});
 
 		assertEquals("Exceeds the maximum number of list elements defined in the ColumnModel (2): \"[\"1\",\"12345\", \"123\"]\"", exception.getMessage());
+	}
+
+	@Test
+	public void testValidateValue_StringList_EmptyJSONList(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumSize(54L);
+		cm.setMaximumListLength(2L);
+
+		//method under test
+		assertNull(TableModelUtils.validateValue("[]", cm));
 	}
 
 	@Test
@@ -1931,5 +1941,20 @@ public class TableModelUtilsTest {
 		ColumnChange removeTwo = changes.get(1);
 		assertEquals(null, removeTwo.getNewColumnId());
 		assertEquals("2", removeTwo.getOldColumnId());
+	}
+
+	@Test
+	public void testCreateSelectColumn_givenColumnModelWithQuotedName(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("quoted\"Name\"");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("123");
+
+		SelectColumn selectColumn = TableModelUtils.createSelectColumn(cm);
+
+		assertNotNull(selectColumn);
+		assertEquals(cm.getName(), selectColumn.getName());
+		assertEquals(cm.getColumnType(), selectColumn.getColumnType());
+		assertEquals(cm.getId(), selectColumn.getId());
 	}
 }

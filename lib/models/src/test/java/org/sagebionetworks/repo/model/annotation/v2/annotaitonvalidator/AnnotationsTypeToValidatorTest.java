@@ -13,6 +13,7 @@ public class AnnotationsTypeToValidatorTest {
 		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.DOUBLE) instanceof DoubleValueListValidator);
 		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.LONG) instanceof LongValueListValidator);
 		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.TIMESTAMP_MS) instanceof LongValueListValidator);
+		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.BOOLEAN) instanceof BooleanValueListValidator);
 	}
 
 	@Test

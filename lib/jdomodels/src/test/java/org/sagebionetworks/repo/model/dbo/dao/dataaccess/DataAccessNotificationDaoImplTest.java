@@ -68,14 +68,14 @@ public class DataAccessNotificationDaoImplTest {
 		user2.setCreationDate(new Date());
 		user2.setId(userGroupDao.create(user2).toString());
 
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.clear();
 	}
 
 	@AfterEach
 	public void after() {
-		notificationDao.clear();
+		notificationDao.truncateAll();
 		accessApprovalDao.clear();
 		accessRequirementDao.clear();
 		userGroupDao.delete(user.getId());

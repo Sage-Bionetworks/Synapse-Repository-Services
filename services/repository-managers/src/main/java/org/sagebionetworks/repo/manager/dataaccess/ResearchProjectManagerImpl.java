@@ -27,11 +27,8 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	@WriteTransaction
 	@Override
 	public ResearchProject create(UserInfo userInfo, ResearchProject toCreate) {
-		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo, "The user");
 		validateResearchProject(toCreate);
-		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
-				"A ResearchProject can only associate with an ManagedACTAccessRequirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return researchProjectDao.create(toCreate);
 	}
@@ -40,17 +37,22 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	 * @param toValidate
 	 */
 	public void validateResearchProject(ResearchProject toValidate) {
-		ValidateArgument.required(toValidate, "ResearchProject");
-		ValidateArgument.required(toValidate.getAccessRequirementId(), "ResearchProject.accessRequirementId");
-		ValidateArgument.requirement(toValidate.getProjectLead() != null
-				&& toValidate.getProjectLead().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toValidate.getInstitution() != null
-				&& toValidate.getInstitution().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toValidate.getIntendedDataUseStatement() != null
-				&& toValidate.getIntendedDataUseStatement().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		ValidateArgument.required(toValidate, "The research project");
+		ValidateArgument.required(toValidate.getAccessRequirementId(), "The accessRequirementId");
+		
+		AccessRequirement ar = accessRequirementDao.get(toValidate.getAccessRequirementId());
+		
+		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement, "A research project can only be associated with an ManagedACTAccessRequirement.");
+		
+		ValidateArgument.requirement(toValidate.getProjectLead() != null && toValidate.getProjectLead().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT, 
+				"The projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		ValidateArgument.requirement(toValidate.getInstitution() != null && toValidate.getInstitution().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
+				"The insitution must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		
+		if (((ManagedACTAccessRequirement) ar).getIsIDURequired()) {
+			ValidateArgument.requirement(toValidate.getIntendedDataUseStatement() != null && toValidate.getIntendedDataUseStatement().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
+					"The intended data use statement must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		}
 	}
 
 	public ResearchProject prepareCreationFields(ResearchProject toCreate, String createdBy) {
@@ -62,8 +64,8 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	@Override
 	public ResearchProject getUserOwnResearchProjectForUpdate(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(accessRequirementId, "The accessRequirementId");
 		try {
 			return researchProjectDao.getUserOwnResearchProject(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
@@ -81,7 +83,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	@Override
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate)
 			throws NotFoundException, UnauthorizedException {
-		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo, "The user");
 		validateResearchProject(toUpdate);
 
 		ResearchProject original = researchProjectDao.getForUpdate(toUpdate.getId());
@@ -92,10 +94,10 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId()),
-				"accessRequirementId, createdOn and createdBy fields cannot be editted.");
+				"accessRequirementId, createdOn and createdBy fields cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
-				throw new UnauthorizedException("Only owner can perform this action.");
+				throw new UnauthorizedException("Only the owner can perform this action.");
 		}
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
@@ -111,7 +113,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	@WriteTransaction
 	@Override
 	public ResearchProject createOrUpdate(UserInfo userInfo, ResearchProject toCreateOrUpdate) {
-		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
+		ValidateArgument.required(toCreateOrUpdate, "The research project");
 		if (toCreateOrUpdate.getId() == null) {
 			return create(userInfo, toCreateOrUpdate);
 		} else {

@@ -1,6 +1,20 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,18 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.NewUser;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 @ExtendWith(SpringExtension.class)
@@ -89,6 +92,30 @@ public class TeamServiceAutowireTest {
 		// Even though multiple add member calls were made in parallel the user should have been added only once
 		assertEquals(1, count);
 
+	}
+
+	/**
+	 * PLFM-6390
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetMembersInvalidTeamId() throws Exception {
+		String invalidTeamId = "404";
+		String expectedResponse = "Team does not exist for teamId: " + invalidTeamId;
+		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamService.getMembers(invalidTeamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
+		});
+		assertEquals(expectedResponse, exception.getMessage());
+	}
+
+	/**
+	 * PLFM-6390
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetMembersValidTeamId() throws Exception {
+		teamService.getMembers(teamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 	}
 
 }

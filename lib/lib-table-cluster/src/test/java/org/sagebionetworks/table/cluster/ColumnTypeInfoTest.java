@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 import com.google.common.collect.Sets;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 public class ColumnTypeInfoTest {
 	
@@ -404,6 +405,25 @@ public class ColumnTypeInfoTest {
 		String defaultValue = "[\"a\", \"b\", \"c\"]";
 		ColumnTypeInfo.STRING_LIST.appendDefaultValue(builder, defaultValue);
 		assertEquals("DEFAULT ('[\"a\",\"b\",\"c\"]')", builder.toString());
+	}
+
+	/**
+	 * If an empty list is the default value, it should be converted to a null default value
+	 * Newly created column models should already prevent an empty list from being assigned as
+	 * the default value, but there exists legacy column models in the database before this
+	 * was enforced
+	 */
+	@Test
+	public void testAppendDefault_EmptyList(){
+		String defaultValue = "[]";
+		for(ColumnTypeInfo typeInfo : ColumnTypeInfo.values()){
+			if (ColumnTypeListMappings.isList(typeInfo.getType())){
+				StringBuilder builder = new StringBuilder();
+				typeInfo.appendDefaultValue(builder, defaultValue);
+				assertEquals("DEFAULT NULL", builder.toString());
+			}
+		}
+
 	}
 
 

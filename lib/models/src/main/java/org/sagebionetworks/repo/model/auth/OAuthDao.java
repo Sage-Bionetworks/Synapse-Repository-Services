@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model.auth;
 
 import java.util.Date;
 
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.web.NotFoundException;
+
 public interface OAuthDao {
 	
 	/**
@@ -42,5 +45,22 @@ public interface OAuthDao {
 	 * @param clientId the ID of the OAuth 2.0 client which was authorized
 	 */
 	public void deleteAuthorizationConsentForClient(Long userId, Long clientId);
+	
+	/**
+	 * Store a new (unique) authorization code and the corresponding authorization request
+	 * @param authorizationCode
+	 * @param authorizationRequest
+	 */
+	public void createAuthorizationCode(String authorizationCode, OIDCAuthorizationRequest authorizationRequest);
+	
+	/**
+	 * Given an authorization code, return the corresponding authorization request
+	 * and remove from the database.
+	 * 
+	 * @param authorizationCode
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public OIDCAuthorizationRequest redeemAuthorizationCode(String authorizationCode) throws NotFoundException;
 
 }

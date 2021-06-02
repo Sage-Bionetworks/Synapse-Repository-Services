@@ -1,0 +1,14 @@
+{
+	"description": "In order to download a file the user will need to meet an access requirement associated with the file.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.Action"
+		}
+	],
+	"properties": {
+		"accessRequirementId": {
+			"description": "The ID of the access requirement that the user needs to meet in order to download a file.",
+			"type": "integer"
+		}
+	}
+}

@@ -1,0 +1,25 @@
+{
+	"description": "Request to get a single page of files from the user's download list for files that are currently available for download.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.QueryRequestDetails"
+		}
+	],
+	"properties": {
+		"nextPageToken": {
+			"description": "Forward the resulting nextPageToken from a previous request to get the next page of results.",
+			"type": "string"
+		},
+		"sort": {
+			"description": "Optional. Defines how the query results should be sorted. If excluded a default sort will be used.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.download.Sort"
+			}
+		},
+		"concreteType": {
+			"type": "string",
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.AvailableFilesRequest'"
+		}
+	}
+}

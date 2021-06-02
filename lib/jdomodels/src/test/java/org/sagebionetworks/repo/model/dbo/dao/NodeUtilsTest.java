@@ -118,7 +118,34 @@ public class NodeUtilsTest {
 		assertEquals(KeyFactory.keyToString(parent.getId()), dto.getParentId());
 		assertEquals(new Long(21), dto.getVersionNumber());
 	}
-	
+
+	@Test
+	public void testJdoIsLatestVersion() throws DatastoreException {
+		long currentRevisionNumber = 5L;
+
+		DBONode dbo = new DBONode();
+		dbo.setId(123L);
+		dbo.setCreatedOn(System.currentTimeMillis());
+		dbo.setCreatedBy(createdById);
+		dbo.setCurrentRevNumber(currentRevisionNumber);
+
+		DBORevision rev = new DBORevision();
+		rev.setModifiedBy(createdById);
+		rev.setModifiedOn(System.currentTimeMillis());
+		rev.setRevisionNumber(currentRevisionNumber);
+
+		// Call under test - positive
+		Node dto = NodeUtils.copyFromJDO(dbo, rev);
+		assertNotNull(dto);
+		assertTrue(dto.getIsLatestVersion());
+
+		rev.setRevisionNumber(currentRevisionNumber - 1);
+		// Call under test - negative
+		dto = NodeUtils.copyFromJDO(dbo, rev);
+		assertNotNull(dto);
+		assertFalse(dto.getIsLatestVersion());
+	}
+
 	@Test
 	public void nullNode() {
 		assertFalse(NodeUtils.isValidNode(null));

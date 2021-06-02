@@ -17,6 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -25,15 +28,26 @@ import com.google.common.collect.Sets;
 public class FormFileHandleAssociationProviderTest {
 	
 	@Mock
-	FormDao mockFormDao;
+	private FormDao mockFormDao;
+
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+	
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	
 	@InjectMocks
-	FormFileHandleAssociationProvider provider;
+	private FormFileHandleAssociationProvider provider;
 	
 	@Test
 	public void testgetAuthorizationObjectTypeForAssociatedObjectType() {
 		// call under test
 		assertEquals(ObjectType.FORM_DATA,  provider.getAuthorizationObjectTypeForAssociatedObjectType());
+	}
+	
+	@Test
+	public void testGetAssociateType() {
+		assertEquals(FileHandleAssociateType.FormData, provider.getAssociateType());
 	}
 	
 	@Test

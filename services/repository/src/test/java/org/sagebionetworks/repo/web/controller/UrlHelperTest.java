@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.sagebionetworks.repo.web.UrlHelpers;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.web.UrlHelpers;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 /**
  * Test for the URL helper
@@ -38,6 +36,12 @@ public class UrlHelperTest {
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		String url = UrlHelpers.getUrlPrefixFromRequest(mockRequest);
 		assertEquals("/repo/v1", url);
+	}
+
+	@Test
+	public void testGetTeamIconPreviewsURL() {
+		String teamIdIconPreviewUrl = "/team/{id}/icon/preview";
+		assertEquals(teamIdIconPreviewUrl, UrlHelpers.TEAM_ID_ICON_PREVIEW);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

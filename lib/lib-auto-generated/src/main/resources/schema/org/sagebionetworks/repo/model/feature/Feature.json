@@ -9,6 +9,10 @@
         {
             "name": "DATA_ACCESS_AUTO_REVOCATION",
             "description": "Data access automatic revocation of expired approvals"
+        },
+        {
+        	"name": "MULTIPART_AUTO_CLEANUP",
+        	"description": "Automatic cleanup of old multipart uploads"
         }
     ]
 }

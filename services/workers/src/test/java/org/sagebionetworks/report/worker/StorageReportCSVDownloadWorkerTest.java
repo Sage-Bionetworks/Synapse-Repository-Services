@@ -71,7 +71,7 @@ public class StorageReportCSVDownloadWorkerTest {
 
 		resultS3FileHandle = new S3FileHandle();
 		resultS3FileHandle.setId(resultS3FileHandleId);
-		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultS3FileHandle);
+		when(mockFileHandleManager.uploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultS3FileHandle);
 		jobId = "jobId";
 		when(mockStatus.getJobId()).thenReturn(jobId);
 	}
@@ -90,7 +90,7 @@ public class StorageReportCSVDownloadWorkerTest {
 		verify(mockStorageReportManager).writeStorageReport(any(UserInfo.class), any(DownloadStorageReportRequest.class), any(CSVWriterStream.class));
 
 		// Verify that a file was uploaded with the file handle manager
-		verify(mockFileHandleManager).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
+		verify(mockFileHandleManager).uploadLocalFile(any(LocalFileUploadRequest.class));
 		verify(mockAsyncMgr).setComplete(eq(jobId), any(DownloadStorageReportResponse.class));
 	}
 

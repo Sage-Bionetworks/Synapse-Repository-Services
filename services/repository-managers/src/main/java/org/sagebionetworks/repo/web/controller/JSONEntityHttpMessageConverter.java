@@ -9,17 +9,22 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -31,10 +36,14 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 
 public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
+	
 	private static final String UTF_8 = "UTF-8";
 	private static final String CONCRETE_TYPE = "concreteType";
 	private static final String ENTITY_TYPE = "entityType";
 	private List<MediaType> supportedMedia;
+	private Set<Class <? extends JSONEntity>> classesToValidateConversion;
+	private static final String VALIDATION_ERROR = "JSON Element in Entity is Unsupported: %s";
+	
 	/**
 	 * When set to true, this message converter will attempt to convert any object to JSON.
 	 */
@@ -50,10 +59,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		this.convertAnyRequestToJson = convertAnyRequestToJson;
 	}
 
-	public JSONEntityHttpMessageConverter() {
+	public JSONEntityHttpMessageConverter(Set<Class <? extends JSONEntity>> classesToValidateConversion) {
+		ValidateArgument.required(classesToValidateConversion, "classesToValidateConversion");
 		supportedMedia = new ArrayList<MediaType>();
 		supportedMedia.add(MediaType.APPLICATION_JSON);
 		supportedMedia.add(MediaType.TEXT_PLAIN);
+		this.classesToValidateConversion = classesToValidateConversion;
 	}
 
 	@Override
@@ -87,6 +98,35 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		return supportedMedia;
 	}
 	
+	
+	public static void validateJSONEntity(JSONEntity parsedEntity, String originalJsonString) 
+			throws JSONObjectAdapterException {
+		// Validating: throws an IllegalArgumentException if the parsedEntity is missing
+		// an element from the originalJsonString
+		JSONObject parsedEntityJsonObject = EntityFactory.createJSONObjectForEntity(parsedEntity);
+		JSONObjectAdapter parsedObject = new JSONObjectAdapterImpl(parsedEntityJsonObject);
+		JSONObjectAdapter originalObject = new JSONObjectAdapterImpl(originalJsonString);
+		validateJSONEntityRecursive(parsedObject, originalObject);
+	}
+	
+	private static void validateJSONEntityRecursive(JSONObjectAdapter parsedObject, 
+			JSONObjectAdapter originalObject) throws JSONObjectAdapterException {
+		for (String key : originalObject.keySet()) {
+			Object value = originalObject.get(key);
+			if (!parsedObject.has(key)) {
+				throw new IllegalArgumentException(String.format(VALIDATION_ERROR, key));
+			} else if (value instanceof JSONObjectAdapterImpl) {
+				validateJSONEntityRecursive(parsedObject.getJSONObject(key), 
+						((JSONObjectAdapterImpl)value));
+			} else if (value instanceof JSONArrayAdapterImpl) {
+				for (int i = 0; i < ((JSONArrayAdapterImpl) value).length(); i++) {
+					validateJSONEntityRecursive(parsedObject.getJSONArray(key).getJSONObject(i), 
+							((JSONArrayAdapterImpl) value).getJSONObject(i));
+				}
+			}
+		}
+	}
+	
 	// This is specified by HTTP 1.1
 	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
 	
@@ -95,7 +135,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 
 	@Override
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
-			HttpMessageNotReadableException {
+			HttpMessageNotReadableException, IllegalArgumentException {
 		// First read the string
 		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharset();
 		if (charsetForDeSerializingBody==null) {
@@ -104,7 +144,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		}
 		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charsetForDeSerializingBody);
 		try {
-			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
+			JSONEntity entity = EntityFactory.createEntityFromJSONString(jsonString, clazz);
+			// validate the entity if its class is one which we should validate
+			if (classesToValidateConversion.contains(clazz)) {
+				validateJSONEntity(entity, jsonString);
+			}
+			return entity;
 		} catch (JSONObjectAdapterException e) {
 			// Try to convert entity type to a concrete type and try again. See PLFM-2079.
 			try {
@@ -112,7 +157,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 				if(jsonObject.has(ENTITY_TYPE)){
 					// get the entity type so we can replace it with concrete type
 					String type = jsonObject.getString(ENTITY_TYPE);
-					jsonObject.remove(ENTITY_TYPE);
+				jsonObject.remove(ENTITY_TYPE);
 					jsonObject.put(CONCRETE_TYPE, type);
 					jsonString = jsonObject.toString();
 					// try again

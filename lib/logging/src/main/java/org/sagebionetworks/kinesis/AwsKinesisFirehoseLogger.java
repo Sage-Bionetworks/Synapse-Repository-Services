@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface AwsKinesisFirehoseLogger {
 
-	void logBatch(String kinesisDataStreamSuffix, List<? extends AwsKinesisLogRecord> logRecords);
+	void logBatch(String kinesisDataStreamSuffix, List<? extends AwsKinesisLogRecord> logRecords) throws AwsKinesisDeliveryException;
 }

@@ -21,16 +21,17 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.EvaluationRoundListResponse;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -109,7 +110,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		testUserId = userManager.createUser(user);
+		boolean acceptsTermsOfUse = true;
+		testUserId = userManager.createOrGetTestUser(adminUserInfo, user, acceptsTermsOfUse).getId();
+		
 		 groupMembersDAO.addMembers(
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
@@ -130,13 +133,11 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		eval1.setName("name");
 		eval1.setDescription("description");
         eval1.setContentSource(parentProjectId);
-        eval1.setStatus(EvaluationStatus.PLANNED);
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
         eval2.setContentSource(parentProjectId);
-        eval2.setStatus(EvaluationStatus.PLANNED);
-        
+
         // initialize Submissions
         sub1 = new Submission();
         sub1.setName("submission1");
@@ -235,10 +236,33 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		});
 		assertEquals(initialCount, entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults());
 	}
+
+	@Test
+	public void testMigrateSubmissionQuota() throws Exception {
+		SubmissionQuota quota = new SubmissionQuota();
+		quota.setFirstRoundStart(new Date());
+		quota.setRoundDurationMillis(100L);
+		quota.setNumberOfRounds(2L);
+
+		eval1.setQuota(quota);
+
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		assertEquals(quota, eval1.getQuota());
+
+		EvaluationRoundListResponse roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
+		assertEquals(0, roundListResponse.getPage().size());
+
+		entityServletHelper.migrateSubmissionQuota(eval1.getId(), adminUserId);
+
+		roundListResponse = entityServletHelper.getAllEvaluationRounds(eval1.getId(), adminUserId);
+		assertEquals(2, roundListResponse.getPage().size());
+
+		eval1 = entityServletHelper.getEvaluation(adminUserId, eval1.getId());
+		assertNull(eval1.getQuota());
+	}
 	
 	@Test
 	public void testSubmissionRoundTrip() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
 		
@@ -324,7 +348,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	@Test
 	public void testSubmissionWithAnnotationsV2() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
 		
@@ -398,7 +421,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 
 	@Test
 	public void testSubmissionUnauthorized() throws Exception {
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
 		UserInfo ownerInfo = userManager.getUserInfo(adminUserId);
@@ -418,7 +440,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	@Test
 	public void testPaginated() throws Exception {
 		// create objects
-		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());

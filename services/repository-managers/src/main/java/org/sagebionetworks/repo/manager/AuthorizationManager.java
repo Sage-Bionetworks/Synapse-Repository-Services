@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -52,17 +51,6 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException
 	 */
 	AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
-
-	/**
-	 * Checks whether the given user can modify the settings for the given node.
-	 * 
-	 * @param nodeId
-	 * @param accessType
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
-	 */
-	AuthorizationStatus canChangeSettings(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 

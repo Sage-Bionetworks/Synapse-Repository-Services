@@ -28,7 +28,9 @@ public class IT960TermsOfUse {
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
+	private static SynapseClient rejectTOUsynapse;
 	private static Long userToDelete;
+	private static Long rejectTOUuserToDelete;
 	
 	private static Project project;
 	private static FileEntity dataset;
@@ -43,6 +45,8 @@ public class IT960TermsOfUse {
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		rejectTOUsynapse = new SynapseClientImpl();
+		rejectTOUuserToDelete = SynapseClientHelper.createUser(adminSynapse, rejectTOUsynapse, false);
 		
 		project = new Project();
 		project.setName("foo");
@@ -77,13 +81,15 @@ public class IT960TermsOfUse {
 	
 	@BeforeEach
 	public void before() throws Exception {
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+		synapse.signTermsOfUse(synapse.getAccessToken());
 	}
 	
 	@AfterAll
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(userToDelete);
+		adminSynapse.deleteUser(rejectTOUuserToDelete);
+		
 	}
 	
 	@Test
@@ -111,11 +117,8 @@ public class IT960TermsOfUse {
 		// I can download a data file because I have agreed to the Synapse terms of use
 		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 		
-		// method under test
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
-		
 		// I cannot download the file because I have rejected the TOU
-		assertThrows(SynapseForbiddenException.class, () -> synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
+		assertThrows(SynapseForbiddenException.class, () -> rejectTOUsynapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 	}
 	
 

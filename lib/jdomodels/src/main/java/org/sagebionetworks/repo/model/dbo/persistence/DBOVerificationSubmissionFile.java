@@ -30,7 +30,7 @@ public class DBOVerificationSubmissionFile implements
 	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_FILE_VERIFICATION_ID)
 	private Long verificationId;
 	
-	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = true, nullable = false)
+	@Field(name = COL_VERIFICATION_FILE_FILEHANDLEID, backupId = false, primary = true, nullable = false, hasFileHandleRef = true)
 	@ForeignKey(table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = false, name = FK_VERIFICATION_FILE_FILE_ID)
 	private Long fileHandleId;
 

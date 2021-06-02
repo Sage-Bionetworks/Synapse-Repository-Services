@@ -1,0 +1,13 @@
+{
+	"description": "A single item for a user's download list.",
+	"properties": {
+		"fileEntityId": {
+			"description": "The 'syn' identifier of a file entity.",
+			"type": "string"
+		},
+		"versionNumber": {
+			"description": "When included, indicates that a specific version of a files was added to the user's download list.  When excluded, the current version was added.",
+			"type": "integer"
+		}
+	}
+}

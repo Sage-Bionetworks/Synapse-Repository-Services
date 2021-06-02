@@ -212,12 +212,6 @@ public interface V2WikiPageDao {
 	public void deleteWikiVersions(WikiPageKey key, Long minVersionToKeep);
 	
 	/**
-	 * Update the Etag of a Wiki page
-	 * @param key
-	 */
-	public void updateWikiEtag(WikiPageKey key, String etag);
-	
-	/**
 	 * Return the number of versions of a Wiki page
 	 * @param key
 	 * @return
@@ -253,4 +247,7 @@ public interface V2WikiPageDao {
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
 			List<String> fileHandleIds, String wikiId);
+	
+	// For testing
+	void truncateAll();
 }

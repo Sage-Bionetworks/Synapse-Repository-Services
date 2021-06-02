@@ -1,5 +1,10 @@
 {
 	"description": "Request to start or continue a multi-part file upload.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.MultipartRequest"
+		}
+	],
 	"properties": {
 		"contentMD5Hex": {
 			"type": "string",
@@ -13,21 +18,9 @@
 			"type": "integer",
 			"description": "The size of the entire file in bytes."
 		},
-		"partSizeBytes": {
-			"type": "integer",
-			"description": "In order to upload a file, a client must chunk the file into 'parts' and upload each part separately.  This indicates the clients intended part size in bytes.  Part size must be at least 5,242,880 bytes (5MB).  Also the maximum number of parts for a single file is 10K. Therefore, the recommended part size for a single file upload should be: MAX( 5242880, (fileSizeBytes/10000)). "
-		},
-		"fileName": {
-			"type": "string",
-			"description": "The name of the file to be uploaded."
-		},
 		"storageLocationId": {
 			"type": "integer",
-			"description": "The identifier of the storage location where this file should be uploaded.  A value of null indicates the default upload location."
-		},
-		"generatePreview": {
-			"type": "boolean",
-			"description": "Optional parameter.  When set to 'false' a preview will not be generated for the resulting file.."
+			"description": "The identifier of the storage location where this file should be stored.  A value of null indicates the default synapse storage."
 		}
 	}
 }

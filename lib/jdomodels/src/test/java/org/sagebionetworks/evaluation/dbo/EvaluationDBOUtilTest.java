@@ -6,7 +6,6 @@ import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 
 public class EvaluationDBOUtilTest {
@@ -25,7 +24,6 @@ public class EvaluationDBOUtilTest {
     	evalDTO.setId("123");
     	evalDTO.setName("name");
     	evalDTO.setOwnerId("456");
-    	evalDTO.setStatus(EvaluationStatus.OPEN);
     	SubmissionQuota quota = new SubmissionQuota();
     	quota.setSubmissionLimit(10L);
     	Date firstRoundStart = new Date();

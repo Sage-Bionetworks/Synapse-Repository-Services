@@ -1,43 +1,46 @@
 {
-    "description":"JSON schema for EntityHeader POJO",
-    "properties":{
-        "id":{
-            "type":"string",
-            "description":"The id of the entity"            
-        },
-        "versionNumber":{
-            "type":"integer",
-            "description":"The version number of the entity"            
-        },
-        "versionLabel":{
-            "type":"string",
-            "description":"The user defined version label of the entity"            
-        },
-        "versionComment":{
-            "type":"string",
-            "description":"The user defined version label of the entity"            
-        },
-        "modifiedBy": {
-            "type":"string",
-            "description":"The display name of the user that last modified this entity."
-        },
-        "contentSize": {
-            "type":"string",
-            "description":"The size of the associated file (when applicable and available)."
-        },
-        "contentMd5": {
-            "type":"string",
-            "description":"Calculated md5 of the associated file (when applicable and available)."
-        },
-        
-        "modifiedByPrincipalId": {
-						"type": "string",
-						"description": "The user that last modified this entity."
-				},
-				"modifiedOn": {
-					"type": "string",
-					"format": "date-time",
-					"description": "The date this entity was last modified."
-				}				
+  "description": "JSON schema for VersionInfo POJO",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The id of the entity"
+    },
+    "versionNumber": {
+      "type": "integer",
+      "description": "The version number of the entity"
+    },
+    "versionLabel": {
+      "type": "string",
+      "description": "The user defined version label of the entity"
+    },
+    "versionComment": {
+      "type": "string",
+      "description": "The user defined version label of the entity"
+    },
+    "isLatestVersion": {
+      "type": "boolean",
+      "description": "If this version is the latest version of the entity"
+    },
+    "modifiedBy": {
+      "type": "string",
+      "description": "The display name of the user that last modified this entity."
+    },
+    "contentSize": {
+      "type": "string",
+      "description": "The size of the associated file (when applicable and available)."
+    },
+    "contentMd5": {
+      "type": "string",
+      "description": "Calculated md5 of the associated file (when applicable and available)."
+    },
+    "modifiedByPrincipalId": {
+      "type": "string",
+      "description": "The user that last modified this entity."
+    },
+    "modifiedOn": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date this entity was last modified."
     }
+  }
 }

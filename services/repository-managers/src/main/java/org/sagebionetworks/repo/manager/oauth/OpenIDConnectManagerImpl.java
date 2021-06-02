@@ -44,9 +44,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
@@ -62,8 +59,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	// user authorization times out after one year
 	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
-	
-	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
@@ -131,10 +126,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		try {
 			ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
 		} catch (IllegalArgumentException e) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_request, e);
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_redirect_uri, e);
 		}
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Redirect URI "+authorizationRequest.getRedirectUri()+
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_redirect_uri, "Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
 		if (authorizationRequest.getResponseType()==null) {
@@ -239,19 +234,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt(clock.now());
-		authorizationRequest.setAuthenticatedAt(authDao.getSessionValidatedOn(userInfo.getId()));
-
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		try {
-			authorizationRequest.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
+		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
+		
+		String authorizationCode = UUID.randomUUID().toString();
+		oauthDao.createAuthorizationCode(authorizationCode, authorizationRequest);
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
-		result.setAccess_code(encryptedAuthorizationRequest);
+		result.setAccess_code(authorizationCode);
 		oauthDao.saveAuthorizationConsent(userInfo.getId(), 
 				Long.valueOf(authorizationRequest.getClientId()), 
 				getScopeHash(authorizationRequest), new Date());
@@ -347,19 +336,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		validateClientVerificationStatus(verifiedClientId);
 		
-		String serializedAuthorizationRequest;
+		OIDCAuthorizationRequest authorizationRequest = null;
 		try {
-			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
-		} catch (Exception e) {
-			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Invalid authorization code: "+code, e);
-		}
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		try {
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
-			authorizationRequest.initializeFromJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			// This should never happen. If it does, the authz code was likely improperly encoded/decoded, which isn't the user's fault.
-			throw new IllegalStateException("Incorrectly formatted authorization code: "+code, e);
+			authorizationRequest = oauthDao.redeemAuthorizationCode(code);
+		} catch (NotFoundException e) {
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant, "Invalid authorization code.");
 		}
 
 		// enforce expiration of authorization code
@@ -383,6 +364,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Pairwise Pseudonymous Identifier (PPID)
 		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
+		
+		// Ensure the client is permitted to use this refresh token
+		if (!oauthClientId.equals(verifiedClientId)) {
+			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant);
+		}
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
 
@@ -401,7 +388,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
 		String refreshTokenId = null;
 		if (issueRefreshToken) {
-
 			OAuthRefreshTokenAndMetadata refreshToken = oauthRefreshTokenManager
 					.createRefreshToken(authorizationRequest.getUserId(),
 							oauthClientId,
@@ -414,11 +400,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now, ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
+				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId, scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
-		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
+		result.setExpires_in(AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -440,7 +426,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Ensure the client is permitted to use this refresh token
 		if (!refreshTokenMetadata.getClientId().equals(verifiedClientId)) {
 			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
-			throw new IllegalArgumentException("invalid_grant");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_grant);
 		}
 
 		if (scopes.isEmpty()) {
@@ -448,12 +434,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			scopes = refreshTokenMetadata.getScopes();
 		} else if (!refreshTokenMetadata.getScopes().containsAll(scopes)) { // Ensure the requested scopes are a subset of previously authorized scopes and claims
 			// Defined by https://tools.ietf.org/html/rfc6749#section-5.2
-			throw new IllegalArgumentException("invalid_scope");
+			throw new OAuthBadRequestException(OAuthErrorCode.invalid_scope);
 		}
 
 		// In the JWT, we will need to supply both the current time and the date/time of the initial authorization
 		long now = clock.currentTimeMillis();
-		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
+		Date authTime = authDao.getAuthenticatedOn(Long.parseLong(refreshTokenMetadata.getPrincipalId()));
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
@@ -479,10 +465,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid,
-				oauthClientId, now,ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
+				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId, scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
-		result.setExpires_in(ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
+		result.setExpires_in(AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
 		return result;
 	}
 
@@ -523,6 +509,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
+		ValidateArgument.required(accessTokenParam, "Access token");
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
@@ -558,7 +545,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
-			Date authTime = authDao.getSessionValidatedOn(Long.parseLong(userId));
+			Date authTime = authDao.getAuthenticatedOn(Long.parseLong(userId));
 
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -15,12 +14,6 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
@@ -29,9 +22,9 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -91,8 +84,9 @@ public interface FileHandleManager {
 	 * @param userInfo
 	 * @param handleId
 	 * @throws DatastoreException
+	 * @throws FileHandleLinkedException If the file handle is still linked to some object through a FK that restricts its deletion
 	 */
-	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
+	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, FileHandleLinkedException;
 	
 	/**
 	 * Get the redirect URL for the file handle provided in the given request. If no associate object is provided in the request
@@ -171,81 +165,12 @@ public interface FileHandleManager {
 	BucketCrossOriginConfiguration getBucketCrossOriginConfiguration();
 
 	/**
-	 * This is the first step in uploading a file as multiple chunks. The returned file token must be provide in all
-	 * subsequent chunk calls.
-	 * 
-	 * @param userInfo
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr) throws DatastoreException,
-			NotFoundException;
-	
-	/**
-	 * Create a pre-signed URL that can be used to PUT a single chunk of file data to S3.
-	 * 
-	 * @param token
-	 * @param partNumber
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * After uploading a file chunk to the pre-signed URL add it to the larger file. This must be called for each chunk.
-	 * 
-	 * @param userInfo
-	 * @param token
-	 * @param partNumber
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException;
-
-	/**
-	 * The final step of a chunked file upload. This is where an {@link S3FileHandle} is created.
-	 * 
-	 * @param userInfo
-	 * @param token
-	 * @param partList
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) throws DatastoreException,
-			NotFoundException;
-	
-	/**
-	 * Start an asynchronous daemon that will add all chunks to the file upload and complete the file upload
-	 * process. 
-	 * @param userInfo
-	 * @param cacf
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public UploadDaemonStatus startUploadDeamon(UserInfo userInfo, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the status of an asynchronous daemon stated with {@link #startUploadDeamon(UserInfo, CompleteAllChunksRequest)}
-	 * @param userInfo
-	 * @param daemonId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo, String daemonId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Multi-part upload a local file to S3.  This is used by workers.
+	 * Upload a local file to the standard Synapse S3 bucket and creates an file handle for the file.  This is used by workers.
 	 * 
 	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
+	S3FileHandle uploadLocalFile(LocalFileUploadRequest request);
 
 	/**
 	 * Get the list of upload destinations for this parent
@@ -390,4 +315,13 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request);
+	
+	/**
+	 * Checks if the MD5 of the two file handles matches
+	 * 
+	 * @param sourceFileHandleId The id of the source file handle
+	 * @param targetFileHandleId The id of the target file handle
+	 * @return True if the MD5 of the source and target file handle matches, false otherwise
+	 */
+	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 }

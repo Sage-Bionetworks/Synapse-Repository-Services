@@ -19,6 +19,11 @@
 			"type": "string",
 			"format":"date-time"
 		},
+		"modifiedOn": {
+			"description": "The date when the file was modified. This is handled by the backend and cannot be modified.",
+			"type": "string",
+			"format":"date-time"
+		},
         "concreteType":{
             "type":"string",
             "description":"This is used to indicate the implementation of this interface. For example, an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
@@ -42,6 +47,21 @@
 		"contentSize": {
 			"description": "The size of the file in bytes.",
 			"type": "integer"
+		},
+		"status": {
+			"type": "string",
+			"description": "The status of the file handle as computed by the backend. This value cannot be changed, any file handle that is not AVAILABLE should not be used.",
+			"name": "FileHandleStatus",
+            "enum": [
+                {
+                    "name": "AVAILABLE",
+                    "description": "The default status of a file hanlde that is considered available and linked to at least on object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>)."
+                },
+                {
+                    "name": "UNLINKED",
+                    "description": "The file handle has been detected as not linked to any object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>), this file will eventually be archived."
+                }
+            ]
 		}
 	}
 }

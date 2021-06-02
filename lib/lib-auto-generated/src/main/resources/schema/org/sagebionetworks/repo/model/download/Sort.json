@@ -1,0 +1,13 @@
+{
+	"description": "Identifies both the field and direction for a single sort operation",
+	"properties": {
+		"field": {
+			"description": "..",
+			"$ref": "org.sagebionetworks.repo.model.download.SortField"
+		},
+		"direction": {
+			"description": "..",
+			"$ref": "org.sagebionetworks.repo.model.download.SortDirection"
+		}
+	}
+}

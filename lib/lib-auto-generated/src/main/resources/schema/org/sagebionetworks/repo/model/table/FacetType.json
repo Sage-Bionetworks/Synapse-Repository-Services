@@ -1,13 +1,14 @@
 {
+    "description": "Set to one of the enumerated values to indicate a column should be treated as a facet",
     "type": "string",
     "enum": [
         {
             "name": "enumeration",
-            "description": "TODO: Auto-generated description"
+            "description": "Returns the most frequently seen values and their respective frequency counts; selecting these returned values will cause the table results to be filtered such that only rows with the selected values are returned."
         },
         {
             "name": "range",
-            "description": "TODO: Auto-generated description"
+            "description": "Allows the column to be filtered by a chosen lower and upper bound; these bounds are inclusive."
         }
     ]
 }

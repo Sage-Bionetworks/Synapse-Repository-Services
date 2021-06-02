@@ -5,12 +5,12 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
-import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -38,8 +38,8 @@ public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	@Override
 	@WriteTransaction
 	public void create(String submissionId, String fileHandleId) {
-		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		EvaluationUtils.ensureNotNull(fileHandleId, "FileHandle ID");
+		ValidateArgument.required(submissionId, "Submission ID");
+		ValidateArgument.required(fileHandleId, "FileHandle ID");
 
 		// Convert to DBO
 		SubmissionFileHandleDBO dbo = new SubmissionFileHandleDBO();

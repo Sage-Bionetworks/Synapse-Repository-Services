@@ -160,16 +160,19 @@ public enum ColumnTypeInfo {
 	 */
 	public void appendDefaultValue(StringBuilder builder, String defaultValue){
 		builder.append("DEFAULT ");
-		if(defaultValue == null){
+		// escape single quotes
+		// NOTE: This originally used StringEscapeUtils.escapeSql() which only ever escaped single quotes and has been removed in later versions.
+		// https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeSql(java.lang.String)
+		// https://stackoverflow.com/questions/32096614/migrating-stringescapeutils-escapesql-from-commons-lang
+		if(defaultValue != null){
+			defaultValue = StringUtils.replace(defaultValue, "'", "''");
+		}
+		// Validate the default can be applied.
+		Object objectValue = parseValueForDatabaseWrite(defaultValue);
+
+		if(objectValue == null){
 			builder.append("NULL");
 		}else{
-			// escape single quotes
-			// NOTE: This originally used StringEscapeUtils.escapeSql() which only ever escaped single quotes and has been removed in later versions.
-			// https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeSql(java.lang.String)
-			// https://stackoverflow.com/questions/32096614/migrating-stringescapeutils-escapesql-from-commons-lang
-			defaultValue = StringUtils.replace(defaultValue, "'", "''");
-			// Validate the default can be applied.
-			Object objectValue = parseValueForDatabaseWrite(defaultValue);
 			if(mySqlType == MySqlColumnType.JSON){
 				builder.append("(");
 			}

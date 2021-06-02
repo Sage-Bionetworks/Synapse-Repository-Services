@@ -1,36 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.TeamSortOrder.TEAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
-
-import java.sql.Blob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -56,6 +25,37 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.sql.Blob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.sagebionetworks.repo.model.TeamSortOrder.TEAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 /**
  * @author brucehoff
@@ -193,6 +193,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
+	private static final String SELECT_CHECK_TEAM_EXISTS = "SELECT COUNT(*) FROM " + TABLE_TEAM + " WHERE " + COL_TEAM_ID + " = ?";
+
 	private static final String ORDER_BY_TEAM_NAME = " ORDER BY LOWER(pa." + COL_PRINCIPAL_ALIAS_DISPLAY + ")";
 	private static final String ASC = " ASC ";
 	private static final String DESC = " DESC ";
@@ -293,9 +295,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 */
 	@WriteTransaction
 	@Override
-	public Team create(Team dto) throws DatastoreException,
-	InvalidModelException {
-		if (dto.getId()==null) throw new InvalidModelException("ID is required");
+	public Team create(Team dto) throws DatastoreException, InvalidModelException {
+		if (dto.getId() == null) {
+			throw new InvalidModelException("ID is required");
+		}
 		DBOTeam dbo = new DBOTeam();
 		TeamUtils.copyDtoToDbo(dto, dbo);
 		dbo.setEtag(UUID.randomUUID().toString());
@@ -312,15 +315,28 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public Team get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOTeam dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param);
+		DBOTeam dbo = null;
+		try {
+			dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param);
+		} catch(NotFoundException e) {
+			throw new NotFoundException("Team does not exist for teamId: " + id, e);
+		}
 		Team dto = TeamUtils.copyDboToDto(dbo);
 		return dto;
+	}
+
+	@Override
+	public void validateTeamExists(String teamId) {
+		boolean exists = jdbcTemplate.queryForObject(SELECT_CHECK_TEAM_EXISTS, boolean.class, teamId);
+		if (!exists) {
+			throw new NotFoundException("Team does not exist for teamId: " + teamId);
+		}
 	}
 	
 	@Override
 	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException {
 		if (ids==null || ids.size()<1) {
-			return ListWrapper.wrap(Collections.EMPTY_LIST, Team.class);
+			return ListWrapper.wrap(Collections.emptyList(), Team.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, ids);
@@ -566,7 +582,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> principalIds) throws NotFoundException, DatastoreException {
 		if (teamIds==null || teamIds.size()<1 || principalIds==null || principalIds.size()<1) {
-			return ListWrapper.wrap(Collections.EMPTY_LIST, TeamMember.class);
+			return ListWrapper.wrap(Collections.emptyList(), TeamMember.class);
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);

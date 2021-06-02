@@ -47,7 +47,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback,
+	RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback,
 			long transactionId) throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -62,7 +62,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete,
+	RowReferenceSet appendPartialRows(UserInfo user, String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete,
 			ProgressCallback progressCallback, long transactionId)
 			throws DatastoreException, NotFoundException, IOException;
 
@@ -70,7 +70,7 @@ public interface TableEntityManager {
 	 * Delete a set of rows from a table.
 	 * 
 	 */
-	public RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
+	RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -106,7 +106,7 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	@Deprecated
-	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
+	List<TableRowChange> listRowSetsKeysForTable(String tableId);
 
 	/**
 	 * Get the a SparseChangeSet for a given TableRowChange.
@@ -116,7 +116,7 @@ public interface TableEntityManager {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException;
+	SparseChangeSet getSparseChangeSet(TableRowChange change) throws NotFoundException, IOException;
 
 	/**
 	 * Get the schema change for a given version.
@@ -126,7 +126,7 @@ public interface TableEntityManager {
 	 * @return
 	 * @throws IOException
 	 */
-	public List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
+	List<ColumnChangeDetails> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
 
 	/**
 	 * Get the last table row change
@@ -136,7 +136,7 @@ public interface TableEntityManager {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException;
+	TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException;
 
 	/**
 	 * Get the values for a specific row reference and column
@@ -148,7 +148,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public Row getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel model)
+	Row getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel model)
 			throws IOException, NotFoundException;
 
 	/**
@@ -161,7 +161,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
+	RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException;
 
 	/**
@@ -172,7 +172,7 @@ public interface TableEntityManager {
 	 * @throws TemporarilyUnavailableException if this query cannot be run at this
 	 *                                         time.
 	 */
-	public Set<Long> getFileHandleIdsAssociatedWithTable(String tableId, Set<Long> toTest)
+	Set<Long> getFileHandleIdsAssociatedWithTable(String tableId, Set<Long> toTest)
 			throws TemporarilyUnavailableException;
 
 	/**
@@ -181,7 +181,7 @@ public interface TableEntityManager {
 	 * 
 	 * @param objectId
 	 */
-	public Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest)
+	Set<String> getFileHandleIdsAssociatedWithTable(String tableId, List<String> toTest)
 			throws TemporarilyUnavailableException;
 
 	/**
@@ -191,7 +191,7 @@ public interface TableEntityManager {
 	 * @param columnIds
 	 * @param id
 	 */
-	public void setTableSchema(UserInfo userInfo, List<String> columnIds, String id);
+	void setTableSchema(UserInfo userInfo, List<String> columnIds, String id);
 
 	/**
 	 * Mark a table as deleted. This occurs when a table is moved to the trash. The
@@ -199,13 +199,13 @@ public interface TableEntityManager {
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableAsDeleted(String deletedId);
+	void setTableAsDeleted(String deletedId);
 
 	/**
 	 * 
 	 * @param deletedId
 	 */
-	public void deleteTable(String deletedId);
+	void deleteTable(String deletedId);
 
 	/**
 	 * Is a temporary table needed to validate the given table update request.
@@ -213,7 +213,7 @@ public interface TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change);
+	boolean isTemporaryTableNeededToValidate(TableUpdateRequest change);
 
 	/**
 	 * Validate a single update request.
@@ -224,7 +224,7 @@ public interface TableEntityManager {
 	 * @param indexManager The index manager is only provided if a temporary table
 	 *                     was created for the purpose of validation.
 	 */
-	public void validateUpdateRequest(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
+	void validateUpdateRequest(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
 			TableIndexManager indexManager);
 
 	/**
@@ -235,7 +235,7 @@ public interface TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
+	TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
 			long transactionId);
 
 	/**
@@ -245,7 +245,7 @@ public interface TableEntityManager {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getTableSchema(IdAndVersion idAndVersion);
+	List<String> getTableSchema(IdAndVersion idAndVersion);
 
 	/**
 	 * Delete all data about a table if it no longer exists. If the passed tableId
@@ -253,7 +253,7 @@ public interface TableEntityManager {
 	 * 
 	 * @param tableId
 	 */
-	public void deleteTableIfDoesNotExist(String tableId);
+	void deleteTableIfDoesNotExist(String tableId);
 
 	/**
 	 * Create a new Iterator that can be used to iterator over all change metadata
@@ -262,7 +262,7 @@ public interface TableEntityManager {
 	 * @param tableId
 	 * @return
 	 */
-	public Iterator<TableChangeMetaData> newTableChangeIterator(String tableId);
+	Iterator<TableChangeMetaData> newTableChangeIterator(String tableId);
 
 	/**
 	 * Get a single page of TableChangeMetaData for the given table. The metadata
@@ -284,7 +284,7 @@ public interface TableEntityManager {
 	 * @param transactionId
 	 * @return The version number of the newly created version.
 	 */
-	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
+	long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
 			long transactionId);
 	
 	/**
@@ -306,5 +306,5 @@ public interface TableEntityManager {
 	 * @param request
 	 * @return
 	 */
-	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request);
+	SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request);
 }

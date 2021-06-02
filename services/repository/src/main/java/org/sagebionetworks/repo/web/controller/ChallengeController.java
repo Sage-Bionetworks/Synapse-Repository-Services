@@ -309,7 +309,7 @@ public class ChallengeController {
 	/**
 	 * De-register a Team from a Challenge. You must be a member of the Challenge's
 	 * participant Team (i.e. you must be already registered for the Challenge)
-	 * and be an administrator on the Team being de-registered.
+	 * and be an manager of the Team being de-registered.
 	 * 
 	 * @param userId
 	 * @param challengeTeamId

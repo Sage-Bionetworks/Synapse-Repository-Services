@@ -15,10 +15,12 @@ import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -54,6 +56,13 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.impl.DefaultClaims;
+
 @ExtendWith({MockitoExtension.class})
 public class AuthenticationFilterTest {
 	
@@ -87,14 +96,23 @@ public class AuthenticationFilterTest {
 	@InjectMocks
 	private AuthenticationFilter filter;
 
-	private static final String sessionToken = "someSortaSessionToken";
+	private static final String sessionToken = UUID.randomUUID().toString();
 	private static final String secretKey = "Totally a plain text key :D";
 	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
-	private static final String BEARER_TOKEN = "bearer token";
-	private static final String BEARER_TOKEN_HEADER = "Bearer "+BEARER_TOKEN;
+	private static final String BEARER_TOKEN;
+	private static final String BEARER_TOKEN_HEADER;
 	private static final List<String> HEADER_NAMES = Collections.singletonList("Authorization");
 	private PrincipalAlias pa;
+	
+	static {
+		Claims claims = new DefaultClaims();
+		claims.setSubject("userId");
+		BEARER_TOKEN = Jwts.builder().setClaims(claims).
+				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact() + "signature";
+		BEARER_TOKEN_HEADER = "Bearer "+BEARER_TOKEN;
+	}
+	
 	
 	@BeforeEach
 	public void setupFilter() throws Exception {
@@ -167,7 +185,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
@@ -190,7 +208,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
@@ -231,7 +249,7 @@ public class AuthenticationFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 		
-		when(oidcTokenHelper.createTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
+		when(oidcTokenHelper.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(request, response, filterChain);
@@ -292,6 +310,22 @@ public class AuthenticationFilterTest {
 		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
 
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
+
+		// method under test
+		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+		
+		verify(mockOidcManager).validateAccessToken(BEARER_TOKEN);
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+		
+		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
+		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+	}
+
+	@Test
+	public void testFilter_AccessTokenPassedAsSessionToken() throws Exception {
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(BEARER_TOKEN);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(Collections.singletonList("sessionToken")));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);

@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,10 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -38,6 +41,8 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -45,9 +50,9 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOTeamDAOImplTest {
 	
@@ -69,11 +74,17 @@ public class DBOTeamDAOImplTest {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
+	@Autowired
+	private FileHandleDao fileHanldeDAO;
+	
+	@Autowired
+	private IdGenerator idGenerator;
+	
 	private List<String> teamsToDelete;
 	private String aclToDelete;
 	private List<String> usersToDelete;
-
-	@Before
+	
+	@BeforeEach
 	public void setup() {
 		List<Team> teams = teamDAO.getInRange(1000, 0);
 		for (Team team : teams) {
@@ -81,11 +92,16 @@ public class DBOTeamDAOImplTest {
 		}
 		teamsToDelete = new ArrayList<>();
 		usersToDelete = new ArrayList<>();
+		
+		fileHanldeDAO.truncateTable();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
-		if (aclToDelete!=null) aclDAO.delete(aclToDelete, ObjectType.TEAM);
+		if (aclToDelete!=null) {
+			aclDAO.delete(aclToDelete, ObjectType.TEAM);
+		}
+		
 		for (String teamId : teamsToDelete) {
 			teamDAO.delete(teamId);
 			userGroupDAO.delete(teamId);
@@ -94,6 +110,8 @@ public class DBOTeamDAOImplTest {
 		for (String userId : usersToDelete) {
 			userGroupDAO.delete(userId);
 		}
+		
+		fileHanldeDAO.truncateTable();
 	}
 
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up, String userName) {
@@ -113,14 +131,13 @@ public class DBOTeamDAOImplTest {
 			createdTeams.add(createTeam("Super Team_"+i));
 		}
 		assertEquals(Arrays.asList(createdTeams.get(1), createdTeams.get(0)),
-		teamDAO.list(Arrays.asList(Long.parseLong(teamsToDelete.get(1)),
-				Long.parseLong(teamsToDelete.get(0)))).getList());
-		try {
+				
+		teamDAO.list(Arrays.asList(Long.parseLong(teamsToDelete.get(1)), Long.parseLong(teamsToDelete.get(0)))).getList());
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamDAO.list(Arrays.asList(Long.parseLong(teamsToDelete.get(1)), 98776654L+Long.parseLong(teamsToDelete.get(0))));
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
@@ -135,7 +152,6 @@ public class DBOTeamDAOImplTest {
 		team.setId(""+id);
 		team.setName("Test Create Team Team");
 		team.setDescription("This is a Team designated for testing.");
-		team.setIcon("999");
 		team.setCreatedOn(new Date());
 		team.setCreatedBy("101");
 		team.setModifiedOn(new Date());
@@ -154,6 +170,22 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 	}
+	
+	@Test
+	public void testCreateTeamWithIcon() {
+		UserGroup creator = createIndividual();
+		
+		FileHandle fileHandle = fileHanldeDAO.createFile(TestUtils.createS3FileHandle(creator.getId(), idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		// Call under test
+		Team team = createTeam("Some Team", fileHandle.getId(), creator.getId(), creator.getId());
+		
+		assertEquals(fileHandle.getId(), team.getIcon());
+		
+		// Verifies re-reading from the DB
+		assertEquals(team, teamDAO.get(team.getId()));
+		
+	}
 
 	@Test
 	public void testUpdateTeam() {
@@ -167,17 +199,56 @@ public class DBOTeamDAOImplTest {
 		toUpdate.setEtag(retrieved.getEtag());
 		assertEquals(retrieved, toUpdate);
 	}
+	
+	@Test
+	public void testUpdateTeamIcon() {
+		// Creates a team without an icon
+		Team team = createTeam("Some Team");
+		
+		UserGroup creator = createIndividual();
+		
+		FileHandle fileHandle = fileHanldeDAO.createFile(TestUtils.createS3FileHandle(creator.getId(), idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		team.setIcon(fileHandle.getId());
+		
+		// Call under test
+		team = teamDAO.update(team);
+		
+		assertEquals(fileHandle.getId(), team.getIcon());
+		
+		// Verifies re-reading from the DB
+		assertEquals(team, teamDAO.get(team.getId()));
+	}
+	
+	@Test
+	public void testRemoveTeamIcon() {
+		UserGroup creator = createIndividual();
+		
+		FileHandle fileHandle = fileHanldeDAO.createFile(TestUtils.createS3FileHandle(creator.getId(), idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		// Creates a team with an icon
+		Team team = createTeam("Some Team", fileHandle.getId(), creator.getId(), creator.getId());
+		
+		team.setIcon(null);
+		
+		// Call under test
+		team = teamDAO.update(team);
+		
+		assertNull(team.getIcon());
+		
+		// Verifies re-reading from the DB
+		assertEquals(team, teamDAO.get(team.getId()));
+	}
 
 	@Test
 	public void testDeleteTeam() {
 		Team t = createTeam("Test Delete Team");
 		teamDAO.delete(t.getId());
-		try {
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamDAO.get(t.getId());
-			fail("Expected NotFoundException");
-		} catch (NotFoundException e) {
-			// As expected
-		}
+		});
 	}
 
 	@Test
@@ -204,21 +275,18 @@ public class DBOTeamDAOImplTest {
 		assertEquals(Arrays.asList(member, member), listedMembers.getList());
 
 		// check that nothing is returned for other team IDs and principal IDs
-		try {
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamDAO.listMembers(Collections.singletonList(0L), Collections.singletonList(Long.parseLong(user.getId())));
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
-		try {
+		});
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
 			teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())), Collections.singletonList(0L));
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		});
+		
 		assertTrue(teamDAO.listMembers(Collections.singletonList(Long.parseLong(team.getId())), Collections.emptyList()).getList().isEmpty());
 	}
-
 
 	@Test
 	public void testAddRemoveUser(){
@@ -349,10 +417,10 @@ public class DBOTeamDAOImplTest {
 		for (Team t : expectedAllTeamsAndMembers.keySet()) {
 			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
 			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
-			assertNotNull("Missing key "+t, actualTeamMembers);
+			assertNotNull(actualTeamMembers, "Missing key "+t);
 			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
 			for (TeamMember m : expectedTeamMembers) {
-				assertTrue("expected "+m+" but found "+actualTeamMembers, actualTeamMembers.contains(m));
+				assertTrue(actualTeamMembers.contains(m), "expected "+m+" but found "+actualTeamMembers);
 			}
 		}
 	}
@@ -400,7 +468,6 @@ public class DBOTeamDAOImplTest {
 		return user;
 	}
 
-
 	@Test
 	public void testGetIdsForMemberNoOrder() {
 		UserGroup user = beforeGetIdsForMember();
@@ -440,31 +507,83 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testGetIdsForMemberNullPrincipalId() {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			teamDAO.getIdsForMember(null, 0, 0, null, null);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
+		});
 	}
 
 	@Test
 	public void testGetIdsForMemberIllegalOrderAndAscending() {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			teamDAO.getIdsForMember("1", 0, 0, null, true);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
-		try {
+		});
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			teamDAO.getIdsForMember("1", 0, 0, TeamSortOrder.TEAM_NAME, null);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
+		});
+	}
+
+	@Test
+	public void testGetValidTeam() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId("" +id);
+		teamDAO.create(team);
+		// Call under test
+		teamDAO.get(team.getId());
+	}
+
+	@Test
+	public void testGetNonexistentTeam() {
+		String invalidTeamId = "404";
+		String innerExceptionMessage = "The resource you are attempting to access cannot be found";
+		String expected = "Team does not exist for teamId: " + invalidTeamId;
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamDAO.get(invalidTeamId);
+		});
+		assertEquals(expected, exception.getMessage());
+		assertNotNull(exception.getCause());
+		assertEquals(innerExceptionMessage ,exception.getCause().getMessage());
+	}
+
+	@Test
+	public void testValidateTeamExists() {
+		UserGroup group = new UserGroup();
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId("" +id);
+		teamDAO.create(team);
+		// Call under test
+		teamDAO.validateTeamExists(team.getId());
+	}
+
+	@Test
+	public void testValidateTeamExistsNotFound() {
+		String invalidTeamId = "404";
+		String expected = "Team does not exist for teamId: " + invalidTeamId;
+		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			teamDAO.validateTeamExists(invalidTeamId);
+		});
+		assertEquals(expected, exception.getMessage());
 	}
 
 	private Team createTeam(String teamName) {
+		return createTeam(teamName, null, "101", "102");
+	}
+	
+	private Team createTeam(String teamName, String icon, String createdBy, String modifiedBy) {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
@@ -474,16 +593,17 @@ public class DBOTeamDAOImplTest {
 		Long id = Long.parseLong(group.getId());
 		team.setId(""+id);
 		team.setName(teamName);
+		team.setIcon(icon);
 		team.setDescription("This is a Team designated for testing.");
-		team.setIcon("999");
 		team.setCreatedOn(new Date());
-		team.setCreatedBy("101");
+		team.setCreatedBy(createdBy);
 		team.setModifiedOn(new Date());
-		team.setModifiedBy("102");
+		team.setModifiedBy(modifiedBy);
 		Team createdTeam = teamDAO.create(team);
 		bindTeamName(teamName, id);
-
+		
 		return createdTeam;
+
 	}
 
 	private UserGroup createIndividual() {

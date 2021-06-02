@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -15,6 +16,9 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
+	private Long id;
+	private Date creationDate;
+	private boolean acceptsTermsOfUse;
 
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
@@ -40,9 +44,6 @@ public class UserInfo {
 	public Set<Long> getGroups() {
 		return groups;
 	}
-	
-	private Long id;
-	private Date creationDate;
 
 	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
@@ -76,30 +77,42 @@ public class UserInfo {
 		return isAdmin;
 	}
 
+	/**
+	 * @return the acceptsTermsOfUse
+	 */
+	public boolean acceptsTermsOfUse() {
+		return acceptsTermsOfUse;
+	}
+
+	/**
+	 * @param acceptsTermsOfUse the acceptsTermsOfUse to set
+	 */
+	public void setAcceptsTermsOfUse(boolean acceptsTermsOfUse) {
+		this.acceptsTermsOfUse = acceptsTermsOfUse;
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
+		return Objects.hash(acceptsTermsOfUse, creationDate, groups, id, isAdmin);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof UserInfo)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		UserInfo other = (UserInfo) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		return true;
+		return acceptsTermsOfUse == other.acceptsTermsOfUse && Objects.equals(creationDate, other.creationDate)
+				&& Objects.equals(groups, other.groups) && Objects.equals(id, other.id) && isAdmin == other.isAdmin;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
+				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + "]";
+	}
 	
 }

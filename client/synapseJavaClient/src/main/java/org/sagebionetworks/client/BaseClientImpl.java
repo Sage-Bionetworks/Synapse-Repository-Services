@@ -38,6 +38,7 @@ import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -79,6 +80,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
 	private static final String SESSION_ID_COOKIE = "sessionID";
+	private static final String AUTHENTICATED_ON = "/authenticatedOn";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 
@@ -92,6 +94,8 @@ public class BaseClientImpl implements BaseClient {
 	private String fileEndpoint;
 
 	private String authorizationHeader;
+	
+	private boolean acceptsTermsOfUse;
 	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
@@ -133,6 +137,7 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @param request
@@ -146,23 +151,63 @@ public class BaseClientImpl implements BaseClient {
 		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
+	
+	@Override
+	public AuthenticatedOn getAuthenticatedOn() throws SynapseException {
+		return getJSONEntity(authEndpoint, AUTHENTICATED_ON, AuthenticatedOn.class);
+	}
 
+
+	/**
+	 * @category Authentication
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	public LoginResponse loginForAccessToken(LoginRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
+		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
+		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
+		setBearerAuthorizationToken(response.getAccessToken());
+		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
+		return response;
+	}
+	
+	@Override
+	public void setAcceptsTermsOfUse(boolean b) {
+		acceptsTermsOfUse = b;
+	}
+	
+	protected boolean acceptsTermsOfUse() {
+		return acceptsTermsOfUse;
+	}
+
+	@Deprecated
 	/**
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(authEndpoint, "/session");
+		if (defaultGETDELETEHeaders.containsKey(SESSION_TOKEN_HEADER)) {
+			deleteUri(authEndpoint, "/session");
+		}
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+	}
+
+	public void logoutForAccessToken() throws SynapseException {
+		removeAuthorizationHeader();
 	}
 
 	//================================================================================
 	// Setters and Getters
 	//================================================================================
 	
+	@Deprecated
 	/**
 	 * Authenticate the synapse client with an existing session token
 	 * 
@@ -173,6 +218,8 @@ public class BaseClientImpl implements BaseClient {
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
 	}
 
+
+	@Deprecated
 	/**
 	 * Get the current session token used by this client.
 	 * 
@@ -215,6 +262,16 @@ public class BaseClientImpl implements BaseClient {
 	protected String getAuthorizationHeader() {
 		return authorizationHeader;
 	}
+	
+	@Override
+	public String getAccessToken() {
+		if (authorizationHeader==null || !authorizationHeader.
+				startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) {
+			throw new IllegalStateException("Missing bearer token header.");
+		}
+		return authorizationHeader.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
+	}
+	
 	/**
 	 * Remove the Authorization Header
 	 */
@@ -327,6 +384,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	protected void revalidateSession() throws SynapseException {
 		Session session = new Session();
 		String currentSessionToken = getCurrentSessionToken();
@@ -340,7 +398,6 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
-	
 
 	//================================================================================
 	// Upload & Download related helping functions
@@ -382,46 +439,27 @@ public class BaseClientImpl implements BaseClient {
 	/**
 	 * Download the file at the given URL.
 	 * 
-	 * @deprecated - should only being used for downloading wiki markdown,
-	 *  and should be removed when a new way of getting markdown is implemented.
 	 * @category Upload & Download
 	 * @param endpoint
 	 * @param uri
+	 * @param gunzip unzip if zipped
 	 * @return
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 * @throws SynapseException 
 	 */
-	@Deprecated
-	protected String downloadZippedFileToString(String endpoint, String uri)
+	protected String downloadFileToString(String endpoint, String uri, boolean gunzip)
 			throws ClientProtocolException, IOException, FileNotFoundException, SynapseException {
 		ValidateArgument.required(endpoint, "endpoint");
 		ValidateArgument.required(uri, "uri");
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(endpoint + uri);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(endpoint + uri, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
-		File zippedFile = new File("zipped");
-		InputStream inputStream = null;
-		try {
-			SimpleHttpResponse response = simpleHttpClient.getFile(request, zippedFile);
-			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-			}
-			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
-			inputStream = new FileInputStream(zippedFile);
-			return FileUtils.readStreamAsString(inputStream, charset, /*gunzip*/ true);
+		File file = File.createTempFile("file", null);
+		Charset charset = downloadFromSynapse(endpoint+uri, null, file);
+		try (InputStream inputStream = new FileInputStream(file)){
+			return FileUtils.readStreamAsString(inputStream, charset, gunzip);
 		} finally {
-			if (inputStream != null) {
-				inputStream.close();
-			}
-			if (zippedFile != null) {
-				zippedFile.delete();
+			if (file != null) {
+				file.delete();
 			}
 		}
 	}
@@ -431,31 +469,22 @@ public class BaseClientImpl implements BaseClient {
 	 * @param url
 	 * @param md5
 	 * @param destinationFile
-	 * @return
+	 * @return the character set used to encode the downloaded file
 	 * @throws SynapseException
 	 */
-	protected File downloadFromSynapse(String url, String md5, File destinationFile)
+	protected Charset downloadFromSynapse(String url, String md5, File destinationFile)
 			throws SynapseException {
 		ValidateArgument.required(url, "url");
 		ValidateArgument.required(destinationFile, "destinationFile");
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri(url);
-		Map<String, String> requestHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		// remove session token if it is null
-		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
-			requestHeaders.remove(SESSION_TOKEN_HEADER);
-		}
-		requestHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(url, requestHeaders);
-		}
-		request.setHeaders(requestHeaders);
 
 		try {
+			// step 1: get redirect URL
+			String redirUrl = getStringDirect(url, "");
+			// step 2: download file
+			SimpleHttpRequest request = new SimpleHttpRequest();
+			request.setUri(redirUrl);
 			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
-			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
-				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-			}
+			ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile.getAbsolutePath());
@@ -465,8 +494,9 @@ public class BaseClientImpl implements BaseClient {
 									+ destinationFile);
 				}
 			}
-		
-			return destinationFile;
+			Charset charset = ClientUtils.getCharacterSetFromResponse(response);
+			
+			return charset;
 		} catch (ClientProtocolException e) {
 			throw new SynapseClientException(e);
 		} catch (IOException e) {

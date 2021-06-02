@@ -128,9 +128,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
+	@Deprecated
 	@WriteTransaction
 	@Override
-	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+	public LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException {
 		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date(), tokenGenerator);
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
@@ -140,7 +141,22 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		long newPrincipalId = userManager.createUser(newUser);
 		
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.loginWithNoPasswordCheck(newPrincipalId);
+		return authManager.loginForSessionWithNoPasswordCheck(newPrincipalId);
+	}
+
+	@WriteTransaction
+	@Override
+	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo, String tokenIssuer) throws NotFoundException {
+		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date(), tokenGenerator);
+		NewUser newUser = new NewUser();
+		newUser.setEmail(validatedEmail);
+		newUser.setFirstName(accountSetupInfo.getFirstName());
+		newUser.setLastName(accountSetupInfo.getLastName());
+		newUser.setUserName(accountSetupInfo.getUsername());
+		long newPrincipalId = userManager.createUser(newUser);
+		
+		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
 	}
 
 	@Override
@@ -281,6 +297,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		profile.setLocation(null);
 		profile.setCompany(null);
 		profile.setPosition(null);
+		profile.setRStudioUrl(null);
+		profile.setSummary(null);
+		profile.setTeamName(null);
+		profile.setUrl(null);
 		userProfileDAO.update(profile);
 
 		// Reset the password

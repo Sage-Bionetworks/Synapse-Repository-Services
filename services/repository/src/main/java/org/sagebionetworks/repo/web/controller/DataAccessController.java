@@ -181,7 +181,7 @@ public class DataAccessController {
 
 	/**
 	 * Retrieve a list of submissions for a given access requirement ID.
-	 * Only ACT member can perform this action.
+	 * Only an ACT member can perform this action.
 	 * 
 	 * @param userId
 	 * @param SubmissionPageRequest
@@ -196,10 +196,28 @@ public class DataAccessController {
 			@RequestBody SubmissionPageRequest submissionPageRequest) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, submissionPageRequest);
 	}
+	
+	/**
+	 * Delete a submission.
+	 * Only an ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.DELETE)
+	public void deleteSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String submissionId) throws NotFoundException {
+		serviceProvider.getDataAccessService().deleteSubmission(userId, submissionId);
+	}
 
 	/**
 	 * Return the research project info for approved data access submissions, 
-	 * ordered by submission modified-on date, ascending
+	 * ordered by submission modified-on date, ascending.  Note that accessor 
+	 * changes are only visible to members of the ACT.
 	 * 
 	 * @param userId
 	 * @param researchProjectPageRequest
@@ -210,8 +228,9 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_APPROVED_SUBMISISON_INFO, method = RequestMethod.POST)
 	public @ResponseBody SubmissionInfoPage listInfoForApprovedSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SubmissionInfoPageRequest submissionInfoPageRequest) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(submissionInfoPageRequest);
+		return serviceProvider.getDataAccessService().listInfoForApprovedSubmissions(userId, submissionInfoPageRequest);
 	}
 
 	/**

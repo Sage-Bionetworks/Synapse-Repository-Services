@@ -553,7 +553,7 @@ public interface NodeDAO {
 	 * @param request
 	 * @return
 	 */
-	ChildStatsResponse getChildernStats(ChildStatsRequest request);
+	ChildStatsResponse getChildrenStats(ChildStatsRequest request);
 
 	/**
 	 * Count the number of children in this container.
@@ -647,5 +647,30 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public Long getEntityIdOfFirstBoundSchema(Long entityId);
+
+	/**
+	 * Updates the file handle of the node with the given id and version
+	 * 
+	 * @param nodeId The id of the node to update
+	 * @param versionNumber The version number of the node
+	 * @param fileHandleId The new file handle id
+	 * @return True if the node was updated, false otherwise
+	 */
+	boolean updateRevisionFileHandle(String nodeId, Long versionNumber, String fileHandleId);
+	
+	/**
+	 * Truncate everything expect bootstrap nodes.
+	 */
+	public void truncateAll();
+
+	/**
+	 * For the given entity get the number of entities in the entity's hierarchy.
+	 * 
+	 * @param entityId
+	 * @param maxDepth The maximum depth do search. The results will not exceed this
+	 *                 max even if the hierarchy is deeper.
+	 * @return
+	 */
+	Integer getEntityPathDepth(String entityId, int maxDepth);
 
 }

@@ -319,12 +319,16 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(0, submissions.size());
 	}
 	
-	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn) {
+	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn, Submission submission, boolean includeAccessorChqnges) {
 		SubmissionInfo result = new SubmissionInfo();
 		result.setInstitution(rp.getInstitution());
 		result.setIntendedDataUseStatement(rp.getIntendedDataUseStatement());
 		result.setProjectLead(rp.getProjectLead());
 		result.setModifiedOn(new Date(modifiedOn));
+		result.setSubmittedBy(submission.getSubmittedBy());
+		if (includeAccessorChqnges) {
+			result.setAccessorChanges(submission.getAccessorChanges());
+		}
 		return result;
 		
 	}
@@ -351,7 +355,8 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );	
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto3.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
-		SubmissionInfo dto3Info = createSubmissionInfo(researchProject2, modifiedOn);
+		SubmissionInfo dto3InfoWithAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, true);
+		SubmissionInfo dto3InfoWithoutAccessorChanges = createSubmissionInfo(researchProject2, modifiedOn, dto3, false);
 		
 		// now create another, later submission for research project 1
 		modifiedOn += 60000L;
@@ -359,7 +364,8 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto4).getSubmissionId() );	
 		modifiedOn += 60000L;
 		submissionDao.updateSubmissionStatus(dto4.getId(), SubmissionState.APPROVED, null, user1.getId(), modifiedOn);
-		SubmissionInfo dto4Info = createSubmissionInfo(researchProject, modifiedOn);
+		SubmissionInfo dto4InfoWithAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, true);
+		SubmissionInfo dto4InfoWithoutAccessorChanges = createSubmissionInfo(researchProject, modifiedOn, dto4, false);
 		
 		// create another submission for some other access requirement.  (Shouldn't see it in the results.)
 		modifiedOn += 60000L;
@@ -374,20 +380,25 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto6).getSubmissionId() );	
 		
 		// we should get back dto3 , then dto4, in that order
-		List<SubmissionInfo> expected = ImmutableList.of(dto3Info, dto4Info);
+		List<SubmissionInfo> expectedWithAccessorChanges = ImmutableList.of(dto3InfoWithAccessorChanges, dto4InfoWithAccessorChanges);
 
 		// method under test
-		List<SubmissionInfo> actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0);
+		List<SubmissionInfo> actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, true);
+		assertEquals(expectedWithAccessorChanges, actual);
 		
-		assertEquals(expected, actual);
+		// method under test
+		List<SubmissionInfo> actualWithoutAccessorChanges = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 10, 0, false);
 		
+		List<SubmissionInfo> expectedWithoutAccessorChanges = ImmutableList.of(dto3InfoWithoutAccessorChanges, dto4InfoWithoutAccessorChanges);
+		assertEquals(expectedWithoutAccessorChanges, actualWithoutAccessorChanges);
 		
+	
 		// check that pagination works right:  If I get the first page of size *one*, I should just get dto3
-		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0);
-		assertEquals(ImmutableList.of(dto3Info), actual);
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 0, true);
+		assertEquals(ImmutableList.of(dto3InfoWithAccessorChanges), actual);
 		// If I get the second page of size *one*, I should just get dto4
-		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1);
-		assertEquals(ImmutableList.of(dto4Info), actual);
+		actual = submissionDao.listInfoForApprovedSubmissions(accessRequirement.getId().toString(), 1, 1, true);
+		assertEquals(ImmutableList.of(dto4InfoWithAccessorChanges), actual);
 	}
 
 	@Test (expected=NotFoundException.class)

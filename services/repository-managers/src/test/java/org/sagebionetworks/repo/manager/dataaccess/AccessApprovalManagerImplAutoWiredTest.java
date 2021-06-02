@@ -21,9 +21,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -96,7 +97,10 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private AccessApprovalManager accessApprovalManager;
 
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager;
+	private EntityAclManager entityAclManager;
+	
+	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
 
 	@Autowired
 	private ResearchProjectManager researchProjectManager;
@@ -173,13 +177,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		requirementIdsToDelete.add(arB.getId().toString());
 
 		// now give 'testUserInfo' READ access to the entity hierarchy
-		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
+		AccessControlList acl = entityAclManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(testUserInfo.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD})));
 		ras.add(ra);
-		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		entityAclManager.updateACL(acl, adminUserInfo);
 	}
 	
 	@AfterEach
@@ -336,7 +340,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		requirementIdsToDelete.add(managedActAr.getId().toString());
 		
 		// show that entity can't be downloaded
-		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 
 		// create a research project
 		ResearchProject rp = new ResearchProject();
@@ -374,7 +378,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		submissionManager.updateStatus(adminUserInfo, sscr);
 		
 		// show that entity can be downloaded
-		assertTrue(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		
 		// revoke access
 		AccessorGroupRevokeRequest agrr = new AccessorGroupRevokeRequest();
@@ -383,7 +387,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		accessApprovalManager.revokeGroup(adminUserInfo, agrr);
 		
 		// show that entity can't be downloaded (before PLFM-6209 this failed)
-		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
@@ -411,13 +415,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa = createAccessApproval(adminUserInfo, aa);
 		
 		// show that entity can be downloaded
-		assertTrue(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertTrue(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		
 		// revoke access
 		accessApprovalManager.revokeAccessApprovals(adminUserInfo, actAR.getId().toString(), testUserInfo.getId().toString());
 		
 		// show that entity can't be downloaded (before PLFM-6209 this failed)
-		assertFalse(entityPermissionsManager.hasAccess(nodeAId, ACCESS_TYPE.DOWNLOAD, testUserInfo).isAuthorized());
+		assertFalse(entityAuthorizationManager.hasAccess(testUserInfo, nodeAId, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test

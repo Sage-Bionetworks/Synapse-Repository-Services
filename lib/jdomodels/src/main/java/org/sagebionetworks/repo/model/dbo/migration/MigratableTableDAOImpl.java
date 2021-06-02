@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,14 +12,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
@@ -30,14 +27,13 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
+import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -608,16 +604,17 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@WriteTransaction
 	@Override
-	public int deleteByRange(final MigrationType type, final long minimumId, final long maximumId) {
+	public int deleteByRange(final TypeData type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type,"MigrationType");
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
-			String deleteSQL = this.deleteByRangeMap.get(type);
+			String deleteSQLTemplate = this.deleteByRangeMap.get(type.getMigrationType());
+			String sql = String.format(deleteSQLTemplate, type.getBackupIdColumnName());
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			Map<String, Object> parameters = new HashMap<>(2);
 			parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
 			parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
-			return namedTemplate.update(deleteSQL, parameters);
+			return namedTemplate.update(sql, parameters);
 		});
 	}
 
@@ -654,7 +651,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public String getPrimaryCardinalitySql(MigrationType primaryType) {
 		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
 		TableMapping primaryMapping = primaryObject.getTableMapping();
-		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<TableMapping<?>> secondaryMapping = new LinkedList<>();
 		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
 		if(secondaryTypes != null) {
 			for(MigratableDatabaseObject secondary: secondaryTypes) {
@@ -701,4 +698,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				throw new IllegalArgumentException("Unknown type: " + backupAliasType);
 		}
 	}
+
+	@Override
+	public TypeData getTypeData(MigrationType type) {
+		return new TypeData().setMigrationType(type).setBackupIdColumnName(
+				DMLUtils.getBackupIdColumnName(getMigratableObject(type).getTableMapping()).getColumnName());
+	}
+
 }

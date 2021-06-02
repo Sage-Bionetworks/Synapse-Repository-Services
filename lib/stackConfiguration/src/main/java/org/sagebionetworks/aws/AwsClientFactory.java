@@ -31,6 +31,8 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.stepfunctions.AWSStepFunctions;
+import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 
 /**
  * A factory for creating AWS clients using credential chains.
@@ -203,6 +205,16 @@ public class AwsClientFactory {
 	 */
 	public static AWSGlue createAmazonGlueClient() {
 		return AWSGlueClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+				.build();
+	}
+	
+	/**
+	 * @return An instance of the AWSStepFunctions client using the synapse credential chain
+	 */
+	public static AWSStepFunctions createAmazonStepFunctionsClient() {
+		return AWSStepFunctionsClientBuilder.standard()
 				.withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();

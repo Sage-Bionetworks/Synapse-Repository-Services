@@ -155,7 +155,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	}
 
 	@Override
-	public String createTotalAccessToken(Long principalId) {
+	public String createInternalTotalAccessToken(Long principalId) {
 		String issuer = null; // doesn't matter -- it's only important to the client (which will never see this token, used internally)
 		String subject = principalId.toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
@@ -166,6 +166,16 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 				null, tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 
+	@Override
+	public String createClientTotalAccessToken(final Long principalId, final String issuer) {
+		String subject = principalId.toString(); // we don't encrypt the subject
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
+		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
+		return createOIDCaccessToken(issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
+				null, tokenId, allScopes, Collections.EMPTY_MAP);
+	}
 	
 	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {

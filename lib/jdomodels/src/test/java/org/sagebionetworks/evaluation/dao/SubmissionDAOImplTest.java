@@ -29,7 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -58,8 +57,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -215,7 +214,6 @@ public class SubmissionDAOImplTest {
         evaluation.setOwnerId(userId);
         evaluation.setCreatedOn(new Date());
         evaluation.setContentSource(nodeId);
-        evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         acl = Util.createACL(evalId, Long.parseLong(userId), ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, new Date());
         acl.setId(aclDAO.create(acl, ObjectType.EVALUATION));
@@ -228,7 +226,6 @@ public class SubmissionDAOImplTest {
         evaluation2.setOwnerId(userId);
         evaluation2.setCreatedOn(new Date());
         evaluation2.setContentSource(nodeId);
-        evaluation2.setStatus(EvaluationStatus.PLANNED);
         evalId2 = evaluationDAO.create(evaluation2, Long.parseLong(userId));
         
         // Initialize Submissions

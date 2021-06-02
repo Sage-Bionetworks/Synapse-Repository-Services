@@ -38,7 +38,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@ForeignKey(name = "V2_WIKI_MARKDOWN_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long wikiId;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID, nullable = false)
+	@Field(name = V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID, nullable = false, hasFileHandleRef = true)
 	@ForeignKey(name = "V2_WIKI_MARKDOWN_FILE_HAND_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = false)
 	private Long fileHandleId;
 	

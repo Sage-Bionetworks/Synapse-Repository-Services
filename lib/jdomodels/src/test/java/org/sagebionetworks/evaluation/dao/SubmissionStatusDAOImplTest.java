@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -84,7 +83,6 @@ public class SubmissionStatusDAOImplTest {
 	        evaluation.setOwnerId(userId);
 	        evaluation.setCreatedOn(new Date());
 	        evaluation.setContentSource(nodeId);
-	        evaluation.setStatus(EvaluationStatus.PLANNED);
 	        evalIds.add(evaluationDAO.create(evaluation, Long.parseLong(userId)));
     	}
     	

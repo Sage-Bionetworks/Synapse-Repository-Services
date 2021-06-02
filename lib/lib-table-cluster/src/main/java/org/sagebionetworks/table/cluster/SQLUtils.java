@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -1341,6 +1342,8 @@ public class SQLUtils {
 		case INTEGER:
 		case INTEGER_LIST:
 				return AnnotationType.LONG;
+		case BOOLEAN:
+			return AnnotationType.BOOLEAN;
 		default:
 			return AnnotationType.STRING;
 		}
@@ -1636,9 +1639,7 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("`");
-			builder.append(cm.getName());
-			builder.append("`");
+			builder.append(SqlElementUntils.wrapInDoubleQuotes(cm.getName()));
 			first = false;
 		}
 		builder.append(" FROM ");
@@ -1731,8 +1732,8 @@ public class SQLUtils {
 	 * are strings, and the annotation value size is larger than the view column size.
 	 * No other case will throw an exception.
 	 */
-	public static void determineCauseOfException(Exception exception,
-			ColumnModel columnModel, ColumnModel annotationModel) {
+	public static void determineCauseOfException(Exception exception, ColumnModel columnModel,
+			ColumnModel annotationModel) {
 		// lookup the annotation type that matches the column type.
 		AnnotationType columnModelAnnotationType = translateColumnTypeToAnnotationType(columnModel.getColumnType());
 		AnnotationType annotationType = translateColumnTypeToAnnotationType(annotationModel.getColumnType());
@@ -1742,14 +1743,12 @@ public class SQLUtils {
 			if (columnModelAnnotationType.equals(annotationType)) {
 				// Have match.
 				if (ColumnType.STRING.equals(columnModel.getColumnType())) {
-					if (columnModel.getMaximumSize() < annotationModel
-							.getMaximumSize()) {
-						throw new IllegalArgumentException(
-								"The size of the column '"
-										+ columnModel.getName()
-										+ "' is too small.  The column size needs to be at least "
-										+ annotationModel.getMaximumSize()
-										+ " characters.", exception);
+					if (columnModel.getMaximumSize() != null && annotationModel.getMaximumSize() != null) {
+						if (columnModel.getMaximumSize() < annotationModel.getMaximumSize()) {
+							throw new IllegalArgumentException("The size of the column '" + columnModel.getName()
+									+ "' is too small.  The column size needs to be at least "
+									+ annotationModel.getMaximumSize() + " characters.", exception);
+						}
 					}
 				}
 			}
@@ -2005,7 +2004,9 @@ public class SQLUtils {
 				", '$[*]'" +
 				" COLUMNS (" +
 				" ORDINAL FOR ORDINALITY, " +
-				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
+				// "error on error" ensures that data will not be replicated if varchar() size is too small to fit the values
+				// see PLFM-6690
+				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$' ERROR ON ERROR" +
 				" )" +
 				") TEMP_JSON_TABLE"+rowFilter;
 	}

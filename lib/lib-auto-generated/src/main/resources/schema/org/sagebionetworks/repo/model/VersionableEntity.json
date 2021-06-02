@@ -19,6 +19,10 @@
 			"type": "string",
 			"description": "The version comment for this entity",
 			"title": "Version Comment"
+		},
+		"isLatestVersion": {
+			"type": "boolean",
+			"description": "If this is the latest version of the object."
 		}
 	}
 }

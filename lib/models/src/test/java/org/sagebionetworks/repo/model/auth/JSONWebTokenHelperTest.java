@@ -36,6 +36,7 @@ public class JSONWebTokenHelperTest {
 	private PrivateKey privateKey;
 	private static final String ISSUER = "this site";
 	private static final String KEY_ID = "foo";
+	private static final String SUBJECT = "userId";
 	private JsonWebKeySet jsonWebKeySet;
 	
 	private static String bigIntToBase64URLEncoded(BigInteger i) {
@@ -100,6 +101,7 @@ public class JSONWebTokenHelperTest {
 		Claims claims = new DefaultClaims();
 		claims.setIssuer(ISSUER);
 		claims.setExpiration(expiration);
+		claims.setSubject(SUBJECT);
 		String token = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 				setHeaderParam(JwsHeader.KEY_ID, keyId).
@@ -186,6 +188,16 @@ public class JSONWebTokenHelperTest {
 		assertEquals("RSA", rsaPublicKey.getAlgorithm());
 		assertEquals(rsaModulus, rsaPublicKey.getModulus());
 		assertEquals(rsaExponent, rsaPublicKey.getPublicExponent());
+	}
+	
+	@Test
+	public void testGetSubjectFromJWTAccessToken() {
+		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), KEY_ID);
+
+		// method under test
+		String result = JSONWebTokenHelper.getSubjectFromJWTAccessToken(token);
+		
+		assertEquals(SUBJECT, result);
 	}
 }
 

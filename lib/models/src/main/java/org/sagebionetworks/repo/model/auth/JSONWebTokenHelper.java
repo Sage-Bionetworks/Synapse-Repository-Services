@@ -18,11 +18,21 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
 
 public class JSONWebTokenHelper {
 	public static final String RSA = "RSA";
+	
+	
+	private static Jwt<Header,Claims> getUnsignedJWTFromToken(String token) {
+		String[] pieces = token.split("\\.");
+		if (pieces.length!=3) throw new IllegalArgumentException("Expected three sections of the token but found "+pieces.length);
+		String unsignedToken = pieces[0]+"."+pieces[1]+".";
+		// Expiration time is checked by the parser
+		return Jwts.parser().parseClaimsJwt(unsignedToken);		
+	}
 	
 	/**
 	 * Given a signed JSON Web Token (JWT) and a list of signature verification public keys,
@@ -38,16 +48,12 @@ public class JSONWebTokenHelper {
 	public static Jwt<JwsHeader,Claims> parseJWT(String token, JsonWebKeySet jsonWebKeySet) {
 		ValidateArgument.required(token, "JSON Web Token");
 		ValidateArgument.required(jsonWebKeySet, "JSON Web Key Set");
-		// This is a little awkward:  We first have to parse the token to
-		// find the key Id, then, once we map the key Id to the signing key,
-		// we parse again, setting the matching public key for verification
-		String[] pieces = token.split("\\.");
-		if (pieces.length!=3) throw new IllegalArgumentException("Expected three sections of the token but found "+pieces.length);
-		String unsignedToken = pieces[0]+"."+pieces[1]+".";
 		JsonWebKey matchingKey=null;
 		{
-			// Expiration time is checked by the parser
-			Jwt<Header,Claims> unsignedJwt = Jwts.parser().parseClaimsJwt(unsignedToken);
+			// This is a little awkward:  We first have to parse the token to
+			// find the key Id, then, once we map the key Id to the signing key,
+			// we parse again, setting the matching public key for verification
+			Jwt<Header,Claims> unsignedJwt = getUnsignedJWTFromToken(token);
 
 			String keyId = (String)unsignedJwt.getHeader().get(JwsHeader.KEY_ID);
 			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
@@ -87,4 +93,14 @@ public class JSONWebTokenHelper {
 			throw new RuntimeException(e);
 		} 
 	}
+	
+	public static String getSubjectFromJWTAccessToken(String accessToken) {
+		try {
+			return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
+		} catch (JwtException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+
 }

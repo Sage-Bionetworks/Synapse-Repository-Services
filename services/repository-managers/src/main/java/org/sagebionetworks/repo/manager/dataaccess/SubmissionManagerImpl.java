@@ -330,8 +330,20 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return pageResult;
 	}
 
+	@WriteTransaction
 	@Override
-	public SubmissionInfoPage listInfoForApprovedSubmissions(SubmissionInfoPageRequest request) {
+	public void deleteSubmission(UserInfo userInfo, String submissionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(submissionId, "submissionId");
+
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		submissionDao.delete(submissionId);
+	}
+
+	@Override
+	public SubmissionInfoPage listInfoForApprovedSubmissions(UserInfo userInfo, SubmissionInfoPageRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getAccessRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
@@ -342,8 +354,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			throw new IllegalArgumentException("Cannot list research projects for an access requirement whose IDUs are not public.");
 		}
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		boolean isACTorAdmin = authorizationManager.isACTTeamMemberOrAdmin(userInfo);
 		List<SubmissionInfo> submissionInfoList = submissionDao.listInfoForApprovedSubmissions(
-				request.getAccessRequirementId(), token.getLimitForQuery(), token.getOffset());
+				request.getAccessRequirementId(), token.getLimitForQuery(), token.getOffset(), isACTorAdmin);
 		
 		SubmissionInfoPage pageResult = new SubmissionInfoPage();
 		pageResult.setResults(submissionInfoList);

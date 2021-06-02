@@ -1662,7 +1662,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testTranslateColumnTypeToAnnotationType(){
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.STRING));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN));
+		assertEquals(AnnotationType.BOOLEAN, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN));
 		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DATE));
 		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DOUBLE));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.ENTITYID));
@@ -2158,7 +2158,22 @@ public class SQLUtilsTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 
 		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
-		String expected = "SELECT `col_1`, `col_2` FROM syn123 WHERE ROW_ID IN (222, 333)";
+		String expected = "SELECT \"col_1\", \"col_2\" FROM syn123 WHERE ROW_ID IN (222, 333)";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testBuildSelectRowIdsColumnsWithDoubleQuotes(){
+		RowReference ref1 = new RowReference();
+		ref1.setRowId(222L);
+		RowReference ref2 = new RowReference();
+		ref2.setRowId(333L);
+
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "\"quoted\"Name", ColumnType.STRING);
+
+		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		String expected = "SELECT \"col_1\", \"\"\"quoted\"\"Name\" FROM syn123 WHERE ROW_ID IN (222, 333)";
 		assertEquals(expected, sql);
 	}
 
@@ -2558,6 +2573,67 @@ public class SQLUtilsTest {
 		// call under test - this should not throw an exception
 		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
 	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithBooleanAnnotation() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(12L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.BOOLEAN);
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithNullMaxSizeAnnotation() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(12L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(null);
+		
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	/**
+	 * This test was added for PLFM-6745.
+	 * 
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWithNullMaxSizeColumn() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(null);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(12L);
+		
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
@@ -2923,7 +2999,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE";
 		assertEquals(expected, sql);
@@ -2943,7 +3019,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);
@@ -2963,7 +3039,7 @@ public class SQLUtilsTest {
 				"_C0_," +
 				" '$[*]' COLUMNS (" +
 				" ORDINAL FOR ORDINALITY," +
-				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' ERROR ON ERROR " +
 				")" +
 				") TEMP_JSON_TABLE WHERE TEMPT999.ROW_ID IN (:ids)";
 		assertEquals(expected, sql);

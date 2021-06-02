@@ -1,0 +1,18 @@
+{
+	"description": "A request to start an asynchronous job to query a user's download list.  The type of query is defined by provided requestDetails.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"requestDetails": {
+			"description": "Required.  Must be one of the implementations of QueryRequestDetails",
+			"$ref": "org.sagebionetworks.repo.model.download.QueryRequestDetails"
+		},
+		"concreteType": {
+			"type": "string",
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.DownloadListQueryRequest'"
+		}
+	}
+}

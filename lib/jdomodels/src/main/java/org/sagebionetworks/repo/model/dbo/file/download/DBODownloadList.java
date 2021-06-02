@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 import com.google.common.collect.Lists;
 
+@Deprecated
 public class DBODownloadList implements MigratableDatabaseObject<DBODownloadList, DBODownloadList> {
 	
 	private Long principalId;

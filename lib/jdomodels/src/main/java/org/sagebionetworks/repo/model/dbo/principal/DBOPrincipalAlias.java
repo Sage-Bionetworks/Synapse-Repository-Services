@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -33,6 +34,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	
 	private static TableMapping<DBOPrincipalAlias> tableMapping = AutoTableMapping.create(DBOPrincipalAlias.class);
 	
+	private static final MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
 	/**
 	 * The primary key for this table.
@@ -83,33 +85,10 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	public MigrationType getMigratableTableType() {
 		return MigrationType.PRINCIPAL_ALIAS;
 	}
-
+	
 	@Override
 	public MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> getTranslator() {
-		return new MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias>() {
-			@Override
-			public DBOPrincipalAlias createDatabaseObjectFromBackup(DBOPrincipalAlias backup) {
-				DBOPrincipalAlias dbo = new DBOPrincipalAlias();
-				if (backup.getAliasType().equals(AliasEnum.USER_ORCID) && backup.getAliasDisplay().toLowerCase().startsWith("http:")) {
-					dbo.setAliasDisplay("https:"+backup.getAliasDisplay().substring("http:".length()));
-					dbo.setAliasUnique(AliasUtils.getUniqueAliasName(dbo.getAliasDisplay()));
-				} else {
-					dbo.setAliasDisplay(backup.getAliasDisplay());
-					dbo.setAliasUnique(backup.getAliasUnique());
-				}
-				dbo.setAliasType(backup.getAliasType()); 
-				dbo.setEtag(backup.getEtag());
-				dbo.setId(backup.getId());
-				dbo.setPrincipalId(backup.getPrincipalId());
-				dbo.getAliasType().validateAlias(dbo.getAliasDisplay());
-				dbo.setValidated(backup.getValidated());
-				return dbo;
-			}
-			@Override
-			public DBOPrincipalAlias createBackupFromDatabaseObject(DBOPrincipalAlias dbo) {
-				return dbo;
-			}
-		};
+		return MIGRATION_TRANSLATOR; 
 	}
 
 	@Override

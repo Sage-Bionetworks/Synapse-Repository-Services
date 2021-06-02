@@ -19,6 +19,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
@@ -116,6 +117,37 @@ public class IT502SynapseJavaClientAccountTest {
 	}
 	
 	@Test
+	public void testCreateNewAccountorAccessToken() throws Exception {
+		String email = UUID.randomUUID().toString()+"@foo.com";
+		s3KeyToDelete = EmailValidationUtil.getBucketKeyForEmail(email);
+		NewUser user = new NewUser();
+		user.setEmail(email);
+		user.setFirstName("firstName");
+		user.setLastName("lastName");
+		String endpoint = "https://www.synapse.org?";
+		synapseAnonymous.newAccountEmailValidation(user, endpoint);
+		String encodedToken = getTokenFromFile(s3KeyToDelete, endpoint);
+		AccountCreationToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, AccountCreationToken.class);
+		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
+		accountSetupInfo.setEmailValidationSignedToken(token.getEmailValidationSignedToken());
+		accountSetupInfo.setFirstName("firstName");
+		accountSetupInfo.setLastName("lastName");
+		accountSetupInfo.setPassword(UUID.randomUUID().toString());
+		String username = UUID.randomUUID().toString();
+		accountSetupInfo.setUsername(username);
+		LoginResponse loginResponse = synapseAnonymous.createNewAccountForAccessToken(accountSetupInfo);
+		assertNotNull(loginResponse.getAccessToken());
+		// need to get the ID of the new user to delete it
+		SynapseClientImpl sc = new SynapseClientImpl();
+		sc.setBearerAuthorizationToken(loginResponse.getAccessToken());
+		SynapseClientHelper.setEndpoints(sc);
+		sc.setUsername(username);
+		sc.signTermsOfUse(loginResponse.getAccessToken());
+		UserProfile up = sc.getMyProfile();
+		user2ToDelete = Long.parseLong(up.getOwnerId());
+	}
+	
+	@Test
 	public void testAddEmail() throws Exception {
 		// start the email validation process
 		String email = UUID.randomUUID().toString()+"@foo.com";
@@ -131,6 +163,8 @@ public class IT502SynapseJavaClientAccountTest {
 		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
 		// we are _not_ setting it to be the notification email
 		synapseOne.addEmail(token, false);
+		// check also that 'false' can be set by omitting the parameter
+		synapseOne.addEmail(token, null);
 		
 		// now remove the email
 		synapseOne.removeEmail(email);

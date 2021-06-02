@@ -1,5 +1,17 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.json.JSONObject;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
@@ -17,6 +29,7 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -29,6 +42,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -59,17 +73,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
-
 /**
  * <p>
  * All data in Synapse is organize into
@@ -77,9 +80,9 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
  * Projects can be further organized into hierarchical
  * <a href="${org.sagebionetworks.repo.model.Folder}">Folders</a>. Finally, the
  * data is then represented by
- * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> or
- * Records (coming soon) that reside within Folders or directly within Projects.
- * All these objects (Projects, Folders, FileEntities, and Records) are derived
+ * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> 
+ * that reside within Folders or directly within Projects.
+ * All these objects (Projects, Folders, FileEntities) are derived
  * from a common object called
  * <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>. The Entity
  * Services provide the means to create, read, update, and delete Synapse
@@ -159,9 +162,10 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
  * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> are
  * "versionable" meaning it is possible for it to have multiple versions of the
  * file. Whenever, a FileEntity is updated with a new
- * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> a
- * new version of the FileEntity is automatically created. The file history an
- * FileEntity can be retrieved using <a href="${GET.entity.id.version}">GET
+ * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> whose
+ * MD5 differs from the MD5 of the current file hanlde a new version of the 
+ * FileEntity is automatically created. The history of a FileEntity can be 
+ * retrieved using <a href="${GET.entity.id.version}">GET
  * /entity/{id}/version</a> method. A specific version of a FileEntity can be
  * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
  * /entity/{id}/version/{versionNumber}</a> method. The Annotations of a
@@ -170,7 +174,14 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
  * /entity/{id}/version/{versionNumber}/annotations</a> method.
  * </p>
  * <p>
- * <b><i>Note: </b>Only the File and Annotations of an Entity are include in the
+ * Despite being <a href="${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>,
+ * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a> and 
+ * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> are versioned using
+ * snapshots: see <a href="${POST.entity.id.table.snapshot}">POST /entity/{id}/table/snapshot</a>
+ * and <a href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>.
+ * </p>
+ * <p>
+ * <b><i>Note: </b>Only the File and Annotations of an Entity are included in the
  * version. All other components of an Entity such as description, name, parent,
  * ACL, and WikiPage are <b>not</b> not part of the version, and will not vary
  * from version to version.</i>
@@ -206,6 +217,22 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
  * <td>Maximum number of versions for a single Entity</td>
  * <td>15,000</td>
  * </tr>
+ * <tr>
+ * <td>Maximum number of keys in Annotations</td>
+ * <td>100</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of values associated with a single key in Annotations</td>
+ * <td>100</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum total character count for all values associated with a single key in Annotations when the AnnotationValueType is STRING</td>
+ * <td>500</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum hierarchical depth of an Entity</td>
+ * <td>50</td>
+ * </tr>
  * </table>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
@@ -221,17 +248,15 @@ public class EntityController {
 
 	/**
 	 * Create a new Entity. This method is used to create Projects, Folders,
-	 * FileEntities and Records (coming soon). The passed request body should
+	 * File Entities, etc. The passed request body should
 	 * contain the following fields:
 	 * <ul>
 	 * <li>name - Give your new entity a Name. <b>Note:</b> A name must be unique
 	 * within the given parent, similar to a file in a folder.</li>
 	 * <li>parentId - The ID of the parent Entity, such as a Folder or Project. This
 	 * field should be excluded when creating a Project.</li>
-	 * <li>concreteType - Indicates the type of Entity to create. The value should
-	 * be one of the following: org.sagebionetworks.repo.model.Project,
-	 * org.sagebionetworks.repo.model.Folder, or
-	 * org.sagebionetworks.repo.model.FileEntity</li>
+	 * <li>concreteType - Indicates the type of Entity to create. The value should be
+	 * the entity's fully qualified class name, e.g. org.sagebionetworks.repo.model.FileEntity.</li>
 	 * </ul>
 	 * <p>
 	 * Note: To create an Entity the caller must be granted the
@@ -319,8 +344,10 @@ public class EntityController {
 	 * Update an entity.
 	 * <p>
 	 * If the Entity is a FileEntity and the dataFileHandleId fields is set to a new
-	 * value, then a new version will automatically be created for this update. You
-	 * can also force the creation of a new version using the newVersion parameter
+	 * value, then a new version will automatically be created for this update if the 
+	 * MD5 of the new file handle does not match the MD5 of the existing file handle or if
+	 * the file handles do not have an MD5 set. You can also force the creation of a new 
+	 * version using the newVersion parameter
 	 * (see below).
 	 * </p>
 	 * <p>
@@ -356,9 +383,13 @@ public class EntityController {
 	 * 
 	 * @param id          The ID of the entity to update. This ID must match the ID
 	 *                    of the passed Entity in the request body.
-	 * @param newVersion  To force the creation of a new version for a versionable
-	 *                    entity such as a FileEntity, include this optional
-	 *                    parameter with a value set to true (i.e. newVersion=true).
+	 * @param newVersion  To force the creation of a new version for a 
+	 *                    <a href="${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a> 
+	 *                    entity such as a <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>, 
+	 *                    include this optional parameter with a value set to true (i.e. newVersion=true).
+	 *                    This parameter is ignored for entities of type 
+	 *                    <a href="${org.sagebionetworks.repo.model.table.Table}">Table</a>
+	 *                    (See <a href="${POST.entity.id.table.snapshot}">POST /entity/{id}/table/snapshot</a> instead)
 	 * @param generatedBy To track the Provenance of an Entity update, include the
 	 *                    ID of the <a href=
 	 *                    "${org.sagebionetworks.repo.model.provenance.Activity}"
@@ -387,18 +418,37 @@ public class EntityController {
 	public @ResponseBody Entity updateEntity(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
-			@RequestParam(value = "newVersion", required = false) String newVersion, @RequestBody Entity entity,
-			@RequestHeader HttpHeaders header, HttpServletRequest request)
+			@RequestParam(value = "newVersion", required = false) String newVersion, @RequestBody Entity entity)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
 			UnauthorizedException, IOException, JSONObjectAdapterException {
 		boolean newVersionBoolean = false;
 		if (newVersion != null) {
 			newVersionBoolean = Boolean.parseBoolean(newVersion);
 		}
-		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersionBoolean, generatedBy);
-		// Return the result
-		return entity;
+		return serviceProvider.getEntityService().updateEntity(userId, entity, newVersionBoolean, generatedBy);
+	}
+	
+	/**
+	 * Updates the <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> associated with the <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+	 * with the provided entity id and version.
+	 * 
+	 * @param id The id of the file entity
+	 * @param versionNumber The entity version
+	 * 
+	 * @throws NotFoundException If a <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> with the given id does not exist
+	 * @throws ConflictingUpdateException If the old file handle id specified in the request does not match the current id of the entity or if the MD5 of the file handles does not match
+	 * @throws UnauthorizedException If the user is not authorized to read and update the entity or if the new file handle id specified in the request is not owned by the user
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_FILE_HANDLE }, method = RequestMethod.PUT)
+	public void updateEntityFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			@RequestBody FileHandleUpdateRequest fileHandleUpdateRequest) 
+					throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+		serviceProvider.getEntityService().updateEntityFileHandle(userId, id, versionNumber, fileHandleUpdateRequest);
 	}
 
 	/**

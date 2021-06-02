@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.web;
 
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.PrefixConst;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+
+import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Collections;
@@ -7,13 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.PrefixConst;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -171,6 +170,7 @@ public class UrlHelpers {
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	public static final String ACCOUNT = "/account";
+	public static final String ACCOUNT_V2 = "/account2";
 	public static final String EMAIL_VALIDATION = "/emailValidation";
 	public static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT+EMAIL_VALIDATION;
 	public static final String ACCOUNT_ID_EMAIL_VALIDATION = ACCOUNT+ID+EMAIL_VALIDATION;
@@ -249,6 +249,11 @@ public class UrlHelpers {
 	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
 	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
+	public static final String DOWNLOAD_LIST_QUERY = DOWNLOAD_LIST+"/query";
+	public static final String DOWNLOAD_LIST_QUERY_START_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_START_REQUEST;
+	public static final String DOWNLOAD_LIST_QUERY_GET_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_GET_REQUEST;
+	
 	
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
@@ -365,6 +370,8 @@ public class UrlHelpers {
 	 * Get the generating activity for a specific version of an entity
 	 */
 	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
+	
+	public static final String ENTITY_VERSION_FILE_HANDLE = ENTITY_VERSION_NUMBER + "/filehandle";
 
 	/**
 	 * DOI (Digital Object Identifier).
@@ -741,6 +748,8 @@ public class UrlHelpers {
 	public static final String EVALUATION_ROUND = EVALUATION_WITH_ID + "/round";
 	public static final String EVALUATION_ROUND_ID_PATH_VAR = "{roundId}";
 	public static final String EVALUATION_ROUND_WITH_ROUND_ID = EVALUATION_ROUND + "/" + EVALUATION_ROUND_ID_PATH_VAR;
+	public static final String EVALUATION_SUBMISSIONQUOTA_MIGRATION = EVALUATION_WITH_ID + "/migratequota";
+
 
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
@@ -921,6 +930,7 @@ public class UrlHelpers {
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
 	public static final String MEMBER_TYPE_FILTER = "memberType";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
+	public static final String TEAM_ID_ICON_PREVIEW = TEAM_ID_ICON+"/preview";
 	private static final String MEMBER = "/member";
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
 	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
@@ -1126,6 +1136,7 @@ public class UrlHelpers {
 	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
 
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
+	public static final String AUTH_TERMS_OF_USE_V2 = "/termsOfUse2";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
@@ -1134,8 +1145,10 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
+	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
+	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String WELL_KNOWN = "/.well-known";
 	// The OIDC spec' defines the following as <issuer>/.well-known/openid-configuration
 	// See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
@@ -1170,6 +1183,8 @@ public class UrlHelpers {
 
 
 	public static final String AUTH_LOGIN = "/login";
+	public static final String AUTH_LOGIN_2 = "/login2";
+	public static final String AUTHENTICATED_ON = "/authenticatedOn";
 	
 	/**
 	 * API for creating integration test users

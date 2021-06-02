@@ -113,7 +113,7 @@ public class AnnotationsTranslatorImplTest {
 		// call under test
 		AnnotationsValue annoValue = translator.getAnnotationValueFromJsonObject(key, json);
 		assertNotNull(annoValue);
-		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
+		assertEquals(AnnotationsValueType.BOOLEAN, annoValue.getType());
 		List<String> expected = Lists.newArrayList(value.toString());
 		assertEquals(expected, annoValue.getValue());
 	}
@@ -544,6 +544,16 @@ public class AnnotationsTranslatorImplTest {
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json);
 		assertEquals(new Double(3.14), json.getDouble("aDouble"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithBoolean() {
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "hasBoolean", "true", AnnotationsValueType.BOOLEAN);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json);
+		assertEquals(true, json.getBoolean("hasBoolean"));
 	}
 	
 	@Test

@@ -750,21 +750,9 @@ public class TableManagerSupportTest {
 	@Test
 	public void testValidateTableWriteAccessTableEntity(){
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
 		manager.validateTableWriteAccess(userInfo, idAndVersion);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
-	}
-	
-	@Test
-	public void testValidateTableWriteAccessTableEntityNoUpload(){
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableWriteAccess(userInfo, idAndVersion);
-		});
 	}
 	
 	@Test

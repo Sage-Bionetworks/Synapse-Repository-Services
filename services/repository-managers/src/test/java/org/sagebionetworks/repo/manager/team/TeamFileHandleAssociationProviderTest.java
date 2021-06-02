@@ -1,40 +1,45 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+@ExtendWith(MockitoExtension.class)
 public class TeamFileHandleAssociationProviderTest {
 
 	@Mock
 	private TeamDAO mockTeamDAO;
+	
 	@Mock
 	private Team mockTeam;
+	
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+	
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	
+	@InjectMocks
 	private TeamFileHandleAssociationProvider provider;
 
 	String teamId = "1";
 	String fileHandleId = "2";
 	
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		provider = new TeamFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "teamDAO", mockTeamDAO);
-	}
-
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
 		when(mockTeamDAO.get(teamId)).thenReturn(mockTeam);
@@ -56,4 +61,5 @@ public class TeamFileHandleAssociationProviderTest {
 				Arrays.asList(fileHandleId, "4"), teamId);
 		assertEquals(Collections.emptySet(), associated);
 	}
+
 }

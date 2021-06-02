@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
-import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -17,6 +15,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -138,6 +137,25 @@ public interface NodeManager {
 	 */
 	public Node update(UserInfo userInfo, Node updatedNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
+	/**
+	 * Updates the file handle id of the node revision with the given id and version. The node must be a
+	 * {@link EntityType#file file} node and the MD5 of the old file handle must match the MD5 of the new 
+	 * file handle. The update will fail if either the old or new file handles do not have an MD5 set.
+	 * 
+	 * @param userInfo      The user performing the update
+	 * @param nodeId        The id of a node of type {@link EntityType#file file}
+	 * @param versionNumber The version number
+	 * @param request       The update request
+	 * @throws NotFoundException          If a node of type file with the given id does not exist, if the revision does
+	 *                                    not exist or if the file handle does not exits
+	 * @throws ConflictingUpdateException If the {@link FileHandleUpdateRequest#getOldFileHandleId()} does not match the
+	 *                                    node revision file handle id, or if the MD5 of the old and new file handle
+	 *                                    does not match
+	 * @throws UnauthorizedException      If the user is not authorized to read or update the given entity or if the
+	 *                                    {@link FileHandleUpdateRequest#getNewFileHandleId()} is not owned by the user
+	 */
+	void updateNodeFileHandle(UserInfo userInfo, String nodeId, Long versionNumber, FileHandleUpdateRequest updateRequest);
+	
 	/**
 	 * Update the user annotations of a node.
 	 * @param userInfo

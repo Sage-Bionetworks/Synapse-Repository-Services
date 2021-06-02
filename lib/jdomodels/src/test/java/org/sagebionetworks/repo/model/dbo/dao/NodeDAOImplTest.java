@@ -45,8 +45,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -71,10 +72,12 @@ import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -155,6 +158,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private JsonSchemaTestHelper jsonSchemaTestHelper;
+	
+	@Autowired
+	private DaoObjectHelper<Node> nodeDaoHelper;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -908,6 +914,7 @@ public class NodeDAOImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annos,"doubleKey", "23.5", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(annos,"longKey", "1234", AnnotationsValueType.LONG);
 		AnnotationsV2TestUtils.putAnnotations(annos,"dateKey", Long.toString(System.currentTimeMillis()), AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annos,"booleanKey", "true", AnnotationsValueType.BOOLEAN);
 		// update the eTag
 		String newETagString = UUID.randomUUID().toString();
 		annos.setEtag(newETagString);
@@ -919,6 +926,7 @@ public class NodeDAOImplTest {
 		assertEquals("one", AnnotationsV2Utils.getSingleValue(copy, "stringOne"));
 		assertEquals("23.5", AnnotationsV2Utils.getSingleValue(copy, "doubleKey"));
 		assertEquals("1234",AnnotationsV2Utils.getSingleValue(copy, "longKey"));
+		assertEquals("true",AnnotationsV2Utils.getSingleValue(copy, "booleanKey"));
 	}
 	
 	@Test
@@ -1565,7 +1573,8 @@ public class NodeDAOImplTest {
 		r.setTargetId(child.getId());
 		r.setTargetVersionNumber(1L);
 		request.add(r);
-		
+
+		// Call under test
 		List<EntityHeader> results = nodeDao.getEntityHeader(request);
 		assertNotNull(results);
 		assertEquals(4, results.size());
@@ -1579,18 +1588,21 @@ public class NodeDAOImplTest {
 		assertEquals(parent.getCreatedOn(), header.getCreatedOn());
 		assertEquals(parent.getModifiedByPrincipalId().toString(), header.getModifiedBy());
 		assertEquals(parent.getModifiedOn(), header.getModifiedOn());
+		assertTrue(header.getIsLatestVersion());
 		
 		header = results.get(2);
 		assertEquals(childId, header.getId());
 		assertEquals("2", header.getVersionLabel());
 		assertEquals(new Long(2), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
-		
+		assertTrue(header.getIsLatestVersion());
+
 		header = results.get(3);
 		assertEquals(childId, header.getId());
 		assertEquals("1", header.getVersionLabel());
 		assertEquals(new Long(1), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
+		assertFalse(header.getIsLatestVersion());
 	}
 	
 	/*
@@ -1600,6 +1612,18 @@ public class NodeDAOImplTest {
 	@Test 
 	public void testGetEntityHeaderByReferenceEmpty() throws Exception {
 		List<Reference> request = new LinkedList<Reference>();
+		//call under test
+		List<EntityHeader> results = nodeDao.getEntityHeader(request);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test 
+	public void testGetEntityHeaderByReferenceNullRef() throws Exception {
+		List<Reference> request = new LinkedList<Reference>();
+		Reference ref = new Reference();
+		ref.setTargetId(null);
+		request.add(ref);
 		//call under test
 		List<EntityHeader> results = nodeDao.getEntityHeader(request);
 		assertNotNull(results);
@@ -1696,7 +1720,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityPathIds(grandChildId);
 		}).getMessage();
-		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
+		assertEquals("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+grandChildId, message);
 	}
 	
 	@Test
@@ -1832,7 +1856,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityPath(grandChildId);
 		}).getMessage();
-		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
+		assertEquals("Path depth limit of: "+NodeConstants.MAX_PATH_DEPTH+" exceeded for: "+grandChildId, message);
 	}
 	
 	
@@ -2243,7 +2267,7 @@ public class NodeDAOImplTest {
 		try{
 			fileHandleDao.delete(fileHandle.getId());
 			fail("Should not be able to delete a file handle that has been assigned");
-		}catch(DataIntegrityViolationException e){
+		}catch(FileHandleLinkedException e){
 			// This is expected.
 		}catch(UnexpectedRollbackException e){
 			// This can also happen
@@ -3324,6 +3348,20 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetChildrenNullTypeInList(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Collections.singletonList(null);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		});
+	}
+	
+	@Test
 	public void testGetChildrenNullSortByt(){
 		String parentId = "syn123";
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
@@ -3499,7 +3537,7 @@ public class NodeDAOImplTest {
 		// exclude folder 2.
 		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder2.getId()), 111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
 		assertNotNull(results);
@@ -3513,7 +3551,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
 		assertNotNull(results);
@@ -3527,7 +3565,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = new HashSet<>();
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(true));
 		assertNotNull(results);
@@ -3541,7 +3579,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(null));
 		assertNotNull(results);
@@ -3555,7 +3593,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(false));
 		assertNotNull(results);
@@ -3569,7 +3607,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(null));
 		assertNotNull(results);
@@ -3583,7 +3621,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(null).withIncludeSumFileSizes(false));
 		assertNotNull(results);
@@ -3597,7 +3635,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 		assertNotNull(results);
@@ -3611,7 +3649,7 @@ public class NodeDAOImplTest {
 		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file, EntityType.folder);
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		// call under test
-		ChildStatsResponse results = nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+		ChildStatsResponse results = nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 				.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 				.withIncludeTotalChildCount(false).withIncludeSumFileSizes(true));
 		assertNotNull(results);
@@ -3623,7 +3661,7 @@ public class NodeDAOImplTest {
 	public void testGetChildrenStatsNullRequest() {
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getChildernStats(null);
+			nodeDao.getChildrenStats(null);
 		});
 	}
 	
@@ -3634,7 +3672,7 @@ public class NodeDAOImplTest {
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+			nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 					.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 					.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 		});
@@ -3647,7 +3685,7 @@ public class NodeDAOImplTest {
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+			nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 					.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 					.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 		});
@@ -3660,7 +3698,7 @@ public class NodeDAOImplTest {
 		Set<Long> childIdsToExclude = Sets.newHashSet(111L);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getChildernStats(new ChildStatsRequest().withParentId(parentId)
+			nodeDao.getChildrenStats(new ChildStatsRequest().withParentId(parentId)
 					.withIncludeTypes(includeTypes).withChildIdsToExclude(childIdsToExclude)
 					.withIncludeTotalChildCount(true).withIncludeSumFileSizes(false));
 		});
@@ -4040,6 +4078,46 @@ public class NodeDAOImplTest {
 		assertEquals(request1.getSnapshotLabel(), snapshot1.getVersionLabel());
 		assertEquals(request1.getSnapshotActivityId(), snapshot1.getActivityId());
 	}
+
+	@Test
+	public void testSnapshotVersionDuplicateLabel() throws InterruptedException {
+		Long user1Id = Long.parseLong(user1);
+		Long user2Id = Long.parseLong(user2);
+		Node node = NodeTestUtils.createNew("one",  user1Id);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// sleep so modified on is larger than the start.
+		Thread.sleep(10);
+
+		SnapshotRequest request1 = new SnapshotRequest();
+		request1.setSnapshotComment("a comment string");
+		request1.setSnapshotLabel("some label");
+		request1.setSnapshotActivityId(testActivity.getId());
+
+		Long snapshotVersion1 = nodeDao.snapshotVersion(user1Id, node.getId(), request1);
+
+		// Create a new version then a new snapshot
+		Node current = nodeDao.getNodeForVersion(node.getId(), snapshotVersion1);
+		current.setVersionComment("in-progress");
+		current.setVersionLabel("in-progress");
+		current.setActivityId(null);
+		Long newVersion = nodeDao.createNewVersion(current);
+
+		// Create a second snapshot for the current version.s
+		SnapshotRequest request2 = new SnapshotRequest();
+		request2.setSnapshotComment("different comment");
+		request2.setSnapshotLabel("some label");
+		request2.setSnapshotActivityId(testActivity2.getId());
+
+		// call under test
+		String id = node.getId();
+		Throwable thrownException = assertThrows(
+			IllegalArgumentException.class, () -> {nodeDao.snapshotVersion(user1Id, id, request2);}
+		);
+		assertTrue(thrownException.getMessage().equals(String.format("The label '%s' has already been used for a version of this entity", "some label")));
+		assertTrue(thrownException.getCause() instanceof DuplicateKeyException);
+
+	}
 	
 	@Test
 	public void testSnapshotVersionNullValues() {
@@ -4272,6 +4350,19 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetEntityPropertiesForVersionWithNonexistentVersion() throws Exception {
+		// PLFM-6632, improving message for this error
+		Node node = nodeDao.createNewNode(privateCreateNew("testEntityProperties"));
+		String id = node.getId();
+		Long version = node.getVersionNumber();
+		Long nonExistentVersion = version + 1;
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			nodeDao.getEntityPropertyAnnotationsForVersion(id, nonExistentVersion);
+		});
+		assertEquals(ex.getMessage(), String.format("Cannot find a node with id %s and version %d", id, nonExistentVersion));
+	}
+	
+	@Test
 	public void testGetName() {
 		String name = "some name to test for";
 		Node node = nodeDao.createNewNode(privateCreateNew(name));
@@ -4407,5 +4498,117 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
 		});
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandle() {
+		Node node = NodeTestUtils.createNew("Node", creatorUserGroupId);
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(fileHandle.getId());
+		node = nodeDao.createNewNode(node);
+		
+		toDelete.add(node.getId());
+		
+		String nodeId = node.getId();
+		Long versionNumber = node.getVersionNumber();
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertTrue(result);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNonExistingNode() {
+		
+		String nodeId = "123";
+		Long versionNumber = 2L;
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testUpdateRevisionFileHandleWithNonExistingRevision() {
+		
+		Node node = NodeTestUtils.createNew("Node", creatorUserGroupId);
+		node.setNodeType(EntityType.file);
+		node.setFileHandleId(fileHandle.getId());
+		node = nodeDao.createNewNode(node);
+		
+		toDelete.add(node.getId());
+		
+		String nodeId = node.getId();
+		Long versionNumber = node.getVersionNumber() + 1;
+		String newFileHandleId = fileHandle2.getId();
+		
+		// Call under test
+		boolean result = nodeDao.updateRevisionFileHandle(nodeId, versionNumber, newFileHandleId);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testGetEntityPathDepthWithNullId() {
+		String entityId = null;
+		int maxDepth = 10;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getEntityPathDepth(entityId, maxDepth);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testGetEntityPathDepthWithDoesNotExist() {
+		String entityId = "syn111";
+		int maxDepth = 10;
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getEntityPathDepth(entityId, maxDepth);
+		}).getMessage();
+		assertEquals("Not found entityId: 'syn111'", message);
+	}
+	
+	@Test
+	public void testGetEntityPathDepth() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		toDelete.add(project.getId());
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolder");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.folder);
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("aFile");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(folder.getId());
+			n.setNodeType(EntityType.file);
+		});
+		int maxDepth = 10;
+		// call under test
+		assertEquals(1, nodeDao.getEntityPathDepth(project.getId(), maxDepth));
+		assertEquals(2, nodeDao.getEntityPathDepth(folder.getId(), maxDepth));
+		assertEquals(3, nodeDao.getEntityPathDepth(file.getId(), maxDepth));
+		maxDepth = 1;
+		assertEquals(1, nodeDao.getEntityPathDepth(file.getId(), maxDepth));
+	}
+	
+	@Test
+	public void testGetTypeNames() {
+		assertEquals(Collections.singletonList("project"), NodeDAOImpl.getTypeNames(Collections.singletonList(EntityType.project)));
+		
+		assertEquals(Collections.EMPTY_LIST, NodeDAOImpl.getTypeNames(null));
+		
+		assertEquals(Collections.EMPTY_LIST, NodeDAOImpl.getTypeNames(Collections.singletonList(null)));
+		
 	}
 }

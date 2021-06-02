@@ -26,14 +26,16 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -42,6 +44,7 @@ import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RangeChecksum;
+import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -232,7 +235,6 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testGetChecksumForIdRange1() throws Exception {
 		long startId = fileHandleDao.getMaxId() + 1;
-		long startCount = fileHandleDao.getCount();
 
 		// Add file handle
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
@@ -396,11 +398,12 @@ public class MigratableTableDAOImplAutowireTest {
 		// Stream over the results
 		long minId = ids.get(0);
 		long maxId = ids.get(1);
+		TypeData typeData = migratableTableDAO.getTypeData(MigrationType.COLUMN_MODEL);
 		// should exclude last row since max is exclusive
-		int count = migratableTableDAO.deleteByRange(MigrationType.COLUMN_MODEL, minId, maxId);
+		int count = migratableTableDAO.deleteByRange(typeData, minId, maxId);
 		assertEquals(2, count);
 		// add one to the max to delete the last.
-		count = migratableTableDAO.deleteByRange(MigrationType.COLUMN_MODEL, minId, maxId+1);
+		count = migratableTableDAO.deleteByRange(typeData, minId, maxId+1);
 		assertEquals(1, count);
 	}
 	
@@ -717,6 +720,10 @@ public class MigratableTableDAOImplAutowireTest {
 			MigratableDatabaseObject migratableObject = migratableTableDAO.getObjectForType(type);
 			TableMapping tableMapping = migratableObject.getTableMapping();
 			for(FieldColumn field: tableMapping.getFieldColumns()) {
+				// This is not a synapse etag, but the S3 etag
+				if (MigrationType.MULTIPART_UPLOAD.equals(type) && field.getFieldName().equals("sourceFileEtag")) {
+					continue;
+				}
 				if(field.getFieldName().toLowerCase().contains("etag")) {
 					assertTrue(field.isEtag(), "MigrationType: "+type+" has a field containing 'etag' but isEtag() is false");
 				}
@@ -833,5 +840,12 @@ public class MigratableTableDAOImplAutowireTest {
 		
 	}
 	
-
+	@Test
+	public void testGetTypeData() {
+		TypeData expected = new TypeData().setMigrationType(MigrationType.NODE)
+				.setBackupIdColumnName(DMLUtils.getBackupIdColumnName(new DBONode().getTableMapping()).getColumnName());
+		TypeData result = this.migratableTableDAO.getTypeData(MigrationType.NODE);
+		assertEquals(expected, result);
+	}
+	
 }

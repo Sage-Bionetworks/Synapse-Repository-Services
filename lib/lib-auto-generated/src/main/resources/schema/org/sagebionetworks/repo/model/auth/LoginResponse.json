@@ -4,7 +4,11 @@
 	"properties": {
 		"sessionToken": {
 			"type": "string",
-			"description": "A token that identifies the user"
+			"description": "(deprecated) A token that identifies the user"
+		}, 
+		"accessToken": {
+			"type": "string",
+			"description": "A token that authorizes subsequent requests"
 		}, 
 		"acceptsTermsOfUse": {
 			"type": "boolean",

@@ -32,5 +32,6 @@
 
 	<util:properties id="testProperties">
 		<prop key="dev-googlecloud-bucket">dev.test.gcp-storage.sagebase.org</prop>
+		<prop key="dev-test-s3-bucket">dev.testdata.sagebase.org</prop>
 	</util:properties>
 </beans>

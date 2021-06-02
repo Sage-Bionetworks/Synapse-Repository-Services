@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -11,8 +13,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface AuthenticationManager {
-
-	
 	/**
 	 * Looks for the user holding the given session token
 	 * @throws UnauthorizedException If the token has expired
@@ -78,17 +78,35 @@ public interface AuthenticationManager {
 	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 
 
-	/**
-	 * Log user in using information form the LoginRequest
-	 * @param request
-	 * @return
-	 */
-	public LoginResponse login(LoginRequest request);
+	@Deprecated
+	public LoginResponse loginForSession(LoginRequest request);
 
 	/**
-	 * Bypass password check and just create a login response for the user.
-	 * @param principalId
+	 * Log user in using information from the LoginRequest
+	 * 
+	 * @param request
+	 * @param tokenIssuer
 	 * @return
 	 */
-	public LoginResponse loginWithNoPasswordCheck(long principalId);
+	public LoginResponse login(LoginRequest request, String tokenIssuer);
+	
+	/**
+	 * Get the date/time the user was last logged in
+	 * 
+	 * @param userInfo
+	 * @return
+	 */
+	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo);
+	
+	@Deprecated
+	public LoginResponse loginForSessionWithNoPasswordCheck(long principalId);
+	
+	/**
+	 * Bypass password check and just create a login response for the user.
+	 * 
+	 * @param principalId
+	 * @param tokenIssuer
+	 * @return
+	 */
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer);
 }

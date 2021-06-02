@@ -1,18 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -26,9 +26,9 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class MembershipInvitationDAOImplTest {
 	
@@ -52,7 +52,7 @@ public class MembershipInvitationDAOImplTest {
 	
 	private static final String INVITER_USER_ID = "123";
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
@@ -65,7 +65,6 @@ public class MembershipInvitationDAOImplTest {
 		team.setId(groupId.toString());
 		team.setName("Super Team");
 		team.setDescription("This is a Team designated for testing.");
-		team.setIcon("999");
 		team.setCreatedOn(new Date());
 		team.setCreatedBy("101");
 		team.setModifiedOn(new Date());
@@ -87,7 +86,7 @@ public class MembershipInvitationDAOImplTest {
 		mis.setCreatedBy(INVITER_USER_ID);
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		membershipInvitationDAO.delete(mis.getId());
 		teamDAO.delete(team.getId());

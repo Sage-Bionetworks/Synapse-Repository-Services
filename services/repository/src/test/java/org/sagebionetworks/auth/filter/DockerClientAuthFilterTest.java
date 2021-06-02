@@ -94,7 +94,7 @@ public class DockerClientAuthFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthenticationService, never()).login(any(LoginRequest.class));
+		verify(mockAuthenticationService, never()).loginForSession(any(LoginRequest.class));
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockOidcManager, never()).validateAccessToken(anyString());
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
@@ -113,14 +113,14 @@ public class DockerClientAuthFilterTest {
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
-		when(mockAuthenticationService.login(loginCred))
+		when(mockAuthenticationService.loginForSession(loginCred))
 				.thenThrow(new UnauthenticatedException("Wrong credentials"));
 
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verify(mockOidcManager).validateAccessToken(PASSWORD);
-		verify(mockAuthenticationService).login(loginCred);
+		verify(mockAuthenticationService).loginForSession(loginCred);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
@@ -141,7 +141,7 @@ public class DockerClientAuthFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verify(mockOidcManager).validateAccessToken(PASSWORD);
-		verify(mockAuthenticationService).login(loginCred);
+		verify(mockAuthenticationService).loginForSession(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
@@ -154,7 +154,7 @@ public class DockerClientAuthFilterTest {
 		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.enumeration(Collections.singleton(header)));
 		when(mockOidcManager.validateAccessToken(PASSWORD)).thenThrow(new IllegalArgumentException()); // not an access token
 		String token = "token";
-		when(mockOidcTokenHelper.createTotalAccessToken(USERID)).thenReturn(token);
+		when(mockOidcTokenHelper.createInternalTotalAccessToken(USERID)).thenReturn(token);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
@@ -166,7 +166,7 @@ public class DockerClientAuthFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verify(mockOidcManager).validateAccessToken(PASSWORD);
-		verify(mockAuthenticationService).login(loginCred);
+		verify(mockAuthenticationService).loginForSession(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(anyString());
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
@@ -186,7 +186,7 @@ public class DockerClientAuthFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthenticationService, never()).login(any());
+		verify(mockAuthenticationService, never()).loginForSession(any());
 		verify(mockOidcManager).validateAccessToken(PASSWORD);
 		
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);

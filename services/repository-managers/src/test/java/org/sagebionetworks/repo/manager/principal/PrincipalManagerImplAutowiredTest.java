@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -120,7 +120,7 @@ public class PrincipalManagerImplAutowiredTest {
 		LoginRequest loginRequest = new LoginRequest();
 		loginRequest.setUsername(username);
 		loginRequest.setPassword(password);
-		authenticationManager.login(loginRequest);
+		authenticationManager.loginForSession(loginRequest);
 
 		// Modify the existing profile to ensure content changes
 		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
@@ -134,6 +134,10 @@ public class PrincipalManagerImplAutowiredTest {
 		profile.setLocation("Seattle");
 		profile.setOpenIds(Collections.singletonList("OpenID1"));
 		profile.setProfilePicureFileHandleId(fileHandleId);
+		profile.setRStudioUrl("https://foo.bar");
+		profile.setSummary("this is my bio");
+		profile.setTeamName("awesome team");
+		profile.setUrl("https://all.about.me");
 		userProfileDAO.update(profile);
 
 		UserInfo adminUserInfo = new UserInfo(true);
@@ -160,8 +164,13 @@ public class PrincipalManagerImplAutowiredTest {
 		assertEquals(1, pas.size());
 		assertEquals(AliasType.USER_EMAIL, pas.get(0).getType());
 		assertEquals("gdpr-synapse+" + testUser.getId() + "@sagebase.org", pas.get(0).getAlias());
+		
+		assertNull(profile.getRStudioUrl());
+		assertNull(profile.getSummary());
+		assertNull(profile.getTeamName());
+		assertNull(profile.getUrl());
 
 		// Verify that the password has been changed
-		assertThrows(UnauthenticatedException.class, () -> authenticationManager.login(loginRequest));
+		assertThrows(UnauthenticatedException.class, () -> authenticationManager.loginForSession(loginRequest));
 	}
 }

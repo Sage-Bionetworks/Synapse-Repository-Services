@@ -1,11 +1,18 @@
 package org.sagebionetworks.file.services;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.util.StringInputStream;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,17 +20,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
-import org.sagebionetworks.repo.manager.file.MultipartManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.auth.AccessToken;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -39,18 +48,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -73,7 +76,7 @@ public class FileUploadServiceImplAutowireTest {
 
 	// Used only to test multipart upload.
 	@Autowired
-	private MultipartManager multipartManager;
+	private FileHandleManager fileHandleManager;
 
 	@Autowired
 	private ProjectSettingsService projectSettingsService;
@@ -103,16 +106,20 @@ public class FileUploadServiceImplAutowireTest {
 		username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
-		EntityId userEntityId = adminService.createOrGetTestUser(adminUserId, user);
-		userId = Long.valueOf(userEntityId.getId());
+		user.setTou(true);
+		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
+		String subject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
+		userId = Long.valueOf(subject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, userId, true);
 
 		NewIntegrationTestUser user2 = new NewIntegrationTestUser();
 		String user2name = UUID.randomUUID().toString();
 		user2.setEmail(user2name + "@test.com");
 		user2.setUsername(user2name);
-		EntityId user2EntityId = adminService.createOrGetTestUser(adminUserId, user2);
-		user2Id = Long.valueOf(user2EntityId.getId());
+		user2.setTou(true);
+		LoginResponse loginResponse2 = adminService.createOrGetTestUser(adminUserId, user2);
+		String subject2 = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse2.getAccessToken());
+		user2Id = Long.valueOf(subject2);
 		certifiedUserService.setUserCertificationStatus(adminUserId, user2Id, true);
 
 		// Set up test project.
@@ -196,7 +203,7 @@ public class FileUploadServiceImplAutowireTest {
 				.withFileToUpload(synapseFile).withStorageLocationId(synapseStorageLocationId)
 				.withUserId(userId.toString());
 
-		S3FileHandle synapseFileHandle = multipartManager.multipartUploadLocalFile(synapseUploadRequest);
+		S3FileHandle synapseFileHandle = fileHandleManager.uploadLocalFile(synapseUploadRequest);
 		assertNotNull(synapseFileHandle);
 		assertEquals(synapseStorageLocationId, synapseFileHandle.getStorageLocationId());
 		fileHandlesToDelete.add(synapseFileHandle);
@@ -215,7 +222,7 @@ public class FileUploadServiceImplAutowireTest {
 				.withFileToUpload(externalS3File).withStorageLocationId(externalS3StorageLocationId)
 				.withUserId(userId.toString());
 
-		S3FileHandle externalS3FileHandle = multipartManager.multipartUploadLocalFile(externalS3UploadRequest);
+		S3FileHandle externalS3FileHandle = fileHandleManager.uploadLocalFile(externalS3UploadRequest);
 		assertNotNull(externalS3FileHandle);
 		assertEquals(externalS3StorageLocationId, externalS3FileHandle.getStorageLocationId());
 		fileHandlesToDelete.add(externalS3FileHandle);
@@ -283,7 +290,7 @@ public class FileUploadServiceImplAutowireTest {
 		LocalFileUploadRequest nonStsUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
 				.withFileToUpload(nonStsFile).withStorageLocationId(null).withUserId(userId.toString());
 
-		S3FileHandle nonStsFileHandle = multipartManager.multipartUploadLocalFile(nonStsUploadRequest);
+		S3FileHandle nonStsFileHandle = fileHandleManager.uploadLocalFile(nonStsUploadRequest);
 		fileHandlesToDelete.add(nonStsFileHandle);
 
 		FileEntity nonStsFileEntity = new FileEntity();
@@ -314,7 +321,7 @@ public class FileUploadServiceImplAutowireTest {
 
 		LocalFileUploadRequest fileUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
 				.withFileToUpload(file).withUserId(userId.toString());
-		S3FileHandle fileHandle = multipartManager.multipartUploadLocalFile(fileUploadRequest);
+		S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(fileUploadRequest);
 		fileHandlesToDelete.add(fileHandle);
 
 		// Before we can create file entities, we must agree to terms of use.

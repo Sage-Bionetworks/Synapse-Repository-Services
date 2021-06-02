@@ -169,6 +169,7 @@ public class CertifiedUserController {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, id, limit, offset);
 	}
 
+	@Deprecated // added Deprecated tag to remove from API doc's
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.GONE)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
@@ -176,6 +177,13 @@ public class CertifiedUserController {
 		return "This endpoint has been removed. The service has been moved to " + UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS + " and is only accessible to Synapse administrators";
 	}
 
+	/**
+	 * Set a user's certification status.  For Synapse administrators only.
+	 * @param userId
+	 * @param principalId the ID of the user whose status is to be set.
+	 * @param isCertified true to set as certified or false to 'de-certify'
+	 * @throws NotFoundException
+	 */
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
