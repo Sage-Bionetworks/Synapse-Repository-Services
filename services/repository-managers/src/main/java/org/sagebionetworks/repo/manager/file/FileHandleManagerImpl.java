@@ -124,6 +124,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
@@ -653,8 +654,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			handle.setEtag(UUID.randomUUID().toString());
 			handle.setFileName(fileName);
 			handle.setStorageLocationId(request.getStorageLocationId());
+			
+			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocationSetting);
 
 			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
+
+			if (storageClass != null) {
+				por.withStorageClass(storageClass);
+			}
 			
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
