@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
@@ -163,6 +164,7 @@ public class FileHandleManagerImplTest {
 	FileHandleManagerImpl manager;
 
 	UserInfo mockUser;
+	UserInfo anonymousUser;
 	S3FileHandle validResults;
 
 	String bucket;
@@ -205,6 +207,8 @@ public class FileHandleManagerImplTest {
 
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
+		
+		anonymousUser = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
@@ -718,6 +722,13 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testCreateExternalFileHandleAnonymous() {
+		ExternalFileHandle efh = createFileHandle();
+		// Method under test
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, efh));
+	}
+	
+	@Test
 	public void testGetURLRequestWithOwnerAuthCheck() throws Exception {
 		S3FileHandle s3FileHandle = new S3FileHandle();
 		s3FileHandle.setId("123");
@@ -922,6 +933,12 @@ public class FileHandleManagerImplTest {
 		externalS3StorageLocationSetting.setCreatedBy(mockUser.getId()+1);
 		// should fails since the user is not the creator of the storage location.
 		assertThrows(UnauthorizedException.class, () -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle));
+	}
+	
+	@Test
+	public void testCreateExternalS3FileHandleAnonymous() {
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalS3FileHandle(anonymousUser, externals3FileHandle));
 	}
 	
 	@Test
@@ -1191,6 +1208,12 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testCreateExternalGoogleCloudFileHandleAnonymous() {
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalGoogleCloudFileHandle(anonymousUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
 	public void testCreateExternalGoogleCloudFileHandleWrongStorageType(){
 		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(new ExternalS3StorageLocationSetting());
 		// should fail
@@ -1379,6 +1402,12 @@ public class FileHandleManagerImplTest {
 		assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser, externalProxyFileHandle));
 	}
 
+	@Test
+	public void testCreateExternalProxyFileHandleUnauthorized() {
+		// call under test
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, externalProxyFileHandle));
+	}
+
 	/////////////////////////////////////////////////////////////////
 	// createExternalFileHandle(ExternalObjectStoreFileHandle) tests
 	/////////////////////////////////////////////////////////////////
@@ -1463,6 +1492,22 @@ public class FileHandleManagerImplTest {
 
 	}
 
+	@Test
+	public void testCreateExternalObjectStoreFileHandleAnonymous() {
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalFileHandle(anonymousUser, externalObjectStoreFileHandle));
+	}
+	
+	@Test
+	public void testUploadLocalFileAnonymous() {
+		LocalFileUploadRequest request = new LocalFileUploadRequest();
+		request.withUserId(anonymousUser.getId().toString());
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			// method under test
+			manager.uploadLocalFile(request);
+		});
+	}
 
 	@Test
 	public void testCreateS3FileHandleCopy() {
@@ -1480,6 +1525,12 @@ public class FileHandleManagerImplTest {
 		assertEquals("image", copy.getValue().getContentType());
 		assertNotNull(copy.getValue().getId());
 		assertEquals(mockUser.getId().toString(), copy.getValue().getCreatedBy());
+	}
+	
+	@Test
+	public void testCreateS3FileHandleAnonymous() {		
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> manager.createS3FileHandleCopy(anonymousUser, "123", null, null));
 	}
 
 	@Test
@@ -2021,6 +2072,12 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCopyFileHandlesWithNullUserInfo() {
 		assertThrows(IllegalArgumentException.class, () -> manager.copyFileHandles(null, new BatchFileHandleCopyRequest()));
+	}
+
+	@Test
+	public void testCopyFileHandlesAnonymous() {
+		// method under test
+		assertThrows(UnauthorizedException.class, () -> manager.copyFileHandles(anonymousUser, new BatchFileHandleCopyRequest()));
 	}
 
 	@Test
