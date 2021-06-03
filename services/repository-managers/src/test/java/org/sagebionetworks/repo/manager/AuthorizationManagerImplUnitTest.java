@@ -1002,6 +1002,18 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetPermittedAccessTypesExistingRepoOldNamingScheme() throws Exception {
+		String repositoryPath = PARENT_ID+"/";
+		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(REPO_ENTITY_ID);
+
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, OAUTH_SCOPES, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
+		
+		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
+	}
+
+	@Test
 	public void testGetPermittedAccessTypesRegistry() throws Exception {
 		// method under test:
 		Set<String> permitted = authorizationManager.
