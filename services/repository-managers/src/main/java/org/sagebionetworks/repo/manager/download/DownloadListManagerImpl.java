@@ -50,6 +50,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
 	public static final String ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding '%s' files to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
@@ -297,10 +298,14 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			throw new IllegalArgumentException("Please provide request.parentId or request.query() but not both.");
 		}
 		boolean useVersionNumber = requestBody.getUseVersionNumber()==null ? DEFAULT_USE_VERSION : requestBody.getUseVersionNumber();
+		long limit = MAX_FILES_PER_USER - downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
+		if(limit < 1) {
+			throw new IllegalArgumentException(String.format(YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES, MAX_FILES_PER_USER));
+		}
 		if(requestBody.getQuery() != null) {
-			return addToDownloadList(userInfo, requestBody.getQuery(), useVersionNumber);
+			return addToDownloadList(userInfo, requestBody.getQuery(), useVersionNumber, limit);
 		}else if(requestBody.getParentId() != null) {
-			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber);
+			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber, limit);
 		}else {
 			throw new IllegalArgumentException("Must include either request.parentId or request.query().");
 		}
@@ -313,13 +318,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param useVersion
 	 * @return
 	 */
-	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion) {
-		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();;
+	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion, long limit) {
+		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
-				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion));
+				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion, limit));
 	}
 
-	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, Query query, boolean useVersion) {
+	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, Query query, boolean useVersion, long limit) {
 		// TODO Auto-generated method stub
 		return null;
 	}

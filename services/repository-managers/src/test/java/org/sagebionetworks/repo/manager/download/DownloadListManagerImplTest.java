@@ -786,11 +786,12 @@ public class DownloadListManagerImplTest {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
 		addRequest.setQuery(new Query());
 		addRequest.setUseVersionNumber(null);
-		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(Query.class), anyBoolean());
+		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(Query.class), anyBoolean(), anyLong());
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(0L);
 		// call under test
 		AddToDownloadListResponse response = managerSpy.addToDownloadList(userOne, addRequest);
 		assertEquals(addResponse, response);
-		verify(managerSpy).addToDownloadList(userOne, addRequest.getQuery(), true);
+		verify(managerSpy).addToDownloadList(userOne, addRequest.getQuery(), true, DownloadListManagerImpl.MAX_FILES_PER_USER);
 	}
 	
 	@Test
@@ -798,11 +799,12 @@ public class DownloadListManagerImplTest {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
 		addRequest.setQuery(new Query());
 		addRequest.setUseVersionNumber(false);
-		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(Query.class), anyBoolean());
+		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(Query.class), anyBoolean(), anyLong());
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(0L);
 		// call under test
 		AddToDownloadListResponse response = managerSpy.addToDownloadList(userOne, addRequest);
 		assertEquals(addResponse, response);
-		verify(managerSpy).addToDownloadList(userOne, addRequest.getQuery(), false);
+		verify(managerSpy).addToDownloadList(userOne, addRequest.getQuery(), false, DownloadListManagerImpl.MAX_FILES_PER_USER);
 	}
 
 	@Test
@@ -810,11 +812,12 @@ public class DownloadListManagerImplTest {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
 		addRequest.setParentId("syn123");
 		addRequest.setUseVersionNumber(null);
-		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(String.class), anyBoolean());
+		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(String.class), anyBoolean(), anyLong());
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(0L);
 		// call under test
 		AddToDownloadListResponse response = managerSpy.addToDownloadList(userOne, addRequest);
 		assertEquals(addResponse, response);
-		verify(managerSpy).addToDownloadList(userOne, addRequest.getParentId(), true);
+		verify(managerSpy).addToDownloadList(userOne, addRequest.getParentId(), true, DownloadListManagerImpl.MAX_FILES_PER_USER);
 	}
 	
 	@Test
@@ -822,11 +825,42 @@ public class DownloadListManagerImplTest {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
 		addRequest.setParentId("syn123");
 		addRequest.setUseVersionNumber(false);
-		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(String.class), anyBoolean());
+		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(String.class), anyBoolean(), anyLong());
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(0L);
 		// call under test
 		AddToDownloadListResponse response = managerSpy.addToDownloadList(userOne, addRequest);
 		assertEquals(addResponse, response);
-		verify(managerSpy).addToDownloadList(userOne, addRequest.getParentId(), false);
+		verify(managerSpy).addToDownloadList(userOne, addRequest.getParentId(), false,  DownloadListManagerImpl.MAX_FILES_PER_USER);
+	}
+	
+	@Test
+	public void testAddToDownloadListWithFolderWithUnderLimit() {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		addRequest.setParentId("syn123");
+		addRequest.setUseVersionNumber(true);
+		doReturn(addResponse).when(managerSpy).addToDownloadList(any(), any(String.class), anyBoolean(), anyLong());
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any())).thenReturn(DownloadListManagerImpl.MAX_FILES_PER_USER-1);
+		// call under test
+		AddToDownloadListResponse response = managerSpy.addToDownloadList(userOne, addRequest);
+		assertEquals(addResponse, response);
+		long expectedLimit = 1L;
+		verify(managerSpy).addToDownloadList(userOne, addRequest.getParentId(), true,  expectedLimit);
+	}
+	
+	@Test
+	public void testAddToDownloadListWithFolderWithAtLimit() {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		addRequest.setParentId("syn123");
+		addRequest.setUseVersionNumber(false);
+		when(mockDownloadListDao.getTotalNumberOfFilesOnDownloadList(any()))
+				.thenReturn(DownloadListManagerImpl.MAX_FILES_PER_USER);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			managerSpy.addToDownloadList(userOne, addRequest);
+		}).getMessage();
+		assertEquals(String.format(DownloadListManagerImpl.YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES,
+				DownloadListManagerImpl.MAX_FILES_PER_USER), message);
+		verify(managerSpy, never()).addToDownloadList(any(), anyString(), anyBoolean(), anyLong());
 	}
 
 	@Test
@@ -875,13 +909,14 @@ public class DownloadListManagerImplTest {
 		Long count = 99L;
 		String parentId = "syn123";
 		boolean useVersion = false;
-		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean())).thenReturn(count);
+		long limit = 100L;
+		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean(), anyLong())).thenReturn(count);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		// Call under test
-		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, useVersion);
+		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, useVersion, limit);
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
-		verify(mockDownloadListDao).addChildrenToDownloadList(userOne.getId(), 123L, useVersion);
+		verify(mockDownloadListDao).addChildrenToDownloadList(userOne.getId(), 123L, useVersion, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 
@@ -889,12 +924,14 @@ public class DownloadListManagerImplTest {
 	public void testAddToDownloadListFolderWithUnauthorized() {
 		String parentId = "syn123";
 		boolean useVersion = false;
+		long limit = 100L;
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("nope"));
 		assertThrows(UnauthorizedException.class, ()->{
 			// Call under test
-			manager.addToDownloadList(userOne, parentId, useVersion);
+			manager.addToDownloadList(userOne, parentId, useVersion, limit);
 		});
 		verifyNoMoreInteractions(mockDownloadListDao);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
+
 }

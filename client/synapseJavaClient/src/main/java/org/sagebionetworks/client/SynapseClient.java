@@ -3410,6 +3410,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	String startAddFilesToDownloadList(AddFileToDownloadListRequest request)
 			throws SynapseException;
 
@@ -3422,6 +3423,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
+	@Deprecated
 	AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
 	
@@ -3432,6 +3434,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException;
 	
 	/**
@@ -3441,6 +3444,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException;
 	
 	/**
@@ -3449,6 +3453,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	void clearDownloadList() throws SynapseException;
 	
 	/**
@@ -3457,6 +3462,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadList getDownloadList() throws SynapseException;
 	
 	/**
@@ -3478,6 +3484,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException;
 	
 	/**
@@ -3486,6 +3493,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadOrder getDownloadOrder(String orderId) throws SynapseException;
 	
 	/**
@@ -3495,6 +3503,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
 	
 	
@@ -3504,6 +3513,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	String startAddToDownloadList(AddToDownloadListRequest request)
 			throws SynapseException;
 
@@ -3516,6 +3526,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
+	@Deprecated
 	AddToDownloadListResponse getAddToDownloadListResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
 	
