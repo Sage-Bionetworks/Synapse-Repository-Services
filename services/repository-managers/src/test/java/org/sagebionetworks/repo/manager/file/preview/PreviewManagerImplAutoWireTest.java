@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,10 +15,10 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.model.AccessControlList;
@@ -38,7 +40,7 @@ import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.Permission;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class PreviewManagerImplAutoWireTest {
 
@@ -64,14 +66,14 @@ public class PreviewManagerImplAutoWireTest {
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
 	private static final String CSV_TEXT_FILE = "images/test.csv";
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 
 	private S3FileHandle createS3File(String filename) throws IOException, UnsupportedEncodingException {
 		InputStream in = PreviewManagerImplAutoWireTest.class.getClassLoader().getResourceAsStream(filename);
-		assertNotNull("Failed to find a test file on the classpath: " + filename, in);
+		assertNotNull(in, "Failed to find a test file on the classpath: " + filename);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		IOUtils.copy(in, baos);
 		byte[] fileContent = baos.toByteArray();
@@ -88,7 +90,7 @@ public class PreviewManagerImplAutoWireTest {
 		return fileMetadata;
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (toDelete != null && s3Client != null) {
 			// Delete any files created
@@ -117,7 +119,7 @@ public class PreviewManagerImplAutoWireTest {
 		System.out.println(pfm);
 		// Now make sure this id was assigned to the file
 		S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());
-		assertEquals("The preview was not assigned to the file", pfm.getId(), fromDB.getPreviewId());
+		assertEquals(pfm.getId(), fromDB.getPreviewId(), "The preview was not assigned to the file");
 		// Get the preview metadata from S3
 		ObjectMetadata s3Meta = s3Client.getObjectMetadata(pfm.getBucketName(), pfm.getKey());
 		assertNotNull(s3Meta);
@@ -147,7 +149,7 @@ public class PreviewManagerImplAutoWireTest {
 		assertTrue(pfm.getIsPreview());
 		toDelete.add(pfm);
 		S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());
-		assertEquals("The preview was not assigned to the file", pfm.getId(), fromDB.getPreviewId());
+		assertEquals(pfm.getId(), fromDB.getPreviewId(), "The preview was not assigned to the file");
 
 		// Test that we can generate a preview as text
 		fileMetadata.setContentType("text/plain");
@@ -157,6 +159,6 @@ public class PreviewManagerImplAutoWireTest {
 		assertTrue(pfm.getIsPreview());
 		toDelete.add(pfm);
 		fromDB = (S3FileHandle) fileMetadataDao.get(fileMetadata.getId());
-		assertEquals("The preview was not assigned to the file", pfm.getId(), fromDB.getPreviewId());
+		assertEquals(pfm.getId(), fromDB.getPreviewId(), "The preview was not assigned to the file");
 	}
 }

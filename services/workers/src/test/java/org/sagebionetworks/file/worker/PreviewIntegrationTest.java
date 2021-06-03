@@ -57,10 +57,7 @@ public class PreviewIntegrationTest {
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
-	
-	@Autowired
-	private SemaphoreManager semphoreManager;
-	
+		
 	private UserInfo adminUserInfo;
 	private List<S3FileHandle> toDelete = new LinkedList<>();
 
