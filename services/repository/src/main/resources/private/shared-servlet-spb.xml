@@ -11,11 +11,6 @@
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
-	<!--This bean will intercept all HTTP calls and check the status -->
-	<bean id="stackStatusInterceptor"
-		class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
-
-
 	<!-- This bean will intercept all HTTP calls and records access records -->
 	<bean id="accessInterceptor"
 		class="org.sagebionetworks.repo.web.AccessInterceptor" />
@@ -35,7 +30,6 @@
 		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
 		<property name="interceptors">
 			<list>
-				<ref bean="stackStatusInterceptor" />
 				<ref bean="accessInterceptor" />
 				<ref bean="oauthScopeInterceptor" />
 			</list>
