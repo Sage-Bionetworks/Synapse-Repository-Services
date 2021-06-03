@@ -4,7 +4,6 @@ import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
-import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
@@ -22,6 +21,7 @@ import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAO;
 import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.upload.multipart.PresignedUrl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;

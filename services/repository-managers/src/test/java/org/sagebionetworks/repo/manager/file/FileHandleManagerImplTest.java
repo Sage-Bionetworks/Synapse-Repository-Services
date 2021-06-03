@@ -24,9 +24,11 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -41,8 +43,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.StreamSupport;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +65,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -107,12 +110,19 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
@@ -158,10 +168,22 @@ public class FileHandleManagerImplTest {
 	
 	@Mock
 	Consumer mockCloudWatchClient;
+	
+	@Mock
+	TransferManager mockTransferManager;
 
 	@InjectMocks
 	@Spy
 	FileHandleManagerImpl manager;
+	
+	@Mock
+	Upload mockUpload;
+	
+	@Mock
+	UploadResult mockUploadResult;
+	
+	@Mock
+	ObjectMetadata mockObjectMeta;
 
 	UserInfo mockUser;
 	UserInfo anonymousUser;
@@ -199,6 +221,7 @@ public class FileHandleManagerImplTest {
 	FileHandleAssociation fhaMissing;
 	BatchFileRequest batchRequest;
 	ObjectRecord successRecord;
+	
 
 	@BeforeEach
 	public void before() throws IOException, NoSuchAlgorithmException{
@@ -2567,6 +2590,53 @@ public class FileHandleManagerImplTest {
 				assertEquals(expectedData, data);
 				
 			});
+		
+	}
+	
+	@Test
+	public void testUploadLocalFile() throws IOException, AmazonServiceException, AmazonClientException, InterruptedException {
+		S3StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
+		
+		when(mockStorageLocationDao.get(anyLong())).thenReturn(storageLocationSetting);
+		when(mockTransferManager.upload(any())).thenReturn(mockUpload);
+		when(mockUpload.waitForUploadResult()).thenReturn(mockUploadResult);
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMeta);
+		
+		File temp = File.createTempFile("testLocalFile", ".txt");
+		
+		try {
+			String fileBody = "Some data";
+			String md5 = TransferUtils.createMD5(fileBody.getBytes(StandardCharsets.UTF_8));
+			FileUtils.writeStringToFile(temp, fileBody, StandardCharsets.UTF_8);
+			String contentType = "text/plain";
+			
+			LocalFileUploadRequest request = new LocalFileUploadRequest()
+					.withContentType(contentType)
+					.withFileToUpload(temp)
+					.withUserId("123")
+					.withStorageLocationId(123L);
+						
+			// Call under test
+			manager.uploadLocalFile(request);
+			
+			ArgumentCaptor<PutObjectRequest> putCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+			ArgumentCaptor<S3FileHandle> fileCaptor = ArgumentCaptor.forClass(S3FileHandle.class);
+						
+			verify(mockTransferManager).upload(putCaptor.capture());
+			verify(mockFileHandleDao).createFile(fileCaptor.capture());
+			
+			S3FileHandle fileHandle = fileCaptor.getValue();
+			PutObjectRequest putRequest = putCaptor.getValue();
+			
+			assertEquals(MultipartUtils.getBucket(storageLocationSetting), putRequest.getBucketName());
+			assertEquals(fileHandle.getKey(), putRequest.getKey());
+			assertEquals(md5, fileHandle.getContentMd5()); 
+			assertEquals(StorageClass.IntelligentTiering.toString(), putRequest.getStorageClass());
+			assertEquals(BinaryUtils.toBase64(BinaryUtils.fromHex(md5)), putRequest.getMetadata().getContentMD5());
+			
+		} finally {
+			temp.delete();
+		}
 		
 	}
 }

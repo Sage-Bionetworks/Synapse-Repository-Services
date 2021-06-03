@@ -105,6 +105,7 @@ import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -124,6 +125,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
@@ -662,8 +664,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			handle.setEtag(UUID.randomUUID().toString());
 			handle.setFileName(fileName);
 			handle.setStorageLocationId(request.getStorageLocationId());
+			
+			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocationSetting);
 
 			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
+
+			if (storageClass != null) {
+				por.withStorageClass(storageClass);
+			}
+			
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
 			Upload upload = transferManager.upload(por);
@@ -892,12 +901,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (contentEncoding != null) {
 			meta.setContentEncoding(contentEncoding);
 		}
+				
 		StorageLocationSetting storageLocation = storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		
 		String key = MultipartUtils.createNewKey(createdBy, fileName, storageLocation);
 		String bucket = MultipartUtils.getBucket(storageLocation);
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
 		
-		s3Client.putObject(bucket, key, in, meta);
+		PutObjectRequest request = new PutObjectRequest(bucket, key, in, meta);
+		
+		if (storageClass != null) {
+			request.withStorageClass(storageClass);
+		}
+		
+		s3Client.putObject(request);
+		
 		// Create the file handle
 		S3FileHandle handle = new S3FileHandle();
 		handle.setStorageLocationId(storageLocation.getStorageLocationId());

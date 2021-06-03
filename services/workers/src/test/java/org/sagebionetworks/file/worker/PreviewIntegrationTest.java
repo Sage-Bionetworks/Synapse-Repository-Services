@@ -1,7 +1,7 @@
 package org.sagebionetworks.file.worker;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -11,10 +11,10 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
@@ -36,7 +37,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class PreviewIntegrationTest {
 
@@ -57,14 +58,11 @@ public class PreviewIntegrationTest {
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
-	
-	@Autowired
-	private SemaphoreManager semphoreManager;
-	
+		
 	private UserInfo adminUserInfo;
 	private List<S3FileHandle> toDelete = new LinkedList<>();
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		// Create a file
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -72,7 +70,7 @@ public class PreviewIntegrationTest {
 	
 	public S3FileHandle uploadFile(String fileName, String mimeType) throws Exception{
 		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
-		assertNotNull("Failed to find a test file on the classpath: "+fileName, in);
+		assertNotNull(in, "Failed to find a test file on the classpath: "+fileName);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			IOUtils.copy(in, baos);
@@ -85,7 +83,7 @@ public class PreviewIntegrationTest {
 				adminUserInfo.getId().toString(), new Date(), baos.toByteArray(), null, contentType, null);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
@@ -109,7 +107,7 @@ public class PreviewIntegrationTest {
 			System.out.println("Waiting for a preview to be generated for the file: " + fileHandle);
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for a preview file to be generated", elapse < MAX_WAIT);
+			assertTrue(elapse < MAX_WAIT, "Timed out waiting for a preview file to be generated");
 			fileHandle = (S3FileHandle) fileMetadataDao.get(fileHandle.getId());
 		}
 		// Get the preview
