@@ -547,7 +547,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertTrue(handle.getKey().contains(userId));
 		
 		// Read back the file and confirm the contents
-		S3Object s3Object =s3Client.getObject(handle.getBucketName(), handle.getKey());
+		S3Object s3Object = s3Client.getObject(handle.getBucketName(), handle.getKey());
 		assertNotNull(s3Object);
 		InputStream input = s3Object.getObjectContent();
 		try{

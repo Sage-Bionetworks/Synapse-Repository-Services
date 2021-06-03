@@ -891,12 +891,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (contentEncoding != null) {
 			meta.setContentEncoding(contentEncoding);
 		}
+				
 		StorageLocationSetting storageLocation = storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		
 		String key = MultipartUtils.createNewKey(createdBy, fileName, storageLocation);
 		String bucket = MultipartUtils.getBucket(storageLocation);
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
 		
-		s3Client.putObject(bucket, key, in, meta);
+		PutObjectRequest request = new PutObjectRequest(bucket, key, in, meta);
+		
+		if (storageClass != null) {
+			request.withStorageClass(storageClass);
+		}
+		
+		s3Client.putObject(request);
+		
 		// Create the file handle
 		S3FileHandle handle = new S3FileHandle();
 		handle.setStorageLocationId(storageLocation.getStorageLocationId());
