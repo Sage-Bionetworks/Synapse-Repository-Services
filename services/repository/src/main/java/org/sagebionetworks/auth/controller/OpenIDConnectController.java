@@ -116,7 +116,7 @@ public class OpenIDConnectController {
 	 * @param clientId the ID of the client whose secret is to be generated
 	 * @return
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
 	public @ResponseBody 
@@ -181,7 +181,7 @@ public class OpenIDConnectController {
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException 
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -199,7 +199,7 @@ public class OpenIDConnectController {
 	 * @param id the ID of the client to delete
 	 * @throws NotFoundException
 	 */
-	@RequiredScope({view,modify,authorize})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.DELETE)
 	public void deleteOpenIDClient(
