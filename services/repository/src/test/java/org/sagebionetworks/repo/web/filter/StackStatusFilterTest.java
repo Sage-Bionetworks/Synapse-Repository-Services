@@ -23,10 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 
 @ExtendWith({MockitoExtension.class})
-public class StackStatusFilterTest extends AbstractAutowiredControllerTestBase {
+public class StackStatusFilterTest {
 	
 	private static final String CURRENT_STATUS_2 = " for StackStatusInterceptorTest.test";
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
