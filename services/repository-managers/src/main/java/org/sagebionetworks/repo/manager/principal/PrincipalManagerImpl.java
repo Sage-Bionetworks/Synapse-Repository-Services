@@ -128,22 +128,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
-	@Deprecated
-	@WriteTransaction
-	@Override
-	public LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date(), tokenGenerator);
-		NewUser newUser = new NewUser();
-		newUser.setEmail(validatedEmail);
-		newUser.setFirstName(accountSetupInfo.getFirstName());
-		newUser.setLastName(accountSetupInfo.getLastName());
-		newUser.setUserName(accountSetupInfo.getUsername());
-		long newPrincipalId = userManager.createUser(newUser);
-		
-		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.loginForSessionWithNoPasswordCheck(newPrincipalId);
-	}
-
 	@WriteTransaction
 	@Override
 	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo, String tokenIssuer) throws NotFoundException {

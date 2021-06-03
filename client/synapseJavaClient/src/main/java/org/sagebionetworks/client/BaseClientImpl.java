@@ -30,9 +30,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -41,7 +39,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -191,10 +188,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
-	public void logout() throws SynapseException {
-		if (defaultGETDELETEHeaders.containsKey(SESSION_TOKEN_HEADER)) {
-			deleteUri(authEndpoint, "/session");
-		}
+	public void deleteSessionTokenHeader() throws SynapseException {
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 	}
@@ -379,25 +373,6 @@ public class BaseClientImpl implements BaseClient {
 	protected String getUserAgent() {
 		return this.userAgent;
 	}
-
-	/**
-	 * @category Authentication
-	 * @throws SynapseException
-	 */
-	@Deprecated
-	protected void revalidateSession() throws SynapseException {
-		Session session = new Session();
-		String currentSessionToken = getCurrentSessionToken();
-		if (currentSessionToken==null) throw new 
-			SynapseClientException("You must log in before revalidating the session.");
-		session.setSessionToken(currentSessionToken);
-		try {
-			voidPut(authEndpoint, "/session", session);
-		} catch (SynapseForbiddenException e) {
-			throw new SynapseTermsOfUseException(e.getMessage());
-		}
-	}
-
 
 	//================================================================================
 	// Upload & Download related helping functions

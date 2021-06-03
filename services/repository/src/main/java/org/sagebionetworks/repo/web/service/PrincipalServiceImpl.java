@@ -59,11 +59,6 @@ public class PrincipalServiceImpl implements PrincipalService {
 		principalManager.newAccountEmailValidation(user, portalEndpoint, new Date());
 	}
 	
-	@Deprecated
-	public LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		return principalManager.createNewAccountForSession(accountSetupInfo);
-	}
-	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo

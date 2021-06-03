@@ -44,13 +44,10 @@ public interface PrincipalManager {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint, Date now);
 	
-	@Deprecated
-	LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException;
-	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
-	 * @return session
+	 * @return access token
 	 * @throws NotFoundException 
 	 */
 	LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo, String tokenIssuer) throws NotFoundException;

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.auth;
 
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -22,42 +21,6 @@ public interface AuthenticationDAO {
 	 */
 	public boolean checkUserCredentials(long principalId, String passHash);
 
-	@Deprecated
-	/**
-	 * Updates the timestamp associated with the user's session token it needed.
-	 * Unconditionally updating the timestamp of a session token was cuasing users to be
-	 * locked out of their accounts (see PLFM-3206).  Now we only update the timestamp
-	 * if it is past its half-life.
-	 * 
-	 * It is the caller's responsibility to determine if the session token is still valid
-	 * @return true if the timstamp was reset. Returns false if an update was not needed.
-	 */
-	public boolean revalidateSessionTokenIfNeeded(long principalId);
-	
-	@Deprecated
-	/**
-	 * Changes the user's session token to the specified string
-	 * @param sessionToken If null, a random token is generated
-	 *   To set the token to null, use deleteSessionToken()
-	 * @return The session token that was set
-	 */
-	public String changeSessionToken(long principalId, String sessionToken);
-	
-	@Deprecated
-	/** 
-	 * Fetches a session token by username (email)
-	 * If the token has expired, null is returned
-	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
-	 */
-	public Session getSessionTokenIfValid(long principalId);
-
-	@Deprecated
-	/**
-	 * For testing purposes only
-	 * Allows the current time to be spoofed for testing purposes
-	 */
-	public Session getSessionTokenIfValid(long userId, Date now);
-	
 	/**
 	 * Set the time stamp at which the given user authenticated to the system
 	 * @param principalId
@@ -71,31 +34,6 @@ public interface AuthenticationDAO {
 	 * @return the validation time stamp or null, if there is no session
 	 */
 	public Date getAuthenticatedOn(long principalId) ;
-	
-	@Deprecated
-	/**
-	 * Nullifies the session token
-	 */
-	public void deleteSessionToken(String sessionToken);
-
-	@Deprecated
-	/**
-	 * Nullifies the session token for a user. This is idempotent.
-	 * @param principalId id of the user for which the session token will be nullified.
-	 */
-	public void deleteSessionToken(long principalId);
-
-	/**
-	 * Looks for the given session token
-	 * @return The principal ID of the holder
-	 */
-	public Long getPrincipal(String sessionToken);
-	
-	/**
-	 * Looks for the given valid session token
-	 * @return The principal ID of the holder, or null if the token is invalid
-	 */
-	public Long getPrincipalIfValid(String sessionToken);
 	
 	/**
 	 * Returns the salt used to hash the user's password

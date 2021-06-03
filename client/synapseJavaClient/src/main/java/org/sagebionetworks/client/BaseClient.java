@@ -148,7 +148,7 @@ public interface BaseClient {
 	/**
 	 * Log out of Synapse
 	 */
-	public void logout() throws SynapseException;
+	public void deleteSessionTokenHeader() throws SynapseException;
 
 	public void logoutForAccessToken() throws SynapseException;
 

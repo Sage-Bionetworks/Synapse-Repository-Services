@@ -30,7 +30,6 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
@@ -98,7 +97,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -117,7 +115,6 @@ import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -532,9 +529,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
-	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
-	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	
@@ -706,22 +701,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
-	@Deprecated
-	@Override
-	public UserSessionData getUserSessionData() throws SynapseException {
-		Session session = new Session();
-		session.setSessionToken(getCurrentSessionToken());
-		session.setAcceptsTermsOfUse(acceptsTermsOfUse());
-
-		UserSessionData userData = null;
-		userData = new UserSessionData();
-		userData.setSession(session);
-		if (session.getAcceptsTermsOfUse()) {
-			userData.setProfile(getMyProfile());
-		}
-		return userData;
-	}
-
 	/********************
 	 * Mid Level Repository Service APIs
 	 * 
@@ -756,14 +735,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		paramMap.put(PORTAL_ENDPOINT_PARAM, portalEndpoint);
 
 		voidPost(getRepoEndpoint(), ACCOUNT_EMAIL_VALIDATION, user, paramMap);
-	}
-
-	@Deprecated
-	@Override
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo)
-			throws SynapseException {
-		ValidateArgument.required(accountSetupInfo, "accountSetupInfo");
-		return postJSONEntity(getRepoEndpoint(), ACCOUNT, accountSetupInfo, Session.class);
 	}
 
 	/**
@@ -4487,16 +4458,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		voidPost(getAuthEndpoint(), "/user/changePassword", changePasswordRequest, null);
 	}
 
-	@Deprecated
-	@Override
-	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
-				throws SynapseException {
-			Session session = new Session();
-			session.setSessionToken(sessionToken);
-			session.setAcceptsTermsOfUse(acceptTerms);
-			voidPost(getAuthEndpoint(), "/termsOfUse", session, null);
-	}
-
 	@Override
 	public void signTermsOfUse(String accessToken) throws SynapseException {
 		AccessToken accessTokenWrapper = new AccessToken();
@@ -4514,24 +4475,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_AUTH_URL, request, OAuthUrlResponse.class);
 	}
 
-	@Deprecated
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.client.SynapseClient#validateOAuthAuthenticationCode(org.sagebionetworks.repo.model.oauth.OAuthValidationRequest)
-	 */
-	@Override
-	public Session validateOAuthAuthenticationCode(OAuthValidationRequest request) throws SynapseException{
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION, request, Session.class);
-	}
-	
 	@Override
 	public LoginResponse validateOAuthAuthenticationCodeForAccessToken(OAuthValidationRequest request) throws SynapseException{
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_SESSION_V2, request, LoginResponse.class);
-	}
-	
-	@Override
-	public Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException{
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ACCOUNT, request, Session.class);
 	}
 	
 	@Override

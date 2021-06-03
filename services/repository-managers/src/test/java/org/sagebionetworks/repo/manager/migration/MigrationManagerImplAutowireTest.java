@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -456,11 +455,6 @@ public class MigrationManagerImplAutowireTest {
 		member.setGroupId(principalId);
 		member.setMemberId(principalId);
 		basicDao.createNew(member);
-		
-		DBOSessionToken token = new DBOSessionToken();
-		token.setPrincipalId(principalId);
-		token.setSessionToken(UUID.randomUUID().toString());
-		basicDao.createNew(token);
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setAgreesToTermsOfUse(true);

@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -19,11 +18,11 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -146,21 +145,14 @@ public class UserManagerImpl implements UserManager {
 		DBOCredential credential = null;
 		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
 		touAgreement.setAgreesToTermsOfUse(acceptsTermsOfUse);
-		DBOSessionToken token = null;
-		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, token);
+		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement);
 	}
+
 
 	@WriteTransaction
 	@Override
 	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
-		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, null);
-	}
-
-	@WriteTransaction
-	@Override
-	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
-			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
@@ -181,10 +173,6 @@ public class UserManagerImpl implements UserManager {
 			if (touAgreement != null) {
 				touAgreement.setPrincipalId(principalId);
 				basicDAO.createOrUpdate(touAgreement);
-			}
-			if (token != null) {
-				// set the session token and record the auth time
-				authDAO.changeSessionToken(principalId, token.getSessionToken());
 			}
 		} else {
 			principalId = alias.getPrincipalId();

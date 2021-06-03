@@ -36,8 +36,6 @@ public interface PrincipalService {
 	 */
 	void newAccountEmailValidation(NewUser user, String portalEndpoint);
 	
-	LoginResponse createNewAccountForSession(AccountSetupInfo accountSetupInfo) throws NotFoundException;
-	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
