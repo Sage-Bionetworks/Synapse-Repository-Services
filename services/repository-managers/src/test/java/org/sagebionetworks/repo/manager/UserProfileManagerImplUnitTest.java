@@ -1,14 +1,18 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,12 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -51,10 +57,10 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class UserProfileManagerImplUnitTest {
 
 	@Mock
@@ -73,17 +79,17 @@ public class UserProfileManagerImplUnitTest {
 	FileHandleManager mockFileHandleManager;
 	@Mock
 	NodeDAO mockNodeDao;
-	
-	UserProfileManager userProfileManager;
+	@InjectMocks
+	UserProfileManagerImpl userProfileManager;
 	
 	UserInfo userInfo;
 	UserInfo adminUserInfo;
 	UserProfile userProfile;
+	UserInfo caller;
 	
 	@Mock
-	UserInfo caller;
-	@Mock
 	UserInfo userToGetFor;
+	
 	Long teamToFetchId;
 	ProjectListType type;
 	ProjectListSortColumn sortColumn;
@@ -91,6 +97,9 @@ public class UserProfileManagerImplUnitTest {
 	String nextPageToken;
 	Set<Long> visibleProjectsOne;
 	Set<Long> visibleProjectsTwo;
+	Set<Long> callersGroups;
+	Set<Long> userToGetForGroups;
+	List<PrincipalAlias> aliases;
 	
 	private static final Long userId = 9348725L;
 	private static final Long adminUserId = 823746L;
@@ -99,18 +108,8 @@ public class UserProfileManagerImplUnitTest {
 	private static final Long LIMIT_FOR_QUERY = NextPageToken.DEFAULT_LIMIT+1;
 	private static final Long OFFSET = NextPageToken.DEFAULT_OFFSET;
 
-
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		userProfileManager = new UserProfileManagerImpl();
-		ReflectionTestUtils.setField(userProfileManager, "userProfileDAO", mockProfileDAO);
-		ReflectionTestUtils.setField(userProfileManager, "favoriteDAO", mockFavoriteDAO);
-		ReflectionTestUtils.setField(userProfileManager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(userProfileManager, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(userProfileManager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(userProfileManager, "fileHandleManager", mockFileHandleManager);
-		
 		userInfo = new UserInfo(false, userId);
 
 		adminUserInfo = new UserInfo(true, adminUserId);
@@ -126,6 +125,40 @@ public class UserProfileManagerImplUnitTest {
 		settings.setSendEmailNotifications(true);
 		userProfile.setNotificationSettings(settings);
 		
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(USER_EMAIL);
+		alias.setPrincipalId(userId);
+		alias.setType(AliasType.USER_EMAIL);
+		aliases =  new ArrayList<PrincipalAlias>();
+		aliases.add(alias);
+		alias = new PrincipalAlias();
+		alias.setAlias(USER_OPEN_ID);
+		alias.setPrincipalId(userId);
+		alias.setType(AliasType.USER_OPEN_ID);
+		aliases.add(alias);
+		caller = new UserInfo(false, 123L);
+		callersGroups = Sets.newHashSet(1L, 2L, 3L, caller.getId(),
+				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		caller.setGroups(callersGroups);
+		userToGetForGroups = Sets.newHashSet(4L, 5L, 6L,
+				userToGetFor.getId(),
+				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		teamToFetchId = null;
+		type = ProjectListType.CREATED;
+		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		sortDirection = SortDirection.ASC;
+		nextPageToken = (new NextPageToken(null)).toToken();
+		
+		visibleProjectsOne = Sets.newHashSet(111L,222L,333L);
+		visibleProjectsTwo = Sets.newHashSet(222L,333L,444L);
+	}
+	
+	@Test
+	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
 		// UserProfileDAO should return a copy of the mock UserProfile when getting
 		Mockito.doAnswer(new Answer<UserProfile>() {
 			@Override
@@ -137,68 +170,6 @@ public class UserProfileManagerImplUnitTest {
 			}
 		}).when(mockProfileDAO).get(Mockito.anyString());
 		
-		// UserProfileDAO should return a copy of the argument when updating
-		Mockito.doAnswer(new Answer<UserProfile>() {
-			@Override
-			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
-				Object[] args = invocation.getArguments();
-				UserProfile copy = (UserProfile) args[0];
-				
-				DBOUserProfile intermediate = new DBOUserProfile();
-				UserProfileUtils.copyDtoToDbo(copy, intermediate);
-				copy = UserProfileUtils.convertDboToDto(intermediate);
-				return copy;
-			}
-		}).when(mockProfileDAO).update((UserProfile) Mockito.any());
-		
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(USER_EMAIL);
-		alias.setPrincipalId(userId);
-		alias.setType(AliasType.USER_EMAIL);
-		List<PrincipalAlias> aliases =  new ArrayList<PrincipalAlias>();
-		aliases.add(alias);
-		alias = new PrincipalAlias();
-		alias.setAlias(USER_OPEN_ID);
-		alias.setPrincipalId(userId);
-		alias.setType(AliasType.USER_OPEN_ID);
-		aliases.add(alias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(Collections.singleton(userId))).thenReturn(aliases);
-		
-		when(caller.getId()).thenReturn(123L);
-		when(caller.isAdmin()).thenReturn(false);
-		Set<Long> callersGroups = Sets.newHashSet(1L, 2L, 3L, caller.getId(),
-				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		when(caller.getGroups()).thenReturn(callersGroups);
-
-		when(userToGetFor.getId()).thenReturn(456L);
-		when(userToGetFor.isAdmin()).thenReturn(false);
-		Set<Long> userToGetForGroups  = Sets.newHashSet(4L, 5L, 6L,
-				userToGetFor.getId(),
-				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
-		teamToFetchId = null;
-		type = ProjectListType.CREATED;
-		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
-		sortDirection = SortDirection.ASC;
-		nextPageToken = (new NextPageToken(null)).toToken();
-		
-		visibleProjectsOne = Sets.newHashSet(111L,222L,333L);
-		visibleProjectsTwo = Sets.newHashSet(222L,333L,444L);
-		
-		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
-				visibleProjectsOne,
-				visibleProjectsTwo
-				);
-		
-	}
-	
-	@Test
-	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
 		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.authorized());
 		UserProfile profile = new UserProfile();
@@ -209,19 +180,21 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockProfileDAO).update(any(UserProfile.class));
 	}
 	
-	@Test (expected=UnauthorizedException.class)
-	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{
+	@Test
+	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{										
 		String fileHandleId = "123";
 		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied("User does not own the file handle"));
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");
 		profile.setProfilePicureFileHandleId(fileHandleId);
-		userProfileManager.updateUserProfile(userInfo, profile);
+		assertThrows(UnauthorizedException.class, () -> {
+			userProfileManager.updateUserProfile(userInfo, profile);
+		});
 	}
 	
 	@Test
-	public void testAddFavorite() throws Exception {
+	public void testAddFavorite() throws Exception {				
 		String entityId = "syn123";
 		userProfileManager.addFavorite(userInfo, entityId);
 		Favorite fav = new Favorite();
@@ -230,11 +203,50 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockFavoriteDAO).add(fav);
 	}
 	
+	@Test
+	public void testAddFavoriteAsAnonymous() throws Exception {
+		String entityId = "syn123";
+		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		assertThrows(UnauthorizedException.class, ()->{
+			userProfileManager.addFavorite(userInfo, entityId);
+		});
+	}
+	
+	@Test
+	public void testRemoveFavoriteAsAnonymous() throws Exception {
+		String entityId = "syn123";
+		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		assertThrows(UnauthorizedException.class, ()->{
+			userProfileManager.removeFavorite(userInfo, entityId);
+		});
+	}
+	
+	@Test
+	public void testGetFavoriteAsAnonymous() throws Exception {
+		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		assertTrue(
+			userProfileManager.getFavorites(userInfo, 10, 0).getResults().isEmpty()
+		);
+		verify(mockFavoriteDAO, never()).getFavoritesEntityHeader(anyString(), anyInt(), anyInt());
+	}
 	
 	/* Tests moved and mocked from UserProfileManagerImplTest */
 	
 	@Test
 	public void testGetOwnUserProfile() throws Exception {
+		// UserProfileDAO should return a copy of the mock UserProfile when getting
+		Mockito.doAnswer(new Answer<UserProfile>() {
+			@Override
+			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
+				DBOUserProfile intermediate = new DBOUserProfile();
+				UserProfileUtils.copyDtoToDbo(userProfile, intermediate);
+				UserProfile copy = UserProfileUtils.convertDboToDto(intermediate);
+				return copy;
+			}
+		}).when(mockProfileDAO).get(Mockito.anyString());
+		
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+		
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		assertEquals(userProfile, upClone);
@@ -242,6 +254,8 @@ public class UserProfileManagerImplUnitTest {
 		
 	@Test
 	public void getAll() throws Exception {
+		when(mockPrincipalAliasDAO.listPrincipalAliases(Collections.singleton(userId))).thenReturn(aliases);
+				
 		UserProfile upForList = new UserProfile();
 		upForList.setOwnerId(userProfile.getOwnerId());
 		upForList.setRStudioUrl(userProfile.getRStudioUrl());
@@ -252,7 +266,6 @@ public class UserProfileManagerImplUnitTest {
 		
 		List<UserProfile> upList = Collections.singletonList(upForList);
 		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
-		when(mockProfileDAO.getCount()).thenReturn(1L);
 		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
 			thenReturn(upList);
 
@@ -268,13 +281,39 @@ public class UserProfileManagerImplUnitTest {
 		
 	@Test
 	public void testGetOthersUserProfileByAdmin() throws Exception {
+		// UserProfileDAO should return a copy of the mock UserProfile when getting
+		Mockito.doAnswer(new Answer<UserProfile>() {
+			@Override
+			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
+				DBOUserProfile intermediate = new DBOUserProfile();
+				UserProfileUtils.copyDtoToDbo(userProfile, intermediate);
+				UserProfile copy = UserProfileUtils.convertDboToDto(intermediate);
+				return copy;
+			}
+		}).when(mockProfileDAO).get(Mockito.anyString());
+		
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+		
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		assertEquals(userProfile, upClone);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testUpdateOthersUserProfile() throws Exception {
+		// UserProfileDAO should return a copy of the mock UserProfile when getting
+		Mockito.doAnswer(new Answer<UserProfile>() {
+			@Override
+			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
+				DBOUserProfile intermediate = new DBOUserProfile();
+				UserProfileUtils.copyDtoToDbo(userProfile, intermediate);
+				UserProfile copy = UserProfileUtils.convertDboToDto(intermediate);
+				return copy;
+			}
+		}).when(mockProfileDAO).get(Mockito.anyString());
+				
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+				
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
 		
@@ -283,14 +322,24 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(ownerId, upClone.getOwnerId());
 		// ... but we can't update it, since we are not the owner or an admin
 		// the following step will fail
-		userProfileManager.updateUserProfile(userInfo, upClone);
+		assertThrows(UnauthorizedException.class, () -> {
+			userProfileManager.updateUserProfile(userInfo, upClone);
+		});
+	}
+	
+	@Test
+	public void testUpdateAnonymousUserProfile() throws Exception {
+		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			userProfileManager.updateUserProfile(userInfo, userProfile);
+		});
+		
+		verify(mockProfileDAO, never()).update(any(UserProfile.class));
 	}
 	
 	@Test
 	public void testGetGroupsMinusPublic(){
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
 		// should get a new copy
 		assertFalse(results == caller.getGroups());
@@ -304,10 +353,7 @@ public class UserProfileManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGetGroupsMinusPublicAndSelf(){
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
-		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+	public void testGetGroupsMinusPublicAndSelf(){				
 		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
 		// should get a new copy
 		assertFalse(results == caller.getGroups());
@@ -325,7 +371,16 @@ public class UserProfileManagerImplUnitTest {
 	 * and the userToGetFor are different.
 	 */
 	@Test
-	public void testGetProjectsNonAdminCallerDifferent(){
+	public void testGetProjectsNonAdminCallerDifferent(){						
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
@@ -350,6 +405,16 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsNonAdminCallerSame(){
+		when(userToGetFor.getId()).thenReturn(456L);
+		when(userToGetFor.isAdmin()).thenReturn(false);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		// the caller is the same as the userToGetFor.
 		caller = userToGetFor;
 		// call under test
@@ -371,11 +436,19 @@ public class UserProfileManagerImplUnitTest {
 	 * and the userToGetFor are different.
 	 */
 	@Test
-	public void testGetProjectsAdminCallerDifferent(){
-		when(caller.isAdmin()).thenReturn(true);
+	public void testGetProjectsAdminCallerDifferent(){						
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+				adminUserInfo, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
 		assertNotNull(results);
 		// Accessible projects should only be called once the userToGetFor
 		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -393,6 +466,16 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsAdminCallerSame(){
+		when(userToGetFor.getId()).thenReturn(456L);
+		when(userToGetFor.isAdmin()).thenReturn(false);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		caller = userToGetFor;
 		when(caller.isAdmin()).thenReturn(true);
 		// call under test
@@ -415,6 +498,15 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_PROJECTS(){
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		type = ProjectListType.ALL;
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
@@ -437,7 +529,16 @@ public class UserProfileManagerImplUnitTest {
 	 * and the userToGetFor are different.  The type is ALL.
 	 */
 	@Test
-	public void testGetProjectsOTHER_USER_PROJECTS(){
+	public void testGetProjectsOTHER_USER_PROJECTS(){				
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		type = ProjectListType.ALL;
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
@@ -461,6 +562,15 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_CREATED_PROJECTS(){
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		type = ProjectListType.CREATED;
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
@@ -483,8 +593,17 @@ public class UserProfileManagerImplUnitTest {
 	 * and the userToGetFor are different.  The type is PARTICIPATED.
 	 */
 	@Test
-	public void testGetProjectsMY_PARTICIPATED_PROJECTS(){
-		type = type = ProjectListType.PARTICIPATED;
+	public void testGetProjectsMY_PARTICIPATED_PROJECTS(){						
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
+		type = ProjectListType.PARTICIPATED;
 		// call under test
 		ProjectHeaderList results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
@@ -508,6 +627,15 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_TEAM_PROJECTS(){
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		teamToFetchId = null;
 		type = ProjectListType.TEAM;
 		// call under test
@@ -533,6 +661,15 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test 
 	public void testGetProjectsTEAM_PROJECTS(){
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		teamToFetchId = 999L;
 		userToGetFor.getGroups().add(teamToFetchId);
 		type = ProjectListType.TEAM;
@@ -553,7 +690,7 @@ public class UserProfileManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testGetProjectsNonTeamWithTeamId() {
+	public void testGetProjectsNonTeamWithTeamId() {		
 		teamToFetchId = 999L;
 		type = ProjectListType.ALL;
 		try {
@@ -571,6 +708,15 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test 
 	public void testGetProjectsAllTypes(){
+		when(userToGetFor.getId()).thenReturn(456L);
+
+		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
+		
+		when(mockAuthorizationManager.getAccessibleProjectIds(anySetOf(Long.class))).thenReturn(
+				visibleProjectsOne,
+				visibleProjectsTwo
+				);		
+		
 		userToGetFor.getGroups().add(teamToFetchId);
 		for(ProjectListType type: ProjectListType.values()) {
 			ProjectHeaderList results = userProfileManager.getProjects(
@@ -581,6 +727,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Test
 	public void testGetUserProfileImageUrl() {
+		when(userToGetFor.getId()).thenReturn(456L);
 		
 		String userId = userToGetFor.getId().toString();
 		String fileHandleId = "123";
@@ -604,6 +751,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Test
 	public void testGetUserProfileImagePreviewUrl() {
+		when(userToGetFor.getId()).thenReturn(456L);
 		
 		String userId = userToGetFor.getId().toString();
 		String fileHandleId = "123";
