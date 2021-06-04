@@ -41,6 +41,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -77,6 +79,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	public static final int MAX_SCHEMA_NAME_CHARS = 250;
 	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
+	private static final long PAGE_SIZE_LIMIT = 1000L;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -295,6 +298,21 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 				blobId);
 		bindDependencies(info.getVersionId(), request.getDependencies());
 		return info;
+	}
+
+	@Override
+	public Iterator<Long> getObjectIdsBoundToSchemaIterator(String schemaId) {
+		return new PaginationIterator<Long>((long limit, long offset) -> {
+			return getNextPageForEntitiesBoundToSchema(schemaId, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
+	
+	private List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset) {
+		// Method is intended to implement the PaginationProvider for getEntitiesBoundToSchemaIterator
+		return jdbcTemplate.queryForList(
+				"SELECT " + COL_JONS_SCHEMA_BINDING_OBJECT_ID + " FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + 
+				" WHERE " + COL_JSON_SCHEMA_BINDING_SCHEMA_ID + 
+				" = ? LIMIT ? OFFSET ?", Long.class, schemaId, limit, offset);
 	}
 
 	@WriteTransaction

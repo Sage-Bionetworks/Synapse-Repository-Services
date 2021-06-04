@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
@@ -146,6 +147,13 @@ public interface JsonSchemaDao {
 	 * @param objectType
 	 */
 	void clearBoundSchema(Long objectId, BoundObjectType objectType);
+	
+	/**
+	 * Get an iterator of the objectIds that have the schemaId bound to it.
+	 * @param schemaId
+	 * @return
+	 */
+	Iterator<Long> getObjectIdsBoundToSchemaIterator(String schemaId);
 
 
 }
