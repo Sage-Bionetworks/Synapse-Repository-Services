@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
@@ -20,14 +21,20 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -74,6 +81,12 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Autowired
 	private JsonSchemaDao jsonSchemaDao;
+	
+	@Autowired
+	private NodeDAO nodeDao;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	public static final Set<ACCESS_TYPE> ADMIN_PERMISSIONS = Sets.newHashSet(READ, CREATE, CHANGE_PERMISSIONS, UPDATE,
 			DELETE);
@@ -210,6 +223,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withSemanticVersion(semanticVersionString).withJsonSchema(request.getSchema())
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
+		
+		if (newVersionRequest.getSemanticVersion() == null) {
+			sendUpdateNotifications(info.getSchemaId());
+		}
 
 		// Ensure we can create the validation schema
 		JsonSchema validationSchema = getValidationSchema(schemaId.toString());
@@ -223,6 +240,19 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			jsonSchemaDao.deleteSchemaVersion(info.getVersionId());
 		}
 		return response;
+	}
+	
+	private void sendUpdateNotifications(String schemaId) {
+		// Send update notifications to entities bound to the schema
+		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId);
+		while(objectIds.hasNext()) {
+			Long id = objectIds.next();
+			EntityType entityType = nodeDao.getNodeTypeById(KeyFactory.keyToString(id));
+			transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+			if (NodeUtils.isProjectOrFolder(entityType)) {
+				transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+			}
+		}
 	}
 	
 	/**
