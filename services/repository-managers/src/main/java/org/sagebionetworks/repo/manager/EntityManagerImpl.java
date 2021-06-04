@@ -573,6 +573,13 @@ public class EntityManagerImpl implements EntityManager {
 	@WriteTransaction
 	@Override
 	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request) {
+		boolean sendNotificationMessages = true;
+		return bindSchemaToEntity(userInfo, request, sendNotificationMessages);
+	}
+	
+	@WriteTransaction
+	@Override
+	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request, boolean sendNotificationMessages) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
@@ -581,7 +588,9 @@ public class EntityManagerImpl implements EntityManager {
 				.checkAuthorizationOrElseThrow();
 		JsonSchemaObjectBinding binding = jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
 				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity);
-		sendEntityUpdateNotifications(request.getEntityId());
+		if (sendNotificationMessages) {
+			sendEntityUpdateNotifications(request.getEntityId());
+		}
 		return binding;
 	}
 

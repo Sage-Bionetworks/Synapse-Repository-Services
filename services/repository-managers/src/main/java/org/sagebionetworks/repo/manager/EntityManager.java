@@ -454,6 +454,17 @@ public interface EntityManager {
 	 * @return
 	 */
 	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request);
+	
+	/**
+	 * Bind a JSON schema to an Entity and send notification messages if sendNotificationMessage is true.
+	 * If sendNotificationMessage is false, performs the bind but does not send notification messages.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @param sendNotificationMessage
+	 * @return
+	 */
+	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request, boolean sendNotificationMessage);
 
 	/**
 	 * Get metadata about a JSON schema bound to an Entity
