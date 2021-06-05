@@ -817,7 +817,6 @@ public class JsonSchemaManagerImplTest {
 		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(any())).thenReturn(Collections.emptyIterator());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "-" + schemaName);
 		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
