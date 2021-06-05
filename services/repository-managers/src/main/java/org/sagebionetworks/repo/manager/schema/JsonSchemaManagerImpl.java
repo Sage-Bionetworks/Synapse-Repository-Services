@@ -245,12 +245,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	private void sendUpdateNotifications(String schemaId) {
 		// Send update notifications to entities bound to the schema
 		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId);
-		while(objectIds.hasNext()) {
-			Long id = objectIds.next();
-			EntityType entityType = nodeDao.getNodeTypeById(KeyFactory.keyToString(id));
-			transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
-			if (NodeUtils.isProjectOrFolder(entityType)) {
-				transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		if (objectIds != null) {
+			while(objectIds.hasNext()) {
+				Long id = objectIds.next();
+				EntityType entityType = nodeDao.getNodeTypeById(KeyFactory.keyToString(id));
+				transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+				if (NodeUtils.isProjectOrFolder(entityType)) {
+					transactionalMessenger.sendMessageAfterCommit(id.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+				}
 			}
 		}
 	}
