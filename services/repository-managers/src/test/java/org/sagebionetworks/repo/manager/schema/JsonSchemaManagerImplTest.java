@@ -14,9 +14,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -815,6 +817,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
+		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(any())).thenReturn(Collections.emptyIterator());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "-" + schemaName);
 		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
