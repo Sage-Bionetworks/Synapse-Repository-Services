@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -41,7 +40,6 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
-import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -51,7 +49,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -80,9 +77,6 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@Autowired
 	EntityManager entityManager;
-	
-	@Autowired
-	QueueCleaner queueCleaner;
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -253,7 +247,6 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 
 	void bootstrapAndCreateOrganization() throws RecoverableMessageException, InterruptedException {
-		Thread.sleep(1000);
 		jsonSchemaManager.truncateAll();
 		schemaBootstrap.bootstrapSynapseSchemas();
 		CreateOrganizationRequest createOrgRequest = new CreateOrganizationRequest();
