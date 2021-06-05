@@ -224,7 +224,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 		
-		if (newVersionRequest.getSemanticVersion() == null) {
+		// If the semantic version is null, notify the entities bound to it
+		if (info.getSemanticVersion() == null) {
 			sendUpdateNotifications(info.getSchemaId());
 		}
 
