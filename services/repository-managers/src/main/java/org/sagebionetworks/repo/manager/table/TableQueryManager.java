@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -121,4 +123,12 @@ public interface TableQueryManager {
 	public TableStatus validateTableIsAvailable(String tableId)
 			throws NotFoundException, TableUnavailableException,
 			TableFailedException;
+	
+	/**
+	 * Get type table type for the given IdAndVersion.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	EntityType getTableEntityType(IdAndVersion idAndVersion);
 }

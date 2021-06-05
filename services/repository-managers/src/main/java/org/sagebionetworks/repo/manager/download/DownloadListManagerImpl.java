@@ -5,12 +5,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
+import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
@@ -40,21 +43,35 @@ import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+	public static final long MAX_QUERY_LIMIT = 10_000L;
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
 	public static final String ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE = "Adding '%s' files to your download list would exceed the maximum number of '%s' files.  You currently have '%s' files on you download list.";
-	
+
 	public static boolean DEFAULT_USE_VERSION = true;
 
 	/**
@@ -68,13 +85,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
+	private TableQueryManager tableQueryManager;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao) {
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
+		this.tableQueryManager = tableQueryManager;
 	}
 
 	@WriteTransaction
@@ -121,10 +140,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		if (requestBody.getRequestDetails() instanceof AvailableFilesRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
 					queryAvailableFiles(userInfo, (AvailableFilesRequest) requestBody.getRequestDetails()));
-		}else if(requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
+		} else if (requestBody.getRequestDetails() instanceof FilesStatisticsRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
 					getListStatistics(userInfo, (FilesStatisticsRequest) requestBody.getRequestDetails()));
-		}else if(requestBody.getRequestDetails() instanceof ActionRequiredRequest) {
+		} else if (requestBody.getRequestDetails() instanceof ActionRequiredRequest) {
 			return new DownloadListQueryResponse().setResponseDetails(
 					queryActionRequired(userInfo, (ActionRequiredRequest) requestBody.getRequestDetails()));
 		}
@@ -132,8 +151,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Query the current user's download list for files that require some action to be taken in order to download
-	 * the file.
+	 * Query the current user's download list for files that require some action to
+	 * be taken in order to download the file.
+	 * 
 	 * @param userInfo
 	 * @param requestDetails
 	 * @return
@@ -178,9 +198,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
 				.setPage(page);
 	}
-	
+
 	/**
 	 * Get the statistics for the files on the user's download list.
+	 * 
 	 * @param user
 	 * @param statsResquest
 	 * @return
@@ -216,9 +237,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 					.collect(Collectors.toList());
 		};
 	}
-	
+
 	/**
-	 * Create a callback to filter the entities that require action in order to be downloaded.
+	 * Create a callback to filter the entities that require action in order to be
+	 * downloaded.
 	 * 
 	 * @param userInfo
 	 * @return
@@ -232,14 +254,16 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			return DownloadListManagerImpl.createActionRequired(batchInfo);
 		};
 	}
-	
+
 	/**
-	 * For the given batch of UsersEntityAccessInfo create a list of actions that the user will need to 
-	 * take in order to download any file that they are currently not authorized to download.
+	 * For the given batch of UsersEntityAccessInfo create a list of actions that
+	 * the user will need to take in order to download any file that they are
+	 * currently not authorized to download.
+	 * 
 	 * @param batchInfo
 	 * @return
 	 */
-	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo){
+	public static List<FileActionRequired> createActionRequired(List<UsersEntityAccessInfo> batchInfo) {
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
@@ -291,28 +315,31 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	@WriteTransaction
 	@Override
-	public AddToDownloadListResponse addToDownloadList(UserInfo userInfo, AddToDownloadListRequest requestBody) {
+	public AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody) {
 		validateUser(userInfo);
 		ValidateArgument.required(requestBody, "requestBody");
-		if(requestBody.getParentId() != null && requestBody.getQuery() != null) {
+		if (requestBody.getParentId() != null && requestBody.getQuery() != null) {
 			throw new IllegalArgumentException("Please provide request.parentId or request.query() but not both.");
 		}
-		boolean useVersionNumber = requestBody.getUseVersionNumber()==null ? DEFAULT_USE_VERSION : requestBody.getUseVersionNumber();
+		boolean useVersionNumber = requestBody.getUseVersionNumber() == null ? DEFAULT_USE_VERSION
+				: requestBody.getUseVersionNumber();
 		long limit = MAX_FILES_PER_USER - downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
-		if(limit < 1) {
-			throw new IllegalArgumentException(String.format(YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES, MAX_FILES_PER_USER));
+		if (limit < 1) {
+			throw new IllegalArgumentException(
+					String.format(YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES, MAX_FILES_PER_USER));
 		}
-		if(requestBody.getQuery() != null) {
-			return addToDownloadList(userInfo, requestBody.getQuery(), useVersionNumber, limit);
-		}else if(requestBody.getParentId() != null) {
+		if (requestBody.getQuery() != null) {
+			return addToDownloadList(progressCallback, userInfo, requestBody.getQuery(), useVersionNumber, limit);
+		} else if (requestBody.getParentId() != null) {
 			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber, limit);
-		}else {
+		} else {
 			throw new IllegalArgumentException("Must include either request.parentId or request.query().");
 		}
 	}
 
 	/**
 	 * Add all of the files from the given parentId to the user's download list.
+	 * 
 	 * @param userInfo
 	 * @param parentId
 	 * @param useVersion
@@ -324,9 +351,78 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion, limit));
 	}
 
-	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, Query query, boolean useVersion, long limit) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * Add the files from the given view query to the user's download list.
+	 * 
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @param maxLimit
+	 * @return
+	 */
+	AddToDownloadListResponse addToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
+			final Query query, final boolean useVersion, long maxLimit) {
+		try {
+			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
+			IdAndVersion idAndVersion = IdAndVersion.parse(model.getTableName());
+			EntityType tableType = tableQueryManager.getTableEntityType(idAndVersion);
+			if (!EntityType.entityview.equals(tableType)) {
+				throw new IllegalArgumentException(String.format("'%s' is not a file view", idAndVersion.toString()));
+			}
+			model.replaceSelectList(new TableQueryParser("ROW_ID").selectList());
+			query.setSql(model.toSql());
+			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
+					.withReturnFacets(false).withReturnLastUpdatedOn(false);
+			long totalFilesAdded = 0L;
+			long limit = Math.min(maxLimit, MAX_QUERY_LIMIT);
+			long offset = 0L;
+			List<DownloadListItem> batchToAdd = null;
+			do {
+				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo,
+						cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
+				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream().map((Row row) -> {
+					DownloadListItem item = new DownloadListItem();
+					item.setFileEntityId(row.getRowId().toString());
+					if (useVersion) {
+						item.setVersionNumber(row.getVersionNumber());
+					} else {
+						item.setVersionNumber(null);
+					}
+					return item;
+				}).collect(Collectors.toList());
+				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
+				totalFilesAdded += numberOfFilesAdded;
+				if (totalFilesAdded >= maxLimit) {
+					break;
+				}
+				offset += limit;
+			} while (limit == (long) batchToAdd.size());
+
+			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded);
+
+		} catch (LockUnavilableException | TableUnavailableException e) {
+			// can re-try when the view becomes available.
+			throw new RecoverableMessageException();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		} catch (DatastoreException | TableFailedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Create a deep copy of the given query.
+	 * @param query
+	 * @return
+	 */
+	static Query cloneQuery(Query query) {
+		try {
+			return EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(query),
+					Query.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

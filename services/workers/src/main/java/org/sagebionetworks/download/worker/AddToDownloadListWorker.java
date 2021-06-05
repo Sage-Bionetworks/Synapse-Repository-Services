@@ -42,7 +42,7 @@ public class AddToDownloadListWorker implements MessageDrivenRunner {
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Starting job...");
 			AddToDownloadListRequest requestBody = (AddToDownloadListRequest) status.getRequestBody();
 			UserInfo userInfo = userManager.getUserInfo(status.getStartedByUserId());
-			AddToDownloadListResponse response = downloadListManager.addToDownloadList(userInfo, requestBody);
+			AddToDownloadListResponse response = downloadListManager.addToDownloadList(progressCallback, userInfo, requestBody);
 			asynchJobStatusManager.setComplete(status.getJobId(), response);
 		} catch (Throwable e) {
 			log.error("Job failed:", e);

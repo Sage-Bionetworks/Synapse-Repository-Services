@@ -2193,6 +2193,16 @@ public class SQLTranslatorUtilsTest {
 			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
 				return null;
 			}
+
+			@Override
+			public String getConcreteType() {
+				return null;
+			}
+
+			@Override
+			public QueryFilter setConcreteType(String concreteType) {
+				return null;
+			}
 		};
 
 		assertThrows(IllegalArgumentException.class, ()->

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 
@@ -30,7 +30,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("principalId", COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID, true).withIsBackupId(true),
 			new FieldColumn("entityId", COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID),
-			new FieldColumn("versionNumber", COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER),
+			new FieldColumn("versionNumber", COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER),
 			new FieldColumn("addedOn", COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON) };
 
 	public static final TableMapping<DBODownloadListItem> MAPPING = new TableMapping<DBODownloadListItem>() {
@@ -40,7 +40,7 @@ public class DBODownloadListItem implements MigratableDatabaseObject<DBODownload
 			DBODownloadListItem dbo = new DBODownloadListItem();
 			dbo.setPrincipalId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID));
 			dbo.setEntityId(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID));
-			dbo.setVersionNumber(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_VERION_NUMBER));
+			dbo.setVersionNumber(rs.getLong(COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER));
 			dbo.setAddedOn(rs.getTimestamp(COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON));
 			return dbo;
 		}
