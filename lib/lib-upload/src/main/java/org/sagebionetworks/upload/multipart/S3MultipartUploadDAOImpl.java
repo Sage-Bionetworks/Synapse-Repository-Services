@@ -12,16 +12,19 @@ import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,6 +43,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.util.BinaryUtils;
 
 /**
@@ -64,10 +68,17 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	
 	static final int S3_BATCH_DELETE_SIZE = 1000;
 
-	@Autowired
 	private SynapseS3Client s3Client;
 	
+	private StorageLocationDAO storageLocationDao;
+	
 	private Logger logger;
+	
+	@Autowired
+	public S3MultipartUploadDAOImpl(SynapseS3Client s3Client, StorageLocationDAO storageLocationDao) {
+		this.s3Client = s3Client;
+		this.storageLocationDao = storageLocationDao;
+	}
 	
 	@Autowired
 	public void configureLogger(LoggerProvider loggerProvider) {
@@ -82,11 +93,12 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest)
 	 */
 	@Override
-	public String initiateMultipartUpload(String bucket, String key,
-			MultipartUploadRequest request) {
+	public String initiateMultipartUpload(String bucket, String key, MultipartUploadRequest request) {
 		final String contentType = getContentType(request.getContentType());
 		
-		return initiateMultipartUpload(bucket, key, contentType, request.getFileName(), request.getContentMD5Hex());
+		final StorageClass storageClass = resolveStorageClass(request);
+		
+		return initiateMultipartUpload(bucket, key, storageClass, contentType, request.getFileName(), request.getContentMD5Hex());
 	}
 	
 	@Override
@@ -99,10 +111,12 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 
 		validateSameRegionCopy(((S3FileHandle) fileHandle).getBucketName(), bucket);
 		
-		return initiateMultipartUpload(bucket, key, contentType, request.getFileName(), fileHandle.getContentMd5());
+		final StorageClass storageClass = resolveStorageClass(request);
+		
+		return initiateMultipartUpload(bucket, key, storageClass, contentType, request.getFileName(), fileHandle.getContentMd5());
 	}
 	
-	private String initiateMultipartUpload(String bucket, String key, String contentType, String fileName, String contentMD5) {
+	private String initiateMultipartUpload(String bucket, String key, StorageClass storageClass, String contentType, String fileName, String contentMD5) {
 		ObjectMetadata objectMetadata = new ObjectMetadata();
 		
 		objectMetadata.setContentType(contentType);
@@ -111,9 +125,20 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		
 		InitiateMultipartUploadResult result = s3Client
 				.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucket, key, objectMetadata)
-				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
+				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl)
+				.withStorageClass(storageClass));
 		
 		return result.getUploadId();
+	}
+	
+	private StorageClass resolveStorageClass(MultipartRequest request) {
+		StorageLocationSetting storageLocation = null;
+		
+		if (request.getStorageLocationId() != null) {
+			storageLocation = storageLocationDao.get(request.getStorageLocationId());
+		} 
+		
+		return MultipartUtils.getS3StorageClass(storageLocation);
 	}
 	
 	private void validateSameRegionCopy(String sourceBucket, String destinationBucket) {
@@ -240,6 +265,7 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		cpr.setPartNumber((int) request.getPartNumber());
 		// only add if the etag matches.
 		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
+		
 		CopyPartResult result = s3Client.copyPart(cpr);
 		if (result == null) {
 			throw new IllegalArgumentException(

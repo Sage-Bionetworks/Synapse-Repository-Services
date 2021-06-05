@@ -9,12 +9,12 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -87,7 +87,7 @@ public class FileMetadataUtils {
 			dbo.setId(Long.parseLong(fileHandle.getId()));
 		}
 		
-		// Note that we do not expose the updatedOn in a fileHandle, on creation we set it to the same as the createdOn
+		// Note that we do not take into account the modifiedOn in the DTO and we generate it on creation
 		if (fileHandle.getCreatedOn() != null) {
 			dbo.setCreatedOn(new Timestamp(fileHandle.getCreatedOn().getTime()));
 			dbo.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
@@ -101,7 +101,7 @@ public class FileMetadataUtils {
 		dbo.setContentType(fileHandle.getContentType());
 		dbo.setContentSize(fileHandle.getContentSize());
 		dbo.setContentMD5(fileHandle.getContentMd5());
-		// Note that we do not expose the status in a fileHandle, on creation we always set to available
+		// Note that we do take into account the status in the DTO, on creation we always set to available
 		dbo.setStatus(FileHandleStatus.AVAILABLE.name());
 	}
 
@@ -186,6 +186,7 @@ public class FileMetadataUtils {
 			fileHandle.setCreatedBy(dbo.getCreatedBy().toString());
 		}
 		fileHandle.setCreatedOn(dbo.getCreatedOn());
+		fileHandle.setModifiedOn(dbo.getUpdatedOn());
 		if (dbo.getId() != null) {
 			fileHandle.setId(dbo.getId().toString());
 		}
@@ -195,6 +196,7 @@ public class FileMetadataUtils {
 		fileHandle.setContentMd5(dbo.getContentMD5());
 		fileHandle.setContentSize(dbo.getContentSize());
 		fileHandle.setFileName(dbo.getName());
+		fileHandle.setStatus(FileHandleStatus.valueOf(dbo.getStatus()));
 	}
 
 	private static void updateDTOFromDBO(ExternalFileHandle fileHandle, DBOFileHandle dbo) {

@@ -18,15 +18,18 @@ import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -36,6 +39,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.google.cloud.storage.Blob;
 
 /**
@@ -50,23 +54,26 @@ public class PreviewManagerImpl implements  PreviewManager {
 	static private Log log = LogFactory.getLog(PreviewManagerImpl.class);
 	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
-	SynapseS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
-	SynapseGoogleCloudStorageClient googleCloudStorageClient;
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
-	FileProvider tempFileProvider;
+	private FileProvider tempFileProvider;
 
 	@Autowired
-	IdGenerator idGenerator;
+	private IdGenerator idGenerator;
+	
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
 	
 	ResourceTracker resourceTracker;
 	
-	List<PreviewGenerator> generatorList;
+	private List<PreviewGenerator> generatorList;
 	
 	/**
 	 * Injected.
@@ -79,25 +86,18 @@ public class PreviewManagerImpl implements  PreviewManager {
 	public PreviewManagerImpl(){}
 	
 
-	/**
-	 * The Ioc Constructor.
-	 * 
-	 * @param fileMetadataDao
-	 * @param s3Client
-	 * @param tempFileProvider
-	 * @param generatorList
-	 * @param maxPreviewMemory
-	 */
-	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
-			SynapseS3Client s3Client, SynapseGoogleCloudStorageClient googleCloudStorageClient, FileProvider tempFileProvider,
+	// For testing
+	PreviewManagerImpl(FileHandleDao fileMetadataDao,
+			SynapseS3Client s3Client, SynapseGoogleCloudStorageClient googleCloudStorageClient, FileProvider tempFileProvider, IdGenerator idGenerator, StorageLocationDAO storageLocationDao, 
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
-		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.s3Client = s3Client;
 		this.googleCloudStorageClient = googleCloudStorageClient;
 		this.tempFileProvider = tempFileProvider;
+		this.idGenerator = idGenerator;
 		this.generatorList = generatorList;
 		this.maxPreviewMemory = maxPreviewMemory;
+		this.storageLocationDao = storageLocationDao;
 		initialize();
 	}
 
@@ -210,11 +210,24 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setKey(metadata.getCreatedBy() + "/" + UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
 			pfm.setStorageLocationId(metadata.getStorageLocationId());
+			
+			StorageLocationSetting storageLocation = storageLocationDao.get(metadata.getStorageLocationId());
 
 			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
-			s3Client.putObject(new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload).withMetadata(previewS3Meta).
-					withCannedAcl(CannedAccessControlList.BucketOwnerFullControl));
+			
+			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
+			
+			PutObjectRequest putRequest = new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload)
+					.withMetadata(previewS3Meta)
+					.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
+			
+			if (storageClass != null) {
+				putRequest.withStorageClass(storageClass);
+			}
+			
+			s3Client.putObject(putRequest);
+			
 			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			pfm.setEtag(UUID.randomUUID().toString());
 			// Save the metadata

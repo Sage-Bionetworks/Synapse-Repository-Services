@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -37,6 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.AbortMultipartRequest;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
@@ -46,6 +48,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadCopyRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.AmazonClientException;
@@ -65,6 +68,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -74,13 +78,17 @@ public class S3MultipartUploadDAOImplTest {
 	@Mock
 	private SynapseS3Client mockS3Client;
 	@Mock
-	private InitiateMultipartUploadResult mockResult;
+	private StorageLocationDAO mockStorageLocationDao;
 	@InjectMocks
 	private S3MultipartUploadDAOImpl dao;
 	@Mock
 	private LoggerProvider mockLoggerProvider;
 	@Mock
 	private Logger mockLogger;
+	@Mock
+	private InitiateMultipartUploadResult mockResult;
+	@Mock
+	private S3StorageLocationSetting mockS3StorageLocationSetting;
 	
 	private String bucket;
 	private String key;
@@ -122,12 +130,41 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals(uploadId, result);
 		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
 		verify(mockS3Client).initiateMultipartUpload(capture.capture());
-		assertEquals(bucket, capture.getValue().getBucketName());
-		assertEquals(key, capture.getValue().getKey());
-		assertEquals(ContentDispositionUtils.getContentDispositionValue(filename), capture.getValue().getObjectMetadata().getContentDisposition());
-		assertEquals("text/plain", capture.getValue().getObjectMetadata().getContentType());
-		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", capture.getValue().getObjectMetadata().getContentMD5());
-		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
+		
+		InitiateMultipartUploadRequest request = capture.getValue();
+		
+		assertEquals(bucket, request.getBucketName());
+		assertEquals(key, request.getKey());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(filename), request.getObjectMetadata().getContentDisposition());
+		assertEquals("text/plain", request.getObjectMetadata().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", request.getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, request.getCannedACL());
+		assertNull(request.getStorageClass());
+	}
+	
+	@Test
+	public void testInitiateMultipartUploadWithS3StorageLocation() {
+		
+		request.setStorageLocationId(123L);
+		
+		when(mockResult.getUploadId()).thenReturn(uploadId);
+		when(mockS3Client.initiateMultipartUpload(any(InitiateMultipartUploadRequest.class))).thenReturn(mockResult);
+		when(mockStorageLocationDao.get(anyLong())).thenReturn(mockS3StorageLocationSetting);
+		
+		String result = dao.initiateMultipartUpload(bucket, key, request);
+		assertEquals(uploadId, result);
+		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		verify(mockS3Client).initiateMultipartUpload(capture.capture());
+		
+		InitiateMultipartUploadRequest request = capture.getValue();
+		
+		assertEquals(bucket, request.getBucketName());
+		assertEquals(key, request.getKey());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(filename), request.getObjectMetadata().getContentDisposition());
+		assertEquals("text/plain", request.getObjectMetadata().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", request.getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, request.getCannedACL());
+		assertEquals(StorageClass.IntelligentTiering, request.getStorageClass());
 	}
 	
 	@Test
@@ -375,8 +412,49 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("text/plain", s3Request.getObjectMetadata().getContentType());
 		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", s3Request.getObjectMetadata().getContentMD5());
 		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
+		assertNull(s3Request.getStorageClass());
 	}
 	
+	@Test
+	public void testInitiateMultipartUploadCopyWithS3StorageLocation() {
+		
+		S3FileHandle sourceFile = new S3FileHandle();
+		
+		sourceFile.setBucketName("sourceBucket");
+		sourceFile.setFileName("filename");
+		sourceFile.setContentType("text/plain");
+		sourceFile.setContentMd5("8356accbaa8bfc6ddc6c612224c6c9b3");
+		
+		MultipartUploadCopyRequest request = new MultipartUploadCopyRequest();
+		request.setFileName("targetFileName");
+		request.setStorageLocationId(123L);
+		
+		when(mockResult.getUploadId()).thenReturn(uploadId);
+		when(mockStorageLocationDao.get(anyLong())).thenReturn(mockS3StorageLocationSetting);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockResult);
+		when(mockS3Client.getRegionForBucket(any())).thenReturn(Region.US_Standard);
+		
+		// Call under test
+		String result = dao.initiateMultipartUploadCopy(bucket, key, request, sourceFile);
+		
+		assertEquals(uploadId, result);
+		
+		ArgumentCaptor<InitiateMultipartUploadRequest> capture = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		
+		verify(mockS3Client).getRegionForBucket(sourceFile.getBucketName());
+		verify(mockS3Client).getRegionForBucket(bucket);
+		verify(mockS3Client).initiateMultipartUpload(capture.capture());
+		
+		InitiateMultipartUploadRequest s3Request = capture.getValue();
+		
+		assertEquals(bucket, s3Request.getBucketName());
+		assertEquals(key, s3Request.getKey());
+		assertEquals(ContentDispositionUtils.getContentDispositionValue(request.getFileName()), s3Request.getObjectMetadata().getContentDisposition());
+		assertEquals("text/plain", s3Request.getObjectMetadata().getContentType());
+		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", s3Request.getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
+		assertEquals(StorageClass.IntelligentTiering, s3Request.getStorageClass());
+	}	
 	
 	@Test
 	public void testInitiateMultipartUploadCopyWithUnsupportedFileHandleType() {

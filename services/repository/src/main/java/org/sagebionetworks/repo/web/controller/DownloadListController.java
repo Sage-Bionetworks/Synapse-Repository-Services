@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
+
+import java.io.IOException;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -9,6 +12,8 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -63,7 +68,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td></td>
  * </tr>
  * <tr>
- * <td>Maximum batch for adding/removing files in batchs</td>
+ * <td>Maximum batch size for adding/removing files</td>
  * <td>1000 files</td>
  * <td></td>
  * </tr>
@@ -223,5 +228,60 @@ public class DownloadListController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 				asyncToken);
 		return (DownloadListQueryResponse) jobStatus.getResponseBody();
+	}
+	
+	/**
+	 * Start an asynchronous job to add files to a user's download list from either a view query or a folder.
+	 * 
+	 * 
+	 * Use <a href="${GET.download.list.add.async.get.asyncToken}">GET
+	 * /download/list/add/async/get/{asyncToken}</a> to get both the job status and
+	 * job results.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({view,modify,download})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startAddFileToDownloadList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AddToDownloadListRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	/**
+	 * Get the results of an asynchronous job to add files to a user's download list started with: <a
+	 * href="${POST.download.list.add.async.start}">POST /download/list/add/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status
+	 * code of 202 (ACCEPTED) and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({view,download})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
+	public @ResponseBody AddToDownloadListResponse getAddFileToDownloadListResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider
+				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+						asyncToken);
+		return (AddToDownloadListResponse) jobStatus.getResponseBody();
 	}
 }

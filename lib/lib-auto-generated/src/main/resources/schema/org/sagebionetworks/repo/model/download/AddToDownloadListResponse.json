@@ -1,0 +1,14 @@
+{
+	"description": "The results of a job to add the files from a query result or folder to the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"numberOfFilesAdded": {
+			"description": "The number of files that were added to the user's download list.",
+			"type": "integer"
+		}
+	}
+}

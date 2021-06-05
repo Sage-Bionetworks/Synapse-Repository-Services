@@ -39,4 +39,18 @@ public class DeprecatedUtils {
 		return request;
 	}
 	
+	@Deprecated
+	public static LoginResponse createLoginResponseFromLogin2Response(LoginResponse response) {
+		LoginResponse result = new LoginResponse();
+		result.setSessionToken(response.getAccessToken());
+		result.setAcceptsTermsOfUse(response.getAcceptsTermsOfUse());
+		result.setAuthenticationReceipt(response.getAuthenticationReceipt());
+		return result;
+	}
+	
+	@Deprecated
+	public static Session createSessionFromLogin2Response(LoginResponse response) {
+		return createSession(createLoginResponseFromLogin2Response(response));
+	}
+	
 }

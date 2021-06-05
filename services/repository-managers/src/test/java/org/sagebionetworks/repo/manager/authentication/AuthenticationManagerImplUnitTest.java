@@ -9,9 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +29,6 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -44,7 +41,6 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -79,7 +75,6 @@ public class AuthenticationManagerImplUnitTest {
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
-	final String synapseSessionToken = "synapsesessiontoken";
 	final String synapseAccessToken = "synapseaccesstoken";
 	final String receipt = "receipt";
 	final String issuer = "https://repo-prod.sagebase.org/v1";
@@ -127,49 +122,6 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetSessionToken() throws Exception {
-		setupMockUserGroupDAO();
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
-
-		Session session = authManager.getSessionToken(userId);
-		assertEquals(synapseSessionToken, session.getSessionToken());
-
-		verify(mockAuthDAO, times(1)).getSessionTokenIfValid(eq(userId));
-		verify(mockAuthDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
-	}
-
-	@Test
-	public void testCheckSessionToken() throws Exception {
-		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(userId);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
-		Long principalId = authManager.checkSessionToken(synapseSessionToken, true);
-		assertEquals(userId, principalId);
-
-		// Token matches, but terms haven't been signed
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
-		assertThrows(TermsOfUseException.class, ()->{
-			authManager.checkSessionToken(synapseSessionToken, true);
-		});
-
-		// Nothing matches the token
-		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
-		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		
-		String message = assertThrows(UnauthenticatedException.class, ()->{
-			authManager.checkSessionToken(synapseSessionToken, true);
-		}).getMessage();
-		assertEquals("The session token (synapsesessiontoken) is invalid", message);
-
-		// Token matches, but has expired
-		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
-		
-		message = assertThrows(UnauthenticatedException.class, ()->{
-			authManager.checkSessionToken(synapseSessionToken, true);
-		}).getMessage();
-		assertEquals("The session token (synapsesessiontoken) has expired", message);
-	}
-
-	@Test
 	public void testUnseeTermsOfUse() throws Exception {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			authManager.setTermsOfUseAcceptance(userId, null);
@@ -201,30 +153,6 @@ public class AuthenticationManagerImplUnitTest {
 	////////////////
 	// login()
 	///////////////
-
-	@Test
-	public void testLoginForSession() {
-		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
-		setupMockPrincipalAliasDAO();
-		setupMockUserGroupDAO();
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
-		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
-		String newReceipt = "newReceipt";
-		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
-
-		// call under test
-		LoginResponse response = authManager.loginForSession(loginRequest);
-		assertNotNull(response);
-		assertEquals(newReceipt, response.getAuthenticationReceipt());
-		assertEquals(synapseSessionToken, response.getSessionToken());
-
-
-		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
-		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
-		verify(mockUserCredentialValidator).checkPassword(userId, password);
-		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
-	}
-
 
 	@Test
 	public void testLogin() {
@@ -279,21 +207,6 @@ public class AuthenticationManagerImplUnitTest {
 	///////////////////////////////////////////////////////////
 	// getLoginResponseAfterSuccessfulPasswordAuthentication ()
 	///////////////////////////////////////////////////////////
-	@Test
-	public void testGetLoginResponseWithSessionAfterSuccessfulAuthentication_validReciept(){
-		setupMockUserGroupDAO();
-		String newReceipt = "uwu";
-		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
-
-		//method under test
-		LoginResponse loginResponse = authManager.getLoginResponseWithSessionAfterSuccessfulPasswordAuthentication(userId);
-
-		assertEquals(newReceipt, loginResponse.getAuthenticationReceipt());
-		assertEquals(synapseSessionToken, loginResponse.getSessionToken());
-		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
-	}
-
 	@Test
 	public void testGetLoginResponseAfterSuccessfulAuthentication_validReciept(){
 		String newReceipt = "uwu";
@@ -587,24 +500,8 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals(userId, changedPasswordUserId);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
-		verify(mockAuthDAO).deleteSessionToken(userId);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
 		verify(mockUserCredentialValidator).forceResetLoginThrottle(userId);
-	}
-
-	@Test
-	public void testChangePassword_withToken(){
-		when(mockPasswordResetTokenGenerator.isValidToken(passwordResetSignedToken)).thenReturn(true);
-
-		Long changedPasswordUserId = authManager.changePassword(changePasswordWithToken);
-
-		verify(mockPassswordValidator).validatePassword(newChangedPassword);
-		assertEquals(userId, changedPasswordUserId);
-		verify(mockPasswordResetTokenGenerator).isValidToken(passwordResetSignedToken);
-		verify(mockAuthDAO).deleteSessionToken(userId);
-		verify(mockAuthDAO).changePassword(eq(userId), anyString());
-		verify(mockUserCredentialValidator).forceResetLoginThrottle(userId);
-		verifyNoMoreInteractions(mockUserCredentialValidator);
 	}
 
 	@Test
@@ -622,7 +519,6 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		verifyZeroInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
-		verify(mockAuthDAO, never()).deleteSessionToken(userId);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
 }

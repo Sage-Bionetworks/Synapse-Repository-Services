@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -723,6 +724,11 @@ public class DBOFileHandleDaoImplTest {
 		external.setCreatedOn(now);
 		batch.add(external);
 		fileHandleDao.createBatch(batch);
+		
+		// Align the auto-assigned modfiedOn
+		s3.setModifiedOn(fileHandleDao.get(s3.getId()).getModifiedOn());
+		external.setModifiedOn(fileHandleDao.get(external.getId()).getModifiedOn());
+		
 		assertEquals(s3, fileHandleDao.get(s3.getId()));
 		assertEquals(external, fileHandleDao.get(external.getId()));
 
@@ -854,7 +860,7 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(ids, result);
 		
 		// Change the first to UNLINKED
-		fileHandleDao.updateBatchStatus(Arrays.asList(Long.valueOf(file1.getId())), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		fileHandleDao.updateBatchStatus(Arrays.asList(Long.valueOf(file1.getId())), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, /* updated before */ 0);
 		
 		result = fileHandleDao.getFileHandlesBatchByStatus(ids, FileHandleStatus.AVAILABLE).stream().map(file-> Long.valueOf(file.getId())).collect(Collectors.toList());
 		
@@ -934,8 +940,9 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateBatchStatus() {
+	public void testUpdateBatchStatusWithNoUpdatedOnFilter() {
 		
+		// Slightly in the past to account for database time drifting
 		Date createdOn = Date.from(Instant.now().minusSeconds(60));
 		
 		S3FileHandle file1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn);
@@ -946,12 +953,20 @@ public class DBOFileHandleDaoImplTest {
 
 		DBOFileHandle dbo1 = fileHandleDao.getDBO(file1.getId());
 		DBOFileHandle dbo2 = fileHandleDao.getDBO(file2.getId());
-		DBOFileHandle dbo3 = fileHandleDao.getDBO(file2.getId());
+		DBOFileHandle dbo3 = fileHandleDao.getDBO(file3.getId());
 		
 		List<Long> ids = Arrays.asList(file1.getId(), file2.getId()).stream().map(id-> Long.valueOf(id)).collect(Collectors.toList());
 		
 		// Call under test
-		fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, 0);
+		
+		assertEquals(ids, updatedIds);
+		
+		assertNotEquals(dbo1, fileHandleDao.getDBO(file1.getId().toString()));
+		assertNotEquals(dbo2, fileHandleDao.getDBO(file2.getId().toString()));
+		
+		// Should not have been updated (not in the list)
+		assertEquals(dbo3, fileHandleDao.getDBO(file3.getId().toString()));
 				
 		dbo1 = fileHandleDao.getDBO(file1.getId());
 		dbo2 = fileHandleDao.getDBO(file2.getId());
@@ -963,5 +978,50 @@ public class DBOFileHandleDaoImplTest {
 		
 		assertTrue(dbo1.getUpdatedOn().after(createdOn));
 		assertTrue(dbo2.getUpdatedOn().after(createdOn));
+	}
+	
+	@Test
+	public void testUpdateBatchStatusWithUpdatedOnFilter() {
+		
+		int updatedOnBeforeDays = 2;
+		
+		// A bit more than the days to account for database time drifting 
+		Date createdOn = Date.from(Instant.now().minus(updatedOnBeforeDays, ChronoUnit.DAYS).minusSeconds(60));
+		Timestamp updatedOn = Timestamp.from(createdOn.toInstant());
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn));
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn));
+		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()).setCreatedOn(createdOn));
+		
+		file1.setUpdatedOn(updatedOn);
+		file3.setUpdatedOn(updatedOn);
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file3));
+
+		DBOFileHandle dbo1 = fileHandleDao.getDBO(file1.getId().toString());
+		DBOFileHandle dbo2 = fileHandleDao.getDBO(file2.getId().toString());
+		DBOFileHandle dbo3 = fileHandleDao.getDBO(file3.getId().toString());
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
+		
+		// Call under test
+		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, updatedOnBeforeDays);
+		
+		assertEquals(Arrays.asList(file1.getId()), updatedIds);
+		
+		assertNotEquals(dbo1, fileHandleDao.getDBO(file1.getId().toString()));
+		// Should not have been updated
+		assertEquals(dbo2, fileHandleDao.getDBO(file2.getId().toString()));
+		assertEquals(dbo3, fileHandleDao.getDBO(file3.getId().toString()));
+				
+		dbo1 = fileHandleDao.getDBO(file1.getId().toString());
+		dbo2 = fileHandleDao.getDBO(file2.getId().toString());
+		dbo3 = fileHandleDao.getDBO(file3.getId().toString());
+		
+		assertEquals(FileHandleStatus.UNLINKED.name(), dbo1.getStatus());
+		assertEquals(FileHandleStatus.AVAILABLE.name(), dbo2.getStatus());
+		assertEquals(FileHandleStatus.AVAILABLE.name(), dbo3.getStatus());
+		
+		assertTrue(dbo1.getUpdatedOn().after(createdOn));
 	}
 }

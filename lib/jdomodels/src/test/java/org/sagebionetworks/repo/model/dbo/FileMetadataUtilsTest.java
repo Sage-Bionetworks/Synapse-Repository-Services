@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -40,11 +40,14 @@ public class FileMetadataUtilsTest {
 		meta.setContentType("text/plain");
 		// PLFM-3466
 		meta.setContentSize(12345L);
-		System.out.println(meta);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
+		
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		meta.setModifiedOn(clone.getModifiedOn());
 		assertEquals(meta, clone);
 	}
 	
@@ -61,11 +64,14 @@ public class FileMetadataUtilsTest {
 		meta.setContentType("text/plain");
 		// PLFM-3466
 		meta.setContentSize(null);
-		System.out.println(meta);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
+		
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		meta.setModifiedOn(clone.getModifiedOn());
 		assertEquals(meta, clone);
 	}
 	
@@ -79,7 +85,6 @@ public class FileMetadataUtilsTest {
 		meta.setExternalURL("F:/file");
 		meta.setId("987");
 		meta.setEtag("etag");
-		System.out.println(meta);
 		// Convert to dbo
 		assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.createDBOFromDTO(meta));
 	}
@@ -99,12 +104,14 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		meta.setFileName("foo.txt");
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 
-		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		meta.setModifiedOn(clone.getModifiedOn());
 		assertEquals(meta, clone);
 	}
 
@@ -123,12 +130,14 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		meta.setFileName("foo.txt");
 		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
 
-		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		meta.setModifiedOn(clone.getModifiedOn());
 		assertEquals(meta, clone);
 	}
 
@@ -149,7 +158,6 @@ public class FileMetadataUtilsTest {
 
 		// Set to null
 		meta.setIsPreview(null);
-		System.out.println(meta);
 		// Call under test
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
@@ -157,7 +165,6 @@ public class FileMetadataUtilsTest {
 
 		// Set to false
 		meta.setIsPreview(false);
-		System.out.println(meta);
 		// Call under test
 		dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
@@ -273,10 +280,13 @@ public class FileMetadataUtilsTest {
 		proxy.setContentType("contentType");
 		proxy.setEtag("etag");
 		proxy.setFileName("cat.txt");
+		proxy.setStatus(FileHandleStatus.AVAILABLE);
 		
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(proxy);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		proxy.setModifiedOn(clone.getModifiedOn());
 		assertEquals(proxy, clone);
 	}
 
@@ -294,10 +304,13 @@ public class FileMetadataUtilsTest {
 		externalObjFH.setFileKey("filekey");
 		externalObjFH.setEndpointUrl("https//s3.amazonaws.com");
 		externalObjFH.setBucket("bucketName");
+		externalObjFH.setStatus(FileHandleStatus.AVAILABLE);
 
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(externalObjFH);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		// This is auto-generated
+		externalObjFH.setModifiedOn(clone.getModifiedOn());
 		assertEquals(externalObjFH, clone);
 	}
 
@@ -341,6 +354,7 @@ public class FileMetadataUtilsTest {
 		proxy.setContentSize(123l);
 		proxy.setContentType("contentType");
 		proxy.setFileName("cat.txt");
+		proxy.setStatus(FileHandleStatus.UNLINKED);
 
 		List<FileHandle> list = new ArrayList<FileHandle>();
 		list.addAll(Arrays.asList(external, s3, proxy));
@@ -350,7 +364,15 @@ public class FileMetadataUtilsTest {
 			DBOFileHandle dbo = dbos.get(i);
 			assertEquals(FileHandleStatus.AVAILABLE.name(), dbo.getStatus());
 			assertTrue(dbo.getUpdatedOn().equals(dbo.getCreatedOn()) || dbo.getUpdatedOn().after(dbo.getCreatedOn()));
-			assertEquals(list.get(i), FileMetadataUtils.createDTOFromDBO(dbo));
+			
+			FileHandle expected = list.get(i);
+			FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+			
+			expected.setStatus(FileHandleStatus.AVAILABLE);
+			// This is auto-generated
+			expected.setModifiedOn(clone.getModifiedOn());
+			
+			assertEquals(expected, clone);
 		}
 	}
 	

@@ -721,13 +721,6 @@ public class IT500SynapseJavaClient {
 		adminSynapse.deleteAccessRequirement(Long.parseLong(accessRequirementId));
 	}
 
-	@Test
-	public void testUserSessionData() throws Exception {
-		UserSessionData userSessionData = synapseOne.getUserSessionData();
-		UserProfile integrationTestUserProfile = userSessionData.getProfile();
-		assertNotNull(integrationTestUserProfile, "Failed to get user profile from user session data");
-	}
-
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
 	 * @throws Exception 

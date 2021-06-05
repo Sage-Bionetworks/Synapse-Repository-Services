@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -63,8 +64,12 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 					&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage
 					.getChangeType()) && changeMessage.getTimestamp().after(Date.from(Instant.now().minus(Period.ofDays(1)))) 	) {
 				// This is a file message so look up the file
-				FileHandle metadata = previewManager
-						.getFileMetadata(changeMessage.getObjectId());
+				FileHandle metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
+				// No need to generate previews for files that are not available
+				if (FileHandleStatus.AVAILABLE != metadata.getStatus()) {
+					return;
+				}
+				
 				if (!(metadata instanceof CloudProviderFileHandleInterface)) {
 					log.warn("Currently do not support previews for " + metadata.getClass().getName());
 				} else {

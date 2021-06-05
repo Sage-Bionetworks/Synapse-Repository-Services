@@ -516,5 +516,78 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStatusDao).setStartedJobsCount(jobId, 3);
 		
 	}
+	
+	@Test
+	public void testIsScanJobCompletedWithNoJobStarted() {
+		
+		Long jobStartedCount = 0L;
+		
+		when(mockStatus.getJobsStartedCount()).thenReturn(jobStartedCount);
+		when(mockStatusDao.get(jobId)).thenReturn(mockStatus);
+	
+		// Call under test
+		boolean result = manager.isScanJobCompleted(jobId);
+		
+		assertFalse(result);
+		
+		verify(mockStatusDao).get(jobId);
+	}
+	
+	@Test
+	public void testIsScanJobCompletedWithNoJobsCompleted() {
+		
+		Long jobStartedCount = 10L;
+		Long jobCompletedCount = 0L;
+		
+		when(mockStatus.getJobsStartedCount()).thenReturn(jobStartedCount);
+		when(mockStatus.getJobsCompletedCount()).thenReturn(jobCompletedCount);
+		
+		when(mockStatusDao.get(jobId)).thenReturn(mockStatus);
+	
+		// Call under test
+		boolean result = manager.isScanJobCompleted(jobId);
+		
+		assertFalse(result);
+		
+		verify(mockStatusDao).get(jobId);
+	}
+	
+	@Test
+	public void testIsScanJobCompletedWithExact() {
+		
+		Long jobStartedCount = 10L;
+		Long jobCompletedCount = 10L;
+		
+		when(mockStatus.getJobsStartedCount()).thenReturn(jobStartedCount);
+		when(mockStatus.getJobsCompletedCount()).thenReturn(jobCompletedCount);
+		
+		when(mockStatusDao.get(jobId)).thenReturn(mockStatus);
+	
+		// Call under test
+		boolean result = manager.isScanJobCompleted(jobId);
+		
+		assertTrue(result);
+		
+		verify(mockStatusDao).get(jobId);
+	}
+	
+	@Test
+	public void testIsScanJobCompletedWithMore() {
+		
+		Long jobStartedCount = 10L;
+		Long jobCompletedCount = 11L;
+		
+		when(mockStatus.getJobsStartedCount()).thenReturn(jobStartedCount);
+		when(mockStatus.getJobsCompletedCount()).thenReturn(jobCompletedCount);
+		
+		when(mockStatusDao.get(jobId)).thenReturn(mockStatus);
+	
+		// Call under test
+		boolean result = manager.isScanJobCompleted(jobId);
+		
+		assertTrue(result);
+		
+		verify(mockStatusDao).get(jobId);
+	}
 
 }

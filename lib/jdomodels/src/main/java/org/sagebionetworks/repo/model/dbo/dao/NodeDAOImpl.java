@@ -1808,10 +1808,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(includeTypes, "includeTypes");
 		ValidateArgument.requirement(!includeTypes.isEmpty(), "Must have at least one type for includeTypes");
+		List<String> typeNames = getTypeNames(includeTypes);
+		ValidateArgument.requirement(!typeNames.isEmpty(), "Must have at least one valid type name for includeTypes");
 		ValidateArgument.required(sortDirection, "sortDirection");
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
-		parameters.put(BIND_NODE_TYPES , getTypeNames(includeTypes));
+		parameters.put(BIND_NODE_TYPES , typeNames);
 		parameters.put(BIND_NODE_IDS , childIdsToExclude);
 		parameters.put(BIND_LIMIT , limit);
 		parameters.put(BIND_OFFSET , offset);

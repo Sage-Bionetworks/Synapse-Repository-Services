@@ -12,8 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.athena.RowMapper;
-import org.sagebionetworks.repo.model.dao.FileHandleStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 
 import com.amazonaws.services.athena.model.Datum;
 import com.amazonaws.services.athena.model.Row;
@@ -48,7 +48,7 @@ public class FileHandleUnlinkedQueryProcessorTest {
 		
 		processor.processQueryResultsPage(resultsPage);
 		
-		verify(mockFileHandleDao).updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE);
+		verify(mockFileHandleDao).updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, FileHandleUnlinkedQueryProcessor.UPDATED_ON_DAYS_LIMIT);
 	}
 
 }

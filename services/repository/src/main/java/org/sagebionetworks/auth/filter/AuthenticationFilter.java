@@ -74,48 +74,17 @@ public class AuthenticationFilter implements Filter {
 			FilterChain filterChain) throws IOException, ServletException {
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
-		String sessionToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (isTokenEmptyOrNull(sessionToken)) {
-			// Check for a session token as a parameter
-			sessionToken = req.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM);
+		
+		// access token can be passed in a sessionToken header
+		String accessToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
+		if (isTokenEmptyOrNull(accessToken)) {
+			accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 		}
 
 		Long userId = null;
 		
-		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 		
-		// there is a chance that an access token was passed as a session token
-		if (null!=sessionToken) {
-			try {
-				UUID.fromString(sessionToken);
-				// the session token is a UUID, so it is not an access token
-			} catch (IllegalArgumentException e1) {
-				// the session token is *not* a UUID
-				try {
-					// is it a JWT?
-					JSONWebTokenHelper.getSubjectFromJWTAccessToken(sessionToken);
-					// based on the format, the session token is an access token
-					accessToken = sessionToken;
-					sessionToken = null;
-				} catch (IllegalArgumentException e2) {
-					// Cannot say that the session token is an access token
-				}
-			}
-		}
-
-		// A session token maps to a specific user
-		if (!isTokenEmptyOrNull(sessionToken)) {
-			String failureReason = "Invalid session token";
-			try {
-				userId = authenticationService.revalidate(sessionToken, false);
-			} catch (UnauthenticatedException | NotFoundException  e) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, failureReason);
-				log.warn(failureReason, e);
-				return;
-			}
-			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
-			// If there is no session token, then check for a HMAC signature
-		} else if (isSigned(req)) {
+		if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
 			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {

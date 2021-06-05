@@ -88,13 +88,11 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 		} catch (IllegalArgumentException iae) {
 			// the password is NOT a (valid) access token,
 			// but maybe it's a password
-			LoginRequest credential = new LoginRequest();
-			
-			credential.setUsername(credentials.getUserName());
-			credential.setPassword(credentials.getPassword());
-			
 			try {
-				authenticationService.loginForSession(credential);
+				LoginRequest loginRequest = new LoginRequest();
+				loginRequest.setUsername(credentials.getUserName());
+				loginRequest.setPassword(credentials.getPassword());
+				authenticationService.login(loginRequest, null);
 			} catch (UnauthenticatedException e) {
 				return Optional.empty();
 			}

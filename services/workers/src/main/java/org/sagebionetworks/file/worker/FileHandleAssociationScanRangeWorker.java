@@ -24,6 +24,8 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 	
 	private static final String METRIC_PARSE_MESSAGE_ERROR_COUNT = "ParseMessageErrorCount";
 	private static final String METRIC_JOB_FAILED_COUNT = "JobFailedCount";
+	private static final String METRIC_JOB_COMPLETED_COUNT = "JobCompletedCount";
+	private static final String METRIC_ALL_JOBS_COMPLETED_COUNT = "AllJobsCompletedCount";
 	private static final String METRIC_JOB_RETRY_COUNT = "JobRetryCount";
 	private static final String DIMENSION_ASSOCIATION_TYPE = "AssociationType";
 	
@@ -61,6 +63,13 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 			int count = manager.processScanRangeRequest(request);
 			
 			LOG.info(requestToString(request) + " COMPLETED: " + count + " associations (Spent " + (System.currentTimeMillis() - start) + " ms)");
+			
+			logWorkerCountMetric(METRIC_JOB_COMPLETED_COUNT);
+			
+			if (manager.isScanJobCompleted(request.getJobId())) {
+				logWorkerCountMetric(METRIC_ALL_JOBS_COMPLETED_COUNT);
+			}
+			
 		} catch (NotFoundException e) {
 			LOG.warn(e.getMessage(), e);
 		} catch (RecoverableMessageException e) {

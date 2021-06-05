@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -58,8 +60,8 @@ public class ITDownloadListControllerTest {
 	}
 
 	@BeforeEach
-	public void beforeEach() {
-
+	public void beforeEach() throws SynapseException {
+		synapse.clearUsersDownloadList();
 	}
 
 	@AfterEach
@@ -164,8 +166,33 @@ public class ITDownloadListControllerTest {
 		assertEquals(expectedAddResponse, addResponse);
 
 		// all under test
-		synapse.clearDownloadList();
-
+		synapse.clearUsersDownloadList();
+		
+		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest()
+				.setRequestDetails(new FilesStatisticsRequest());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.QueryDownloadList, queryRequest, body -> {
+			assertTrue(body instanceof DownloadListQueryResponse);
+			DownloadListQueryResponse response = (DownloadListQueryResponse) body;
+			assertTrue(response.getResponseDetails() instanceof FilesStatisticsResponse);
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(0L)
+					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(0L)
+					.setTotalNumberOfFiles(0L);
+			assertEquals(expected, details);
+		}, MAX_WAIT_MS).getResponse();
+	}
+	
+	@Test
+	public void testAddToDownloadListWithParent() throws SynapseException {
+		FileEntity file = setupFileEntity();
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setParentId(file.getParentId());
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AddToDownloadList, request, body -> {
+			assertTrue(body instanceof AddToDownloadListResponse);
+			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS).getResponse();
 	}
 
 	/**

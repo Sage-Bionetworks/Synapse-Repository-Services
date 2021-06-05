@@ -26,10 +26,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
+import org.joda.time.Instant;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.ids.IdGenerator;
@@ -43,6 +47,7 @@ import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -75,6 +80,7 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
@@ -99,6 +105,7 @@ import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -106,6 +113,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -117,6 +125,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.util.BinaryUtils;
 import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
@@ -128,6 +137,10 @@ import com.google.common.collect.Lists;
  * 
  */
 public class FileHandleManagerImpl implements FileHandleManager {
+	
+	private static final String CLOUD_WATCH_NAMESPACE_PREFIX = "File Handles";
+	
+	private static final String CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED = "UnavailableFileHandleAccessed";
 
 	private static final String FILE_DOWNLOAD_RECORD_TYPE = FileDownloadRecord.class.getSimpleName().toLowerCase();
 
@@ -154,31 +167,31 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private static final String GZIP_CONTENT_ENCODING = "gzip";
 
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 
 	@Autowired
-	SynapseS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
-	SynapseGoogleCloudStorageClient googleCloudStorageClient;
+	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	@Autowired
-	ProjectSettingsManager projectSettingsManager;
+	private ProjectSettingsManager projectSettingsManager;
 	
 	@Autowired
-	StorageLocationDAO storageLocationDAO;
+	private StorageLocationDAO storageLocationDAO;
 
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	
 	@Autowired
-	FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	
 	@Autowired
-	ObjectRecordQueue objectRecordQueue;
+	private ObjectRecordQueue objectRecordQueue;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -188,7 +201,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private TransferManager transferManager;
+	
+	@Autowired
+	private Consumer cloudWatchQueue;
 
+	@Autowired
+	private StackConfiguration config;
 	/**
 	 * Used by spring
 	 */
@@ -298,7 +316,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle);
+		return getURLForFileHandle(userInfo, handle);
 	}
 	
 	String getRedirectURLForFileHandle(UserInfo userInfo,
@@ -315,7 +333,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
 		
-		String url = getURLForFileHandle(fileHandle);
+		String url = getURLForFileHandle(userInfo, fileHandle);
 		
 		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
 		
@@ -328,7 +346,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @param handle
 	 * @return
 	 */
-	String getURLForFileHandle(FileHandle handle) {
+	String getURLForFileHandle(UserInfo userInfo, FileHandle handle) {
+		// If the user tries to access a file handle that is not available we send a metric to cloud watch where an alarm will be triggered
+		if (!FileHandleStatus.AVAILABLE.equals(handle.getStatus())) {
+			unavailableFileHandleAccessed(userInfo, handle);
+		}
+		
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -351,6 +374,24 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new IllegalArgumentException("Unknown FileHandle class: " + handle.getClass().getName());
 		}
 	}
+	
+	private void unavailableFileHandleAccessed(UserInfo userInfo, FileHandle handle) {
+		
+		log.warn(String.format("An unavailable file handle was accessed by user %s: %s", userInfo.getId(), handle));
+		
+		ProfileData cloudWatchData = new ProfileData();
+		
+		cloudWatchData.setNamespace(CLOUD_WATCH_NAMESPACE_PREFIX + " - " + config.getStackInstance());
+		cloudWatchData.setName(CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED);
+		cloudWatchData.setTimestamp(Instant.now().toDate());
+		cloudWatchData.setValue(Double.valueOf(handle.getId()));
+		
+		// We do not use a unit as the value of the metric is the file handle id itself
+		cloudWatchData.setUnit(StandardUnit.None.name());
+		
+		cloudWatchQueue.addProfileData(cloudWatchData);
+	}
+	
 
 	private String getUrlForS3FileHandle(S3FileHandle handle) {
 		// Create a pre-signed url
@@ -456,6 +497,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalFileHandle fileHandle) {
 		if (userInfo == null)
 			throw new IllegalArgumentException("UserInfo cannot be null");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		if (fileHandle == null)
 			throw new IllegalArgumentException("FileHandle cannot be null");
 		if (fileHandle.getExternalURL() == null)
@@ -489,6 +533,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
@@ -588,6 +635,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
+		if (AuthorizationUtils.isUserAnonymous(Long.parseLong(request.getUserId()))) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		try {
 			
 			// This will return the default storage location if the input is null
@@ -614,8 +664,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			handle.setEtag(UUID.randomUUID().toString());
 			handle.setFileName(fileName);
 			handle.setStorageLocationId(request.getStorageLocationId());
+			
+			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocationSetting);
 
 			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
+
+			if (storageClass != null) {
+				por.withStorageClass(storageClass);
+			}
+			
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
 			Upload upload = transferManager.upload(por);
@@ -844,12 +901,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (contentEncoding != null) {
 			meta.setContentEncoding(contentEncoding);
 		}
+				
 		StorageLocationSetting storageLocation = storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		
 		String key = MultipartUtils.createNewKey(createdBy, fileName, storageLocation);
 		String bucket = MultipartUtils.getBucket(storageLocation);
+		StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
 		
-		s3Client.putObject(bucket, key, in, meta);
+		PutObjectRequest request = new PutObjectRequest(bucket, key, in, meta);
+		
+		if (storageClass != null) {
+			request.withStorageClass(storageClass);
+		}
+		
+		s3Client.putObject(request);
+		
 		// Create the file handle
 		S3FileHandle handle = new S3FileHandle();
 		handle.setStorageLocationId(storageLocation.getStorageLocationId());
@@ -895,6 +961,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
 		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
@@ -963,6 +1032,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(UserInfo userInfo,
 												   GoogleCloudFileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
 		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
@@ -1030,6 +1102,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot upload files.");
+		}
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
 		ValidateArgument.requiredNotEmpty(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");
 		ValidateArgument.required(proxyFileHandle.getContentSize(), "ProxyFileHandle.contentSize");
@@ -1070,6 +1145,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {
 		ValidateArgument.required(userInfo, "UserInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot copy files.");
+		}
 		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
 		ValidateArgument.requirement(StringUtils.isNotEmpty(fileName) || StringUtils.isNotEmpty(contentType),
 				"Either the fileName or the contentType needs to be set");
@@ -1190,7 +1268,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setFileHandle(handle);
 						}
 						if(request.getIncludePreSignedURLs()) {
-							String url = getURLForFileHandle(handle);
+							String url = getURLForFileHandle(userInfo, handle);
 							
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
@@ -1206,7 +1284,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 								CloudProviderFileHandleInterface hasPreview = (CloudProviderFileHandleInterface) handle;
 								String previewId = hasPreview.getPreviewId();
 								if (previewFileHandles.containsKey(previewId)) {
-									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId));
+									String previewURL = getURLForFileHandle(userInfo, previewFileHandles.get(previewId));
 									fr.setPreviewPreSignedURL(previewURL);
 								}
 							}
@@ -1247,6 +1325,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			throw new UnauthorizedException("Anonymous cannot copy files.");
+		}
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getCopyRequests(), "BatchFileHandleCopyRequest.copyRequests");
 		ValidateArgument.requirement(request.getCopyRequests().size() <= MAX_REQUESTS_PER_CALL, MAX_REQUESTS_PER_CALL_MESSAGE);

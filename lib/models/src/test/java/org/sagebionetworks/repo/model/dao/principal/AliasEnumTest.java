@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dao.principal;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -12,12 +12,9 @@ public class AliasEnumTest {
 	public void testValidateAliasNull() {
 		// Each type should not allow null
 		for (AliasEnum ae : AliasEnum.values()) {
-			try {
+			assertThrows(IllegalArgumentException.class, () -> {
 				ae.validateAlias(null);
-				fail("Should have failed");
-			} catch (IllegalArgumentException e) {
-				// expected
-			}
+			});
 		}
 	}
 
@@ -29,22 +26,22 @@ public class AliasEnumTest {
 
 	@Test
 	public void testValidatePrincipalUserSpaces() {
-		try {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			AliasEnum.USER_NAME.validateAlias("has spaces");
-			fail("should have failed because it contains spaces.");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("letters"));
-			assertTrue(e.getMessage().contains("numbers"));
-			assertTrue(e.getMessage().contains("underscore"));
-			assertTrue(e.getMessage().contains("dash"));
-			assertTrue(e.getMessage().contains("dot"));
-			assertTrue(e.getMessage().contains("3 characters long"));
-		}
+		});
+		assertTrue(ex.getMessage().contains("letters"));
+		assertTrue(ex.getMessage().contains("numbers"));
+		assertTrue(ex.getMessage().contains("underscore"));
+		assertTrue(ex.getMessage().contains("dash"));
+		assertTrue(ex.getMessage().contains("dot"));
+		assertTrue(ex.getMessage().contains("3 characters long"));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalUserTooShort() {
-		AliasEnum.USER_NAME.validateAlias("12");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_NAME.validateAlias("12");
+		});
 	}
 
 	@Test
@@ -52,9 +49,11 @@ public class AliasEnumTest {
 		AliasEnum.USER_NAME.validateAlias("123");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalUserOtherChars() {
-		AliasEnum.USER_NAME.validateAlias("has!@#$%^&*()otherchars");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_NAME.validateAlias("has!@#$%^&*()otherchars");
+		});
 	}
 
 	@Test
@@ -65,38 +64,52 @@ public class AliasEnumTest {
 
 	@Test
 	public void testValidatePrincipalTeamAt() {
-		try {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			AliasEnum.TEAM_NAME.validateAlias("has@chars");
-			fail("should have failed because it contains spaces.");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("letters"));
-			assertTrue(e.getMessage().contains("numbers"));
-			assertTrue(e.getMessage().contains("underscore"));
-			assertTrue(e.getMessage().contains("dash"));
-			assertTrue(e.getMessage().contains("dot"));
-			assertTrue(e.getMessage().contains("space"));
-			assertTrue(e.getMessage().contains("3 characters long"));
-		}
+		});
+		assertTrue(ex.getMessage().contains("letters"));
+		assertTrue(ex.getMessage().contains("numbers"));
+		assertTrue(ex.getMessage().contains("underscore"));
+		assertTrue(ex.getMessage().contains("dash"));
+		assertTrue(ex.getMessage().contains("dot"));
+		assertTrue(ex.getMessage().contains("space"));
+		assertTrue(ex.getMessage().contains("3 characters long"));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidatePrincipalTeamTooShort() {
-		AliasEnum.TEAM_NAME.validateAlias("12");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.TEAM_NAME.validateAlias("12");
+		});
 	}
 
 	@Test
 	public void testValidatePrincipalTeamLongEnough() {
 		AliasEnum.TEAM_NAME.validateAlias("123");
 	}
-
-	@Test(expected = IllegalArgumentException.class)
+	
+	@Test
 	public void testValidatePrincipalTeamOtherChars() {
-		AliasEnum.TEAM_NAME.validateAlias("has!@#$%^&*()otherchars");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.TEAM_NAME.validateAlias("has!@#$%^&*()otherchars");
+		});
 	}
 
 	@Test
 	public void testValidateEmail(){
 		AliasEnum.USER_EMAIL.validateAlias("foo.bar@company.com");
+	}
+	
+	@Test
+	public void testValidateEmailTopLevelDomain() {
+		// PLFM-6743
+		// 63 x's
+		String email = "foo@company.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		AliasEnum.USER_EMAIL.validateAlias(email);
+		// 64 x's
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_EMAIL.validateAlias(email + "x");
+		});
 	}
 	
 	@Test
@@ -111,27 +124,38 @@ public class AliasEnumTest {
 		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222-333X");
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongPrefix() {
-		AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-2222-3333");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-2222-3333");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-2222");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength2() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-222-33");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-222-33");
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testORCIDWrongLength3() {
-		AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://orcid.org/0000-1111-");
+		});
 	}
-	@Test(expected=IllegalArgumentException.class)
+	
+	@Test
 	public void testORCIDLetters() {
-		AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-xxxx-yyyy");
+		assertThrows(IllegalArgumentException.class, () -> {
+			AliasEnum.USER_ORCID.validateAlias("https://foo/0000-1111-xxxx-yyyy");
+		});
 	}
 }
