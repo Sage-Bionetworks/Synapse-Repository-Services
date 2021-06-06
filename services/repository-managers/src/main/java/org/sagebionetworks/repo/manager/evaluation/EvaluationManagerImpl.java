@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.evaluation;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -237,7 +239,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (!oldEval.getOwnerId().equals(newEval.getOwnerId())) {
 			throw new InvalidModelException("Cannot overwrite Evaluation Owner ID");
 		}
-		if (!oldEval.getCreatedOn().equals(newEval.getCreatedOn())) {
+		if (oldEval.getCreatedOn().getTime()!=newEval.getCreatedOn().getTime()) {
 			throw new InvalidModelException("Cannot overwrite CreatedOn date");
 		}
 	}
@@ -276,6 +278,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		return evaluationDAO.createEvaluationRound(evaluationRound);
 	}
+	
+	private static final DateFormat DF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 
 	@WriteTransaction
 	@Override
@@ -287,13 +291,14 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Instant now = Instant.now();
 		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 		// verify updating start of round
-		if( !storedRound.getRoundStart().equals(evaluationRound.getRoundStart())
+		if( storedRound.getRoundStart().getTime() != evaluationRound.getRoundStart().getTime()
 				&& now.isAfter(evaluationRound.getRoundStart().toInstant())
 				&& submissionDAO.hasSubmissionForEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId())){
-				throw new IllegalArgumentException("Can not update an EvaluationRound's start date after it has already started and Submissions have been made");
+				throw new IllegalArgumentException(
+						"Cannot update an EvaluationRound's start date after it has already started and Submissions have been made.");
 		}
 		// verify updating end of round
-		if( !storedRound.getRoundEnd().equals(evaluationRound.getRoundEnd())
+		if( storedRound.getRoundEnd().getTime() != evaluationRound.getRoundEnd().getTime()
 				&& now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
 			throw new IllegalArgumentException("Can not update an EvaluationRound's end date to a time in the past.");
 		}
