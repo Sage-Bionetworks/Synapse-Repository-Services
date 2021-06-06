@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.evaluation;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -279,8 +277,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		return evaluationDAO.createEvaluationRound(evaluationRound);
 	}
 	
-	private static final DateFormat DF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-
 	@WriteTransaction
 	@Override
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
