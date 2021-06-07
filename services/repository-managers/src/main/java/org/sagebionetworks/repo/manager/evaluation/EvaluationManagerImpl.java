@@ -185,7 +185,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// fetch the existing Evaluation and validate changes		
 		Evaluation old = validateEvaluationAccess(userInfo, evalId,ACCESS_TYPE.UPDATE);
-		validateEvaluation(old, eval);
+		eval.setOwnerId(old.getOwnerId());
+		eval.setCreatedOn(old.getCreatedOn());
 
 		ValidateArgument.requirement(eval.getQuota() == null || !evaluationDAO.hasEvaluationRounds(evalId),
 				"DEPRECATED! SubmissionQuota is a DEPRECATED feature and can not co-exist with EvaluationRounds." +
@@ -231,15 +232,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				"roundDurationMillis must be defined and non-negative");
 
 		ValidateArgument.required(quota.getFirstRoundStart() , "firstRoundStart");
-	}
-
-	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
-		if (!oldEval.getOwnerId().equals(newEval.getOwnerId())) {
-			throw new InvalidModelException("Cannot overwrite Evaluation Owner ID");
-		}
-		if (oldEval.getCreatedOn().getTime()!=newEval.getCreatedOn().getTime()) {
-			throw new InvalidModelException("Cannot overwrite CreatedOn date");
-		}
 	}
 
 	@Override

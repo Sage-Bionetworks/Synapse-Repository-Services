@@ -313,6 +313,32 @@ public class EvaluationManagerTest {
 	}
 
 	@Test
+	public void testUpdateEvaluationTryToChangeCreatedOnAndBy() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		assertNotNull(evalWithId.getCreatedOn());
+		
+		Evaluation updated = new Evaluation();
+		updated.setCreatedOn(new Date(evalWithId.getCreatedOn().getTime()+1000L)); // let's try to change the creation date
+		updated.setId(evalWithId.getId());
+		updated.setName(evalWithId.getName()+" modification");
+		updated.setOwnerId(evalWithId.getOwnerId()+"000"); // let's try to change the owner id
+		updated.setContentSource(evalWithId.getContentSource());
+		updated.setEtag(evalWithId.getEtag());
+
+		// method under test
+		evaluationManager.updateEvaluation(ownerInfo, updated);
+		
+		verify(mockEvaluationDAO).update(eq(updated));
+		
+		assertEquals(evalWithId.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(evalWithId.getOwnerId(), updated.getOwnerId());
+	}
+
+	@Test
 	public void testUpdateEvaluationAsOwnerQuotaDefinedHasEvaluationRounds() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
