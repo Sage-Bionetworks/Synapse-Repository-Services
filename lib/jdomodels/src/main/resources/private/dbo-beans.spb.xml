@@ -20,6 +20,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
