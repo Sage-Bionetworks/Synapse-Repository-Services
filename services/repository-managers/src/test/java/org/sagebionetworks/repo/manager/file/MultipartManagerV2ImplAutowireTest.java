@@ -35,10 +35,10 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
@@ -343,6 +343,26 @@ public class MultipartManagerV2ImplAutowireTest {
 		doMultipartCopy(sourceEntity, copyDestination);
 	}
 	
+	@Test
+	public void testMultipartUploadCopyWithPlusInName() throws Exception {
+		
+		String userId = adminUserInfo.getId().toString();
+		Date modifiedOn = new Date();
+		
+		String fileName = "foo+test.txt";
+		ContentType contentType = ContentTypeUtil.TEXT_PLAIN_UTF8;
+		byte[] fileContent = "contents".getBytes(StandardCharsets.UTF_8);
+		String contentEncoding = null;
+
+		// Creates a dummy file handle and entity for the copy
+		S3FileHandle sourceFile = fileHandleManager.createFileFromByteArray(userId, modifiedOn, 
+				fileContent, fileName, contentType, contentEncoding);
+		
+		FileEntity sourceEntity = doCreateEntity(sourceFile);
+		
+		doMultipartCopy(sourceEntity, copyDestination);
+	}
+	
 
 	@Test
 	public void testMultipartUploadCopyFromMultipartUpload() throws Exception {
@@ -615,7 +635,7 @@ public class MultipartManagerV2ImplAutowireTest {
 
 			// Fetch the part pre-signed url
 			PartPresignedUrl preSignedUrl = getPresignedUrlForParts(status.getUploadId(), null, Arrays.asList(partNumber)).get(0);
-			
+						
 			// Make the request to S3
 			String eTag = emptyPUT(preSignedUrl.getUploadPresignedUrl(), preSignedUrl.getSignedHeaders());
 			
@@ -707,6 +727,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	
 	private String emptyPUT(String url, Map<String, String> headers) throws Exception {
 		SimpleHttpRequest request = new SimpleHttpRequest();
+		
 		request.setUri(url);
 		request.setHeaders(headers);
 		
