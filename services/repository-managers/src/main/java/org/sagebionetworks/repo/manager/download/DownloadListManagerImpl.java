@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -66,7 +67,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
-	public static final long MAX_QUERY_LIMIT = 10_000L;
+
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
@@ -78,6 +79,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * The maximum number of file that can be added/removed in a single batch.
 	 */
 	public static int MAX_FILES_PER_BATCH = 1000;
+	
+	public static final long MAX_QUERY_PAGE_SIZE = 10_000L;
+	
 	/**
 	 * The maximum number of files that a user can have on their download list.
 	 */
@@ -323,15 +327,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 		boolean useVersionNumber = requestBody.getUseVersionNumber() == null ? DEFAULT_USE_VERSION
 				: requestBody.getUseVersionNumber();
-		long limit = MAX_FILES_PER_USER - downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
-		if (limit < 1) {
+		long usersDownloadListCapacity = MAX_FILES_PER_USER - downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
+		if (usersDownloadListCapacity < 1) {
 			throw new IllegalArgumentException(
 					String.format(YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES, MAX_FILES_PER_USER));
 		}
 		if (requestBody.getQuery() != null) {
-			return addToDownloadList(progressCallback, userInfo, requestBody.getQuery(), useVersionNumber, limit);
+			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), useVersionNumber, MAX_QUERY_PAGE_SIZE, usersDownloadListCapacity);
 		} else if (requestBody.getParentId() != null) {
-			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber, limit);
+			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber, usersDownloadListCapacity);
 		} else {
 			throw new IllegalArgumentException("Must include either request.parentId or request.query().");
 		}
@@ -361,8 +365,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param maxLimit
 	 * @return
 	 */
-	AddToDownloadListResponse addToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
-			final Query query, final boolean useVersion, long maxLimit) {
+	AddToDownloadListResponse addQueryResultsToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
+			final Query query, final boolean useVersion, long maxQueryPageSize, long usersDownloadListCapacity) {
 		try {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
 			IdAndVersion idAndVersion = IdAndVersion.parse(model.getTableName());
@@ -370,12 +374,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			if (!EntityType.entityview.equals(tableType)) {
 				throw new IllegalArgumentException(String.format("'%s' is not a file view", idAndVersion.toString()));
 			}
-			model.replaceSelectList(new TableQueryParser("ROW_ID").selectList());
+			model.replaceSelectList(new TableQueryParser(TableConstants.ROW_ID).selectList());
 			query.setSql(model.toSql());
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
 					.withReturnFacets(false).withReturnLastUpdatedOn(false);
 			long totalFilesAdded = 0L;
-			long limit = Math.min(maxLimit, MAX_QUERY_LIMIT);
+			long limit = Math.min(usersDownloadListCapacity, maxQueryPageSize);
 			long offset = 0L;
 			List<DownloadListItem> batchToAdd = null;
 			do {
@@ -393,7 +397,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				}).collect(Collectors.toList());
 				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
 				totalFilesAdded += numberOfFilesAdded;
-				if (totalFilesAdded >= maxLimit) {
+				if (totalFilesAdded >= usersDownloadListCapacity) {
 					break;
 				}
 				offset += limit;
