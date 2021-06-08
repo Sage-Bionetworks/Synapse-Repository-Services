@@ -45,6 +45,7 @@ import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.util.SdkHttpUtils;
 
 /**
  * This class handles the interaction with S3 during the steps of a multi-part upload
@@ -225,7 +226,10 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		request.addRequestParameter(S3_PARAM_PART_NUMBER, String.valueOf(partNumber));
 		request.addRequestParameter(S3_PARAM_UPLOAD_ID, status.getUploadToken());
 		
-		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, status.getSourceBucket() + "/" + status.getSourceKey());
+		// See PLFM-6785, the source header needs to be URL encoded and the S3 Client does not handle this automatically
+		String sourceKey = getCopySourceKeyHeader(status.getSourceBucket() , status.getSourceKey());
+		
+		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE, sourceKey);
 		request.putCustomRequestHeader(S3_HEADER_COPY_RANGE, String.format(S3_HEADER_COPY_RANGE_VALUE_TEMPLATE, byteRange[0], byteRange[1]));
 		request.putCustomRequestHeader(S3_HEADER_COPY_SOURCE_IF_MATCH, status.getSourceFileEtag());
 		
@@ -245,6 +249,10 @@ public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO 
 		presignedUrl.withUrl(url);
 		
 		return presignedUrl;
+	}
+	
+	String getCopySourceKeyHeader(String bucket, String key) {
+		return SdkHttpUtils.urlEncode(bucket, true) + "/" + SdkHttpUtils.urlEncode(key, true);
 	}
 
 	/*
