@@ -1,5 +1,5 @@
 {
-    "description": "OpenID Provider Configuration, described by <a href\"https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig\">OpenID Connect Core 1.0</a>. Fields are defined by the <a href=\"https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata\">OpenID Provider Metadata</a>.",
+    "description": "OpenID Provider Configuration, described by <a href=\"https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig\">OpenID Connect Core 1.0</a>. Fields are defined by the <a href=\"https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata\">OpenID Provider Metadata</a>.",
  	"properties": {
 		"issuer":{
 			"type": "string",
@@ -88,7 +88,7 @@
 		},
 		"token_endpoint_auth_methods_supported": {
 			"type": "array",
-			"description": "a list of Client Authentication methods supported by Synapse's Token Endpoint.  See <a href\"https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication\">OpenID Connect Core 1.0 Client Authentication</a>",
+			"description": "a list of Client Authentication methods supported by Synapse's Token Endpoint.  See <a href=\"https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication\">OpenID Connect Core 1.0 Client Authentication</a>",
 			"items":{
 				"type":"string"
 			}

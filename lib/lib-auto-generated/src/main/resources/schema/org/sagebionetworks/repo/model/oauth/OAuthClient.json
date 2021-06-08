@@ -1,5 +1,5 @@
 {
-	"description": "OAuth 2.0 Client metadata described in <a href\"https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata\">OpenID Connect Core 1.0 Client Metadata</a>",
+	"description": "OAuth 2.0 Client metadata described in <a href=\"https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata\">OpenID Connect Core 1.0 Client Metadata</a>",
  	"properties": {
 		"client_id": {
 			"type": "string",
@@ -74,7 +74,7 @@
 		},
 		"sector_identifier": {
 			"type": "string",
-			"description": "The sector identified, computed by the server from the redirect_uris and sector_identifier_uri fields as described in <a href\"https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg\">OpenID Connect Core 1.0 Pairwise Identifier Algorithm</a>"
+			"description": "The sector identified, computed by the server from the redirect_uris and sector_identifier_uri fields as described in <a href=\"https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg\">OpenID Connect Core 1.0 Pairwise Identifier Algorithm</a>"
 		},
 		"userinfo_signed_response_alg": {
 			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm",
