@@ -8,6 +8,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,10 +38,17 @@ import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.ViewType;
 
 public class ITDownloadListControllerTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
+	public static final int MAX_RETIES = 10;
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -193,6 +202,38 @@ public class ITDownloadListControllerTest {
 			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
 			assertEquals(1L, response.getNumberOfFilesAdded());
 		}, MAX_WAIT_MS).getResponse();
+	}
+	
+	@Test
+	public void testAddToDownloadListWithViewQuery() throws SynapseException {
+		long viewTypeMask = 0x01L;
+		FileEntity file = setupFileEntity();
+		// create a view of the file.
+		List<String> columnIds = synapse.getDefaultColumnsForView(ViewType.file).stream().map(c -> c.getId())
+				.collect(Collectors.toList());
+		EntityView view = synapse.createEntity(new EntityView().setParentId(file.getParentId())
+				.setScopeIds(Arrays.asList(file.getParentId())).setColumnIds(columnIds).setViewTypeMask(viewTypeMask));
+		Query query = new Query().setSql("select * from " + view.getId());
+		// Wait for the view to contain the file
+		QueryBundleRequest queryRequest = new QueryBundleRequest().setQuery(query).setPartMask(viewTypeMask)
+				.setEntityId(view.getId());
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableQuery, queryRequest, body -> {
+			assertTrue(body instanceof QueryResultBundle);
+			QueryResultBundle response = (QueryResultBundle) body;
+			assertNotNull(response.getQueryResult());
+			assertNotNull(response.getQueryResult().getQueryResults());
+			assertNotNull(response.getQueryResult().getQueryResults().getRows());
+			List<Row> rows = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(1L, rows.size());
+		}, MAX_WAIT_MS, MAX_RETIES);
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query);
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AddToDownloadList, request, body -> {
+			assertTrue(body instanceof AddToDownloadListResponse);
+			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETIES).getResponse();
 	}
 
 	/**
