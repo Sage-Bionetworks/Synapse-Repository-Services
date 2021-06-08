@@ -931,5 +931,26 @@ public class S3MultipartUploadDAOImplTest {
 		verifyNoMoreInteractions(mockS3Client);
 		verifyNoMoreInteractions(mockObjectMetadata);
 	}
+	
+	@Test
+	public void testGetCopySourceKeyHeader() {
+		String bucket = "my.bucket";
+		String key = "my/key";
+		
+		String result = dao.getCopySourceKeyHeader(bucket, key);
+		
+		assertEquals("my.bucket/my/key", result);
+	}
+	
+	// PLFM-6785
+	@Test
+	public void testGetCopySourceKeyHeaderWithSpecialChars() {
+		String bucket = "my.bucket";
+		String key = "my/key+something*.test";
+		
+		String result = dao.getCopySourceKeyHeader(bucket, key);
+		
+		assertEquals("my.bucket/my/key%2Bsomething%2A.test", result);
+	}
 
 }
