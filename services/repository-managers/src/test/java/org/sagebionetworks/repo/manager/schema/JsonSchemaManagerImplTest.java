@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -39,8 +40,10 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -51,6 +54,9 @@ import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -80,6 +86,9 @@ import com.google.common.collect.Lists;
 public class JsonSchemaManagerImplTest {
 
 	@Mock
+	NodeDAO mockNodeDao;
+	
+	@Mock
 	OrganizationDao mockOrganizationDao;
 
 	@Mock
@@ -87,6 +96,9 @@ public class JsonSchemaManagerImplTest {
 
 	@Mock
 	JsonSchemaDao mockSchemaDao;
+	
+	@Mock
+	TransactionalMessenger mockTransactionalMessenger;
 
 	@Captor
 	ArgumentCaptor<AccessControlList> aclCaptor;
@@ -1580,6 +1592,37 @@ public class JsonSchemaManagerImplTest {
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
 		});
+	}
+	
+	@Test
+	public void testCreateJsonSchemaWithRevalidationMessagesSent() {
+		when(mockOrganizationDao.getOrganizationByName(any())).thenReturn(organization);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		// null version to trigger sending the messages
+		versionInfo.setSemanticVersion(null);
+		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
+		schema.set$id(organizationName + "-" + schemaName);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(schema.get$id());
+		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
+		Long fileId = 1L;
+		Long folderId = 2L;
+		Long projectId = 3L;
+		Iterator<Long> objectIds = Arrays.asList(fileId, folderId, projectId).iterator();
+		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId)).thenReturn(objectIds);
+		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(fileId))).thenReturn(EntityType.file);
+		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(folderId))).thenReturn(EntityType.folder);
+		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(projectId))).thenReturn(EntityType.project);
+		// call under test, ensure that correct messages are sent for all 3 entity types
+		CreateSchemaResponse response = managerSpy.createJsonSchema(user, createSchemaRequest);
+		assertNotNull(response);
+		assertEquals(versionInfo, response.getNewVersionInfo());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(fileId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(fileId.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId.toString(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 
 	/**

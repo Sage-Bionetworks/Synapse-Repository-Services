@@ -170,12 +170,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals("Schema $id: 'my.org.net-one' has a circular dependency", message);
 	}
 
-	public CreateSchemaResponse registerSchemaFromClasspath(String name, boolean additionalRequirement) throws Exception {
-		String json = loadStringFromClasspath(name);
-		JsonSchema schema = EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
-		if (additionalRequirement) {
-			schema.setRequired(Arrays.asList("requiredField"));
-		}
+	public CreateSchemaResponse registerSchema(JsonSchema schema) throws Exception {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
 		System.out.println("Creating schema: '" + schema.get$id() + "'");
@@ -184,6 +179,11 @@ public class JsonSchemaWorkerIntegrationTest {
 					assertNotNull(response);
 					System.out.println(response.getNewVersionInfo());
 				}, MAX_WAIT_MS).getResponse();
+	}
+	
+	public JsonSchema getSchemaFromClasspath(String name) throws Exception {
+		String json = loadStringFromClasspath(name);
+		return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
 	}
 
 	/**
@@ -208,7 +208,8 @@ public class JsonSchemaWorkerIntegrationTest {
 		String[] schemasToRegister = { "pets/PetType.json", "pets/Pet.json", "pets/CatBreed.json", "pets/DogBreed.json",
 				"pets/Cat.json", "pets/Dog.json", "pets/PetPhoto.json" };
 		for (String fileName : schemasToRegister) {
-			registerSchemaFromClasspath(fileName, false);
+			JsonSchema schema = getSchemaFromClasspath(fileName);
+			registerSchema(schema);
 		}
 
 		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("my.organization-pets.PetPhoto");
@@ -288,7 +289,8 @@ public class JsonSchemaWorkerIntegrationTest {
 
 		// create the schema
 		String fileName = "schema/SimpleFolder.json";
-		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName, false);
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 		// bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
@@ -351,7 +353,8 @@ public class JsonSchemaWorkerIntegrationTest {
 
 		// create the schema
 		String fileName = "schema/FolderWithBoolean.json";
-		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName, false);
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 		// bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
@@ -395,17 +398,20 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		// create the schema with no semantic version
 		String fileName = "schema/FolderWithBoolean.json";
-		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName, false);
+		JsonSchema schema1 = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema1);
 		String schema$id1 = createResponse.getNewVersionInfo().get$id();
 		
 		// bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(projectId);
 		bindRequest.setSchema$id(schema$id1);
-		// Note that we prohibit notification messages being sent on the bind because
-		// multiple messages will be sent out in this set up that will trigger validation, but
-		// the validation triggered from this bind in particular will be delayed and can cause this test
-		// to pass when it is not suppose to pass.
+		/*
+		 * Note that we prohibit notification messages being sent on the bind because
+		 * multiple messages will be sent out in this set up that will trigger validation, but
+		 * the validation triggered from this bind in particular will be delayed and can cause this test
+		 * to pass when it is not suppose to pass.
+		 */
 		boolean sendNotificationMessages = false;
 		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
 		
@@ -429,15 +435,19 @@ public class JsonSchemaWorkerIntegrationTest {
 			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
 		});
 		
-		// Wait 5 seconds for the possibility of lingering validation work to finish up.
-		// Note that if we comment out the solution to PLFM-6757
-		// then this test consistently fails on timeout from the 2nd wait. In other words,
-		// any lingering revalidation work in-progress or to-be-in-progress before this,
-		// is unlikely to be the reason this test will pass.
+		/*
+		 * Wait 5 seconds for the possibility of lingering validation work to finish up.
+		 * Note that if we comment out the solution to PLFM-6757
+		 * then this test consistently fails on timeout from the 2nd wait. In other words,
+		 * any lingering revalidation work in-progress or to-be-in-progress before this,
+		 * is unlikely to be the reason this test will pass.
+		 */
 		Thread.sleep(5000);
 		
 		// Revalidation step. Replace the schema with the same schema + an additional required field.
-		CreateSchemaResponse createResponse2 = registerSchemaFromClasspath(fileName, true);
+		JsonSchema schema2 = getSchemaFromClasspath(fileName);
+		schema2.setRequired(Arrays.asList("requiredField"));
+		CreateSchemaResponse createResponse2 = registerSchema(schema2);
 		String schema$id2 = createResponse2.getNewVersionInfo().get$id();
 		
 		// Should be the same schema being referenced

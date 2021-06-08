@@ -79,7 +79,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	public static final int MAX_SCHEMA_NAME_CHARS = 250;
 	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
-	private static final long PAGE_SIZE_LIMIT = 1000L;
+	private static final long PAGE_SIZE_LIMIT = 10000L;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -302,12 +302,14 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 
 	@Override
 	public Iterator<Long> getObjectIdsBoundToSchemaIterator(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
 		return new PaginationIterator<Long>((long limit, long offset) -> {
 			return getNextPageForEntitiesBoundToSchema(schemaId, limit, offset);
 		}, PAGE_SIZE_LIMIT);
 	}
 	
-	private List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset) {
+	@Override
+	public List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset) {
 		// Method is intended to implement the PaginationProvider for getEntitiesBoundToSchemaIterator
 		return jdbcTemplate.queryForList(
 				"SELECT " + COL_JONS_SCHEMA_BINDING_OBJECT_ID + " FROM " + TABLE_JSON_SCHEMA_OBJECT_BINDING + 
