@@ -5,6 +5,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -719,5 +720,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public EntityType getTableEntityType(IdAndVersion idAndVersion) {
+		return tableManagerSupport.getTableEntityType(idAndVersion);
 	}
 }

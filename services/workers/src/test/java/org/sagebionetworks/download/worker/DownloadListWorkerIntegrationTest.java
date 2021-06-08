@@ -158,6 +158,7 @@ public class DownloadListWorkerIntegrationTest {
 		}, MAX_WAIT_MS, MAX_RETRIES);
 		
 	}
+	
 
 	/**
 	 * Helper to create a single file in a project with an ACL that grants download

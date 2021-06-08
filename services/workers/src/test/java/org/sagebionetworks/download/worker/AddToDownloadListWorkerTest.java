@@ -72,12 +72,12 @@ public class AddToDownloadListWorkerTest {
 		when(mockMessage.getBody()).thenReturn(jobId);
 		when(mockAsynchJobStatusManager.lookupJobStatus(any())).thenReturn(jobStatus);
 		when(mockUserManager.getUserInfo(startedByUserId)).thenReturn(user);
-		when(mockDownloadListManger.addToDownloadList(any(), any())).thenReturn(responseBody);
+		when(mockDownloadListManger.addToDownloadList(any(), any(), any())).thenReturn(responseBody);
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
 		verify(mockAsynchJobStatusManager).lookupJobStatus(jobId);
 		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 0L, 100L, "Starting job...");
-		verify(mockDownloadListManger).addToDownloadList(user, requestBody);
+		verify(mockDownloadListManger).addToDownloadList(mockProgressCallback, user, requestBody);
 		verify(mockAsynchJobStatusManager).setComplete(jobId, responseBody);
 		verify(mockAsynchJobStatusManager, never()).setJobFailed(any(), any());
 	}
@@ -88,10 +88,10 @@ public class AddToDownloadListWorkerTest {
 		when(mockAsynchJobStatusManager.lookupJobStatus(any())).thenReturn(jobStatus);
 		when(mockUserManager.getUserInfo(startedByUserId)).thenReturn(user);
 		UnauthorizedException exception = new UnauthorizedException("no");
-		when(mockDownloadListManger.addToDownloadList(any(), any())).thenThrow(exception);
+		when(mockDownloadListManger.addToDownloadList(any(), any(), any())).thenThrow(exception);
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
-		verify(mockDownloadListManger).addToDownloadList(user, requestBody);
+		verify(mockDownloadListManger).addToDownloadList(mockProgressCallback, user, requestBody);
 		verify(mockAsynchJobStatusManager, never()).setComplete(any(), any());
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, exception);
 	}

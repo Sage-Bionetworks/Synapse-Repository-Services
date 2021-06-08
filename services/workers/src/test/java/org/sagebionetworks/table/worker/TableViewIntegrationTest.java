@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,10 +29,10 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityAclManager;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.download.DownloadListManagerImpl;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -61,6 +62,13 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
+import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
@@ -145,6 +153,8 @@ public class TableViewIntegrationTest {
 	private AsynchronousJobWorkerHelper asyncHelper;
 	@Autowired
 	private BulkDownloadManager bulkDownloadManager;
+	@Autowired
+	private DownloadListManagerImpl downloadListManager;
 	
 	
 	ProgressCallback mockProgressCallbackVoid;
@@ -1964,6 +1974,92 @@ public class TableViewIntegrationTest {
 		}
 	}
 	
+	
+	@Test
+	public void testAddViewQueryToDownloadList() throws Exception {
+		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
+		createFileView();
+		String firstFileId = fileIds.get(0);
+		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + " where id='" + firstFileId + "'");
+		query.setIncludeEntityEtag(true);
+
+		QueryResultBundle bundle = waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {
+			assertNotNull(queryResults);
+			List<Row> rows = extractRows(queryResults);
+			assertEquals(1, rows.size());
+		});
+		Row firstRow = extractRows(bundle).get(0);
+		assertEquals(KeyFactory.stringToKey(firstFileId), firstRow.getRowId());
+		assertEquals(1L, firstRow.getVersionNumber());
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query).setUseVersionNumber(true);
+		// call under test
+		AddToDownloadListResponse response = downloadListManager.addToDownloadList(mockProgressCallbackVoid,
+				adminUserInfo, request);
+		assertNotNull(response);
+		assertEquals(1L, response.getNumberOfFilesAdded());
+
+		DownloadListQueryResponse listResult = downloadListManager.queryDownloadList(adminUserInfo,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()));
+		assertNotNull(listResult);
+		assertNotNull(listResult.getResponseDetails());
+		assertTrue(listResult.getResponseDetails() instanceof AvailableFilesResponse);
+		AvailableFilesResponse availableResponse = (AvailableFilesResponse) listResult.getResponseDetails();
+		assertNotNull(availableResponse.getPage());
+		assertEquals(1, availableResponse.getPage().size());
+		DownloadListItemResult item = availableResponse.getPage().get(0);
+		assertEquals(firstFileId, item.getFileEntityId());
+		assertEquals(1L, item.getVersionNumber());
+	}
+	
+	@Test
+	public void testAddViewQueryToDownloadListWithSnapshot() throws Exception {
+		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
+		createFileView();
+		String firstFileId = fileIds.get(0);
+		asyncHelper.waitForEntityReplication(adminUserInfo, fileViewId, firstFileId, MAX_WAIT_MS);
+
+		// create a snapshot of the view
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("first snapshot");
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(null);
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest,
+				(TableUpdateTransactionResponse response) -> {
+					assertNotNull(response);
+					assertNotNull(response.getSnapshotVersionNumber());
+				}).getSnapshotVersionNumber();
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber + " where id='" + firstFileId + "'");
+		query.setIncludeEntityEtag(true);
+
+		QueryResultBundle bundle = waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {
+			assertNotNull(queryResults);
+			List<Row> rows = extractRows(queryResults);
+			assertEquals(1, rows.size());
+		});
+		Row firstRow = extractRows(bundle).get(0);
+		assertEquals(KeyFactory.stringToKey(firstFileId), firstRow.getRowId());
+		assertEquals(1L, firstRow.getVersionNumber());
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query);
+		// call under test
+		AddToDownloadListResponse response = downloadListManager.addToDownloadList(mockProgressCallbackVoid,
+				adminUserInfo, request);
+		assertNotNull(response);
+		assertEquals(1L, response.getNumberOfFilesAdded());
+
+	}
+
 	/**
 	 * Broadcast a change message to the view worker.
 	 * 

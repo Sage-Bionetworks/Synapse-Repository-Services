@@ -245,7 +245,7 @@ public class DownloadListController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	@RequiredScope({view,modify,download})
+	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
@@ -273,7 +273,7 @@ public class DownloadListController {
 	 * @return
 	 * @throws Throwable
 	 */
-	@RequiredScope({view,download})
+	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody AddToDownloadListResponse getAddFileToDownloadListResults(

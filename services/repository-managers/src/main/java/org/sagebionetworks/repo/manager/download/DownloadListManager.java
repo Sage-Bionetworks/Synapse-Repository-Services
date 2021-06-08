@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.download;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
@@ -55,5 +56,5 @@ public interface DownloadListManager {
 	 * @param requestBody
 	 * @return
 	 */
-	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, AddToDownloadListRequest requestBody);
+	AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody);
 }

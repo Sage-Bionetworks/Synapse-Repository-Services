@@ -66,14 +66,15 @@ public class DownloadListDaoImplTest {
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
-	Long userOneIdLong;
-	String userOneId;
+	private Long userOneIdLong;
+	private String userOneId;
 
-	Long userTwoIdLong;
-	String userTwoId;
+	private Long userTwoIdLong;
+	private String userTwoId;
 
-	List<DownloadListItem> idsWithVersions;
-	List<DownloadListItem> idsWithoutVersions;
+	private List<DownloadListItem> idsWithVersions;
+	private List<DownloadListItem> idsWithoutVersions;
+	private long limit; 
 
 	@BeforeEach
 	public void before() {
@@ -107,6 +108,7 @@ public class DownloadListDaoImplTest {
 			idWithoutVersion.setVersionNumber(null);
 			idsWithoutVersions.add(idWithoutVersion);
 		}
+		limit = 100L;
 	}
 
 	@AfterEach
@@ -1581,13 +1583,35 @@ public class DownloadListDaoImplTest {
 		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
 		boolean useVersion = true;
 		// call under test
-		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
 		assertEquals(3L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
 				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
 				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l),
 				new DownloadListItem().setFileEntityId(files.get(2).getId()).setVersionNumber(2L)
+		);
+		compareIdAndVersionToListItem(userOneIdLong, expected,
+				downloadListDao.getDBODownloadListItems(userOneIdLong));
+	}
+	
+	@Test
+	public void testAddChildrenToDownloadListWithLimit() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		assertEquals(3, files.size());
+		limit = 2;
+		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
+		boolean useVersion = true;
+		// call under test
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
+		assertEquals(2L, count);
+		
+		List<DownloadListItem> expected = Arrays.asList(
+				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
+				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2l)
 		);
 		compareIdAndVersionToListItem(userOneIdLong, expected,
 				downloadListDao.getDBODownloadListItems(userOneIdLong));
@@ -1609,7 +1633,7 @@ public class DownloadListDaoImplTest {
 		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
 		boolean useVersion = true;
 		// call under test
-		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
 		assertEquals(3L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
@@ -1638,7 +1662,7 @@ public class DownloadListDaoImplTest {
 		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
 		boolean useVersion = true;
 		// call under test
-		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
 		assertEquals(2L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
@@ -1660,7 +1684,7 @@ public class DownloadListDaoImplTest {
 		long parentId = KeyFactory.stringToKey(files.get(0).getParentId());
 		boolean useVersion = false;
 		// call under test
-		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
 		assertEquals(3L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
@@ -1689,7 +1713,7 @@ public class DownloadListDaoImplTest {
 		});
 		boolean useVersion = true;
 		// call under test
-		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion);
+		Long count = downloadListDao.addChildrenToDownloadList(userOneIdLong, parentId, useVersion, limit);
 		assertEquals(1L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
