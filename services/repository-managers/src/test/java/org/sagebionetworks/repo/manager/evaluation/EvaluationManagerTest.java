@@ -35,7 +35,6 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.EvaluationFilter;
 import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dbo.EvaluationRoundTranslationUtil;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
 import org.sagebionetworks.evaluation.model.EvaluationRoundLimit;
@@ -47,9 +46,6 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.evaluation.EvaluationManagerImpl;
-import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
-import org.sagebionetworks.repo.manager.evaluation.SubmissionEligibilityManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -62,10 +58,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class EvaluationManagerTest {
@@ -149,8 +143,8 @@ public class EvaluationManagerTest {
 		evaluationRound = new EvaluationRound();
 		evaluationRound.setId(evaluationRoundId);
 		evaluationRound.setEvaluationId(EVALUATION_ID);
-		evaluationRound.setRoundStart(Date.from(evaluationRoundStart));
-		evaluationRound.setRoundEnd(Date.from(evaluationRoundEnd));
+		evaluationRound.setRoundStart(new java.sql.Timestamp(Date.from(evaluationRoundStart).getTime()));
+		evaluationRound.setRoundEnd  (new java.sql.Timestamp(Date.from(evaluationRoundEnd  ).getTime()));
 	}
 
 	@Test
@@ -316,6 +310,32 @@ public class EvaluationManagerTest {
 		verify(mockEvaluationDAO).update(eq(evalWithId));
 		//no 'quota' field, so we skip this check
 		verify(mockEvaluationDAO, never()).hasEvaluationRounds(evalWithId.getId());
+	}
+
+	@Test
+	public void testUpdateEvaluationTryToChangeCreatedOnAndBy() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+
+		assertNotNull(evalWithId.getCreatedOn());
+		
+		Evaluation updated = new Evaluation();
+		updated.setCreatedOn(new Date(evalWithId.getCreatedOn().getTime()+1000L)); // let's try to change the creation date
+		updated.setId(evalWithId.getId());
+		updated.setName(evalWithId.getName()+" modification");
+		updated.setOwnerId(evalWithId.getOwnerId()+"000"); // let's try to change the owner id
+		updated.setContentSource(evalWithId.getContentSource());
+		updated.setEtag(evalWithId.getEtag());
+
+		// method under test
+		evaluationManager.updateEvaluation(ownerInfo, updated);
+		
+		verify(mockEvaluationDAO).update(eq(updated));
+		
+		assertEquals(evalWithId.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(evalWithId.getOwnerId(), updated.getOwnerId());
 	}
 
 	@Test
@@ -936,7 +956,65 @@ public class EvaluationManagerTest {
 				evaluationManager.updateEvaluationRound(userInfo, evaluationRoundModified)
 		).getMessage();
 
-		assertEquals("Can not update an EvaluationRound's start date after it has already started and Submissions have been made", message);
+		assertEquals("Cannot update an EvaluationRound's start date after it has already started and Submissions have been made.", message);
+	}
+
+	@Test
+	public void updateEvaluationRoundAfterSubmissionChangeStartTime() {
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		// round started yesterday
+		evaluationRoundStart = now.toInstant().minus(1, ChronoUnit.DAYS);
+		evaluationRound.setRoundStart(new java.sql.Timestamp(evaluationRoundStart.toEpochMilli()));
+
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+		// there is a submission
+		when(mockSubmissionDAO.hasSubmissionForEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(true);
+		
+		EvaluationRound updated = new EvaluationRound();
+		updated.setId(evaluationRound.getId());
+		updated.setEtag(evaluationRound.getEtag());
+		updated.setEvaluationId(EVALUATION_ID);
+		updated.setLimits(evaluationRound.getLimits());
+		updated.setRoundEnd(new Date(evaluationRound.getRoundEnd().getTime()));
+		// try to change the start time
+		updated.setRoundStart(new Date(1000L+evaluationRound.getRoundStart().getTime()));
+
+		// method under test
+		assertThrows(IllegalArgumentException.class, () ->
+			evaluationManager.updateEvaluationRound(userInfo, updated)
+		);
+
+		verify(mockEvaluationDAO, never()).updateEvaluationRound(updated);
+	}
+
+	@Test
+	public void updateEvaluationRoundAfterSubmissionNoChangeStartTime() {
+		when(mockPermissionsManager.hasAccess(userInfo,EVALUATION_ID,ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(EVALUATION_ID)).thenReturn(evalWithId);
+		// round started yesterday
+		evaluationRoundStart = now.toInstant().minus(1, ChronoUnit.DAYS);
+		evaluationRound.setRoundStart(new java.sql.Timestamp(evaluationRoundStart.toEpochMilli()));
+
+		when(mockEvaluationDAO.getEvaluationRound(EVALUATION_ID, evaluationRoundId)).thenReturn(evaluationRound);
+		
+		EvaluationRound updated = new EvaluationRound();
+		updated.setId(evaluationRound.getId());
+		updated.setEtag(evaluationRound.getEtag());
+		updated.setEvaluationId(EVALUATION_ID);
+		updated.setLimits(evaluationRound.getLimits());
+		// new END time
+		updated.setRoundEnd(new Date(1000L+evaluationRound.getRoundEnd().getTime()));
+		updated.setRoundStart(new Date(evaluationRound.getRoundStart().getTime()));
+
+		// method under test
+		EvaluationRound result = evaluationManager.updateEvaluationRound(userInfo, updated);
+
+		assertEquals(evaluationRound, result);
+
+		verify(mockEvaluationDAO).updateEvaluationRound(updated);
 	}
 
 	@Test

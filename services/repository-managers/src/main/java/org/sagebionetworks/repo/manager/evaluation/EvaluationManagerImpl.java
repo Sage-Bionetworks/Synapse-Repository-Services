@@ -185,7 +185,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// fetch the existing Evaluation and validate changes		
 		Evaluation old = validateEvaluationAccess(userInfo, evalId,ACCESS_TYPE.UPDATE);
-		validateEvaluation(old, eval);
+		eval.setOwnerId(old.getOwnerId());
+		eval.setCreatedOn(old.getCreatedOn());
 
 		ValidateArgument.requirement(eval.getQuota() == null || !evaluationDAO.hasEvaluationRounds(evalId),
 				"DEPRECATED! SubmissionQuota is a DEPRECATED feature and can not co-exist with EvaluationRounds." +
@@ -233,15 +234,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		ValidateArgument.required(quota.getFirstRoundStart() , "firstRoundStart");
 	}
 
-	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
-		if (!oldEval.getOwnerId().equals(newEval.getOwnerId())) {
-			throw new InvalidModelException("Cannot overwrite Evaluation Owner ID");
-		}
-		if (!oldEval.getCreatedOn().equals(newEval.getCreatedOn())) {
-			throw new InvalidModelException("Cannot overwrite CreatedOn date");
-		}
-	}
-
 	@Override
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
 	{
@@ -276,7 +268,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		return evaluationDAO.createEvaluationRound(evaluationRound);
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public EvaluationRound updateEvaluationRound(UserInfo userInfo, EvaluationRound evaluationRound){
@@ -287,13 +279,14 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Instant now = Instant.now();
 		EvaluationRound storedRound = evaluationDAO.getEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId());
 		// verify updating start of round
-		if( !storedRound.getRoundStart().equals(evaluationRound.getRoundStart())
+		if( storedRound.getRoundStart().getTime() != evaluationRound.getRoundStart().getTime()
 				&& now.isAfter(evaluationRound.getRoundStart().toInstant())
 				&& submissionDAO.hasSubmissionForEvaluationRound(evaluationRound.getEvaluationId(), evaluationRound.getId())){
-				throw new IllegalArgumentException("Can not update an EvaluationRound's start date after it has already started and Submissions have been made");
+				throw new IllegalArgumentException(
+						"Cannot update an EvaluationRound's start date after it has already started and Submissions have been made.");
 		}
 		// verify updating end of round
-		if( !storedRound.getRoundEnd().equals(evaluationRound.getRoundEnd())
+		if( storedRound.getRoundEnd().getTime() != evaluationRound.getRoundEnd().getTime()
 				&& now.isAfter(evaluationRound.getRoundEnd().toInstant()) ){
 			throw new IllegalArgumentException("Can not update an EvaluationRound's end date to a time in the past.");
 		}
