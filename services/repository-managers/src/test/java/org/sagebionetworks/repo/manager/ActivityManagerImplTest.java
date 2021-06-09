@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -78,6 +78,15 @@ public class ActivityManagerImplTest {
 		assertNotNull(createdAct.getModifiedBy());
 		assertNotNull(createdAct.getModifiedOn());
 	}
+	
+	@Test
+	public void testCreateActivityWithAnonymousUser() throws Exception {
+		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> { 
+			activityManager.createActivity(anonymousUser, new Activity());
+		});
+		assertEquals(ex.getMessage(), "Cannot create activity with anonymous user.");
+	}
 
 	@Test
 	public void testCreateActivityFakePeople() throws Exception {
@@ -137,8 +146,8 @@ public class ActivityManagerImplTest {
 		assertTrue(actToUpdate.getDescription().equals(secondDesc));
 		assertFalse(act.getEtag().equals(actToUpdate.getEtag()));
 	}
-		
-	@Test(expected=UnauthorizedException.class)
+
+	@Test
 	public void testUpdateActivityAccessDenied() throws Exception {
 		String id = "123";
 		Activity act = newTestActivity(id);
@@ -146,8 +155,9 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy("someOtherUser");
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		
-		activityManager.updateActivity(normalUserInfo, act);
-		fail("Should throw UnathorizedException due to invalid user for update");
+		assertThrows(UnauthorizedException.class, () -> {
+			activityManager.updateActivity(normalUserInfo, act);
+		});
 	}
 
 
@@ -203,7 +213,7 @@ public class ActivityManagerImplTest {
 		verify(mockActivityDAO).delete(id.toString());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testDeleteActivityAccessDenied() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
@@ -211,9 +221,9 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy("someOtherUser");
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
-		activityManager.deleteActivity(normalUserInfo, id.toString());
-		verify(mockActivityDAO).delete(id.toString());
-		fail("Should throw UnathorizedException due to invalid user for delete");
+		assertThrows(UnauthorizedException.class, () -> {
+			activityManager.deleteActivity(normalUserInfo, id.toString());
+		});
 	}
 
 	@Test
@@ -267,15 +277,17 @@ public class ActivityManagerImplTest {
 		verify(mockActivityDAO).getEntitiesGeneratedBy(id, Integer.MAX_VALUE, 0);
 	}
 	
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetEntitiesGeneratedByNotFound() throws Exception {
 		String id = "123";
 		when(mockActivityDAO.get(anyString())).thenThrow(new NotFoundException());
 
-		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+		assertThrows(NotFoundException.class, () -> {
+			activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+		});
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetEntitiesGeneratedByUnauthorized() throws Exception {
 		String id = "123";
 		String firstDesc = "firstDesc";
@@ -286,7 +298,9 @@ public class ActivityManagerImplTest {
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationStatus.accessDenied(""));
 
-		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+		assertThrows(UnauthorizedException.class, () -> {
+			activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+		});
 	}
 
 	
