@@ -8,7 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -65,6 +68,7 @@ public class JsonSchemaDaoImplTest {
 	private NewSchemaVersionRequest newSchemaVersionRequest;
 	private BindSchemaRequest bindSchemaRequest;
 
+	private Long objectId = 123L;
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 	@BeforeEach
@@ -88,7 +92,7 @@ public class JsonSchemaDaoImplTest {
 				.withOrganizationId(organizationId).withJsonSchema(schema).withSchemaName(schemaName)
 				.withSemanticVersion(semanticVersion);
 
-		bindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId).withObjectId(123L)
+		bindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId).withObjectId(objectId)
 				.withObjectType(BoundObjectType.entity);
 
 	}
@@ -1560,5 +1564,86 @@ public class JsonSchemaDaoImplTest {
 			// call under test
 			jsonSchemaDao.clearBoundSchema(objectId, objectType);
 		});
+	}
+	
+	@Test
+	public void testGetObjectIdsBoundToSchemaIterator() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
+		
+		// Bind the schema to a first object
+		bindSchemaRequest.withSchemaId(info.getSchemaId());
+		bindSchemaRequest.withVersionId(info.getVersionId());
+		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		
+		// Bind the schema to a 2nd object
+		Long otherObjectId = objectId + 1;
+		BindSchemaRequest otherBindSchemaRequest = new BindSchemaRequest()
+				.withCreatedBy(adminUserId).withObjectId(otherObjectId)
+				.withObjectType(BoundObjectType.entity);
+		otherBindSchemaRequest.withSchemaId(info.getSchemaId());
+		otherBindSchemaRequest.withVersionId(info.getVersionId());
+		jsonSchemaDao.bindSchemaToObject(otherBindSchemaRequest);
+		
+		List<Long> expected = Arrays.asList(objectId, otherObjectId);
+		
+		// calls under test
+		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(info.getSchemaId());
+		List<Long> results = new LinkedList<>();
+		while (objectIds.hasNext()) {
+			results.add(objectIds.next());
+		}
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetObjectIdsBoundToSchemaIteratorWithNoBindings() throws JSONObjectAdapterException {
+		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator("fakeSchemaId");
+		// call under test
+		assertFalse(objectIds.hasNext());
+	}
+	
+	@Test
+	public void testGetObjectIdsBoundToSchemaIteratorWithNullSchemaId() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			jsonSchemaDao.getObjectIdsBoundToSchemaIterator(null);
+		});
+	}
+	
+	@Test
+	public void testGetNextPageForEntitiesBoundToSchema() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
+		
+		// first binding
+		bindSchemaRequest.withSchemaId(info.getSchemaId());
+		bindSchemaRequest.withVersionId(info.getVersionId());
+		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		
+		// Bind the schema to a 2nd object
+		Long secondObjectId = objectId + 1;
+		BindSchemaRequest secondbindSchemaRequest = new BindSchemaRequest()
+				.withCreatedBy(adminUserId).withObjectId(secondObjectId)
+				.withObjectType(BoundObjectType.entity);
+		secondbindSchemaRequest.withSchemaId(info.getSchemaId());
+		secondbindSchemaRequest.withVersionId(info.getVersionId());
+		jsonSchemaDao.bindSchemaToObject(secondbindSchemaRequest);
+		
+		// Bind the schema to a 3rd object
+		Long thirdObjectId = objectId + 2;
+		BindSchemaRequest thirdBindSchemaRequest = new BindSchemaRequest()
+				.withCreatedBy(adminUserId).withObjectId(thirdObjectId)
+				.withObjectType(BoundObjectType.entity);
+		thirdBindSchemaRequest.withSchemaId(info.getSchemaId());
+		thirdBindSchemaRequest.withVersionId(info.getVersionId());
+		jsonSchemaDao.bindSchemaToObject(thirdBindSchemaRequest);
+		
+		// call under test, limit of 2, offset 1, should get us the second and third object
+		Long limit = 2L;
+		Long offset = 1L;
+		List<Long> results = jsonSchemaDao.getNextPageForEntitiesBoundToSchema(info.getSchemaId(), limit, offset);
+		assertEquals(results.get(0), secondObjectId);
+		assertEquals(results.get(1), thirdObjectId);
 	}
 }

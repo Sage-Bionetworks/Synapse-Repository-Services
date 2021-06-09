@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
+import java.util.Iterator;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
@@ -146,6 +147,25 @@ public interface JsonSchemaDao {
 	 * @param objectType
 	 */
 	void clearBoundSchema(Long objectId, BoundObjectType objectType);
+	
+	/**
+	 * Get an iterator of the objectIds that have the schemaId bound to it.
+	 * @param schemaId
+	 * @return
+	 */
+	Iterator<Long> getObjectIdsBoundToSchemaIterator(String schemaId);
+
+	/**
+	 * Gets a list of the object ids bound to the given schema id, limited to the given limit,
+	 * starting at the given offset of the query. Intended to implement the pagination provider
+	 * for getting the iterator of the object ids bound to a given schema.
+	 * 
+	 * @param schemaId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset);
 
 
 }

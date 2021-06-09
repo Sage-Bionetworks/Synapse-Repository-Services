@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
@@ -57,7 +58,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class JsonSchemaWorkerIntegrationTest {
 
-	public static final long MAX_WAIT_MS = 1000 * 30;
+	public static final long MAX_WAIT_MS = 1000 * 60;
 
 	@Autowired
 	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
@@ -169,9 +170,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals("Schema $id: 'my.org.net-one' has a circular dependency", message);
 	}
 
-	public CreateSchemaResponse registerSchemaFromClasspath(String name) throws Exception {
-		String json = loadStringFromClasspath(name);
-		JsonSchema schema = EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
+	public CreateSchemaResponse registerSchema(JsonSchema schema) throws Exception {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(schema);
 		System.out.println("Creating schema: '" + schema.get$id() + "'");
@@ -180,6 +179,11 @@ public class JsonSchemaWorkerIntegrationTest {
 					assertNotNull(response);
 					System.out.println(response.getNewVersionInfo());
 				}, MAX_WAIT_MS).getResponse();
+	}
+	
+	public JsonSchema getSchemaFromClasspath(String name) throws Exception {
+		String json = loadStringFromClasspath(name);
+		return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
 	}
 
 	/**
@@ -204,7 +208,8 @@ public class JsonSchemaWorkerIntegrationTest {
 		String[] schemasToRegister = { "pets/PetType.json", "pets/Pet.json", "pets/CatBreed.json", "pets/DogBreed.json",
 				"pets/Cat.json", "pets/Dog.json", "pets/PetPhoto.json" };
 		for (String fileName : schemasToRegister) {
-			registerSchemaFromClasspath(fileName);
+			JsonSchema schema = getSchemaFromClasspath(fileName);
+			registerSchema(schema);
 		}
 
 		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("my.organization-pets.PetPhoto");
@@ -242,7 +247,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		printJson(result);
 	}
 
-	void bootstrapAndCreateOrganization() throws RecoverableMessageException {
+	void bootstrapAndCreateOrganization() throws RecoverableMessageException, InterruptedException {
 		jsonSchemaManager.truncateAll();
 		schemaBootstrap.bootstrapSynapseSchemas();
 		CreateOrganizationRequest createOrgRequest = new CreateOrganizationRequest();
@@ -284,7 +289,8 @@ public class JsonSchemaWorkerIntegrationTest {
 
 		// create the schema
 		String fileName = "schema/SimpleFolder.json";
-		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName);
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 		// bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
@@ -347,7 +353,8 @@ public class JsonSchemaWorkerIntegrationTest {
 
 		// create the schema
 		String fileName = "schema/FolderWithBoolean.json";
-		CreateSchemaResponse createResponse = registerSchemaFromClasspath(fileName);
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
 		String schema$id = createResponse.getNewVersionInfo().get$id();
 		// bind the schema to the project
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
@@ -379,6 +386,85 @@ public class JsonSchemaWorkerIntegrationTest {
 		// for the child.
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
 
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
+	@Test
+	public void testNoSemanticVersionSchemaRevalidationWithSchemaChange() throws Exception {
+		// PLFM-6757
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		
+		// create the schema with no semantic version
+		String fileName = "schema/FolderWithBoolean.json";
+		JsonSchema schema1 = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema1);
+		String schema$id1 = createResponse.getNewVersionInfo().get$id();
+		
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id1);
+		/*
+		 * Note that we prohibit notification messages being sent on the bind because
+		 * multiple messages will be sent out in this set up that will trigger validation, but
+		 * the validation triggered from this bind in particular will be delayed and can cause this test
+		 * to pass when it is not suppose to pass.
+		 */
+		boolean sendNotificationMessages = false;
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		// Add the foo annotation to the folder
+		folderJson.put("hasBoolean", "true");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		Folder resultFolder = entityManager.getEntity(adminUserInfo, folderId, Folder.class);
+		
+		// wait for the folder to be valid against the schema
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+			assertEquals(JsonSchemaManager.createAbsolute$id(schema$id1), t.getSchema$id());
+			assertEquals(resultFolder.getId(), t.getObjectId());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
+		});
+		
+		/*
+		 * Wait 5 seconds for the possibility of lingering validation work to finish up.
+		 * Note that if we comment out the solution to PLFM-6757
+		 * then this test consistently fails on timeout from the 2nd wait. In other words,
+		 * any lingering revalidation work in-progress or to-be-in-progress before this,
+		 * is unlikely to be the reason this test will pass.
+		 */
+		Thread.sleep(5000);
+		
+		// Revalidation step. Replace the schema with the same schema + an additional required field.
+		JsonSchema schema2 = getSchemaFromClasspath(fileName);
+		schema2.setRequired(Arrays.asList("requiredField"));
+		CreateSchemaResponse createResponse2 = registerSchema(schema2);
+		String schema$id2 = createResponse2.getNewVersionInfo().get$id();
+		
+		// Should be the same schema being referenced
+		assertEquals(schema$id1, schema$id2);
+		
+		// wait for the folder to be invalid against the schema
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertFalse(t.getIsValid());
+			assertEquals(JsonSchemaManager.createAbsolute$id(schema$id2), t.getSchema$id());
+			assertEquals(resultFolder.getId(), t.getObjectId());
+			assertEquals(ObjectType.entity, t.getObjectType());
+			assertEquals(resultFolder.getEtag(), t.getObjectEtag());
+		});
+		
+		// clean up
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 

@@ -447,13 +447,26 @@ public interface EntityManager {
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
 
 	/**
-	 * Bind a JSON schema to an Entity.
+	 * Bind a JSON schema to an Entity and sends a notification message to trigger revalidation
+	 * of all effected objects.
 	 * 
 	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
 	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request);
+	
+	/**
+	 * Bind a JSON schema to an Entity and has the option to send notification messages to trigger
+	 * revalidation of all effected objects.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @param sendNotificationMessage
+	 * If sendNotificationMessage is true, send notification message for revalidation, otherwise don't.
+	 * @return
+	 */
+	public JsonSchemaObjectBinding bindSchemaToEntity(UserInfo userInfo, BindSchemaToEntityRequest request, boolean sendNotificationMessage);
 
 	/**
 	 * Get metadata about a JSON schema bound to an Entity
