@@ -986,6 +986,24 @@ public class DownloadListManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateDownloadsListItemFromRowWithVersionFalse() {
+		boolean userVersion = false;
+		Row row = new Row().setRowId(123L).setVersionNumber(4L);
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
+	}
+	
+	@Test
+	public void testCreateDownloadsListItemFromRowWithVersionTrue() {
+		boolean userVersion = true;
+		Row row = new Row().setRowId(123L).setVersionNumber(4L);
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(4L), result);
+	}
+	
+	@Test
 	public void testAddQueryResultsToDownloadListWithVersionTrue() throws Exception {
 		long filesAdded = 2L;
 		// @formatter:off
