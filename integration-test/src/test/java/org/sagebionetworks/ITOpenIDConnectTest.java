@@ -343,6 +343,8 @@ public class ITOpenIDConnectTest {
 			SimpleHttpResponse response = simpleClient.post(request, requestBody);
 			assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 			assertNotNull(response.getContent());
+			assertEquals("no-store", response.getFirstHeader("Cache-Control"), response.toString());
+			assertEquals("no-cache", response.getFirstHeader("Pragma"), response.toString());
 		}
 
 		Jwt<JwsHeader, Claims> parsedIdToken = JSONWebTokenHelper.parseJWT(tokenResponse.getId_token(), jsonWebKeySet);
