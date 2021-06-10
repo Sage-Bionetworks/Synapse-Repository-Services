@@ -34,6 +34,10 @@
         {
             "name": "fileSize",
             "description": "The size of the file."
+        },
+        {
+            "name": "storageLocationId",
+            "description": "The identifier of the storage location where this file is stored."
         }
     ]
 }

@@ -17,6 +17,21 @@
 				"$ref": "org.sagebionetworks.repo.model.download.Sort"
 			}
 		},
+		"filter": {
+			"description": "Optional. Defines how the query results should be filtered. If excluded all available files will be returned.",
+			"type": "string",
+			"name": "AvailableFilter",
+			"enum": [
+				{
+					"name": "synapseStorage",
+					"description": "Return only files that are stored within Synapse Storage.  Note: Only files from Synapse storage can be packaged for download as a zip file."
+				},
+				{
+					"name": "externalStorage",
+					"description": "Return only files that are stored 'external' to Synapse storage.  Note: External files are not eligible for packaging for download as a zip file. "
+				}
+			]
+		},
 		"concreteType": {
 			"type": "string",
 			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.AvailableFilesRequest'"

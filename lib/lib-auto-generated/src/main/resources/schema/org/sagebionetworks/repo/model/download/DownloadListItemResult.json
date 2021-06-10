@@ -33,6 +33,10 @@
 		"fileSizeBytes": {
 			"description": "The size of the file in bytes.",
 			"type": "integer"
+		},
+		"storageLocationId": {
+			"type": "integer",
+			"description": "The identifier of the storage location where this file is stored."
 		}
 	}
 }

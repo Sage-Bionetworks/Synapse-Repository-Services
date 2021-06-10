@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
@@ -30,9 +31,11 @@ import java.util.stream.IntStream;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
@@ -56,7 +59,7 @@ import com.google.common.base.Objects;
 @Repository
 public class DownloadListDAOImpl implements DownloadListDAO {
 
-	private static final String ACTUAL_VERSION = "ACTUAL_VERSION";
+	public static final String ACTUAL_VERSION = "ACTUAL_VERSION";
 	public static final String PROJECT_ID = "PROJECT_ID";
 	public static final String PROJECT_NAME = "PROJECT_NAME";
 	public static final String CONTENT_SIZE = "CONTENT_SIZE";
@@ -103,6 +106,10 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		r.setProjectId(KeyFactory.keyToString(rs.getLong(PROJECT_ID)));
 		r.setProjectName(rs.getString(PROJECT_NAME));
 		r.setFileSizeBytes(rs.getLong(CONTENT_SIZE));
+		r.setStorageLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
+		if(rs.wasNull()) {
+			r.setStorageLocationId(null);
+		}
 		return r;
 	};
 	
@@ -299,7 +306,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	@WriteTransaction
 	@Override
 	public List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(EntityAccessCallback accessCallback,
-			Long userId, List<Sort> sort, Long limit, Long offset) {
+			Long userId, AvailableFilter filter, List<Sort> sort, Long limit, Long offset) {
 		/*
 		 * The first step is to create a temporary table containing all of the entity
 		 * IDs from the user's download list that the user can download.
@@ -307,6 +314,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		String tempTableName = createTemporaryTableOfAvailableFiles(accessCallback, userId, BATCH_SIZE);
 		try {
 			StringBuilder sqlBuilder = new StringBuilder(String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName));
+			sqlBuilder.append(buildAvailableFilter(filter));
 			sqlBuilder.append(buildAvailableDownloadQuerySuffix(sort, limit, offset));
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
@@ -317,6 +325,35 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		} finally {
 			dropTemporaryTable(tempTableName);
 		}
+	}
+
+	/**
+	 * Build the where clause based on the provided filter.
+	 * @param filter
+	 * @return
+	 */
+	public static String buildAvailableFilter(AvailableFilter filter) {
+		StringBuilder builder = new StringBuilder();
+		if (filter != null) {
+			builder.append(" WHERE ");
+			switch (filter) {
+			case synapseStorage:
+				builder.append(COL_FILES_STORAGE_LOCATION_ID);
+				builder.append(" IS NULL OR ");
+				builder.append(COL_FILES_STORAGE_LOCATION_ID);
+				builder.append(" = ").append(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+				break;
+			case externalStorage:
+				builder.append(COL_FILES_STORAGE_LOCATION_ID);
+				builder.append(" IS NOT NULL AND ");
+				builder.append(COL_FILES_STORAGE_LOCATION_ID);
+				builder.append(" <> ").append(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
+				break;
+			default:
+				throw new IllegalArgumentException("Unknown type: " + filter.name());
+			}
+		}
+		return builder.toString();
 	}
 
 	/**
@@ -385,6 +422,8 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return CREATED_ON;
 		case fileSize:
 			return CONTENT_SIZE;
+		case storageLocationId:
+			return COL_FILES_STORAGE_LOCATION_ID;
 		default:
 			throw new IllegalArgumentException("Unknown SortField: " + field.name());
 		}

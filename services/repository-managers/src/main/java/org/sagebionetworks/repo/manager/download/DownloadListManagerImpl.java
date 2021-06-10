@@ -196,7 +196,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		NextPageToken pageToken = new NextPageToken(availableRequest.getNextPageToken());
 
 		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
-				createAccessCallback(userInfo), userInfo.getId(), sort, pageToken.getLimitForQuery(),
+				createAccessCallback(userInfo), userInfo.getId(), availableRequest.getFilter(), sort, pageToken.getLimitForQuery(),
 				pageToken.getOffset());
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
