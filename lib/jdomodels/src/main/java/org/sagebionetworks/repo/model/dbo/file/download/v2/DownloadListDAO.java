@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
@@ -50,13 +51,14 @@ public interface DownloadListDAO {
 	 * @param accessCallback Callback used to determine which entities on the user's
 	 *                       download list that the user can download.
 	 * @param userId
+	 * @param filter
 	 * @param sort
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
 	List<DownloadListItemResult> getFilesAvailableToDownloadFromDownloadList(EntityAccessCallback accessCallback,
-			Long userId, List<Sort> sort, Long limit, Long offset);
+			Long userId, AvailableFilter filter, List<Sort> sort, Long limit, Long offset);
 
 	/**
 	 * Get the DBODownloadList for the given user.

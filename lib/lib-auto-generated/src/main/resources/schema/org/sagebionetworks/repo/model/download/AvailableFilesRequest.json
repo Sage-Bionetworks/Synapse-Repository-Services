@@ -17,6 +17,21 @@
 				"$ref": "org.sagebionetworks.repo.model.download.Sort"
 			}
 		},
+		"filter": {
+			"description": "Optional. Defines how the query results should be filtered. If excluded all available files will be returned.",
+			"type": "string",
+			"name": "AvailableFilter",
+			"enum": [
+				{
+					"name": "eligibleForPackaging",
+					"description": "Return only files that are eligible for packaging into a zip file."
+				},
+				{
+					"name": "ineligibleForPackaging",
+					"description": "Return only files that are ineligible for packaging into a zip file."
+				}
+			]
+		},
 		"concreteType": {
 			"type": "string",
 			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.AvailableFilesRequest'"

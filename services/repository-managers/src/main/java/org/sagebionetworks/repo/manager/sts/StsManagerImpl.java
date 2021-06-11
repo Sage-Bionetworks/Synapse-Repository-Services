@@ -1,22 +1,20 @@
 package org.sagebionetworks.repo.manager.sts;
 
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.amazonaws.services.securitytoken.model.Credentials;
-import com.google.common.collect.ImmutableMap;
+import java.io.StringWriter;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -32,15 +30,16 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.StringWriter;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import com.google.common.collect.ImmutableMap;
 
 @Component
 public class StsManagerImpl implements StsManager {
 	static final int DURATION_SECONDS = 12 * 60 * 60; // 12 hours
-	private static final String POLICY_TEMPLATE_FILENAME = "sts-policy-template.json";
+	private static final String POLICY_TEMPLATE_FILENAME = "sts-policy-template.json.vtp";
 
 	// The AWS IAM policy string for the actions the user is allowed to do.
 	private static final Map<StsPermission, String> PERMISSION_TO_POLICY_ACTIONS =

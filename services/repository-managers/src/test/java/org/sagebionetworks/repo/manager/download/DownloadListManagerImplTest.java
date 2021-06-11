@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
+import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -439,7 +440,45 @@ public class DownloadListManagerImplTest {
 		assertNull(response.getNextPageToken());
 		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(availableRequest.getSort()), eq(51L), eq(0L));
+				eq(null), eq(availableRequest.getSort()), eq(51L), eq(0L));
+	}
+	
+	@Test
+	public void testQueryAvailableFilesWithNullFilter() {
+		List<DownloadListItemResult> resultPage = Arrays.asList(
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn3"));
+		List<Long> ids = Arrays.asList(1L, 2L, 3L);
+		setupAvailableCallback(resultPage, ids);
+		availableRequest.setFilter(null);
+		// call under test
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
+		assertNotNull(response);
+		assertEquals(resultPage, response.getPage());
+		assertNull(response.getNextPageToken());
+		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(null), eq(availableRequest.getSort()), eq(51L), eq(0L));
+	}
+	
+	@Test
+	public void testQueryAvailableFilesWithFilter() {
+		List<DownloadListItemResult> resultPage = Arrays.asList(
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn1"),
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn2"),
+				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn3"));
+		List<Long> ids = Arrays.asList(1L, 2L, 3L);
+		setupAvailableCallback(resultPage, ids);
+		availableRequest.setFilter(AvailableFilter.eligibleForPackaging);
+		// call under test
+		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
+		assertNotNull(response);
+		assertEquals(resultPage, response.getPage());
+		assertNull(response.getNextPageToken());
+		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(AvailableFilter.eligibleForPackaging), eq(availableRequest.getSort()), eq(51L), eq(0L));
 	}
 
 	@Test
@@ -461,7 +500,7 @@ public class DownloadListManagerImplTest {
 		assertNull(response.getNextPageToken());
 		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(expectedSort), eq(51L), eq(0L));
+				eq(null), eq(expectedSort), eq(51L), eq(0L));
 	}
 
 	@Test
@@ -482,8 +521,9 @@ public class DownloadListManagerImplTest {
 		assertEquals(resultPage, response.getPage());
 		assertNull(response.getNextPageToken());
 		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
-		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(expectedSort), eq(51L), eq(0L));
+		verify(mockDownloadListDao)
+				.getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+						eq(null), eq(expectedSort), eq(51L), eq(0L));
 	}
 
 	@Test
@@ -505,7 +545,7 @@ public class DownloadListManagerImplTest {
 		assertNull(response.getNextPageToken());
 		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(expectedSort), eq(51L), eq(0L));
+				eq(null), eq(expectedSort), eq(51L), eq(0L));
 	}
 
 	@Test
@@ -534,7 +574,7 @@ public class DownloadListManagerImplTest {
 		long expectedLimit = 3L;
 		long expectedOffest = 0L;
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(availableRequest.getSort()), eq(expectedLimit), eq(expectedOffest));
+				eq(null), eq(availableRequest.getSort()), eq(expectedLimit), eq(expectedOffest));
 	}
 
 	@Test
@@ -795,7 +835,7 @@ public class DownloadListManagerImplTest {
 			EntityAccessCallback accessCallback = invocation.getArgument(0);
 			accessCallback.filter(forwardToCallback);
 			return results;
-		}).when(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any());
+		}).when(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any());
 	}
 
 	/**
@@ -983,6 +1023,24 @@ public class DownloadListManagerImplTest {
 				.setSelectedFacets(Arrays.asList(new FacetColumnRangeRequest().setColumnName("bar")))
 				.setAdditionalFilters(Arrays.asList(new ColumnSingleValueQueryFilter().setColumnName("foobar")));
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateDownloadsListItemFromRowWithVersionFalse() {
+		boolean userVersion = false;
+		Row row = new Row().setRowId(123L).setVersionNumber(4L);
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(null), result);
+	}
+	
+	@Test
+	public void testCreateDownloadsListItemFromRowWithVersionTrue() {
+		boolean userVersion = true;
+		Row row = new Row().setRowId(123L).setVersionNumber(4L);
+		// call under test
+		DownloadListItem result = manager.createDownloadsListItemFromRow(userVersion, row);
+		assertEquals(new DownloadListItem().setFileEntityId("123").setVersionNumber(4L), result);
 	}
 	
 	@Test

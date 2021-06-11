@@ -33,6 +33,10 @@
 		"fileSizeBytes": {
 			"description": "The size of the file in bytes.",
 			"type": "integer"
+		},
+		"isEligibleForPackaging": {
+			"type": "boolean",
+			"description": "Only files that are managed by Synapse storage are eligible for packaging into a zip file.  If true, then the file is eligible for packaging into a zip file."
 		}
 	}
 }

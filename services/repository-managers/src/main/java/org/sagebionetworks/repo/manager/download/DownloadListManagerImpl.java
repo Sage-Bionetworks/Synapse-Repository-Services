@@ -196,7 +196,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		NextPageToken pageToken = new NextPageToken(availableRequest.getNextPageToken());
 
 		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
-				createAccessCallback(userInfo), userInfo.getId(), sort, pageToken.getLimitForQuery(),
+				createAccessCallback(userInfo), userInfo.getId(), availableRequest.getFilter(), sort, pageToken.getLimitForQuery(),
 				pageToken.getOffset());
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
@@ -386,14 +386,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo,
 						cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
 				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream().map((Row row) -> {
-					DownloadListItem item = new DownloadListItem();
-					item.setFileEntityId(row.getRowId().toString());
-					if (useVersion) {
-						item.setVersionNumber(row.getVersionNumber());
-					} else {
-						item.setVersionNumber(null);
-					}
-					return item;
+					return createDownloadsListItemFromRow(useVersion, row);
 				}).collect(Collectors.toList());
 				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
 				totalFilesAdded += numberOfFilesAdded;
@@ -413,6 +406,24 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		} catch (DatastoreException | TableFailedException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * Helper to create a DownloadListItem from a query result row.
+	 * @param useVersion When true, the version number of the row will be used.  When false the version number will be null 
+	 * (indicating the current version).
+	 * @param row
+	 * @return
+	 */
+	DownloadListItem createDownloadsListItemFromRow(final boolean useVersion, Row row) {
+		DownloadListItem item = new DownloadListItem();
+		item.setFileEntityId(row.getRowId().toString());
+		if (useVersion) {
+			item.setVersionNumber(row.getVersionNumber());
+		} else {
+			item.setVersionNumber(null);
+		}
+		return item;
 	}
 	
 	/**

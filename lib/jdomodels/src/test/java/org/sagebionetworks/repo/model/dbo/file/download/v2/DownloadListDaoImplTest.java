@@ -11,6 +11,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.ACTUAL_VERSION;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.CREATED_BY;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.CREATED_ON;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.ENTITY_NAME;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.IS_ELIGIBLE_FOR_PACKAGING;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.PROJECT_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +41,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
@@ -41,6 +51,7 @@ import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +73,7 @@ public class DownloadListDaoImplTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
-	private DaoObjectHelper<FileHandle> fileHandleDaoHelper;
+	private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
@@ -74,7 +85,8 @@ public class DownloadListDaoImplTest {
 
 	private List<DownloadListItem> idsWithVersions;
 	private List<DownloadListItem> idsWithoutVersions;
-	private long limit; 
+	private long limit;
+	private AvailableFilter filter;
 
 	@BeforeEach
 	public void before() {
@@ -109,6 +121,7 @@ public class DownloadListDaoImplTest {
 			idsWithoutVersions.add(idWithoutVersion);
 		}
 		limit = 100L;
+		filter = null;
 	}
 
 	@AfterEach
@@ -485,7 +498,7 @@ public class DownloadListDaoImplTest {
 		List<Long> expected = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
 		assertEquals(expected, results);
 	}
-
+	
 	@Test
 	public void testGetAvailableFilesFromDownloadListWithPartialAccess() {
 		int numberOfProject = 1;
@@ -610,6 +623,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
+		expectedResult.setIsEligibleForPackaging(true);
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 
@@ -649,6 +663,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
+		expectedResult.setIsEligibleForPackaging(true);
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 
@@ -673,6 +688,7 @@ public class DownloadListDaoImplTest {
 		FileHandle fh1 = fileHandleDaoHelper.create(h -> {
 			h.setContentSize(123L);
 			h.setFileName("file.txt");
+			h.setBucketName(null);
 		});
 		Node file = nodeDaoHelper.create(n -> {
 			n.setName("f1");
@@ -700,6 +716,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fh1.getContentSize());
+		expectedResult.setIsEligibleForPackaging(false);
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 
@@ -736,6 +753,26 @@ public class DownloadListDaoImplTest {
 		List<DownloadListItemResult> twoResults = downloadListDao.getDownloadListItems(userTwoIdLong,
 				userTwoItems.toArray(new DownloadListItem[userTwoItems.size()]));
 		validateMatches(userTwoItems, twoResults);
+	}
+	
+	@Test
+	public void testGetColumnName() {
+		assertEquals(ENTITY_NAME, DownloadListDAOImpl.getColumnName(SortField.fileName));
+		assertEquals(PROJECT_NAME, DownloadListDAOImpl.getColumnName(SortField.projectName));
+		assertEquals(COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID, DownloadListDAOImpl.getColumnName(SortField.synId));
+		assertEquals(ACTUAL_VERSION, DownloadListDAOImpl.getColumnName(SortField.versionNumber));
+		assertEquals(COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON, DownloadListDAOImpl.getColumnName(SortField.addedOn));
+		assertEquals(CREATED_BY, DownloadListDAOImpl.getColumnName(SortField.createdBy));
+		assertEquals(CREATED_ON, DownloadListDAOImpl.getColumnName(SortField.createdOn));
+		assertEquals(CONTENT_SIZE, DownloadListDAOImpl.getColumnName(SortField.fileSize));
+		assertEquals(IS_ELIGIBLE_FOR_PACKAGING, DownloadListDAOImpl.getColumnName(SortField.isEligibleForPackaging));
+	}
+	
+	@Test
+	public void testGetColumnNameEachType() {
+		for(SortField field: SortField.values()) {
+			assertNotNull(DownloadListDAOImpl.getColumnName(field));
+		}
 	}
 	
 	@Test
@@ -812,6 +849,37 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
+	public void testBuildAvailableFilterWithNull() {
+		AvailableFilter filter = null;
+		// call under test
+		assertEquals("", DownloadListDAOImpl.buildAvailableFilter(filter));
+	}
+	
+	@Test
+	public void testBuildAvailableFilterWithEligible() {
+		AvailableFilter filter = AvailableFilter.eligibleForPackaging;
+		// call under test
+		assertEquals(" WHERE F.BUCKET_NAME = :bucketName", DownloadListDAOImpl.buildAvailableFilter(filter));
+	}
+	
+	@Test
+	public void testBuildAvailableFilterWithIneligible() {
+		AvailableFilter filter = AvailableFilter.ineligibleForPackaging;
+		// call under test
+		assertEquals(" WHERE F.BUCKET_NAME <> :bucketName OR F.BUCKET_NAME IS NULL", DownloadListDAOImpl.buildAvailableFilter(filter));
+	}
+	
+	
+	@Test
+	public void testBuildAvailableFilterWithEachTypel() {
+		for(AvailableFilter filter: AvailableFilter.values()) {
+			// call under test
+			String result = DownloadListDAOImpl.buildAvailableFilter(filter);
+			assertNotNull(result);
+		}
+	}
+	
+	@Test
 	public void testGetFilesAvailableToDownloadFromDownload() {
 		int numberOfProject = 2;
 		int foldersPerProject = 1;
@@ -836,7 +904,185 @@ public class DownloadListDaoImplTest {
 		Long offset = 0L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadWithSortIsEligibleForPackaging() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 0));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+
+		// Synapse bucket
+		Long contentSize = 85L;
+		String fileName = "hasSynpaseBucket";
+		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
+		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// some other bucket
+		fileName = "hasSomeOtherBucket";
+		bucketName = "some-other-bucket";
+		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// null bucket
+		fileName = "hasNullBucket";
+		bucketName = null;
+		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		List<DownloadListItem> toAdd = Arrays.asList(
+				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(0), toAdd.get(2), toAdd.get(1));
+		assertTrue(expected.get(0).getIsEligibleForPackaging());
+		assertFalse(expected.get(1).getIsEligibleForPackaging());
+		assertFalse(expected.get(2).getIsEligibleForPackaging());
+
+		filter = null;
+		List<Sort> sort = Arrays.asList(
+				new Sort().setField(SortField.isEligibleForPackaging).setDirection(SortDirection.DESC),
+				new Sort().setField(SortField.synId).setDirection(SortDirection.DESC)
+		);
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, filter, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadWithFilterEligile() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 0));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+
+		// Synapse bucket
+		Long contentSize = 85L;
+		String fileName = "hasSynpaseBucket";
+		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
+		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// some other bucket
+		fileName = "hasSomeOtherBucket";
+		bucketName = "some-other-bucket";
+		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// null bucket
+		fileName = "hasNullBucket";
+		bucketName = null;
+		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		List<DownloadListItem> toAdd = Arrays.asList(
+				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(0));
+
+		filter = AvailableFilter.eligibleForPackaging;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.DESC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, filter, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadWithFilterIneligile() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 0));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+
+		// Synapse bucket
+		Long contentSize = 85L;
+		String fileName = "hasSynpaseBucket";
+		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
+		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// some other bucket
+		fileName = "hasSomeOtherBucket";
+		bucketName = "some-other-bucket";
+		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// null bucket
+		fileName = "hasNullBucket";
+		bucketName = null;
+		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		List<DownloadListItem> toAdd = Arrays.asList(
+				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(2), toAdd.get(1));
+
+		filter = AvailableFilter.ineligibleForPackaging;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.DESC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, filter, sort, limit, offset);
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetFilesAvailableToDownloadFromDownloadWithNullFilter() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 0));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+
+		// Synapse bucket
+		Long contentSize = 85L;
+		String fileName = "hasSynpaseBucket";
+		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
+		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// some other bucket
+		fileName = "hasSomeOtherBucket";
+		bucketName = "some-other-bucket";
+		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		// null bucket
+		fileName = "hasNullBucket";
+		bucketName = null;
+		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+
+		List<DownloadListItem> toAdd = Arrays.asList(
+				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+
+		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(2), toAdd.get(1), toAdd.get(0));
+
+		filter = null;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.synId).setDirection(SortDirection.DESC));
+		Long limit = 100L;
+		Long offset = 0L;
+		// call under test
+		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected, result);
 	}
 	
@@ -869,7 +1115,7 @@ public class DownloadListDaoImplTest {
 		Long offset = 0L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> subSet,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected, result);
 	}
 	
@@ -898,7 +1144,7 @@ public class DownloadListDaoImplTest {
 		Long offset = 3L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected, result);
 	}
 	
@@ -933,7 +1179,7 @@ public class DownloadListDaoImplTest {
 		Long offset = 0L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected, result);
 	}
 	
@@ -975,7 +1221,7 @@ public class DownloadListDaoImplTest {
 		Long offset = 0L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected, result);
 	}
 	
@@ -1006,7 +1252,7 @@ public class DownloadListDaoImplTest {
 		Long offset = 0L;
 		// call under test
 		List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-				userOneIdLong, sort, limit, offset);
+				userOneIdLong, filter, sort, limit, offset);
 		assertEquals(expected.size(), result.size());
 		assertTrue(expected.containsAll(result));
 	}
@@ -1035,7 +1281,7 @@ public class DownloadListDaoImplTest {
 			Long offset = 0L;
 			// call under test
 			List<DownloadListItemResult> result = downloadListDao.getFilesAvailableToDownloadFromDownloadList(l -> l,
-					userOneIdLong, sort, limit, offset);
+					userOneIdLong, filter, sort, limit, offset);
 			assertEquals(expected.size(), result.size());
 			assertTrue(expected.containsAll(result));
 		}
@@ -1286,30 +1532,19 @@ public class DownloadListDaoImplTest {
 					n.setParentId(project.getId());
 					n.setNodeType(EntityType.folder);
 				});
+				String s3BuckentName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
 				for (int f = 0; f < filesPerFolder; f++) {
 					final int fileNumber = f;
 					final String fileName = String.join("-", "file", "" + projectNumber, "" + dirNumber,
 							"" + fileNumber);
-					FileHandle fh1 = fileHandleDaoHelper.create(h -> {
-						h.setContentSize(1L + (2L * fileNumber));
-						h.setFileName(fileName);
-					});
-					Node file = nodeDaoHelper.create(n -> {
-						n.setName(fileName);
-						n.setCreatedByPrincipalId(userOneIdLong);
-						n.setParentId(dir.getId());
-						n.setNodeType(EntityType.file);
-						n.setFileHandleId(fh1.getId());
-						n.setVersionNumber(1L);
-						n.setVersionComment("v1");
-						n.setVersionLabel("v1");
-					});
+					Long contentSize = 1L + (2L * fileNumber);
+					Node file = createFile(dir.getId(), contentSize, fileName, s3BuckentName);
 					// Create a second version for this file.
-					final String fileName2 = String.join("-", "file", "" + projectNumber, "" + dirNumber,
-							"" + fileNumber, "v2");
+					final String fileName2 = String.join("-", fileName, "v2");
 					FileHandle fh2 = fileHandleDaoHelper.create(h -> {
 						h.setContentSize(1L + (2L * fileNumber + 1));
 						h.setFileName(fileName2);
+						h.setBucketName(s3BuckentName);
 					});
 					file.setFileHandleId(fh2.getId());
 					file.setVersionComment("v2");
@@ -1322,6 +1557,34 @@ public class DownloadListDaoImplTest {
 		}
 		return results;
 	}
+
+	/**
+	 * Create a single file in the given folder.
+	 * @param folder
+	 * @param contentSize
+	 * @param fileName
+	 * @param storageLocationId
+	 * @return
+	 */
+	Node createFile(String parentId, Long contentSize, final String fileName, final String bucketName) {
+		FileHandle fh1 = fileHandleDaoHelper.create(h -> {
+			h.setContentSize(contentSize);
+			h.setFileName(fileName);
+			h.setBucketName(bucketName);
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName(fileName);
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		return file;
+	}
+
 
 	/**
 	 * Validate that the passed items match the order, ids, and version of the
