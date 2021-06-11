@@ -7,7 +7,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Service;
  *
  */
 @Service
-public class FileHandleObjectHelper implements DaoObjectHelper<FileHandle> {
+public class FileHandleObjectHelper implements DaoObjectHelper<S3FileHandle> {
 
 	FileHandleDao fileHandleDao;
 	IdGenerator idGenerator;
@@ -30,7 +29,7 @@ public class FileHandleObjectHelper implements DaoObjectHelper<FileHandle> {
 	}
 
 	@Override
-	public FileHandle create(Consumer<FileHandle> consumer) {
+	public S3FileHandle create(Consumer<S3FileHandle> consumer) {
 		Long id = this.idGenerator.generateNewId(IdType.FILE_IDS);
 		S3FileHandle fh = new S3FileHandle();
 		fh.setBucketName("some-bucket");
@@ -44,7 +43,7 @@ public class FileHandleObjectHelper implements DaoObjectHelper<FileHandle> {
 		fh.setEtag(UUID.randomUUID().toString());
 		fh.setIsPreview(false);
 		consumer.accept(fh);
-		return fileHandleDao.createFile(fh);
+		return (S3FileHandle) fileHandleDao.createFile(fh);
 	}
 
 }

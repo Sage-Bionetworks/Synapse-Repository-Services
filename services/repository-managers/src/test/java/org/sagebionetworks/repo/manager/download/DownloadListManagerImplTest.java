@@ -470,7 +470,7 @@ public class DownloadListManagerImplTest {
 				(DownloadListItemResult) new DownloadListItemResult().setFileEntityId("syn3"));
 		List<Long> ids = Arrays.asList(1L, 2L, 3L);
 		setupAvailableCallback(resultPage, ids);
-		availableRequest.setFilter(AvailableFilter.externalStorage);
+		availableRequest.setFilter(AvailableFilter.eligibleForPackaging);
 		// call under test
 		AvailableFilesResponse response = manager.queryAvailableFiles(userOne, availableRequest);
 		assertNotNull(response);
@@ -478,7 +478,7 @@ public class DownloadListManagerImplTest {
 		assertNull(response.getNextPageToken());
 		verify(mockEntityAuthorizationManager).batchHasAccess(userOne, ids, ACCESS_TYPE.DOWNLOAD);
 		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
-				eq(AvailableFilter.externalStorage), eq(availableRequest.getSort()), eq(51L), eq(0L));
+				eq(AvailableFilter.eligibleForPackaging), eq(availableRequest.getSort()), eq(51L), eq(0L));
 	}
 
 	@Test

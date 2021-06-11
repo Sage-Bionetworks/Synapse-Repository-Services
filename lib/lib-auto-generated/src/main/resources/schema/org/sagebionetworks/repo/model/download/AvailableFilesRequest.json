@@ -23,12 +23,12 @@
 			"name": "AvailableFilter",
 			"enum": [
 				{
-					"name": "synapseStorage",
-					"description": "Return only files that are stored within Synapse Storage.  Note: Only files from Synapse storage can be packaged for download as a zip file."
+					"name": "eligibleForPackaging",
+					"description": "Return only files that are eligible for packaging into a zip file."
 				},
 				{
-					"name": "externalStorage",
-					"description": "Return only files that are stored 'external' to Synapse storage.  Note: External files are not eligible for packaging for download as a zip file. "
+					"name": "ineligibleForPackaging",
+					"description": "Return only files that are ineligible for packaging into a zip file."
 				}
 			]
 		},

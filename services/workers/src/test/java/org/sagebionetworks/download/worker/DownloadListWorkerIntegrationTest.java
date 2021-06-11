@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -62,7 +63,7 @@ public class DownloadListWorkerIntegrationTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
-	private DaoObjectHelper<FileHandle> fileHandleDaoHelper;
+	private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 	@Autowired
