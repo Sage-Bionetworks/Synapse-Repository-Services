@@ -110,11 +110,11 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 		modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] { oauthClientId });
 		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, null);
 		
+		response.setHeader("Cache-Control", "no-store");
+		response.setHeader("Pragma", "no-cache");
 
 		filterChain.doFilter(modRqst, response);
 
-		response.setHeader("Cache-Control", "no-store");
-		response.setHeader("Pragma", "no-cache");
 	}
 
 }
