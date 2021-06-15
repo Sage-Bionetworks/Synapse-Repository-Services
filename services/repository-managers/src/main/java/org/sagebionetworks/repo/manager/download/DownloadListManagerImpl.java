@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
@@ -438,6 +440,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public DownloadListPackageResponse packageFiles(UserInfo userInfo, DownloadListPageRequest request) {
+		validateUser(userInfo);
+		
+		return null;
 	}
 
 }

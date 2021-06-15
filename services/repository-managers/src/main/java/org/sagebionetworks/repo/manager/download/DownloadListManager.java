@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -57,4 +59,13 @@ public interface DownloadListManager {
 	 * @return
 	 */
 	AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody);
+	
+	/**
+	 * Request to package files from a user's download list into a zip file.
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	DownloadListPackageResponse packageFiles(UserInfo user, DownloadListPageRequest request);
+	
 }
