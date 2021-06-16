@@ -238,7 +238,7 @@ public class ITOpenIDConnectTest {
 				synapseAnonymous.getUserInfoAsJSON();
 			});
 			
-			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", uex.getMessage());
+			assertEquals("Invalid access token", uex.getMessage());
 			
 			// Verify the client once again
 			client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
