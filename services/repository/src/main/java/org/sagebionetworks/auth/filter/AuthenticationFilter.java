@@ -104,9 +104,6 @@ public class AuthenticationFilter implements Filter {
 					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
 				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
-					if (StringUtils.isNotEmpty(e.getMessage())) {
-						failureReason = e.getMessage();
-					}
 					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
 					log.warn(failureReason, e);
 					return;
