@@ -1,13 +1,13 @@
-package org.sagebionetworks.file.worker;
+package org.sagebionetworks.repo.manager.file;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.zip.ZipOutputStream;
 
-import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
-import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -84,6 +84,17 @@ public interface FileHandleSupport {
 	 * @throws IOException 
 	 */
 	public void addFileToZip(ZipOutputStream zipOut, File toAdd, String entryName) throws IOException;
+	
+	/**
+	 * Packaged the requested files into a zip file and upload the file to S3 as a FileHandle.
+	 * 
+	 * @param user
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
+	public BulkFileDownloadResponse buildZip(UserInfo user,
+			BulkFileDownloadRequest request) throws IOException;
 	
 	
 }

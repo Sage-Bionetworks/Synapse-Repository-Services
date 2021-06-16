@@ -1,7 +1,8 @@
-package org.sagebionetworks.file.worker;
+package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,42 +16,40 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
+@ExtendWith(MockitoExtension.class)
 public class FileHandleSupportImplTest {
 	
-	FileHandleDao mockFileHandleDao;
-	SynapseS3Client mockS3client;
-	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
-	FileHandleManager mockFileHandleManager;
+	@Mock
+	private FileHandleDao mockFileHandleDao;
+	@Mock
+	private SynapseS3Client mockS3client;
+	@Mock
+	private FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	@Mock
+	private FileHandleManager mockFileHandleManager;
 	
-	FileHandleSupport bulkDownloadDao;
+	@InjectMocks
+	private FileHandleSupportImpl fileHandleSupport;
 	
 	
-	@Before
+	@BeforeEach
 	public void before(){
-		mockFileHandleDao = Mockito.mock(FileHandleDao.class);
-		mockS3client = Mockito.mock(SynapseS3Client.class);
-		mockFileHandleAuthorizationManager = Mockito.mock(FileHandleAuthorizationManager.class);
-		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
-		
-		bulkDownloadDao = new FileHandleSupportImpl();
-		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(bulkDownloadDao, "s3client", mockS3client);
-		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);
-		ReflectionTestUtils.setField(bulkDownloadDao, "fileHandleManager", mockFileHandleManager);
+
 	}
+	
 	
 	@Test
 	public void testZipRoundTrip() throws IOException{
@@ -65,23 +64,23 @@ public class FileHandleSupportImplTest {
 			String oneContents = "data for one";
 			String twoContents = "data for two";
 			// create one.
-			one = bulkDownloadDao.createTempFile("One", ".txt");
+			one = fileHandleSupport.createTempFile("One", ".txt");
 			oneOut = new FileOutputStream(one);
 			IOUtils.write(oneContents, oneOut);
 			oneOut.close();
 			// create two
-			two = bulkDownloadDao.createTempFile("two", ".txt");
+			two = fileHandleSupport.createTempFile("two", ".txt");
 			twoOut = new FileOutputStream(two);
 			IOUtils.write(twoContents, twoOut);
 			// The output zip
-			zip = bulkDownloadDao.createTempFile("Zip", ".zip");
-			zipOut = bulkDownloadDao.createZipOutputStream(zip);
+			zip = fileHandleSupport.createTempFile("Zip", ".zip");
+			zipOut = fileHandleSupport.createZipOutputStream(zip);
 			
 			// add the files to the zip.
 			String entryNameOne = "p1/One.txt";
-			bulkDownloadDao.addFileToZip(zipOut, one, entryNameOne);
+			fileHandleSupport.addFileToZip(zipOut, one, entryNameOne);
 			String entryNameTwo = "p2/Two.txt";
-			bulkDownloadDao.addFileToZip(zipOut, two, entryNameTwo);
+			fileHandleSupport.addFileToZip(zipOut, two, entryNameTwo);
 			zipOut.close();
 			
 			// unzip 
@@ -119,17 +118,19 @@ public class FileHandleSupportImplTest {
 		s3Handle.setId(fileHandleId);
 		
 		when(mockFileHandleDao.get(fileHandleId)).thenReturn(s3Handle);
-		S3FileHandle result = bulkDownloadDao.getS3FileHandle(fileHandleId);
+		S3FileHandle result = fileHandleSupport.getS3FileHandle(fileHandleId);
 		assertEquals(s3Handle, result);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetS3FileHandleNotS3(){
 		String fileHandleId = "123";
 		ExternalFileHandle handle = new ExternalFileHandle();
 		handle.setId(fileHandleId);
 		when(mockFileHandleDao.get(fileHandleId)).thenReturn(handle);
-		bulkDownloadDao.getS3FileHandle(fileHandleId);
+		assertThrows(IllegalArgumentException.class, ()->{
+			fileHandleSupport.getS3FileHandle(fileHandleId);
+		});
 	}
 	
 	@Test
@@ -142,7 +143,7 @@ public class FileHandleSupportImplTest {
 		
 		File result = null;
 		try{
-			result = bulkDownloadDao.downloadToTempFile(s3Handle);
+			result = fileHandleSupport.downloadToTempFile(s3Handle);
 			assertNotNull(result);
 			verify(mockS3client).getObject(any(GetObjectRequest.class), any(File.class));
 		}finally{
@@ -152,4 +153,8 @@ public class FileHandleSupportImplTest {
 		}
 	}
 	
+	@Test
+	public void test() {
+		
+	}
 }
