@@ -43,6 +43,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	private List<MediaType> supportedMedia;
 	private Set<Class <? extends JSONEntity>> classesToValidateConversion;
 	private static final String VALIDATION_ERROR = "JSON Element in Entity is Unsupported: %s";
+	private static final String LIST_ERROR = "List error on the following element: %s";
 	
 	/**
 	 * When set to true, this message converter will attempt to convert any object to JSON.
@@ -120,8 +121,17 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 						((JSONObjectAdapterImpl)value));
 			} else if (value instanceof JSONArrayAdapterImpl) {
 				for (int i = 0; i < ((JSONArrayAdapterImpl) value).length(); i++) {
-					validateJSONEntityRecursive(parsedObject.getJSONArray(key).getJSONObject(i), 
-							((JSONArrayAdapterImpl) value).getJSONObject(i));
+					Object parsedElement = parsedObject.getJSONArray(key).get(i);
+					Object originalElement = ((JSONArrayAdapterImpl) value).get(i);
+					System.out.println(originalElement.getClass());
+					if (parsedElement instanceof JSONObject && originalElement instanceof JSONObject) {
+						validateJSONEntityRecursive(new JSONObjectAdapterImpl((JSONObject) parsedElement), 
+								new JSONObjectAdapterImpl((JSONObject) originalElement));
+					} else {
+						if (!parsedElement.equals(originalElement)) {
+							throw new IllegalArgumentException(String.format(LIST_ERROR, key));
+						}
+					}
 				}
 			}
 		}

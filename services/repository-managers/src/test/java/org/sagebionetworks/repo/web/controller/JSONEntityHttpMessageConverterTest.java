@@ -18,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
@@ -378,5 +379,23 @@ public class JSONEntityHttpMessageConverterTest {
 		// call under test
 		CreateSchemaRequest result = (CreateSchemaRequest)nonValidatingConverter.read(CreateSchemaRequest.class, mockInMessage);
 		assertNotNull(result);
+	}
+	
+	@Test
+	public void testValidateJSONEntityWithRequired() throws Exception {
+		// setup
+		JsonSchema schema = new JsonSchema();
+		schema.setDescription("test description");
+		schema.setRequired(Arrays.asList("one", "two"));
+		JSONObjectAdapter schemaAdapter = new JSONObjectAdapterImpl();
+		schema.writeToJSONObject(schemaAdapter);
+		
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("concreteType", "org.sagebionetworks.repo.model.schema.CreateSchemaRequest");
+		adapter.put("schema", schemaAdapter);
+		String beforeJsonString = adapter.toJSONString();
+		CreateSchemaRequest entity = new CreateSchemaRequest(adapter);
+		// call under test
+		JSONEntityHttpMessageConverter.validateJSONEntity(entity, beforeJsonString);
 	}
 }
