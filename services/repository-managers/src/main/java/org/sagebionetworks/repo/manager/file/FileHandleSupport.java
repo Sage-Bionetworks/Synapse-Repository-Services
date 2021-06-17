@@ -2,32 +2,19 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.zip.ZipOutputStream;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 /**
  * A data access object used to support bulk file download.  This abstraction contains 
  * 
- * @author John
  *
  */
 public interface FileHandleSupport {
-	
-	/**
-	 * Given a mixed list of FileHandleAssociation determine if the user is authorized to download each file.
-	 * @see #canDownloadFile(UserInfo, List, String, FileHandleAssociateType)
-	 * @param user
-	 * @param associations
-	 * @return
-	 */
-	public List<FileHandleAssociationAuthorizationStatus> canDownLoadFile(UserInfo user, List<FileHandleAssociation> associations);
 
 	/**
 	 * Create a temporary file on the local machine.
@@ -46,18 +33,6 @@ public interface FileHandleSupport {
 	 * @throws IOException 
 	 */
 	public ZipOutputStream createZipOutputStream(File outFile) throws IOException;
-	
-	
-	/**
-	 * Multi-part upload a local file to S3.  This is used by workers.
-	 * 
-	 * @param userInfo
-	 * @param fileToUpload
-	 * @param contentType
-	 * @param listener
-	 * @return
-	 */
-	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 	
 	/**
 	 * Get the S3FileHandle for the given FileHandle.id.

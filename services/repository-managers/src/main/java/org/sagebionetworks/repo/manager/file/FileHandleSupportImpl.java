@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,7 +29,6 @@ import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
@@ -35,18 +36,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.event.ProgressEvent;
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @Service
 public class FileHandleSupportImpl implements FileHandleSupport {
 
 	static private Logger log = LogManager.getLogger(FileHandleSupportImpl.class);
 
-	private static final String ONLY_S3_FILE_HANDLES_CAN_BE_DOWNLOADED = "Only S3FileHandles can be downloaded.";
+	public static final String ONLY_S3_FILE_HANDLES_CAN_BE_DOWNLOADED = "Only S3FileHandles can be downloaded.";
 	public static final String PROCESSING_FILE_HANDLE_ID = "Processing FileHandleId :";
 	public static final String APPLICATION_ZIP = "application/zip";
 	public static final String FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT = "File exceeds the maximum size limit.";
@@ -74,18 +71,6 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.sagebionetworks.file.worker.BulkDownloadDao#canDownLoadFile(org.
-	 * sagebionetworks.repo.model.UserInfo, java.util.List)
-	 */
-	@Override
-	public List<FileHandleAssociationAuthorizationStatus> canDownLoadFile(UserInfo user,
-			List<FileHandleAssociation> associations) {
-		return fileHandleAuthorizationManager.canDownLoadFile(user, associations);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see
 	 * org.sagebionetworks.file.worker.BulkDownloadDao#createTempFile(java.lang.
 	 * String, java.lang.String)
@@ -98,19 +83,6 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	@Override
 	public ZipOutputStream createZipOutputStream(File outFile) throws IOException {
 		return new ZipOutputStream(new FileOutputStream(outFile));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.file.worker.BulkDownloadDao#multipartUploadLocalFile(org.
-	 * sagebionetworks.repo.model.UserInfo, java.io.File, java.lang.String,
-	 * com.amazonaws.event.ProgressListener)
-	 */
-	@Override
-	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
-		return fileHandleManager.uploadLocalFile(request);
 	}
 
 	/*
@@ -152,7 +124,7 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	 */
 	@Override
 	public void addFileToZip(ZipOutputStream zipOut, File toAdd, String zipEntryName) throws IOException {
-		try(InputStream in = new FileInputStream(toAdd)){
+		try (InputStream in = new FileInputStream(toAdd)) {
 			ZipEntry entry = new ZipEntry(zipEntryName);
 			zipOut.putNextEntry(entry);
 			// Write the file the zip
@@ -169,35 +141,15 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 		}
 		// The generated zip will be written to this temp file.
 		File tempResultFile = createTempFile("Job", ".zip");
-		try (ZipOutputStream zipOut = createZipOutputStream(tempResultFile)){
-			/*
-			 * The first step is to determine if the user is authorized to download each
-			 * requested file. The authorization check is normalized around the associated
-			 * object.
-			 */
-			List<FileHandleAssociationAuthorizationStatus> authResults = canDownLoadFile(user,
-					request.getRequestedFiles());
-
-			ZipEntryNameProvider zipEntryNameProvider = createZipEntryNameProvider(request.getZipFileFormat());
-			// Track the files added to the zip.
-			Set<String> fileIdsInZip = Sets.newHashSet();
-			// Build the zip
-			List<FileDownloadSummary> results = addFilesToZip(authResults, tempResultFile, zipOut, fileIdsInZip,
-					zipEntryNameProvider);
-
-			IOUtils.closeQuietly(zipOut);
-			// Is there at least one file in the zip?
+		try {
+			List<FileDownloadSummary> results = addFilesToZip(user, request, tempResultFile);
 			String resultFileHandleId = null;
-			if (fileIdsInZip.size() > 0) {
+			if (tempResultFile.length() > 0) {
 				// upload the result file to S3
-				S3FileHandle resultHandle = multipartUploadLocalFile(
-						new LocalFileUploadRequest().withFileName(request.getZipFileName())
+				S3FileHandle resultHandle = fileHandleManager
+						.uploadLocalFile(new LocalFileUploadRequest().withFileName(request.getZipFileName())
 								.withUserId(user.getId().toString()).withFileToUpload(tempResultFile)
-								.withContentType(APPLICATION_ZIP).withListener(new ProgressListener() {
-									@Override
-									public void progressChanged(ProgressEvent progressEvent) {
-									}
-								}));
+								.withContentType(APPLICATION_ZIP));
 				resultFileHandleId = resultHandle.getId();
 			}
 
@@ -222,46 +174,53 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	 * @param authResults
 	 * @param tempResultFile
 	 * @param zipOut
+	 * @throws IOException
 	 */
-	List<FileDownloadSummary> addFilesToZip(List<FileHandleAssociationAuthorizationStatus> authResults,
-			File tempResultFile, ZipOutputStream zipOut, Set<String> fileIdsInZip,
-			ZipEntryNameProvider zipEntryNameProvider) {
-		// This will be the final summary of results..
-		List<FileDownloadSummary> fileSummaries = Lists.newLinkedList();
-		// process each request in order.
-		for (FileHandleAssociationAuthorizationStatus fhas : authResults) {
-			String fileHandleId = fhas.getAssociation().getFileHandleId();
-			FileDownloadSummary summary = new FileDownloadSummary();
-			summary.setFileHandleId(fileHandleId);
-			summary.setAssociateObjectId(fhas.getAssociation().getAssociateObjectId());
-			summary.setAssociateObjectType(fhas.getAssociation().getAssociateObjectType());
-			fileSummaries.add(summary);
-			try {
-				String zipEntryName = writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip,
-						zipEntryNameProvider);
-				// download this file from S3
-				fileIdsInZip.add(fileHandleId);
-				summary.setStatus(FileDownloadStatus.SUCCESS);
-				summary.setZipEntryName(zipEntryName);
-			} catch (BulkFileException e) {
-				// known error conditions.
-				summary.setStatus(FileDownloadStatus.FAILURE);
-				summary.setFailureMessage(e.getMessage());
-				summary.setFailureCode(e.getFailureCode());
-			} catch (NotFoundException e) {
-				// file did not exist
-				summary.setStatus(FileDownloadStatus.FAILURE);
-				summary.setFailureMessage(e.getMessage());
-				summary.setFailureCode(FileDownloadCode.NOT_FOUND);
-			} catch (Exception e) {
-				// all unknown errors.
-				summary.setStatus(FileDownloadStatus.FAILURE);
-				summary.setFailureMessage(e.getMessage());
-				summary.setFailureCode(FileDownloadCode.UNKNOWN_ERROR);
-				log.error("Failed on: " + fhas.getAssociation(), e);
+	List<FileDownloadSummary> addFilesToZip(UserInfo user, BulkFileDownloadRequest request, File tempResultFile) throws IOException {
+
+		try (ZipOutputStream zipOut = createZipOutputStream(tempResultFile)) {
+			List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager
+					.canDownLoadFile(user, request.getRequestedFiles());
+			ZipEntryNameProvider zipEntryNameProvider = createZipEntryNameProvider(request.getZipFileFormat());
+			Set<String> fileIdsInZip = new HashSet<>(authResults.size());
+			// This will be the final summary of results..
+			List<FileDownloadSummary> fileSummaries = new ArrayList<>(authResults.size());
+			// process each request in order.
+			for (FileHandleAssociationAuthorizationStatus fhas : authResults) {
+				String fileHandleId = fhas.getAssociation().getFileHandleId();
+				FileDownloadSummary summary = new FileDownloadSummary();
+				summary.setFileHandleId(fileHandleId);
+				summary.setAssociateObjectId(fhas.getAssociation().getAssociateObjectId());
+				summary.setAssociateObjectType(fhas.getAssociation().getAssociateObjectType());
+				fileSummaries.add(summary);
+				try {
+					String zipEntryName = writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip,
+							zipEntryNameProvider);
+					// download this file from S3
+					fileIdsInZip.add(fileHandleId);
+					summary.setStatus(FileDownloadStatus.SUCCESS);
+					summary.setZipEntryName(zipEntryName);
+				} catch (BulkFileException e) {
+					// known error conditions.
+					summary.setStatus(FileDownloadStatus.FAILURE);
+					summary.setFailureMessage(e.getMessage());
+					summary.setFailureCode(e.getFailureCode());
+				} catch (NotFoundException e) {
+					// file did not exist
+					summary.setStatus(FileDownloadStatus.FAILURE);
+					summary.setFailureMessage(e.getMessage());
+					summary.setFailureCode(FileDownloadCode.NOT_FOUND);
+				} catch (Exception e) {
+					// all unknown errors.
+					summary.setStatus(FileDownloadStatus.FAILURE);
+					summary.setFailureMessage(e.getMessage());
+					summary.setFailureCode(FileDownloadCode.UNKNOWN_ERROR);
+					log.error("Failed on: " + fhas.getAssociation(), e);
+				}
 			}
+			return fileSummaries;
 		}
-		return fileSummaries;
+
 	}
 
 	/**
@@ -274,9 +233,8 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	 * @throws IOException
 	 * @return The zip entry name used for this file.
 	 */
-	String writeOneFileToZip(ZipOutputStream zipOut, long zipFileSize,
-			FileHandleAssociationAuthorizationStatus fhas, Set<String> fileIdsInZip,
-			ZipEntryNameProvider zipEntryNameProvider) throws IOException {
+	String writeOneFileToZip(ZipOutputStream zipOut, long zipFileSize, FileHandleAssociationAuthorizationStatus fhas,
+			Set<String> fileIdsInZip, ZipEntryNameProvider zipEntryNameProvider) throws IOException {
 		String fileHandleId = fhas.getAssociation().getFileHandleId();
 		// Is the user authorized to download this file?
 		if (!fhas.getStatus().isAuthorized()) {
@@ -310,7 +268,7 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 		}
 	}
 
-	private void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
+	void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
 
 		List<StatisticsFileEvent> downloadEvents = results.stream()
 				// Only collects stats for successful summaries
