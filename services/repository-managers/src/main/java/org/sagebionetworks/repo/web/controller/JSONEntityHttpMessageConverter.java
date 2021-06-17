@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -43,6 +45,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	private List<MediaType> supportedMedia;
 	private Set<Class <? extends JSONEntity>> classesToValidateConversion;
 	private static final String VALIDATION_ERROR = "JSON Element in Entity is Unsupported: %s";
+	private static final String MISSING_ELEMENT_ERROR = "Missing element in child array of %s element on conversion";
 	
 	/**
 	 * When set to true, this message converter will attempt to convert any object to JSON.
@@ -109,20 +112,52 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		validateJSONEntityRecursive(parsedObject, originalObject);
 	}
 	
-	private static void validateJSONEntityRecursive(JSONObjectAdapter parsedObject, 
+	public static void validateJSONEntityRecursive(JSONObjectAdapter parsedObject, 
 			JSONObjectAdapter originalObject) throws JSONObjectAdapterException {
+		// throws an IllegalArgumentException if the parsedObject is missing a key that
+		// the original object has.
 		for (String key : originalObject.keySet()) {
-			Object value = originalObject.get(key);
+			Object object = originalObject.get(key);
 			if (!parsedObject.has(key)) {
+				// element is missing, therefore unsupported
 				throw new IllegalArgumentException(String.format(VALIDATION_ERROR, key));
-			} else if (value instanceof JSONObjectAdapterImpl) {
-				validateJSONEntityRecursive(parsedObject.getJSONObject(key), 
-						((JSONObjectAdapterImpl)value));
-			} else if (value instanceof JSONArrayAdapterImpl) {
-				for (int i = 0; i < ((JSONArrayAdapterImpl) value).length(); i++) {
-					validateJSONEntityRecursive(parsedObject.getJSONArray(key).getJSONObject(i), 
-							((JSONArrayAdapterImpl) value).getJSONObject(i));
-				}
+			} else if (object instanceof JSONObjectAdapterImpl) {
+				// JSON object, so we recurse
+				JSONObjectAdapter objectAdapter = (JSONObjectAdapterImpl) object;
+				JSONObjectAdapter parsedObjectAdapter = parsedObject.getJSONObject(key);
+				validateJSONEntityRecursive(parsedObjectAdapter, objectAdapter);
+			} else if (object instanceof JSONArrayAdapterImpl) {
+				// if array object, recursively handle it
+				JSONArrayAdapter originalArray = (JSONArrayAdapterImpl) object;
+				JSONArrayAdapter parsedArray = parsedObject.getJSONArray(key);
+				validateJSONArrayRecursive(parsedArray, originalArray, key);
+			}
+		}
+	}
+	
+	public static void validateJSONArrayRecursive(JSONArrayAdapter parsedArray, 
+			JSONArrayAdapter originalArray, String key) throws JSONObjectAdapterException {
+		/*
+		 * NOTE: we pass in the key as well to indicate the closest parent key of an invalid array
+		 * conversion (throws exception on unequal array sizes). this is because we can have a key 
+		 * mapping to an array of arrays of arrays, in which the embedded arrays do not have an 
+		 * immediate key mapping that we can report. So we should report the closest parent key.
+		 */
+		if (originalArray.length() != parsedArray.length()) {
+			throw new IllegalArgumentException(String.format(MISSING_ELEMENT_ERROR, key));
+		}
+		for (int i = 0; i < originalArray.length(); i++) {
+			// get each element, and recurse accordingly if they are JSONObject or JSONArray
+			Object parsedElement = parsedArray.get(i);
+			Object originalElement = originalArray.get(i);
+			if (parsedElement instanceof JSONObject && originalElement instanceof JSONObject) {
+				JSONObjectAdapter originalObjectElement = new JSONObjectAdapterImpl((JSONObject) originalElement);
+				JSONObjectAdapter parsedObjectElement = new JSONObjectAdapterImpl((JSONObject) parsedElement);
+				validateJSONEntityRecursive(parsedObjectElement, originalObjectElement);
+			} else if (parsedElement instanceof JSONArray && originalElement instanceof JSONArray) {
+				JSONArrayAdapter nextParsedArray = new JSONArrayAdapterImpl((JSONArray) parsedElement);
+				JSONArrayAdapter nextOriginalArray = new JSONArrayAdapterImpl((JSONArray) originalElement);
+				validateJSONArrayRecursive(nextParsedArray, nextOriginalArray, key);
 			}
 		}
 	}
