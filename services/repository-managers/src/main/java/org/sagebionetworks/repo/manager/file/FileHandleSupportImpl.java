@@ -144,7 +144,8 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 		try {
 			List<FileDownloadSummary> results = addFilesToZip(user, request, tempResultFile);
 			String resultFileHandleId = null;
-			if (tempResultFile.length() > 0) {
+			// must have at least one file.
+			if (results.stream().filter(f-> FileDownloadStatus.SUCCESS.equals(f.getStatus())).findFirst().isPresent()) {
 				// upload the result file to S3
 				S3FileHandle resultHandle = fileHandleManager
 						.uploadLocalFile(new LocalFileUploadRequest().withFileName(request.getZipFileName())
@@ -269,7 +270,6 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	}
 
 	void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
-
 		List<StatisticsFileEvent> downloadEvents = results.stream()
 				// Only collects stats for successful summaries
 				.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
@@ -280,7 +280,6 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 		if (!downloadEvents.isEmpty()) {
 			statisticsCollector.collectEvents(downloadEvents);
 		}
-
 	}
 
 	/**

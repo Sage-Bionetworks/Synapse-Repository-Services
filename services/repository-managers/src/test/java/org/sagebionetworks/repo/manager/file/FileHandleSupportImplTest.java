@@ -5,11 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.FILE_ALREADY_ADDED;
+import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT;
+import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE;
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.FileEntity;
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableEntity;
 
@@ -36,15 +43,20 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
@@ -52,7 +64,6 @@ import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.api.client.googleapis.media.MediaHttpDownloader.DownloadState;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,10 +81,16 @@ public class FileHandleSupportImplTest {
 	private File mockTempFile;
 	@Mock
 	private ZipOutputStream mockZipOut;
+	@Mock
+	private ZipEntryNameProvider mockZipEntryNameProvider;
+	@Mock
+	private EventsCollector mockStatisticsCollector;
 	@Captor
 	private ArgumentCaptor<Set<String>> filesInZipCaptor;
 	@Captor
 	private ArgumentCaptor<ZipEntryNameProvider> zipEntryNameProviderCaptor;
+	@Captor
+	private ArgumentCaptor<List<StatisticsFileEvent>> statisticsFileEventCaptor;
 
 	@Spy
 	@InjectMocks
@@ -101,11 +118,11 @@ public class FileHandleSupportImplTest {
 				new FileHandleAssociationAuthorizationStatus(associations.get(1), AuthorizationStatus.accessDenied("no"))
 		);
 		summaryResults =  Arrays.asList(
-				new FileDownloadSummary().setFileHandleId("11"),
-				new FileDownloadSummary().setFileHandleId("22")
+				new FileDownloadSummary().setFileHandleId("11").setStatus(FileDownloadStatus.SUCCESS),
+				new FileDownloadSummary().setFileHandleId("22").setStatus(FileDownloadStatus.SUCCESS)
 		);
 		// @formatter:on
-		resultFileHandle = new S3FileHandle().setBucketName("prod.bucket").setKey("some-key").setId("3333");
+		resultFileHandle = new S3FileHandle().setBucketName("prod.bucket").setKey("some-key").setId("3333").setContentSize(9999L);
 
 		request = new BulkFileDownloadRequest().setZipFileFormat(ZipFileFormat.Flat).setZipFileName("My.zip")
 				.setRequestedFiles(associations);
@@ -217,7 +234,7 @@ public class FileHandleSupportImplTest {
 	public void testBuildZip() throws IOException {
 		doReturn(mockTempFile).when(fileHandleSupportSpy).createTempFile(any(), any());
 		doReturn(summaryResults).when(fileHandleSupportSpy).addFilesToZip(any(), any(), any());
-		when(mockTempFile.length()).thenReturn(1L);
+		doNothing().when(fileHandleSupportSpy).collectDownloadStatistics(any(), any());
 		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(resultFileHandle);
 
 		// call under test
@@ -231,15 +248,20 @@ public class FileHandleSupportImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandleSupportImpl.APPLICATION_ZIP));
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
 	@Test
-	public void testBuildZipWithEmptyFile() throws IOException {
+	public void testBuildZipWithNoSuccess() throws IOException {
 		doReturn(mockTempFile).when(fileHandleSupportSpy).createTempFile(any(), any());
+		
+		summaryResults =  Arrays.asList(
+				new FileDownloadSummary().setFileHandleId("11").setStatus(FileDownloadStatus.FAILURE),
+				new FileDownloadSummary().setFileHandleId("22").setStatus(FileDownloadStatus.FAILURE)
+		);
+		
 		doReturn(summaryResults).when(fileHandleSupportSpy).addFilesToZip(any(), any(), any());
-		// no data in the file
-		when(mockTempFile.length()).thenReturn(0L);
 
 		// call under test
 		BulkFileDownloadResponse response = fileHandleSupportSpy.buildZip(userInfo, request);
@@ -249,6 +271,7 @@ public class FileHandleSupportImplTest {
 		assertEquals(expected, response);
 		verify(fileHandleSupportSpy).createTempFile("Job", ".zip");
 		verify(fileHandleSupportSpy).addFilesToZip(userInfo, request, mockTempFile);
+		// the zip is empty so it should not get uploaded
 		verify(mockFileHandleManager, never()).uploadLocalFile(any());
 		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), summaryResults);
 		verify(mockTempFile).delete();
@@ -274,7 +297,7 @@ public class FileHandleSupportImplTest {
 
 		doReturn(mockTempFile).when(fileHandleSupportSpy).createTempFile(any(), any());
 		doReturn(summaryResults).when(fileHandleSupportSpy).addFilesToZip(any(), any(), any());
-		when(mockTempFile.length()).thenReturn(1L);
+		doNothing().when(fileHandleSupportSpy).collectDownloadStatistics(any(), any());
 		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(resultFileHandle);
 
 		// call under test
@@ -288,6 +311,7 @@ public class FileHandleSupportImplTest {
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
 				.withFileToUpload(mockTempFile).withContentType(FileHandleSupportImpl.APPLICATION_ZIP));
+		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
 
@@ -420,5 +444,218 @@ public class FileHandleSupportImplTest {
 		return new FileDownloadSummary().setAssociateObjectId(association.getAssociateObjectId())
 				.setAssociateObjectType(association.getAssociateObjectType())
 				.setFileHandleId(association.getFileHandleId());
+	}
+	
+	@Test
+	public void testWriteOneFileToZip() throws IOException {
+		doReturn(resultFileHandle).when(fileHandleSupportSpy).getS3FileHandle(any());
+		doReturn(mockTempFile).when(fileHandleSupportSpy).downloadToTempFile(any());
+		doNothing().when(fileHandleSupportSpy).addFileToZip(any(), any(), any());
+		long zipFileSize = 100L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Collections.emptySet();
+		String entryName = "anEntry.txt";
+		when(mockZipEntryNameProvider.createZipEntryName(any(), any())).thenReturn(entryName);
+
+		// call under test
+		String filename = fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		
+		assertEquals(entryName, filename);
+		verify(fileHandleSupportSpy).getS3FileHandle(fhas.getAssociation().getFileHandleId());
+		verify(fileHandleSupportSpy).downloadToTempFile(resultFileHandle);
+		verify(fileHandleSupportSpy).addFileToZip(mockZipOut, mockTempFile, entryName);
+		verify(mockZipEntryNameProvider).createZipEntryName(resultFileHandle.getFileName(), Long.parseLong(resultFileHandle.getId()));
+		verify(mockTempFile).delete();
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithUnauthorized() throws IOException {
+		long zipFileSize = 100L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.accessDenied("nope"));
+		Set<String> fileIdsInZip = Collections.emptySet();
+
+		BulkFileException exception = assertThrows(BulkFileException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		});
+		assertEquals(FileDownloadCode.UNAUTHORIZED, exception.getFailureCode());
+		assertEquals("nope", exception.getMessage());
+		
+		verify(fileHandleSupportSpy, never()).getS3FileHandle(any());
+		verify(fileHandleSupportSpy, never()).downloadToTempFile(any());
+		verify(fileHandleSupportSpy, never()).addFileToZip(any(), any(), any());
+		verify(mockZipEntryNameProvider, never()).createZipEntryName(any(), any());
+		verifyNoMoreInteractions(mockTempFile);
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithFileAreadyInZip() throws IOException {
+		long zipFileSize = 100L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Sets.newHashSet(fhas.getAssociation().getFileHandleId());
+
+		BulkFileException exception = assertThrows(BulkFileException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		});
+		assertEquals(FileDownloadCode.DUPLICATE, exception.getFailureCode());
+		assertEquals(FILE_ALREADY_ADDED, exception.getMessage());
+		
+		verify(fileHandleSupportSpy, never()).getS3FileHandle(any());
+		verify(fileHandleSupportSpy, never()).downloadToTempFile(any());
+		verify(fileHandleSupportSpy, never()).addFileToZip(any(), any(), any());
+		verify(mockZipEntryNameProvider, never()).createZipEntryName(any(), any());
+		verifyNoMoreInteractions(mockTempFile);
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithZipAtMaxSize() throws IOException {
+		doReturn(resultFileHandle).when(fileHandleSupportSpy).getS3FileHandle(any());
+		doReturn(mockTempFile).when(fileHandleSupportSpy).downloadToTempFile(any());
+		doNothing().when(fileHandleSupportSpy).addFileToZip(any(), any(), any());
+		long zipFileSize = FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Collections.emptySet();
+		String entryName = "anEntry.txt";
+		when(mockZipEntryNameProvider.createZipEntryName(any(), any())).thenReturn(entryName);
+
+		// call under test
+		String filename = fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		
+		assertEquals(entryName, filename);
+		verify(fileHandleSupportSpy).getS3FileHandle(fhas.getAssociation().getFileHandleId());
+		verify(fileHandleSupportSpy).downloadToTempFile(resultFileHandle);
+		verify(fileHandleSupportSpy).addFileToZip(mockZipOut, mockTempFile, entryName);
+		verify(mockZipEntryNameProvider).createZipEntryName(resultFileHandle.getFileName(), Long.parseLong(resultFileHandle.getId()));
+		verify(mockTempFile).delete();
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithZipOverMaxSize() throws IOException {
+		long zipFileSize = FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Collections.emptySet();
+
+		BulkFileException exception = assertThrows(BulkFileException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		});
+		assertEquals(FileDownloadCode.EXCEEDS_SIZE_LIMIT, exception.getFailureCode());
+		assertEquals(RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE, exception.getMessage());
+		
+		verify(fileHandleSupportSpy, never()).getS3FileHandle(any());
+		verify(fileHandleSupportSpy, never()).downloadToTempFile(any());
+		verify(fileHandleSupportSpy, never()).addFileToZip(any(), any(), any());
+		verify(mockZipEntryNameProvider, never()).createZipEntryName(any(), any());
+		verifyNoMoreInteractions(mockTempFile);
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithFileAtMaxSize() throws IOException {
+		resultFileHandle.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES);
+		doReturn(resultFileHandle).when(fileHandleSupportSpy).getS3FileHandle(any());
+		doReturn(mockTempFile).when(fileHandleSupportSpy).downloadToTempFile(any());
+		doNothing().when(fileHandleSupportSpy).addFileToZip(any(), any(), any());
+		long zipFileSize = 100L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Collections.emptySet();
+		String entryName = "anEntry.txt";
+		when(mockZipEntryNameProvider.createZipEntryName(any(), any())).thenReturn(entryName);
+
+		// call under test
+		String filename = fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		
+		assertEquals(entryName, filename);
+		verify(fileHandleSupportSpy).getS3FileHandle(fhas.getAssociation().getFileHandleId());
+		verify(fileHandleSupportSpy).downloadToTempFile(resultFileHandle);
+		verify(fileHandleSupportSpy).addFileToZip(mockZipOut, mockTempFile, entryName);
+		verify(mockZipEntryNameProvider).createZipEntryName(resultFileHandle.getFileName(), Long.parseLong(resultFileHandle.getId()));
+		verify(mockTempFile).delete();
+	}
+	
+	@Test
+	public void testWriteOneFileToZipWithFileOverMaxSize() throws IOException {
+		resultFileHandle.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
+		doReturn(resultFileHandle).when(fileHandleSupportSpy).getS3FileHandle(any());
+		long zipFileSize = 100L;
+		FileHandleAssociationAuthorizationStatus fhas = new FileHandleAssociationAuthorizationStatus(
+				associations.get(0), AuthorizationStatus.authorized());
+		Set<String> fileIdsInZip = Collections.emptySet();
+
+		BulkFileException exception = assertThrows(BulkFileException.class, ()->{
+			// call under test
+			fileHandleSupportSpy.writeOneFileToZip(mockZipOut, zipFileSize, fhas, fileIdsInZip, mockZipEntryNameProvider);
+		});
+		assertEquals(FileDownloadCode.EXCEEDS_SIZE_LIMIT, exception.getFailureCode());
+		assertEquals(FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT, exception.getMessage());
+		
+		verify(fileHandleSupportSpy).getS3FileHandle(fhas.getAssociation().getFileHandleId());
+		verify(fileHandleSupportSpy, never()).downloadToTempFile(any());
+		verify(fileHandleSupportSpy, never()).addFileToZip(any(), any(), any());
+		verify(mockZipEntryNameProvider, never()).createZipEntryName(any(), any());
+		verifyNoMoreInteractions(mockTempFile);
+	}
+
+	@Test
+	public void testCollectDownloadStatistics() {
+		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.SUCCESS);
+		summaryResults = Arrays.asList(summary);
+		
+		// call under test
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
+		
+		verify(mockStatisticsCollector).collectEvents(statisticsFileEventCaptor.capture());
+		List<StatisticsFileEvent> value = statisticsFileEventCaptor.getValue();
+		assertNotNull(value);
+		assertEquals(1, value.size());
+		StatisticsFileEvent event = value.get(0);
+		assertNotNull(event.getTimestamp());
+		assertEquals(summary.getAssociateObjectId(), event.getAssociationId());
+		assertEquals(summary.getAssociateObjectType(), event.getAssociationType());
+		assertEquals(summary.getFileHandleId(), event.getFileHandleId());
+	}
+	
+	@Test
+	public void testCollectDownloadStatisticsWithFailed() {
+		FileDownloadSummary summary = new FileDownloadSummary().setFileHandleId("11").setAssociateObjectId("syn123")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setStatus(FileDownloadStatus.FAILURE);
+		summaryResults = Arrays.asList(summary);
+		
+		// call under test
+		fileHandleSupportSpy.collectDownloadStatistics(userInfo.getId(), summaryResults);
+		
+		verify(mockStatisticsCollector, never()).collectEvents(any());
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderCommandLine() {
+		ZipFileFormat format = ZipFileFormat.CommandLineCache;
+		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
+	}
+
+	@Test
+	public void testCreateZipEntryNameProviderFlat() {
+		ZipFileFormat format = ZipFileFormat.Flat;
+		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof FlatZipEntryNameProvider);
+	}
+
+	@Test
+	public void testCreateZipEntryNameProviderDefault() {
+		// when null the default should be used.
+		ZipFileFormat format = null;
+		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
 	}
 }
