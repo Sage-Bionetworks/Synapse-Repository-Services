@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.auth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -12,8 +13,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 
@@ -43,7 +44,7 @@ public class JSONWebTokenHelperTest {
 		return Base64.getUrlEncoder().encodeToString(i.toByteArray());
 	}
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		/*
 		 * This is a (valid, though NOT production) RSA key that can be used to sign tokens.
@@ -123,16 +124,23 @@ public class JSONWebTokenHelperTest {
 	}
 
 	@Test
+	public void testParseJWT_invalidJWT() {
+		String token = "my.invalid.token";
+
+		assertThrows(IllegalArgumentException.class, ()-> 
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
+		);
+
+	}
+
+	@Test
 	public void testParseJWT_inCompleteToken() {
 		// should be three sections, separated by two periods
 		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), "foo.bar");
 
-		try {
-			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		assertThrows(IllegalArgumentException.class, ()-> 
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
+		);
 
 	}
 
@@ -141,12 +149,9 @@ public class JSONWebTokenHelperTest {
 		// should be three sections, separated by two periods
 		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), "foo.bar.baz");
 
-		try {
-			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		assertThrows(IllegalArgumentException.class, ()->
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
+				);
 
 	}
 
@@ -154,12 +159,9 @@ public class JSONWebTokenHelperTest {
 	public void testParseJWT_expired() {
 		String token = createSignedToken(new Date(System.currentTimeMillis()-100000L), KEY_ID);
 
-		try {
-			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
-			fail("IllegalArgumentException expected");
-		} catch (ExpiredJwtException e) {
-			// as expected
-		}
+		assertThrows(IllegalArgumentException.class, ()->
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
+		);
 
 	}
 
@@ -167,12 +169,9 @@ public class JSONWebTokenHelperTest {
 	public void testParseJWT_badKeyId() {
 		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), "bad key ID");
 
-		try {
-			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		assertThrows(IllegalArgumentException.class, ()->
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
+		);
 
 	}
 

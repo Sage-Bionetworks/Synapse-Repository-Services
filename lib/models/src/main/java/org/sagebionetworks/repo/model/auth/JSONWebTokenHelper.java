@@ -20,6 +20,7 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 
 public class JSONWebTokenHelper {
@@ -31,7 +32,11 @@ public class JSONWebTokenHelper {
 		if (pieces.length!=3) throw new IllegalArgumentException("Expected three sections of the token but found "+pieces.length);
 		String unsignedToken = pieces[0]+"."+pieces[1]+".";
 		// Expiration time is checked by the parser
-		return Jwts.parser().parseClaimsJwt(unsignedToken);		
+		try {
+			return Jwts.parser().parseClaimsJwt(unsignedToken);
+		} catch (JwtException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 	
 	/**
@@ -95,11 +100,7 @@ public class JSONWebTokenHelper {
 	}
 	
 	public static String getSubjectFromJWTAccessToken(String accessToken) {
-		try {
-			return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
-		} catch (JwtException e) {
-			throw new IllegalArgumentException(e);
-		}
+		return getUnsignedJWTFromToken(accessToken).getBody().getSubject();
 	}
 
 
