@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.auth;
 
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import com.google.common.collect.ImmutableList;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
