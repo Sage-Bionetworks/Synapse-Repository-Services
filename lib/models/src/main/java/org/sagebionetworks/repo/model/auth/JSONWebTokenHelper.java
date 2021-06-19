@@ -12,9 +12,12 @@ import java.util.Base64;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.repo.web.OAuthErrorCode;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.util.ValidateArgument;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
@@ -34,6 +37,8 @@ public class JSONWebTokenHelper {
 		// Expiration time is checked by the parser
 		try {
 			return Jwts.parser().parseClaimsJwt(unsignedToken);
+		} catch (ExpiredJwtException e) {
+			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
 		} catch (JwtException e) {
 			throw new IllegalArgumentException(e);
 		}
