@@ -72,6 +72,7 @@
     <import resource="classpath:file-scanner-spb.xml" />
     <import resource="classpath:download-list-query-worker-spb.xml" />
     <import resource="classpath:download-list-add-worker-spb.xml" />
+    <import resource="classpath:download-list-package-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -131,6 +132,7 @@
 		<ref bean="fileHandleStreamWorkerTrigger" />
 		<ref bean="downloadListQueryTrigger" />
 		<ref bean="downloadListAddTrigger" />
+		<ref bean="downloadListPackageTrigger" />
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 	</util:list>
 

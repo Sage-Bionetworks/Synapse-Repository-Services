@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
+import org.sagebionetworks.repo.manager.file.FileHandleSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -30,10 +34,11 @@ import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
+import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
-import org.sagebionetworks.repo.model.download.DownloadListPageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
@@ -46,6 +51,11 @@ import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.file.FileConstants;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -69,7 +79,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
-
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
@@ -81,9 +90,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * The maximum number of file that can be added/removed in a single batch.
 	 */
 	public static int MAX_FILES_PER_BATCH = 1000;
-	
+
 	public static final long MAX_QUERY_PAGE_SIZE = 10_000L;
-	
+
 	/**
 	 * The maximum number of files that a user can have on their download list.
 	 */
@@ -92,14 +101,16 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
+	private FileHandleSupport fileHandleSupport;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager) {
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, FileHandleSupport fileHandleSupport) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
 		this.tableQueryManager = tableQueryManager;
+		this.fileHandleSupport = fileHandleSupport;
 	}
 
 	@WriteTransaction
@@ -198,8 +209,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		NextPageToken pageToken = new NextPageToken(availableRequest.getNextPageToken());
 
 		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
-				createAccessCallback(userInfo), userInfo.getId(), availableRequest.getFilter(), sort, pageToken.getLimitForQuery(),
-				pageToken.getOffset());
+				createAccessCallback(userInfo), userInfo.getId(), availableRequest.getFilter(), sort,
+				pageToken.getLimitForQuery(), pageToken.getOffset());
 
 		return new AvailableFilesResponse().setNextPageToken(pageToken.getNextPageTokenForCurrentResults(page))
 				.setPage(page);
@@ -321,7 +332,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	@WriteTransaction
 	@Override
-	public AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody) {
+	public AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo,
+			AddToDownloadListRequest requestBody) {
 		validateUser(userInfo);
 		ValidateArgument.required(requestBody, "requestBody");
 		if (requestBody.getParentId() != null && requestBody.getQuery() != null) {
@@ -329,13 +341,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 		boolean useVersionNumber = requestBody.getUseVersionNumber() == null ? DEFAULT_USE_VERSION
 				: requestBody.getUseVersionNumber();
-		long usersDownloadListCapacity = MAX_FILES_PER_USER - downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
+		long usersDownloadListCapacity = MAX_FILES_PER_USER
+				- downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
 		if (usersDownloadListCapacity < 1) {
 			throw new IllegalArgumentException(
 					String.format(YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES, MAX_FILES_PER_USER));
 		}
 		if (requestBody.getQuery() != null) {
-			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), useVersionNumber, MAX_QUERY_PAGE_SIZE, usersDownloadListCapacity);
+			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), useVersionNumber,
+					MAX_QUERY_PAGE_SIZE, usersDownloadListCapacity);
 		} else if (requestBody.getParentId() != null) {
 			return addToDownloadList(userInfo, requestBody.getParentId(), useVersionNumber, usersDownloadListCapacity);
 		} else {
@@ -412,8 +426,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	/**
 	 * Helper to create a DownloadListItem from a query result row.
-	 * @param useVersion When true, the version number of the row will be used.  When false the version number will be null 
-	 * (indicating the current version).
+	 * 
+	 * @param useVersion When true, the version number of the row will be used. When
+	 *                   false the version number will be null (indicating the
+	 *                   current version).
 	 * @param row
 	 * @return
 	 */
@@ -427,9 +443,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 		return item;
 	}
-	
+
 	/**
 	 * Create a deep copy of the given query.
+	 * 
 	 * @param query
 	 * @return
 	 */
@@ -442,11 +459,54 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 	}
 
+	@WriteTransaction
 	@Override
-	public DownloadListPackageResponse packageFiles(UserInfo userInfo, DownloadListPageRequest request) {
+	public DownloadListPackageResponse packageFiles(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListPackageRequest requestBody) throws IOException {
 		validateUser(userInfo);
+		AvailableFilter filter = AvailableFilter.eligibleForPackaging;
+		// smallest files are added first
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC));
+		long limit = MAX_QUERY_PAGE_SIZE;
+		long offset = 0L;
+
+		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
+				createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset);
+
+		List<DownloadListItem> toDelete = new ArrayList<>(page.size());
+		List<FileHandleAssociation> associations = new ArrayList<>(page.size());
+		Set<String> addedFileHandleIds = new HashSet<>(page.size());
+		long size = 0L;
+		for (DownloadListItemResult item : page) {
+			if (size + item.getFileSizeBytes() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
+				break;
+			}
+			if (addedFileHandleIds.add(item.getFileEntityId())) {
+				size += item.getFileSizeBytes();
+				associations.add(new FileHandleAssociation().setAssociateObjectId(item.getFileEntityId())
+						.setAssociateObjectType(FileHandleAssociateType.FileEntity)
+						.setFileHandleId(item.getFileHandleId()));
+			}
+			toDelete.add(item);
+		}
+
+		if (associations.isEmpty()) {
+			throw new IllegalArgumentException("No files are eligible for packaging.");
+		}
+
+		// build the package zip file.
+		// @formatter:off
+		String zipFileHandleId = fileHandleSupport.buildZip(userInfo,
+						new BulkFileDownloadRequest()
+						.setRequestedFiles(associations)
+						.setZipFileName(requestBody.getZipFileName())
+						.setZipFileFormat(ZipFileFormat.Flat))
+				.getResultZipFileHandleId();
+		// @formatter:on
 		
-		return null;
+		// remove these files from the download list
+		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), toDelete);
+		return new DownloadListPackageResponse().setResultFileHandleId(zipFileHandleId);
 	}
 
 }

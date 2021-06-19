@@ -624,6 +624,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
 		expectedResult.setIsEligibleForPackaging(true);
+		expectedResult.setFileHandleId(fileHandle.getId());
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 
@@ -664,6 +665,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fileHandle.getContentSize());
 		expectedResult.setIsEligibleForPackaging(true);
+		expectedResult.setFileHandleId(fileHandle.getId());
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 
@@ -717,6 +719,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fh1.getContentSize());
 		expectedResult.setIsEligibleForPackaging(false);
+		expectedResult.setFileHandleId(fh1.getId());
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
 

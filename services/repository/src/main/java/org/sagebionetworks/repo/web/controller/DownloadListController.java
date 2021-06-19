@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -229,9 +231,10 @@ public class DownloadListController {
 				asyncToken);
 		return (DownloadListQueryResponse) jobStatus.getResponseBody();
 	}
-	
+
 	/**
-	 * Start an asynchronous job to add files to a user's download list from either a view query or a folder.
+	 * Start an asynchronous job to add files to a user's download list from either
+	 * a view query or a folder.
 	 * 
 	 * 
 	 * Use <a href="${GET.download.list.add.async.get.asyncToken}">GET
@@ -245,43 +248,104 @@ public class DownloadListController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	@RequiredScope({view,modify})
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AddToDownloadListRequest request)
-			throws DatastoreException, NotFoundException, IOException {
+			@RequestBody AddToDownloadListRequest request) throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
 	}
-	
+
 	/**
-	 * Get the results of an asynchronous job to add files to a user's download list started with: <a
-	 * href="${POST.download.list.add.async.start}">POST /download/list/add/async/start</a>
+	 * Get the results of an asynchronous job to add files to a user's download list
+	 * started with: <a href="${POST.download.list.add.async.start}">POST
+	 * /download/list/add/async/start</a>
 	 * 
 	 * <p>
-	 * Note: When the result is not ready yet, this method will return a status
-	 * code of 202 (ACCEPTED) and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
 	 * >AsynchronousJobStatus</a> object.
 	 * </p>
+	 * 
 	 * @param userId
 	 * @param asyncToken
 	 * @return
 	 * @throws Throwable
 	 */
-	@RequiredScope({view})
+	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody AddToDownloadListResponse getAddFileToDownloadListResults(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String asyncToken) throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider
-				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
-						asyncToken);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
 		return (AddToDownloadListResponse) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Start an asynchronous job to create a zip package of files from a user's
+	 * download list. After files are added to the a zip package they will be
+	 * removed from the user's download list. Note: Only files that are eligible for
+	 * packaging will be included.
+	 * 
+	 * <p>
+	 * Use <a href="${GET.download.list.add.async.get.asyncToken}">GET
+	 * /download/list/package/async/get/{asyncToken}</a> to get both the job status
+	 * and job results.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({ view, modify, download })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_PACKAGE_START_ASYNCH, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startDownloadPackageList(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadListPackageRequest request) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of an asynchronous job to package files from a user's
+	 * download list started with:
+	 * <a href="${POST.download.list.add.async.start}">POST
+	 * /download/list/package/async/start</a>.  The response includes a fileHandleId,
+	 * that can be used to download the resulting zip file.
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_PACKAGE_ASYNCH, method = RequestMethod.GET)
+	public @ResponseBody DownloadListPackageResponse getDownloadListPackageResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
+		return (DownloadListPackageResponse) jobStatus.getResponseBody();
 	}
 }

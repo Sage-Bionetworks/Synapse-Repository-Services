@@ -1,6 +1,6 @@
 {
 	"description": "Request to package files from a user's download list.",
-	"iplements": [
+	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
 		}

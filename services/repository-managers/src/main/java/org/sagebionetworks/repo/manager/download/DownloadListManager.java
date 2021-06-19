@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.io.IOException;
+
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -59,13 +62,17 @@ public interface DownloadListManager {
 	 * @return
 	 */
 	AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody);
-	
+
 	/**
 	 * Request to package files from a user's download list into a zip file.
-	 * @param user
-	 * @param request
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param requestBody
 	 * @return
+	 * @throws IOException 
 	 */
-	DownloadListPackageResponse packageFiles(UserInfo user, DownloadListPageRequest request);
+	DownloadListPackageResponse packageFiles(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListPackageRequest requestBody) throws IOException;
+
 	
 }
