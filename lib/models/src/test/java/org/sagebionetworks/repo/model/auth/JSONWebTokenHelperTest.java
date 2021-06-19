@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -158,7 +159,7 @@ public class JSONWebTokenHelperTest {
 	public void testParseJWT_expired() {
 		String token = createSignedToken(new Date(System.currentTimeMillis()-100000L), KEY_ID);
 
-		assertThrows(IllegalArgumentException.class, ()->
+		assertThrows(OAuthUnauthenticatedException.class, ()->
 			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet)
 		);
 
