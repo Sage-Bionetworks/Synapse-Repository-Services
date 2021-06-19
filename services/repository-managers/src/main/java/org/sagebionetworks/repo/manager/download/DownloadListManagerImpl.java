@@ -79,6 +79,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+	public static final String NO_FILES_ARE_ELIGIBLE_FOR_PACKAGING = "No files are eligible for packaging.";
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
 	public static final String BATCH_SIZE_EXCEEDS_LIMIT_TEMPLATE = "Batch size of '%s' exceeds the maximum of '%s'";
@@ -483,15 +484,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			}
 			if (addedFileHandleIds.add(item.getFileEntityId())) {
 				size += item.getFileSizeBytes();
-				associations.add(new FileHandleAssociation().setAssociateObjectId(item.getFileEntityId())
-						.setAssociateObjectType(FileHandleAssociateType.FileEntity)
-						.setFileHandleId(item.getFileHandleId()));
+				associations.add(createAssociationForItem(item));
 			}
 			toDelete.add(item);
 		}
 
 		if (associations.isEmpty()) {
-			throw new IllegalArgumentException("No files are eligible for packaging.");
+			throw new IllegalArgumentException(NO_FILES_ARE_ELIGIBLE_FOR_PACKAGING);
 		}
 
 		// build the package zip file.
@@ -507,6 +506,17 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		// remove these files from the download list
 		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), toDelete);
 		return new DownloadListPackageResponse().setResultFileHandleId(zipFileHandleId);
+	}
+	
+	/**
+	 * Create a FileHandleAssociation from the given DownloadListItemResult.
+	 * 
+	 * @param item
+	 * @return
+	 */
+	public static FileHandleAssociation createAssociationForItem(DownloadListItemResult item) {
+		return new FileHandleAssociation().setAssociateObjectId(item.getFileEntityId())
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setFileHandleId(item.getFileHandleId());
 	}
 
 }
