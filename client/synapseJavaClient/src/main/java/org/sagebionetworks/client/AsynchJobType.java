@@ -4,8 +4,9 @@ package org.sagebionetworks.client;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
 import static org.sagebionetworks.client.SynapseClientImpl.DOI;
-import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
+import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_PACKAGE;
+import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.SCHEMA_TYPE_CREATE;
 import static org.sagebionetworks.client.SynapseClientImpl.SCHEMA_TYPE_VALIDATION;
@@ -22,6 +23,14 @@ import static org.sagebionetworks.client.SynapseClientImpl.VIEW_COLUMNS;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+/**
+ * Maps job types to the URL prefix needed for each type.
+ * 
+ * @author John
+ *
+ */
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
@@ -38,13 +47,6 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
-import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
-/**
- * Maps job types to the URL prefix needed for each type.
- * 
- * @author John
- *
- */
 public enum AsynchJobType {
 	
 	TableAppendRowSet(TABLE_APPEND, RowReferenceSetResults.class, RestEndpointType.repo),
@@ -62,7 +64,8 @@ public enum AsynchJobType {
 	GetValidationSchema(SCHEMA_TYPE_VALIDATION, GetValidationSchemaResponse.class, RestEndpointType.repo),
 	ViewColumnModelRequest(VIEW_COLUMNS, ViewColumnModelResponse.class, RestEndpointType.repo),
 	QueryDownloadList(DOWNLOAD_LIST_QUERY, DownloadListQueryResponse.class, RestEndpointType.repo),
-	AddToDownloadList(DOWNLOAD_LIST_ADD, AddToDownloadListResponse.class, RestEndpointType.repo);
+	AddToDownloadList(DOWNLOAD_LIST_ADD, AddToDownloadListResponse.class, RestEndpointType.repo),
+	DownloadPackageList(DOWNLOAD_LIST_PACKAGE, DownloadListPackageResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
