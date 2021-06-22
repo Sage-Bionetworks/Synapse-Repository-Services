@@ -39,9 +39,9 @@ import org.springframework.stereotype.Service;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
 @Service
-public class FileHandleSupportImpl implements FileHandleSupport {
+public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 
-	static private Logger log = LogManager.getLogger(FileHandleSupportImpl.class);
+	static private Logger log = LogManager.getLogger(FileHandlePackageManagerImpl.class);
 
 	public static final String ONLY_S3_FILE_HANDLES_CAN_BE_DOWNLOADED = "Only S3FileHandles can be downloaded.";
 	public static final String PROCESSING_FILE_HANDLE_ID = "Processing FileHandleId :";
@@ -57,7 +57,7 @@ public class FileHandleSupportImpl implements FileHandleSupport {
 	private EventsCollector statisticsCollector;
 
 	@Autowired
-	public FileHandleSupportImpl(FileHandleDao fileHandleDao, SynapseS3Client s3client,
+	public FileHandlePackageManagerImpl(FileHandleDao fileHandleDao, SynapseS3Client s3client,
 			FileHandleAuthorizationManager fileHandleAuthorizationManager, FileHandleManager fileHandleManager,
 			EventsCollector statisticsCollector) {
 		super();

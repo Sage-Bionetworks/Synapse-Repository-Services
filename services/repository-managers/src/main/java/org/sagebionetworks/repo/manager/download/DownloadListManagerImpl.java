@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
-import org.sagebionetworks.repo.manager.file.FileHandleSupport;
+import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -102,11 +102,11 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
-	private FileHandleSupport fileHandleSupport;
+	private FileHandlePackageManager fileHandleSupport;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, FileHandleSupport fileHandleSupport) {
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, FileHandlePackageManager fileHandleSupport) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;

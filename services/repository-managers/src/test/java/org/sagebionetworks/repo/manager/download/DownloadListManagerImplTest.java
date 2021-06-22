@@ -39,7 +39,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
-import org.sagebionetworks.repo.manager.file.FileHandleSupport;
+import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -115,7 +115,7 @@ public class DownloadListManagerImplTest {
 	@Mock
 	private ProgressCallback mockProgressCallback;
 	@Mock
-	private FileHandleSupport mockFileHandleSupport;
+	private FileHandlePackageManager mockFileHandleSupport;
 
 	@InjectMocks
 	private DownloadListManagerImpl manager;
