@@ -126,6 +126,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -3937,6 +3939,24 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseResultNotReadyException
 	 */
 	DownloadListQueryResponse getDownloadListQueryResult(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Start an asynchronous job to package files from the user's download list a zip.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startDownloadListPackage(DownloadListPackageRequest request) throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to package files from the user's download list a zip. 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	DownloadListPackageResponse getADownloadListPackageResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
 
 }

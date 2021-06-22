@@ -1,0 +1,14 @@
+{
+	"description": "Request to package files from a user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"zipFileName": {
+			"description": "Optional parameter to set the name of the resulting zip file.",
+			"type": "string"
+		}
+	}
+}

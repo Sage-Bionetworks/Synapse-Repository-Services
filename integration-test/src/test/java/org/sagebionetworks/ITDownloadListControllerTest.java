@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -20,6 +21,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -31,6 +33,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
@@ -174,7 +178,7 @@ public class ITDownloadListControllerTest {
 				.setNumberOfFilesAdded(1L);
 		assertEquals(expectedAddResponse, addResponse);
 
-		// all under test
+		// call under test
 		synapse.clearUsersDownloadList();
 		
 		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest()
@@ -234,6 +238,23 @@ public class ITDownloadListControllerTest {
 			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
 			assertEquals(1L, response.getNumberOfFilesAdded());
 		}, MAX_WAIT_MS, MAX_RETIES).getResponse();
+	}
+	
+	@Test
+	public void testDownloadListPackage() throws Exception {
+		synapse.clearUsersDownloadList();
+		
+		DownloadListPackageRequest request = new DownloadListPackageRequest();
+		
+		String message = assertThrows(SynapseBadRequestException.class, ()->{
+			// call under test
+			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.DownloadPackageList, request, body -> {
+				assertTrue(body instanceof DownloadListPackageResponse);
+				DownloadListPackageResponse response = (DownloadListPackageResponse) body;
+
+			}, MAX_WAIT_MS, MAX_RETIES).getResponse();
+		}).getMessage();
+		assertEquals("No files are eligible for packaging.", message);
 	}
 
 	/**

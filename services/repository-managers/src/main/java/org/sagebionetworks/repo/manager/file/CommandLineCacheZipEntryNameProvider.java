@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.worker;
+package org.sagebionetworks.repo.manager.file;
 
 /**
  * Creates zip entry names using: {fileHandleId modulo 1000}

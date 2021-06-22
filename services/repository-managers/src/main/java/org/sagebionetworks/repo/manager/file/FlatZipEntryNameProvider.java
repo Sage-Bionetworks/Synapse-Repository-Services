@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.worker;
+package org.sagebionetworks.repo.manager.file;
 
 import java.util.HashMap;
 import java.util.Map;

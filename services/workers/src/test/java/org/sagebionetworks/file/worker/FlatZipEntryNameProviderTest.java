@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.file.FlatZipEntryNameProvider;
 
 public class FlatZipEntryNameProviderTest {
 
