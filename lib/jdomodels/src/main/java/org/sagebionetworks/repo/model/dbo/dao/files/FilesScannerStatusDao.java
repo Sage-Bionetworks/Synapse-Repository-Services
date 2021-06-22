@@ -34,7 +34,7 @@ public interface FilesScannerStatusDao {
 	 * @param id
 	 * @return The updated status
 	 */
-	DBOFilesScannerStatus increaseJobCompletedCount(long id, int scannedAssociations);
+	DBOFilesScannerStatus increaseJobCompletedCount(long id, int scannedAssociations, int relinkedCount);
 	
 	/**
 	 * Sets the number of jobs started for the job with the given id
