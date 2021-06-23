@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -250,7 +250,7 @@ public class AdministrationController {
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AsyncMigrationRequest body) throws NotFoundException {
+			@RequestBody AsynchronousAdminRequestBody body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	

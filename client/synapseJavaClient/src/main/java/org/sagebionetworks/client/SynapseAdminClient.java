@@ -4,6 +4,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -190,7 +191,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public AsynchronousJobStatus startAdminAsynchronousJob(AsyncMigrationRequest migReq)
+	public AsynchronousJobStatus startAdminAsynchronousJob(AsynchronousAdminRequestBody migReq)
 			throws SynapseException;
 
 	/**

@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -17,7 +18,6 @@ import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -289,12 +289,11 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public AsynchronousJobStatus startAdminAsynchronousJob(
-			AsyncMigrationRequest migReq) throws SynapseException {
-		if (migReq == null)
+	public AsynchronousJobStatus startAdminAsynchronousJob(AsynchronousAdminRequestBody adminRequest) throws SynapseException {
+		if (adminRequest == null)
 			throw new IllegalArgumentException("JobBody cannot be null");
 		String url = ADMIN_ASYNCHRONOUS_JOB;
-		return postJSONEntity(getRepoEndpoint(), url, migReq,
+		return postJSONEntity(getRepoEndpoint(), url, adminRequest,
 				AsynchronousJobStatus.class);
 	}
 
