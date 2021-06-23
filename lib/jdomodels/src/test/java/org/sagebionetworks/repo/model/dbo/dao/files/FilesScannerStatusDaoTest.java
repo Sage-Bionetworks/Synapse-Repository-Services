@@ -39,6 +39,7 @@ public class FilesScannerStatusDaoTest {
 		expected.setJobsStartedCount(0L);
 		expected.setJobsCompletedCount(0L);
 		expected.setScannedAssociationsCount(0L);
+		expected.setRelinkedFilesCount(0L);
 		
 		// Call under test
 		DBOFilesScannerStatus result = dao.create();
@@ -131,6 +132,7 @@ public class FilesScannerStatusDaoTest {
 	@Test
 	public void testIncreaseCompletedJobsCount() throws InterruptedException {
 		int scannedAssociationsCount = 1000;
+		int relinkedFilesCount = 0;
 		
 		DBOFilesScannerStatus expected = dao.create();
 		
@@ -138,13 +140,38 @@ public class FilesScannerStatusDaoTest {
 		Thread.sleep(1000);
 		
 		// Call under test
-		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
-		result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount);
+		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount, relinkedFilesCount);
+		result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount, relinkedFilesCount);
 		
 		assertTrue(result.getUpdatedOn().isAfter(expected.getUpdatedOn()));
 		
 		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 2);
 		expected.setScannedAssociationsCount(Long.valueOf(scannedAssociationsCount * 2));
+		expected.setRelinkedFilesCount(0L);
+		expected.setUpdatedOn(result.getUpdatedOn());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testIncreaseCompletedJobsCountWithRelinked() throws InterruptedException {
+		int scannedAssociationsCount = 1000;
+		int relinkedFilesCount = 10;
+		
+		DBOFilesScannerStatus expected = dao.create();
+		
+		// The update resolution is 1 second
+		Thread.sleep(1000);
+		
+		// Call under test
+		DBOFilesScannerStatus result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount, relinkedFilesCount);
+		result = dao.increaseJobCompletedCount(expected.getId(), scannedAssociationsCount, relinkedFilesCount);
+		
+		assertTrue(result.getUpdatedOn().isAfter(expected.getUpdatedOn()));
+		
+		expected.setJobsCompletedCount(expected.getJobsCompletedCount() + 2);
+		expected.setScannedAssociationsCount(Long.valueOf(scannedAssociationsCount * 2));
+		expected.setRelinkedFilesCount(Long.valueOf(relinkedFilesCount * 2));
 		expected.setUpdatedOn(result.getUpdatedOn());
 		
 		assertEquals(expected, result);
@@ -181,7 +208,7 @@ public class FilesScannerStatusDaoTest {
 		
 		String errorMessage = assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			dao.increaseJobCompletedCount(123L, 1000);			
+			dao.increaseJobCompletedCount(123L, 1000, 0);		
 		}).getMessage();
 		
 		assertEquals("Could not find a job with id 123", errorMessage);
