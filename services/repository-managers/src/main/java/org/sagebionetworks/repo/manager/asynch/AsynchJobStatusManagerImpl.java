@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -74,7 +75,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	 */
 	@Override
 	public AsynchronousJobStatus lookupJobStatus(String jobId)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// Get the status
 		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
 		
@@ -89,7 +90,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 	
 	@Override
-	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the status
 		AsynchronousJobStatus status = lookupJobStatus(jobId);
@@ -101,7 +102,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
-	public void cancelJob(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
+	public void cancelJob(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		if (userInfo == null)
 			throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the status
@@ -114,7 +115,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
-	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		if(body instanceof CacheableRequestBody){
@@ -155,8 +156,9 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	 * @param body
 	 * @param userId
 	 * @return
+	 * @throws JSONObjectAdapterException 
 	 */
-	private AsynchronousJobStatus findJobsMatching(String requestHash, AsynchronousRequestBody body, Long userId){
+	private AsynchronousJobStatus findJobsMatching(String requestHash, AsynchronousRequestBody body, Long userId) throws JSONObjectAdapterException{
 		// Find all jobs that match this request.
 		List<AsynchronousJobStatus> matches = asynchJobStatusDao.findCompletedJobStatus(requestHash, userId);
 		if (matches != null) {
@@ -206,7 +208,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@WriteTransaction
 	@Override
 	public void setComplete(String jobId, AsynchronousResponseBody body)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, JSONObjectAdapterException {
 		/*
 		 *  For a cacheable requests we need to calculate a request hash.
 		 *  This hash can be used to find jobs that already match an existing request.
