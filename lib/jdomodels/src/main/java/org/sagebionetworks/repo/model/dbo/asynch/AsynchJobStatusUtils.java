@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * Utils for translating DBOAsynchJobStatus to/from AsynchronousJobStatus
@@ -22,24 +24,22 @@ public class AsynchJobStatusUtils {
 	 * Create a DTO from a DBO
 	 * @param dbo
 	 * @return
+	 * @throws JSONObjectAdapterException
 	 */
-	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo){
+	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo) throws JSONObjectAdapterException {
 		// Read in the compressed data
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
-		try {
-			// The compressed body contains the truth data for all type specific data.
-			AsynchronousRequestBody asynchronousRequestBody = (AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getRequestXStream(), dbo.getRequestBody());
-			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
-			dto.setRequestBody(asynchronousRequestBody);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		if(dbo.getResponseBody() != null){
-			try {
-				dto.setResponseBody((AsynchronousResponseBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getResponseXStream(), dbo.getResponseBody()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+		// set the asynch request body
+		AsynchronousRequestBody asynchronousRequestBody = 
+				EntityFactory.createEntityFromJSONString(dbo.getRequestBody(), AsynchronousRequestBody.class);
+		asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
+		dto.setRequestBody(asynchronousRequestBody);
+		// set the asynch response body
+		if (dbo.getResponseBody() != null) {
+			AsynchronousResponseBody asynchronousResponseBody = 
+					EntityFactory.createEntityFromJSONString(dbo.getResponseBody(), AsynchronousResponseBody.class);
+			asynchronousResponseBody.setConcreteType(asynchronousResponseBody.getClass().getName());
+			dto.setResponseBody(asynchronousResponseBody);
 		}
 		// The database contains the truth data for all generic data.
 		dto.setChangedOn(new Date(dbo.getChangedOn()));
@@ -63,8 +63,9 @@ public class AsynchJobStatusUtils {
 	 * Create DBO from a DTO
 	 * @param dto
 	 * @return
+	 * @throws JSONObjectAdapterException 
 	 */
-	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto){
+	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto) throws JSONObjectAdapterException{
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
 		AsynchronousRequestBody requestBody = dto.getRequestBody();
@@ -85,14 +86,11 @@ public class AsynchJobStatusUtils {
 		dbo.setStartedByUserId(dto.getStartedByUserId());
 		dbo.setStartedOn(dto.getStartedOn().getTime());
 		dbo.setRuntimeMS(dto.getRuntimeMS());
-		// Compress the body
-		try {
-			dbo.setRequestBody(JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getRequestXStream(), requestBody));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		if(dto.getResponseBody() != null){
-			dbo.setResponseBody(getBytesForResponseBody(type, dto.getResponseBody()));
+		// set the request body
+		dbo.setRequestBody(EntityFactory.createJSONStringForEntity(requestBody));
+		// set the response body
+		if (dto.getResponseBody() != null) {
+			dbo.setResponseBody(EntityFactory.createJSONStringForEntity(dto.getResponseBody()));
 		}
 		return dbo;
 	}

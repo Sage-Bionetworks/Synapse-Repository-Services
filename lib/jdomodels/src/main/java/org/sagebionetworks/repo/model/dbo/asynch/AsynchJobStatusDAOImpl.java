@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -79,7 +81,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 
 	@Override
-	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		if(jobId == null){
 			throw new IllegalArgumentException("Job id cannot be null");
 		}
@@ -102,10 +104,11 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	/**
 	 * This is set to Propagation.REQUIRES_NEW because the transaction
 	 * must be committed before a message is sent to the worker.
+	 * @throws JSONObjectAdapterException 
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws JSONObjectAdapterException {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -167,7 +170,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	@WriteTransaction
 	@Override
 	public long setComplete(String jobId, AsynchronousResponseBody body,
-			String requestHash) throws DatastoreException, NotFoundException {
+			String requestHash) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
@@ -185,7 +188,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		dbo.setErrorMessage(null);
 		dbo.setJobState(JobState.COMPLETE);
 		dbo.setProgressCurrent(dbo.getProgressTotal());
-		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(AsynchJobType.valueOf(dbo.getJobType()), body));
+		dbo.setResponseBody(EntityFactory.createJSONStringForEntity(body));
 		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
 		return runtimeMS;
@@ -196,7 +199,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 * @see org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO#findCompletedJobStatus(java.lang.String, java.lang.String, java.lang.Long)
 	 */
 	@Override
-	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) {
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) throws JSONObjectAdapterException {
 		if(requestHash == null){
 			throw new IllegalArgumentException("requestHash cannot be null");
 		}

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Basic abstraction for the status of Asynchronous jobs.
@@ -22,8 +23,9 @@ public interface AsynchronousJobStatusDAO {
 	 * @param requestHash For jobs that are cacheable a hash of the job body + object etag will be included.
 	 * This hash can then be used to find existing jobs with the same hash.
 	 * @return
+	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body) throws JSONObjectAdapterException;
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -32,8 +34,9 @@ public interface AsynchronousJobStatusDAO {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException;
+	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
 	
 	/**
 	 * Update the progress of a job.
@@ -72,8 +75,9 @@ public interface AsynchronousJobStatusDAO {
 	 * @return runtime MS.
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
+	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
 
 	
 	/**
@@ -89,8 +93,9 @@ public interface AsynchronousJobStatusDAO {
 	 * @return A list of all AsynchronousJobStatus with the given request hash and userId.  Will return an empty list if there are no matches.
 	 * 
 	 * Note: This method will never return more than five results.
+	 * @throws JSONObjectAdapterException 
 	 */
-	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId);
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) throws JSONObjectAdapterException;
 	
 
 }

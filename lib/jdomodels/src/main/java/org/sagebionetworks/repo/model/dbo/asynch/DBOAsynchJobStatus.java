@@ -87,8 +87,8 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	private Long startedOn;
 	private Long startedByUserId;
 	private Long changedOn;
-	private byte[] requestBody;
-	private byte[] responseBody;
+	private String requestBody;
+	private String responseBody;
 	private Long runtimeMS;
 	private String requestHash;
 
@@ -204,19 +204,19 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.changedOn = now;
 	}
 
-	public byte[] getRequestBody() {
+	public String getRequestBody() {
 		return requestBody;
 	}
 
-	public void setRequestBody(byte[] requestBody) {
+	public void setRequestBody(String requestBody) {
 		this.requestBody = requestBody;
 	}
 
-	public byte[] getResponseBody() {
+	public String getResponseBody() {
 		return responseBody;
 	}
 
-	public void setResponseBody(byte[] responseBody) {
+	public void setResponseBody(String responseBody) {
 		this.responseBody = responseBody;
 	}
 
@@ -282,13 +282,12 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			dbo.setStartedOn(rs.getLong(COL_ASYNCH_JOB_STARTED_ON));
 			dbo.setStartedByUserId(rs.getLong(COL_ASYNCH_JOB_STARTED_BY));
 			dbo.setChangedOn(rs.getLong(COL_ASYNCH_JOB_CHANGED_ON));
-			Blob request = rs.getBlob(COL_ASYNCH_JOB_REQUEST_BODY);
-			dbo.setRequestBody(request.getBytes(1, (int)request.length()));
-			Blob response = rs.getBlob(COL_ASYNCH_JOB_RESPONSE_BODY);
+			dbo.setRequestBody(rs.getString(COL_ASYNCH_JOB_REQUEST_BODY));
+			String responseBody = rs.getString(COL_ASYNCH_JOB_RESPONSE_BODY);
 			if (rs.wasNull()) {
 				dbo.setResponseBody(null);
 			} else {
-				dbo.setResponseBody(response.getBytes(1, (int)response.length()));
+				dbo.setResponseBody(responseBody);
 			}
 			dbo.setRuntimeMS(rs.getLong(COL_ASYNCH_JOB_RUNTIME_MS));
 			dbo.setRequestHash(rs.getString(COL_ASYNCH_JOB_REQUEST_HASH));
@@ -335,9 +334,9 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		result = prime * result + ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
 		result = prime * result + ((progressMessage == null) ? 0 : progressMessage.hashCode());
 		result = prime * result + ((progressTotal == null) ? 0 : progressTotal.hashCode());
-		result = prime * result + Arrays.hashCode(requestBody);
+		result = prime * result + ((requestBody == null) ? 0 : requestBody.hashCode());
 		result = prime * result + ((requestHash == null) ? 0 : requestHash.hashCode());
-		result = prime * result + Arrays.hashCode(responseBody);
+		result = prime * result + ((responseBody == null) ? 0 : responseBody.hashCode());
 		result = prime * result + ((runtimeMS == null) ? 0 : runtimeMS.hashCode());
 		result = prime * result + ((startedByUserId == null) ? 0 : startedByUserId.hashCode());
 		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
@@ -407,14 +406,20 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 				return false;
 		} else if (!progressTotal.equals(other.progressTotal))
 			return false;
-		if (!Arrays.equals(requestBody, other.requestBody))
+		if (requestBody == null) {
+			if (other.requestBody != null)
+				return false;
+		} else if (!requestBody.equals(other.requestBody))
 			return false;
 		if (requestHash == null) {
 			if (other.requestHash != null)
 				return false;
 		} else if (!requestHash.equals(other.requestHash))
 			return false;
-		if (!Arrays.equals(responseBody, other.responseBody))
+		if (responseBody == null) {
+			if (other.responseBody != null)
+				return false;
+		} else if (!responseBody.equals(other.responseBody))
 			return false;
 		if (runtimeMS == null) {
 			if (other.runtimeMS != null)
@@ -433,4 +438,5 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			return false;
 		return true;
 	}
+
 }
