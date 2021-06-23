@@ -1,0 +1,14 @@
+{
+	"description": "Response of a job to package files from the user's download list.'",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"resultFileHandleId": {
+			"description": "The identifier of a FileHandle that contains the resulting package zip file.",
+			"type": "string"
+		}
+	}
+}

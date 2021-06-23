@@ -71,6 +71,13 @@
 				"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm"
 			}
 		},
+		"request_object_signing_alg_values_supported": {
+			"type": "array",
+			"description": "List of signing algorithms supported for signing request objects, or '[\"none\"]' if passing by 'request' parameter is unsupported.  See <a href=\"https://openid.net/specs/openid-connect-core-1_0.html#RequestObject\">OpenID Connect Core 1.0</a>",
+			"items":{
+				"type":"string"
+			}
+		},
 		"claims_supported": {
 			"type": "array",
 			"description": "List of the Claim Names of the Claims that the Synapse MAY be able to supply values for.",

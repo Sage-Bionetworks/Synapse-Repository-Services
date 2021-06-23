@@ -37,6 +37,10 @@
 		"isEligibleForPackaging": {
 			"type": "boolean",
 			"description": "Only files that are managed by Synapse storage are eligible for packaging into a zip file.  If true, then the file is eligible for packaging into a zip file."
+		},
+		"fileHandleId": {
+			"description": "The ID of the file handle associated with this file.",
+			"type": "string"
 		}
 	}
 }

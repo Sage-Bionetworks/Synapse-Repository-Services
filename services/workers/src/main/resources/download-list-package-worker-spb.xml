@@ -10,8 +10,8 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
-	<bean id="fileBulkDownloadMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+
+	<bean id="downloadListPackageTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -25,14 +25,16 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.file.worker.BulkFileDownloadWorker" />
+									<bean class="org.sagebionetworks.download.worker.DownloadListPackageWorker"/>
 								</property>
-								<property name="semaphoreLockKey" value="fileBulkDownload" />
-								<property name="semaphoreMaxLockCount" value="4" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
-								<property name="queueName" value="#{stackConfiguration.getQueueName('BULK_FILE_DOWNLOAD')}"/>
+								<property name="semaphoreLockKey" value="downloadListPackage" />
+								<property name="semaphoreMaxLockCount" value="8" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="30" />
+								<property name="queueName"
+									value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_PACKAGE')}" />
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 
 							</bean>
@@ -43,9 +45,8 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<!-- We stagger the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="154" />
-		<property name="repeatInterval" value="2027" />
+		<property name="startDelay" value="213" />
+		<property name="repeatInterval" value="1001" />
 	</bean>
 
 </beans>

@@ -676,8 +676,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
 			Upload upload = transferManager.upload(por);
-			// Make sure the caller can watch the progress.
-			upload.addProgressListener(request.getListener());
+			if(request.getListener() != null) {
+				// Make sure the caller can watch the progress.
+				upload.addProgressListener(request.getListener());
+			}
 			// This will throw an exception if the upload fails for any reason.
 			UploadResult results = upload.waitForUploadResult();
 			// get the metadata for this file.
