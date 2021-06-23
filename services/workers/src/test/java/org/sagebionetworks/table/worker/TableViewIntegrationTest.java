@@ -110,7 +110,6 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2103,12 +2102,8 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws InterruptedException
 	 * @throws AsynchJobFailedException 
-	 * @throws JSONObjectAdapterException 
-	 * @throws AssertionError 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
-	public List<EntityUpdateResult> updateView(RowSet rowSet, String viewId) throws InterruptedException, AsynchJobFailedException, DatastoreException, NotFoundException, AssertionError, JSONObjectAdapterException{
+	public List<EntityUpdateResult> updateView(RowSet rowSet, String viewId) throws InterruptedException, AsynchJobFailedException{
 		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
 		appendRequest.setEntityId(viewId);
 		appendRequest.setToAppend(rowSet);
@@ -2150,12 +2145,8 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws InterruptedException 
 	 * @throws AsynchJobFailedException 
-	 * @throws JSONObjectAdapterException 
-	 * @throws AssertionError 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
-	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Consumer<T> responseConsumer) throws InterruptedException, AsynchJobFailedException, DatastoreException, NotFoundException, AssertionError, JSONObjectAdapterException{
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Consumer<T> responseConsumer) throws InterruptedException, AsynchJobFailedException{
 		return asyncHelper.assertJobResponse(user, body, responseConsumer, MAX_WAIT_MS).getResponse();
 	}
 	

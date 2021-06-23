@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -113,7 +112,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testCreateSchema() throws InterruptedException, AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testCreateSchema() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		CreateSchemaRequest request = new CreateSchemaRequest();
 		request.setSchema(basicSchema);
 
@@ -131,7 +130,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testCreateSchemaCycle() throws InterruptedException, AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testCreateSchemaCycle() throws InterruptedException, AssertionError, AsynchJobFailedException {
 		// one
 		JsonSchema one = createSchema(organizationName, "one");
 		one.setDescription("no cycle yet");
@@ -257,7 +256,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testGetValidationSchemaWorker() throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testGetValidationSchemaWorker() throws AssertionError, AsynchJobFailedException {
 		CreateSchemaRequest createRequest = new CreateSchemaRequest();
 		createRequest.setSchema(basicSchema);
 

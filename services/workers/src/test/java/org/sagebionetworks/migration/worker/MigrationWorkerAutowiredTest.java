@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -96,7 +95,7 @@ public class MigrationWorkerAutowiredTest {
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user,
 			AsynchronousJobStatus status) throws InterruptedException,
-			DatastoreException, NotFoundException, JSONObjectAdapterException {
+			DatastoreException, NotFoundException {
 		long start = System.currentTimeMillis();
 		while (!AsynchJobState.COMPLETE.equals(status.getJobState())) {
 			assertFalse("Job Failed: " + status.getErrorDetails(),

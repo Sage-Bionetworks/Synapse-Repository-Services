@@ -5,9 +5,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NotReadyException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -15,7 +13,6 @@ import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -61,9 +58,6 @@ public class AsynchronousJobController {
 	 *        that will be launched.
 	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
-	 * @throws DatastoreException 
-	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -71,7 +65,7 @@ public class AsynchronousJobController {
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
+			@RequestBody AsynchronousRequestBody body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	
@@ -85,15 +79,13 @@ public class AsynchronousJobController {
 	 * @throws NotFoundException
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
-	 * @throws JSONObjectAdapterException 
-	 * @throws DatastoreException 
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
-			throws NotFoundException, AsynchJobFailedException, NotReadyException, DatastoreException, JSONObjectAdapterException {
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 
@@ -106,14 +98,12 @@ public class AsynchronousJobController {
 	 * @throws NotFoundException
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
-	 * @throws JSONObjectAdapterException 
-	 * @throws DatastoreException 
 	 */
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_CANCEL, method = RequestMethod.GET)
 	public void stopJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
-			throws NotFoundException, AsynchJobFailedException, NotReadyException, DatastoreException, JSONObjectAdapterException {
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		serviceProvider.getAsynchronousJobServices().cancelJob(userId, jobId);
 	}
 }

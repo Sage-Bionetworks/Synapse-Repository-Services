@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
@@ -637,8 +636,6 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws JSONObjectAdapterException 
-	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({download})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -646,7 +643,7 @@ public class UploadController {
 	public @ResponseBody AsyncJobId startBulkFileDownloadJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody BulkFileDownloadRequest request)
-			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
+			throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -893,8 +890,6 @@ public class UploadController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws JSONObjectAdapterException 
-	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,modify,download})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -902,7 +897,7 @@ public class UploadController {
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AddFileToDownloadListRequest request)
-			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
+			throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());

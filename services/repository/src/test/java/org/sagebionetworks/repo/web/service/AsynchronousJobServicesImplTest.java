@@ -11,14 +11,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -49,7 +46,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void testStartAdminJobAsRegular() throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
+	public void testStartAdminJobAsRegular() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);
@@ -58,7 +55,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 	
 	@Test
-	public void testStartAdminJobAsAdmin() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testStartAdminJobAsAdmin() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(true);
 		expectedUser.setId(123L);
@@ -71,7 +68,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 	
 	@Test
-	public void testStartRegularJobAsAdmin() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testStartRegularJobAsAdmin() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(true);
 		expectedUser.setId(123L);
@@ -84,7 +81,7 @@ public class AsynchronousJobServicesImplTest {
 	}
 	
 	@Test
-	public void testStartRegularJobAsRegular() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testStartRegularJobAsRegular() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);

@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -17,8 +16,6 @@ import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface AsynchronousJobWorkerHelper {
 
@@ -28,13 +25,10 @@ public interface AsynchronousJobWorkerHelper {
 	 * See
 	 * {@link #assertJobResponse(UserInfo, AsynchronousRequestBody, Consumer, int, int)},
 	 * with only 1 retry
-	 * @throws JSONObjectAdapterException 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
 	<R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
 			UserInfo user, R request, Consumer<T> responseConsumer, long maxWaitMs)
-			throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException;
+			throws AssertionError, AsynchJobFailedException;
 
 	/**
 	 * Starts and wait for a job completion with exponential back-off retry logic,
@@ -54,23 +48,17 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return The job response with additional metrics about the job
 	 * @throws AssertionError If the job times out or if the max number of retries is exhausted
 	 * @throws AsynchJobFailedException If the job failed for other reasons and an exception was not set for the job failure
-	 * @throws JSONObjectAdapterException 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
 	<R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
 			UserInfo user, R request, Consumer<T> responseConsumer, long maxWaitMs, int maxRetries)
-			throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException;
+			throws AssertionError, AsynchJobFailedException;
 
 	/**
 	 * See {@link #assertQueryResult(UserInfo, Query, QueryOptions, Consumer, long)}. Will use as default query options
 	 * the inclusion of the results and the column model as well as the count. The etag will be included in the results.
-	 * @throws JSONObjectAdapterException 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
 	QueryResultBundle assertQueryResult(UserInfo user, String sql, Consumer<QueryResultBundle> resultMatcher,
-			long maxWaitMs) throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException;
+			long maxWaitMs) throws AssertionError, AsynchJobFailedException;
 
 	/**
 	 * Run the given query with the given options in a background job waiting for
@@ -89,13 +77,10 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return The query results
 	 * @throws AssertionError If the job times out or if the max number of retries is exhausted (10)
 	 * @throws AsynchJobFailedException If the job failed for other reasons and an exception was not set for the job failure
-	 * @throws JSONObjectAdapterException 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 */
 	QueryResultBundle assertQueryResult(UserInfo user, Query query, QueryOptions options,
 			Consumer<QueryResultBundle> resultMatcher, long maxWaitMs)
-			throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException;
+			throws AssertionError, AsynchJobFailedException;
 
 	/**
 	 * Wait for the given entity to appear in the given view.

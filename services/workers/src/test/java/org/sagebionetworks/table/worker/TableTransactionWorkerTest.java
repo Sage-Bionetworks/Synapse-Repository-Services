@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -36,8 +35,6 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -78,7 +75,7 @@ public class TableTransactionWorkerTest {
 	RuntimeException translatedException;
 
 	@Before
-	public void before() throws RecoverableMessageException, TableUnavailableException, DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void before() throws RecoverableMessageException, TableUnavailableException{
 		MockitoAnnotations.initMocks(this);
 		worker = new TableTransactionWorker();
 		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
