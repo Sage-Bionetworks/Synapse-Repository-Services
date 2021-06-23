@@ -16,7 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
-import java.sql.Timestamp;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -113,8 +113,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setStartedByUserId(userId);
 		status.setJobId(idGenerator.generateNewId(IdType.ASYNCH_JOB_STATUS_ID).toString());
 		status.setEtag(UUID.randomUUID().toString());
-		status.setChangedOn(new Timestamp(now));
-		status.setStartedOn(new Timestamp(now));
+		status.setChangedOn(new Date(now));
+		status.setStartedOn(new Date(now));
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setJobCanceling(false);
 		status.setRuntimeMS(0L);

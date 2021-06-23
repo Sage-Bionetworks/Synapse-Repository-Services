@@ -200,7 +200,7 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		return changedOn;
 	}
 
-	public void setChangedOn(Long now) {
+	public void setChangedOn(long now) {
 		this.changedOn = now;
 	}
 
