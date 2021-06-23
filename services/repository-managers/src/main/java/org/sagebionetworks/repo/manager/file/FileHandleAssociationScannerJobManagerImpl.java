@@ -36,7 +36,6 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		
 	static final long FLUSH_DELAY_MS = 250;
 	static final int KINESIS_BATCH_SIZE = 10000;
-	static final int RELINK_BACTH_SIZE = 1000;
 	static final int MAX_DELAY_SEC = 60;
 	
 	private FileHandleAssociationManager associationManager;
@@ -210,21 +209,29 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	
 	private int relinkRecords(Set<FileHandleAssociationRecord> recordsBatch) {
 		
+		int relinkedCount = 0;
+		
 		if (recordsBatch.isEmpty()) {
-			return 0;
+			return relinkedCount;
 		}
 		
-		Set<Long> fileHandleIds = recordsBatch.stream()
+		List<Long> fileHandleIds = new ArrayList<>(recordsBatch.stream()
 				.map(FileHandleAssociationRecord::getFileHandleId)
-				.collect(Collectors.toSet());
+				.collect(Collectors.toSet()));
 		
-		List<Long> updatedIds = fileHandleDao.updateBatchStatus(new ArrayList<>(fileHandleIds), FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
-		
-		if (!updatedIds.isEmpty()) {
-			LOG.warn("{} scanned records were UNLINKED and set to AVAILABLE: {}", updatedIds.size(), updatedIds);
+		if (fileHandleDao.hasStatusBatch(fileHandleIds, FileHandleStatus.UNLINKED)) {
+
+			List<Long> updatedIds = fileHandleDao.updateBatchStatus(fileHandleIds, FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
+
+			relinkedCount = updatedIds.size();
+			
+			if (!updatedIds.isEmpty()) {
+				LOG.warn("{} scanned records were UNLINKED and set to AVAILABLE: {}", relinkedCount, updatedIds);
+			}
+			
 		}
 		
-		return updatedIds.size();
+		return relinkedCount;
 	}
 	
 	private void validateStackReadWrite() throws RecoverableMessageException {
