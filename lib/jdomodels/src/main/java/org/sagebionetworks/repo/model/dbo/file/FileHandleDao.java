@@ -143,6 +143,14 @@ public interface FileHandleDao {
 	boolean isMatchingMD5(String sourceFileHandleId, String targetFileHandleId);
 	
 	/**
+	 * 
+	 * @param ids The batch of ids to check
+	 * @param status The status to check against
+	 * @return True if any file handle in the given batch has the given status
+	 */
+	boolean hasStatusBatch(List<Long> ids, FileHandleStatus status);
+	
+	/**
 	 * Updates the status of the given batch of file handle ids for any that is in the given currentStatus and were modified before the given number of days
 	 * 
 	 * @param ids The batch of ids to update

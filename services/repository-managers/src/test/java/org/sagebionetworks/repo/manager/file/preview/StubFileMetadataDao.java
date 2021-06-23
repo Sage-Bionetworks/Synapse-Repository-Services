@@ -166,4 +166,10 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return null;
 	}
 
+	@Override
+	public boolean hasStatusBatch(List<Long> ids, FileHandleStatus status) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

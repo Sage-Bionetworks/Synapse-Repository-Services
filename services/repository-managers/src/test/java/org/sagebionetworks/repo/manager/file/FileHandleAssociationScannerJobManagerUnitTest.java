@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -18,7 +19,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -115,7 +115,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockFileHandleDao.updateBatchStatus(anyList(), any(), any(), anyInt())).thenReturn(Collections.emptyList());
+		when(mockFileHandleDao.hasStatusBatch(anyList(), any())).thenReturn(false);
 		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
 		
 		Set<FileHandleAssociationRecord> expectedRecords = 
@@ -132,8 +132,9 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockFileHandleDao).updateBatchStatus(fileIdsCaptor.capture(), eq(FileHandleStatus.AVAILABLE), eq(FileHandleStatus.UNLINKED), eq(0));
-		assertEquals(expectedFileIds, fileIdsCaptor.getValue().stream().collect(Collectors.toSet()));		
+		verify(mockFileHandleDao).hasStatusBatch(fileIdsCaptor.capture(), eq(FileHandleStatus.UNLINKED));
+		assertEquals(expectedFileIds, fileIdsCaptor.getValue().stream().collect(Collectors.toSet()));	
+		verify(mockFileHandleDao, never()).updateBatchStatus(anyList(), any(), any(), anyInt());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size(), 0);
@@ -159,7 +160,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockFileHandleDao.updateBatchStatus(anyList(), any(), any(), anyInt())).thenReturn(Collections.emptyList());
+		when(mockFileHandleDao.hasStatusBatch(anyList(), any())).thenReturn(false);
 		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
 		
 		Set<FileHandleAssociationRecord> expectedRecords = associations
@@ -176,8 +177,9 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockFileHandleDao).updateBatchStatus(fileIdsCaptor.capture(), eq(FileHandleStatus.AVAILABLE), eq(FileHandleStatus.UNLINKED), eq(0));
+		verify(mockFileHandleDao).hasStatusBatch(fileIdsCaptor.capture(), eq(FileHandleStatus.UNLINKED));
 		assertEquals(expectedFileIds, fileIdsCaptor.getValue().stream().collect(Collectors.toSet()));
+		verify(mockFileHandleDao, never()).updateBatchStatus(anyList(), any(), any(), anyInt());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		
@@ -201,7 +203,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
-		when(mockFileHandleDao.updateBatchStatus(anyList(), any(), any(), anyInt())).thenReturn(Collections.emptyList());
+		when(mockFileHandleDao.hasStatusBatch(anyList(), any())).thenReturn(false);
 		
 		doNothing().when(mockClock).sleep(anyLong());
 		
@@ -235,7 +237,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockKinesisLogger, times(expectedBatches.size())).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock, times(expectedBatches.size())).currentTimeMillis();
 		verify(mockClock, times(expectedBatches.size() - 1)).sleep(FileHandleAssociationScannerJobManagerImpl.FLUSH_DELAY_MS);
-		verify(mockFileHandleDao, times(expectedBatches.size())).updateBatchStatus(fileIdsCaptor.capture(), eq(FileHandleStatus.AVAILABLE), eq(FileHandleStatus.UNLINKED), eq(0));
+		verify(mockFileHandleDao, times(expectedBatches.size())).hasStatusBatch(fileIdsCaptor.capture(), eq(FileHandleStatus.UNLINKED));
 		
 		List<List<FileHandleAssociationRecord>> batches = recordsCaptor.getAllValues();
 		List<List<Long>> idsBatches = fileIdsCaptor.getAllValues();
@@ -252,6 +254,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 			assertEquals(expectedFileIds, idsBatches.get(i).stream().collect(Collectors.toSet()));
 		}
 		
+		verify(mockFileHandleDao, never()).updateBatchStatus(anyList(), any(), any(), anyInt());
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), associations.size(), 0);
 		
 	}
@@ -269,6 +272,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		when(mockStatusDao.exist(anyLong())).thenReturn(true);
 		when(mockStackStatusDao.isStackReadWrite()).thenReturn(true);
 		when(mockAssociationManager.scanRange(any(), any())).thenReturn(associations);
+		when(mockFileHandleDao.hasStatusBatch(anyList(), any())).thenReturn(true);
 		when(mockFileHandleDao.updateBatchStatus(anyList(), any(), any(), anyInt())).thenReturn(Arrays.asList(2L));
 		when(mockClock.currentTimeMillis()).thenReturn(batchTimestamp, 456L);
 		
@@ -286,8 +290,10 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		
 		verify(mockStackStatusDao, times(2)).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
-		verify(mockFileHandleDao).updateBatchStatus(fileIdsCaptor.capture(), eq(FileHandleStatus.AVAILABLE), eq(FileHandleStatus.UNLINKED), eq(0));
-		assertEquals(expectedFileIds, fileIdsCaptor.getValue().stream().collect(Collectors.toSet()));
+		verify(mockFileHandleDao).hasStatusBatch(fileIdsCaptor.capture(), eq(FileHandleStatus.UNLINKED));
+		List<Long> capturedIds = fileIdsCaptor.getValue();
+		assertEquals(expectedFileIds, capturedIds.stream().collect(Collectors.toSet()));
+		verify(mockFileHandleDao).updateBatchStatus(capturedIds, FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), recordsCaptor.capture());
 		verify(mockClock).currentTimeMillis();
 		verify(mockStatusDao).increaseJobCompletedCount(scanRangeRequest.getJobId(), expectedRecords.size(), 1);

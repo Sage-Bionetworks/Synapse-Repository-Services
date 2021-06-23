@@ -91,7 +91,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@AfterEach
 	public void after(){
-		//fileHandleDao.truncateTable();
+		fileHandleDao.truncateTable();
 		for (Long storageLocationId : storageLocationsToDelete) {
 			storageLocationDao.delete(storageLocationId);
 		}
@@ -1023,5 +1023,54 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(FileHandleStatus.AVAILABLE.name(), dbo3.getStatus());
 		
 		assertTrue(dbo1.getUpdatedOn().after(createdOn));
+	}
+	
+	@Test
+	public void testHasStatusBatch() {
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
+		
+		boolean result = fileHandleDao.hasStatusBatch(ids, FileHandleStatus.AVAILABLE);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testHasStatusBatchNone() {
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
+		
+		boolean result = fileHandleDao.hasStatusBatch(ids, FileHandleStatus.UNLINKED);
+		
+		assertFalse(result);
+		
+	}
+	
+	@Test
+	public void testHasStatusBatchPartial() {
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setStatus(FileHandleStatus.UNLINKED.name());
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
+		
+		boolean result = fileHandleDao.hasStatusBatch(ids, FileHandleStatus.UNLINKED);
+		
+		assertTrue(result);
+		
 	}
 }
