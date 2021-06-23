@@ -16,7 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
-import java.util.Date;
+import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -113,8 +113,8 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setStartedByUserId(userId);
 		status.setJobId(idGenerator.generateNewId(IdType.ASYNCH_JOB_STATUS_ID).toString());
 		status.setEtag(UUID.randomUUID().toString());
-		status.setChangedOn(new Date(now));
-		status.setStartedOn(new Date(now));
+		status.setChangedOn(new Timestamp(now));
+		status.setStartedOn(new Timestamp(now));
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setJobCanceling(false);
 		status.setRuntimeMS(0L);
@@ -174,18 +174,18 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		DBOAsynchJobStatus dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
 		// Calculate the runtime
 		long now = System.currentTimeMillis();
-		long runtimeMS = now - dbo.getStartedOn().getTime();
+		long runtimeMS = now - dbo.getStartedOn();
 		dbo.setRuntimeMS(runtimeMS);
 		String newEtag = UUID.randomUUID().toString();
 		dbo.setEtag(newEtag);
 		dbo.setProgressMessage("Complete");
-		dbo.setChangedOn(new Date(now));
+		dbo.setChangedOn(now);
 		dbo.setException(null);
 		dbo.setErrorDetails(null);
 		dbo.setErrorMessage(null);
 		dbo.setJobState(JobState.COMPLETE);
 		dbo.setProgressCurrent(dbo.getProgressTotal());
-		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(dbo.getJobType(), body));
+		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(AsynchJobType.valueOf(dbo.getJobType()), body));
 		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
 		return runtimeMS;

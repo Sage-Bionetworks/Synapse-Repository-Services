@@ -19,16 +19,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_ASYNCH_JOB_STATUS;
 
-import java.util.Date;
+import java.sql.Blob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
-import org.sagebionetworks.repo.model.dbo.Table;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
  * Database object for a asynchronous table job.
@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * @author John
  *
  */
-@Table(name = ASYNCH_JOB_STATUS, constraints ={"INDEX ("+COL_ASYNCH_JOB_REQUEST_HASH+")"})
+
 public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	
 	/**
@@ -52,62 +52,44 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		FAILED,
 		COMPLETE,
 	}
-
-	private static TableMapping<DBOAsynchJobStatus> tableMapping = AutoTableMapping.create(DBOAsynchJobStatus.class);
 	
-	@Field(name = COL_ASYNCH_JOB_ID, nullable = false, primary=true, backupId = true)
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("jobId", COL_ASYNCH_JOB_ID, true).withIsBackupId(true),
+			new FieldColumn("etag", COL_ASYNCH_JOB_ETAG).withIsEtag(true),
+			new FieldColumn("jobState", COL_ASYNCH_JOB_STATE),
+			new FieldColumn("jobType", COL_ASYNCH_JOB_TYPE),
+			new FieldColumn("canceling", COL_ASYNCH_JOB_CANCELING),
+			new FieldColumn("exception", COL_ASYNCH_JOB_EXCEPTION),
+			new FieldColumn("errorMessage", COL_ASYNCH_JOB_ERROR_MESSAGE),
+			new FieldColumn("errorDetails", COL_ASYNCH_JOB_ERROR_DETAILS),
+			new FieldColumn("progressCurrent", COL_ASYNCH_JOB_PROGRESS_CURRENT),
+			new FieldColumn("progressTotal", COL_ASYNCH_JOB_PROGRESS_TOTAL),
+			new FieldColumn("progressMessage", COL_ASYNCH_JOB_PROGRESS_MESSAGE),
+			new FieldColumn("startedOn", COL_ASYNCH_JOB_STARTED_ON),
+			new FieldColumn("startedByUserId", COL_ASYNCH_JOB_STARTED_BY),
+			new FieldColumn("changedOn", COL_ASYNCH_JOB_CHANGED_ON),
+			new FieldColumn("requestBody", COL_ASYNCH_JOB_REQUEST_BODY),
+			new FieldColumn("responseBody", COL_ASYNCH_JOB_RESPONSE_BODY),
+			new FieldColumn("runtimeMS", COL_ASYNCH_JOB_RUNTIME_MS),
+			new FieldColumn("requestHash", COL_ASYNCH_JOB_REQUEST_HASH) };
+
 	private Long jobId;
-	
-	@Field(name = COL_ASYNCH_JOB_ETAG, nullable = false, etag = true, varchar=256)
 	private String etag;
-	
-	@Field(name = COL_ASYNCH_JOB_STATE, nullable = false)
 	private JobState jobState;
-
-	@Field(name = COL_ASYNCH_JOB_TYPE, nullable = false, varchar = 100)
 	private AsynchJobType jobType;
-	
-	@Field(name = COL_ASYNCH_JOB_CANCELING, nullable = false)
 	private Boolean canceling;
-
-	@Field(name = COL_ASYNCH_JOB_EXCEPTION, varchar = 512, nullable = true)
 	private String exception;
-
-	@Field(name = COL_ASYNCH_JOB_ERROR_MESSAGE, varchar=MAX_MESSAGE_CHARS, nullable = true)
 	private String errorMessage;
-	
-	@Field(name = COL_ASYNCH_JOB_ERROR_DETAILS, blob="mediumtext", nullable = true)
 	private String errorDetails;
-	
-	@Field(name = COL_ASYNCH_JOB_PROGRESS_CURRENT, nullable = true)
 	private Long progressCurrent;
-
-	@Field(name = COL_ASYNCH_JOB_PROGRESS_TOTAL, nullable = true)
 	private Long progressTotal;
-	
-	@Field(name = COL_ASYNCH_JOB_PROGRESS_MESSAGE, nullable = true, varchar=MAX_MESSAGE_CHARS)
 	private String progressMessage;
-	
-	@Field(name = COL_ASYNCH_JOB_STARTED_ON, nullable = false)
-	private Date startedOn;
-	
-	@Field(name = COL_ASYNCH_JOB_STARTED_BY, nullable = false)
-	@ForeignKey(table = SqlConstants.TABLE_USER_GROUP, field = SqlConstants.COL_USER_GROUP_ID, cascadeDelete = true)
+	private Long startedOn;
 	private Long startedByUserId;
-	
-	@Field(name = COL_ASYNCH_JOB_CHANGED_ON, nullable = false)
-	private Date changedOn;
-	
-	@Field(name = COL_ASYNCH_JOB_REQUEST_BODY, blob="mediumblob", nullable = false)
+	private Long changedOn;
 	private byte[] requestBody;
-	
-	@Field(name = COL_ASYNCH_JOB_RESPONSE_BODY, blob="mediumblob", nullable = true)
 	private byte[] responseBody;
-
-	@Field(name = COL_ASYNCH_JOB_RUNTIME_MS, nullable = false)
 	private Long runtimeMS;
-	
-	@Field(name= COL_ASYNCH_JOB_REQUEST_HASH, varchar=36, nullable = true)
 	private String requestHash;
 
 	public Long getJobId() {
@@ -126,16 +108,16 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.etag = etag;
 	}
 
-	public JobState getJobState() {
-		return jobState;
+	public String getJobState() {
+		return jobState.name();
 	}
 
 	public void setJobState(JobState jobState) {
 		this.jobState = jobState;
 	}
 
-	public AsynchJobType getJobType() {
-		return jobType;
+	public String getJobType() {
+		return jobType.name();
 	}
 
 	public void setJobType(AsynchJobType jobType) {
@@ -198,11 +180,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.progressMessage = progressMessage;
 	}
 
-	public Date getStartedOn() {
+	public Long getStartedOn() {
 		return startedOn;
 	}
 
-	public void setStartedOn(Date startedOn) {
+	public void setStartedOn(long startedOn) {
 		this.startedOn = startedOn;
 	}
 
@@ -210,16 +192,16 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		return startedByUserId;
 	}
 
-	public void setStartedByUserId(Long startedByUserId) {
+	public void setStartedByUserId(long startedByUserId) {
 		this.startedByUserId = startedByUserId;
 	}
 
-	public Date getChangedOn() {
+	public Long getChangedOn() {
 		return changedOn;
 	}
 
-	public void setChangedOn(Date changedOn) {
-		this.changedOn = changedOn;
+	public void setChangedOn(Long now) {
+		this.changedOn = now;
 	}
 
 	public byte[] getRequestBody() {
@@ -255,12 +237,200 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	}
 
 	public static void setTableMapping(TableMapping<DBOAsynchJobStatus> tableMapping) {
-		DBOAsynchJobStatus.tableMapping = tableMapping;
+		DBOAsynchJobStatus.TABLE_MAPPING = tableMapping;
 	}
 
 	@Override
 	public TableMapping<DBOAsynchJobStatus> getTableMapping() {
-		return tableMapping;
+		return TABLE_MAPPING;
+	}
+	
+	private static TableMapping<DBOAsynchJobStatus> TABLE_MAPPING = new TableMapping<DBOAsynchJobStatus>() {
+
+		@Override
+		public DBOAsynchJobStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
+			dbo.setJobId(rs.getLong(COL_ASYNCH_JOB_ID));
+			dbo.setEtag(rs.getString(COL_ASYNCH_JOB_ETAG));
+			dbo.setJobState(JobState.valueOf(rs.getString(COL_ASYNCH_JOB_STATE)));
+			dbo.setJobType(AsynchJobType.valueOf(rs.getString(COL_ASYNCH_JOB_TYPE)));
+			dbo.setCanceling(rs.getBoolean(COL_ASYNCH_JOB_CANCELING));
+			dbo.setException(rs.getString(COL_ASYNCH_JOB_EXCEPTION));
+			if (rs.wasNull()) {
+				dbo.setException(null);
+			}
+			dbo.setErrorMessage(rs.getString(COL_ASYNCH_JOB_ERROR_MESSAGE));
+			if (rs.wasNull()) {
+				dbo.setErrorMessage(null);
+			}
+			dbo.setErrorDetails(rs.getString(COL_ASYNCH_JOB_ERROR_DETAILS));
+			if(rs.wasNull()) {
+				dbo.setErrorDetails(null);
+			}
+			dbo.setProgressCurrent(rs.getLong(COL_ASYNCH_JOB_PROGRESS_CURRENT));
+			if(rs.wasNull()) {
+				dbo.setProgressCurrent(null);
+			}
+			dbo.setProgressTotal(rs.getLong(COL_ASYNCH_JOB_PROGRESS_TOTAL));
+			if(rs.wasNull()) {
+				dbo.setProgressTotal(null);
+			}
+			dbo.setProgressMessage(rs.getString(COL_ASYNCH_JOB_PROGRESS_MESSAGE));
+			if(rs.wasNull()) {
+				dbo.setProgressMessage(null);
+			}
+			dbo.setStartedOn(rs.getLong(COL_ASYNCH_JOB_STARTED_ON));
+			dbo.setStartedByUserId(rs.getLong(COL_ASYNCH_JOB_STARTED_BY));
+			dbo.setChangedOn(rs.getLong(COL_ASYNCH_JOB_CHANGED_ON));
+			Blob request = rs.getBlob(COL_ASYNCH_JOB_REQUEST_BODY);
+			dbo.setRequestBody(request.getBytes(1, (int)request.length()));
+			Blob response = rs.getBlob(COL_ASYNCH_JOB_RESPONSE_BODY);
+			if (rs.wasNull()) {
+				dbo.setResponseBody(null);
+			} else {
+				dbo.setResponseBody(response.getBytes(1, (int)response.length()));
+			}
+			dbo.setRuntimeMS(rs.getLong(COL_ASYNCH_JOB_RUNTIME_MS));
+			dbo.setRequestHash(rs.getString(COL_ASYNCH_JOB_REQUEST_HASH));
+			if(rs.wasNull()) {
+				dbo.setRequestHash(null);
+			}
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return ASYNCH_JOB_STATUS;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+		
+		@Override
+		public String getDDLFileName() {
+			return DDL_ASYNCH_JOB_STATUS;
+		}
+
+		@Override
+		public Class<? extends DBOAsynchJobStatus> getDBOClass() {
+			return DBOAsynchJobStatus.class;
+		}
+	};
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((canceling == null) ? 0 : canceling.hashCode());
+		result = prime * result + ((changedOn == null) ? 0 : changedOn.hashCode());
+		result = prime * result + ((errorDetails == null) ? 0 : errorDetails.hashCode());
+		result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((exception == null) ? 0 : exception.hashCode());
+		result = prime * result + ((jobId == null) ? 0 : jobId.hashCode());
+		result = prime * result + ((jobState == null) ? 0 : jobState.hashCode());
+		result = prime * result + ((jobType == null) ? 0 : jobType.hashCode());
+		result = prime * result + ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
+		result = prime * result + ((progressMessage == null) ? 0 : progressMessage.hashCode());
+		result = prime * result + ((progressTotal == null) ? 0 : progressTotal.hashCode());
+		result = prime * result + Arrays.hashCode(requestBody);
+		result = prime * result + ((requestHash == null) ? 0 : requestHash.hashCode());
+		result = prime * result + Arrays.hashCode(responseBody);
+		result = prime * result + ((runtimeMS == null) ? 0 : runtimeMS.hashCode());
+		result = prime * result + ((startedByUserId == null) ? 0 : startedByUserId.hashCode());
+		result = prime * result + ((startedOn == null) ? 0 : startedOn.hashCode());
+		return result;
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOAsynchJobStatus other = (DBOAsynchJobStatus) obj;
+		if (canceling == null) {
+			if (other.canceling != null)
+				return false;
+		} else if (!canceling.equals(other.canceling))
+			return false;
+		if (changedOn == null) {
+			if (other.changedOn != null)
+				return false;
+		} else if (!changedOn.equals(other.changedOn))
+			return false;
+		if (errorDetails == null) {
+			if (other.errorDetails != null)
+				return false;
+		} else if (!errorDetails.equals(other.errorDetails))
+			return false;
+		if (errorMessage == null) {
+			if (other.errorMessage != null)
+				return false;
+		} else if (!errorMessage.equals(other.errorMessage))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (exception == null) {
+			if (other.exception != null)
+				return false;
+		} else if (!exception.equals(other.exception))
+			return false;
+		if (jobId == null) {
+			if (other.jobId != null)
+				return false;
+		} else if (!jobId.equals(other.jobId))
+			return false;
+		if (jobState != other.jobState)
+			return false;
+		if (jobType != other.jobType)
+			return false;
+		if (progressCurrent == null) {
+			if (other.progressCurrent != null)
+				return false;
+		} else if (!progressCurrent.equals(other.progressCurrent))
+			return false;
+		if (progressMessage == null) {
+			if (other.progressMessage != null)
+				return false;
+		} else if (!progressMessage.equals(other.progressMessage))
+			return false;
+		if (progressTotal == null) {
+			if (other.progressTotal != null)
+				return false;
+		} else if (!progressTotal.equals(other.progressTotal))
+			return false;
+		if (!Arrays.equals(requestBody, other.requestBody))
+			return false;
+		if (requestHash == null) {
+			if (other.requestHash != null)
+				return false;
+		} else if (!requestHash.equals(other.requestHash))
+			return false;
+		if (!Arrays.equals(responseBody, other.responseBody))
+			return false;
+		if (runtimeMS == null) {
+			if (other.runtimeMS != null)
+				return false;
+		} else if (!runtimeMS.equals(other.runtimeMS))
+			return false;
+		if (startedByUserId == null) {
+			if (other.startedByUserId != null)
+				return false;
+		} else if (!startedByUserId.equals(other.startedByUserId))
+			return false;
+		if (startedOn == null) {
+			if (other.startedOn != null)
+				return false;
+		} else if (!startedOn.equals(other.startedOn))
+			return false;
+		return true;
+	}
 }

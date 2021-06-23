@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.Date;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -41,19 +42,19 @@ public class AsynchJobStatusUtils {
 			}
 		}
 		// The database contains the truth data for all generic data.
-		dto.setChangedOn(dbo.getChangedOn());
+		dto.setChangedOn(new Date(dbo.getChangedOn()));
 		dto.setException(dbo.getException());
 		dto.setErrorDetails(dbo.getErrorDetails());
 		dto.setErrorMessage(dbo.getErrorMessage());
 		dto.setEtag(dbo.getEtag());
 		dto.setJobId(dbo.getJobId().toString());
-		dto.setJobState(AsynchJobState.valueOf(dbo.getJobState().name()));
+		dto.setJobState(AsynchJobState.valueOf(dbo.getJobState()));
 		dto.setJobCanceling(dbo.getCanceling());
 		dto.setProgressCurrent(dbo.getProgressCurrent());
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setStartedByUserId(dbo.getStartedByUserId());
-		dto.setStartedOn(dbo.getStartedOn());
+		dto.setStartedOn(new Date(dbo.getStartedOn()));
 		dto.setRuntimeMS(dbo.getRuntimeMS());
 		return dto;
 	}
@@ -69,7 +70,7 @@ public class AsynchJobStatusUtils {
 		AsynchronousRequestBody requestBody = dto.getRequestBody();
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(requestBody.getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
-		dbo.setChangedOn(dto.getChangedOn()); 
+		dbo.setChangedOn(dto.getChangedOn().getTime()); 
 		dbo.setException(dto.getException());
 		dbo.setErrorDetails(dto.getErrorDetails());
 		dbo.setErrorMessage(truncateMessageStringIfNeeded(dto.getErrorMessage()));
@@ -82,7 +83,7 @@ public class AsynchJobStatusUtils {
 		dbo.setProgressTotal(dto.getProgressTotal());
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));
 		dbo.setStartedByUserId(dto.getStartedByUserId());
-		dbo.setStartedOn(dto.getStartedOn());
+		dbo.setStartedOn(dto.getStartedOn().getTime());
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// Compress the body
 		try {
