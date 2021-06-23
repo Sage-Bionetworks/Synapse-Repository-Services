@@ -54,6 +54,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -78,6 +79,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
+	private static final String SQL_CHECK_BATCH_STATUS= "SELECT COUNT(*) FROM (SELECT " + COL_FILES_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " ) AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS + " LIMIT 1) AS T";
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -428,6 +430,22 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		
 		return updatedIds;
 		
+	}
+	
+	@Override
+	public boolean hasStatusBatch(List<Long> ids, FileHandleStatus status) {
+		ValidateArgument.required(ids, "The ids batch");
+		ValidateArgument.required(status, "The status");
+		
+		if (ids.isEmpty()) {
+			return false;
+		}
+		
+		SqlParameterSource params = new MapSqlParameterSource()
+				.addValue("ids", ids)
+				.addValue(COL_FILES_STATUS, status.name());
+		
+		return namedJdbcTemplate.queryForObject(SQL_CHECK_BATCH_STATUS, params, Long.class) > 0;
 	}
 
 	@WriteTransaction
