@@ -6,6 +6,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
@@ -21,10 +23,12 @@ import org.sagebionetworks.repo.model.schema.ListJsonSchemaVersionInfoResponse;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -237,13 +241,17 @@ public class JsonSchemaController {
 	 * @param request
 	 * @return Use the resulting token to monitor the job's progress and to get the
 	 *         final results.
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_ASYNCH_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId createSchemaAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody CreateSchemaRequest request) {
+			@RequestBody CreateSchemaRequest request) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
@@ -361,13 +369,17 @@ public class JsonSchemaController {
 	 * @param userId
 	 * @param request
 	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
 	 */
 	@RequiredScope({ modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.JSON_SCHEMA_TYPE_VALIDATION_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startGetValidationSchema(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody GetValidationSchemaRequest request) {
+			@RequestBody GetValidationSchemaRequest request) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());

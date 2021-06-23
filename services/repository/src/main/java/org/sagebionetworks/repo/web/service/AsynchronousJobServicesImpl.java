@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -27,7 +29,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	private AsynchJobStatusManager asynchJobStatusManager;
 
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		if (userId == null) {
 			throw new IllegalArgumentException("UserId cannot be null");
 		}
@@ -42,7 +44,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	}
 
 	@Override
-	public AsynchronousJobStatus getJobStatus(Long userId, String jobId) throws NotFoundException {
+	public AsynchronousJobStatus getJobStatus(Long userId, String jobId) throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (userId == null) {
 			throw new IllegalArgumentException("UserId cannot be null");
 		}
@@ -56,7 +58,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	}
 
 	@Override
-	public void cancelJob(Long userId, String jobId) throws NotFoundException {
+	public void cancelJob(Long userId, String jobId) throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (userId == null) {
 			throw new IllegalArgumentException("UserId cannot be null");
 		}

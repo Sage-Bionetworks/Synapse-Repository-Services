@@ -8,6 +8,7 @@ import java.io.IOException;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -194,13 +196,17 @@ public class DownloadListController {
 	 * </table>
 	 * </p>
 	 * Authentication is required. A user can only access their own download list.
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_QUERY_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId queryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody DownloadListQueryRequest request) {
+			@RequestBody DownloadListQueryRequest request) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		ValidateArgument.required(request, "request");
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -247,13 +253,15 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AddToDownloadListRequest request) throws DatastoreException, NotFoundException, IOException {
+			@RequestBody AddToDownloadListRequest request) throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
@@ -306,13 +314,15 @@ public class DownloadListController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({ view, modify, download })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_PACKAGE_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startDownloadPackageList(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody DownloadListPackageRequest request) throws DatastoreException, NotFoundException, IOException {
+			@RequestBody DownloadListPackageRequest request) throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());

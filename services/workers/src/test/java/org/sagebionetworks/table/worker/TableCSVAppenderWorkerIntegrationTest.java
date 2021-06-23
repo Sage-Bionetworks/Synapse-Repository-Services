@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -132,13 +133,13 @@ public class TableCSVAppenderWorkerIntegrationTest {
 
 	@Test
 	public void testRoundTripWithCSVHeaders() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
-			IOException, InterruptedException {
+			IOException, InterruptedException, JSONObjectAdapterException {
 		doTestRoundTrip(true);
 	}
 
 	private void doTestRoundTrip(boolean useCSVHeader) throws DatastoreException, InvalidModelException, UnauthorizedException,
 			NotFoundException, IOException,
-			InterruptedException {
+			InterruptedException, JSONObjectAdapterException {
 		// Create a few columns
 		// String
 		ColumnModel cm = new ColumnModel();
@@ -208,7 +209,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 
 	@Test
 	public void testUpdateRoundTrip() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
-			IOException, InterruptedException {
+			IOException, InterruptedException, JSONObjectAdapterException {
 		// Create a few columns
 		// String
 		ColumnModel cm = new ColumnModel();
@@ -310,10 +311,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	 * Update a table from a CSV that does not include all of the columns.
 	 * The update should only change the column in the CSV, the other
 	 * column should not be modified.
+	 * @throws JSONObjectAdapterException 
 	 */
 	@Test
 	public void testPartialCSVUpdate() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
-			IOException, InterruptedException {
+			IOException, InterruptedException, JSONObjectAdapterException {
 		// Create a few columns
 		// String
 		ColumnModel cm = new ColumnModel();
@@ -510,7 +512,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,
-			NotFoundException {
+			NotFoundException, JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
 		while (!AsynchJobState.COMPLETE.equals(status.getJobState())) {
 			assertFalse("Job Failed: " + status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));

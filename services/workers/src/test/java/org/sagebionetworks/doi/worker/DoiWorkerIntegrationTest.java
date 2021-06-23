@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -32,6 +33,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -137,9 +140,12 @@ public class DoiWorkerIntegrationTest {
 	 * @param body
 	 * @return
 	 * @throws InterruptedException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException{
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException, DatastoreException, NotFoundException, JSONObjectAdapterException{
 		long startTime = System.currentTimeMillis();
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
 		while(true){

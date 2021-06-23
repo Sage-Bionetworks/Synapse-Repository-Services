@@ -7,9 +7,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -32,7 +35,7 @@ public class DoiWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(final ProgressCallback progressCallback, Message message)
-			throws RecoverableMessageException {
+			throws RecoverableMessageException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
 			DoiRequest request = AsynchJobUtils.extractRequestBody(status, DoiRequest.class);

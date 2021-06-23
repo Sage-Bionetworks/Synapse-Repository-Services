@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -102,7 +103,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testRoundTrip() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException, InterruptedException{
+	public void testRoundTrip() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException, InterruptedException, JSONObjectAdapterException{
 		this.schema = new LinkedList<ColumnModel>();
 		// Create a few columns
 		// String
@@ -169,7 +170,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 		assertEquals(5, response.getSampleRows().size());
 	}
 	
-	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
+	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
 		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
 			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));

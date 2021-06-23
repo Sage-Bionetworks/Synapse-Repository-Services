@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -56,6 +57,7 @@ import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -486,6 +488,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -494,7 +498,7 @@ public class TableController {
 	AsyncJobId startTableTransactionJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody TableUpdateTransactionRequest request)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		ValidateArgument.required(id, "{id}");
 		ValidateArgument.required(request, "TableUpdateTransactionRequest");
 		request.setEntityId(id);
@@ -627,6 +631,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@Deprecated
 	@RequiredScope({view,modify})
@@ -636,7 +642,7 @@ public class TableController {
 	AsyncJobId startAppendRowsJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody AppendableRowSetRequest request)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		ValidateArgument.required(id, "{id}");
 		ValidateArgument.required(request, "AppendableRowSetRequest");
 		request.setEntityId(id);
@@ -904,6 +910,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 */
@@ -914,7 +922,7 @@ public class TableController {
 	AsyncJobId queryAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody QueryBundleRequest query)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
@@ -976,6 +984,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@Deprecated
 	@RequiredScope({view,download})
@@ -985,7 +995,7 @@ public class TableController {
 	AsyncJobId queryNextPageAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody QueryNextPageToken nextPageToken)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
@@ -1070,6 +1080,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,download})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -1078,7 +1090,7 @@ public class TableController {
 	AsyncJobId csvDownloadAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody DownloadFromTableRequest downloadRequest)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		AsynchronousJobStatus job = serviceProvider
@@ -1141,6 +1153,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -1149,7 +1163,7 @@ public class TableController {
 	AsyncJobId csvUploadPreviewAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody UploadToTablePreviewRequest uploadRequest)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, uploadRequest);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -1242,6 +1256,8 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequiredScope({view,modify})
@@ -1250,7 +1266,7 @@ public class TableController {
 	AsyncJobId csvUploadAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody UploadToTableRequest uploadRequest)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		ValidateArgument.required(id, "{id}");
 		ValidateArgument.required(uploadRequest, "UploadToTableRequest");
 		uploadRequest.setEntityId(id);
@@ -1340,13 +1356,15 @@ public class TableController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.VIEW_COLUMNS_FROM_SCOPE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId getViewScopeColumnsAsyncStart(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ViewColumnModelRequest request)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, UnauthorizedException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider .getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());

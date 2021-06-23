@@ -17,11 +17,14 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -55,7 +58,7 @@ public class DoiWorkerTest {
 	private static final Message message = new Message();
 
 	@Before
-	public void before(){
+	public void before() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
 		request = new DoiRequest();
 		requestDoi = new Doi();
 		request.setDoi(requestDoi);

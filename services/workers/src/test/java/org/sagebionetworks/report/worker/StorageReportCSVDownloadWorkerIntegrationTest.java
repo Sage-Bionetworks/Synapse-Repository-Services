@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -31,6 +32,8 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -160,9 +163,12 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	 * @param body
 	 * @return
 	 * @throws InterruptedException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException{
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException, DatastoreException, NotFoundException, JSONObjectAdapterException{
 		long startTime = System.currentTimeMillis();
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
 		while(true){

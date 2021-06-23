@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -44,6 +46,8 @@ public class StorageReportController {
 	 * @return The asynchronous job ID
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
 	 */
 	@RequiredScope({view})
 	@RequestMapping(value = {UrlHelpers.STORAGE_REPORT_ASYNC_START}, method = RequestMethod.POST)
@@ -51,7 +55,7 @@ public class StorageReportController {
 	public @ResponseBody
 	AsyncJobId
 	generateStorageReportCsv(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-					  @RequestBody DownloadStorageReportRequest request) throws NotFoundException, UnauthorizedException {
+					  @RequestBody DownloadStorageReportRequest request) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();

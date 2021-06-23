@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -243,6 +244,9 @@ public class AdministrationController {
 	 * @param body
 	 * @return
 	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
 	 */
 	@RequiredScope({view,modify})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -250,7 +254,7 @@ public class AdministrationController {
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AsyncMigrationRequest body) throws NotFoundException {
+			@RequestBody AsyncMigrationRequest body) throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	
@@ -262,6 +266,8 @@ public class AdministrationController {
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
@@ -269,7 +275,7 @@ public class AdministrationController {
 	public @ResponseBody
 	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String jobId)
-			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+			throws NotFoundException, AsynchJobFailedException, NotReadyException, DatastoreException, JSONObjectAdapterException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 	

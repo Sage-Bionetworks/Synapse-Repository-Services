@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -42,7 +43,9 @@ import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -108,7 +111,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			this.jobName = request.getClass().getSimpleName();
 		}
 
-		public AsyncJobResponse<R> execute(UserInfo user, Consumer<R> responseConsumer) throws AsynchJobFailedException {
+		public AsyncJobResponse<R> execute(UserInfo user, Consumer<R> responseConsumer) throws AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 			long startTime = System.currentTimeMillis();
 
 			AsynchronousJobStatus status = null;
@@ -153,7 +156,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			return fail(logErrorMessage(status, "failed, number of tries exhausted"), lastException);
 		}
 		
-		private AsynchronousJobStatus waitForJobStatus(UserInfo user, long startTime) throws AsynchJobFailedException {
+		private AsynchronousJobStatus waitForJobStatus(UserInfo user, long startTime) throws AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 			AsynchronousJobStatus status = manager.startJob(user, request);
 			tries++;
 			logMessage(status, "submitted");
@@ -233,14 +236,14 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
 			UserInfo user, R request, Consumer<T> responseConsumer, long maxWaitMs)
-			throws AssertionError, AsynchJobFailedException {
+			throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		return assertJobResponse(user, request, responseConsumer, maxWaitMs, 1);
 	}
 
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
 			UserInfo user, R request, Consumer<T> responseConsumer, long maxWaitMs, int maxRetries)
-			throws AssertionError, AsynchJobFailedException {
+			throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		ValidateArgument.required(request, "The request body");
 		ValidateArgument.requirement(maxWaitMs > 0, "The max wait time must be greater than 0");
 		ValidateArgument.requirement(maxRetries == INFINITE_RETRIES || maxRetries > 0, "The number of maxRetries should be greater than 0 or equal to " + INFINITE_RETRIES);
@@ -253,7 +256,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 	@Override
 	public QueryResultBundle assertQueryResult(UserInfo user, String sql, Consumer<QueryResultBundle> resultMatcher,
-			long maxWaitTime) throws AssertionError, AsynchJobFailedException {
+			long maxWaitTime) throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		Query query = new Query();
 		query.setSql(sql);
 		query.setIncludeEntityEtag(true);
@@ -269,7 +272,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 	@Override
 	public QueryResultBundle assertQueryResult(UserInfo user, Query query, QueryOptions options,
-			Consumer<QueryResultBundle> resultMatcher, long maxWaitTime) throws AssertionError, AsynchJobFailedException {
+			Consumer<QueryResultBundle> resultMatcher, long maxWaitTime) throws AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		QueryBundleRequest request = new QueryBundleRequest();
 
 		request.setQuery(query);

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -33,6 +34,8 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -113,7 +116,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testAddFolder() throws InterruptedException, AssertionError, AsynchJobFailedException {
+	public void testAddFolder() throws InterruptedException, AssertionError, AsynchJobFailedException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
 		request.setFolderId(folder.getId());
 

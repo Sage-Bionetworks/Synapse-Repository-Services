@@ -13,15 +13,19 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.repo.web.service.table.TableServices;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TableControllerTest {
@@ -40,7 +44,7 @@ public class TableControllerTest {
 	AsynchronousJobStatus jobStatus;
 
 	@Before
-	public void before(){
+	public void before() throws NotFoundException, UnauthorizedException, DatastoreException, JSONObjectAdapterException{
 		MockitoAnnotations.initMocks(this);
 		controller = new TableController();
 		ReflectionTestUtils.setField(controller, "serviceProvider", serviceProvider);
