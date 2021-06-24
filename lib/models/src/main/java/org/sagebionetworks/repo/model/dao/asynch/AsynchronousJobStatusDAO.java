@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Basic abstraction for the status of Asynchronous jobs.
@@ -72,7 +71,6 @@ public interface AsynchronousJobStatusDAO {
 	 * 
 	 * @return runtime MS.
 	 * @throws NotFoundException 
-	 * @throws DatastoreException
 	 */
 	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
 

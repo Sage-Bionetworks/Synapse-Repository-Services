@@ -105,7 +105,6 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	/**
 	 * This is set to Propagation.REQUIRES_NEW because the transaction
 	 * must be committed before a message is sent to the worker.
-	 * @throws JSONObjectAdapterException 
 	 */
 	@NewWriteTransaction
 	@Override
