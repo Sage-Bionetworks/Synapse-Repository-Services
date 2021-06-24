@@ -1,0 +1,9 @@
+{
+	"description": "Jobs that that implement this type of AsynchronousRequestBody will only be executable by administrators",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	]
+}

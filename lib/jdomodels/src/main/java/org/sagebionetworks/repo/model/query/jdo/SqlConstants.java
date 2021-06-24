@@ -617,10 +617,11 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_STARTED_ON			= "STARTED_ON";
 	public static final String COL_ASYNCH_JOB_STARTED_BY			= "STARTED_BY";
 	public static final String COL_ASYNCH_JOB_CHANGED_ON			= "CHANGED_ON";
-	public static final String COL_ASYNCH_JOB_REQUEST_BODY			= "COMPRESSED_REQUEST_BODY";
-	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "COMPRESSED_RESPONSE_BODY";
+	public static final String COL_ASYNCH_JOB_REQUEST_BODY			= "REQUEST_BODY";
+	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "RESPONSE_BODY";
 	public static final String COL_ASYNCH_JOB_REQUEST_HASH			= "REQUEST_HASH";
 	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
+	public static final String DDL_ASYNCH_JOB_STATUS 				= "schema/AsynchJobStatus-ddl.sql";
 
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
@@ -1181,6 +1182,7 @@ public class SqlConstants {
 	public static final String COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT = 			"JOBS_STARTED_COUNT";
 	public static final String COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT = 			"JOBS_COMPLETED_COUNT";
 	public static final String COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT = 	"SCANNED_ASSOCIATIONS_COUNT";
+	public static final String COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT =		 	"RELINKED_FILES_COUNT";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -119,6 +120,8 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setGrant_types_supported(Arrays.asList(OAuthGrantType.values()));
 		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
 		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+		// Synapse does not support passing authorization requests by the 'requests' parameter
+		result.setRequest_object_signing_alg_values_supported(Collections.singletonList("none"));
 		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);

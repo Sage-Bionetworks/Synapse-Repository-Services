@@ -1,0 +1,14 @@
+{
+	"description": "Response for a request to tag file handles for archival.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"count": {
+			"type": "integer",
+			"description": "The count of file handles that were queued for archival."
+		}
+	}
+}

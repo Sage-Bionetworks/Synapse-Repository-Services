@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,8 +17,10 @@ import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociatio
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
@@ -38,15 +42,17 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	private AwsKinesisFirehoseLogger kinesisLogger;
 	private StackStatusDao stackStatusDao;
 	private FilesScannerStatusDao statusDao;
+	private FileHandleDao fileHandleDao;
 	private FileHandleAssociationScannerNotifier notifier;
 	private Clock clock;
 	
 	@Autowired
-	public FileHandleAssociationScannerJobManagerImpl(FileHandleAssociationManager associationManager, AwsKinesisFirehoseLogger kinesisLogger, StackStatusDao stackStatusDao, FilesScannerStatusDao statusDao, FileHandleAssociationScannerNotifier notifier, Clock clock) {
+	public FileHandleAssociationScannerJobManagerImpl(FileHandleAssociationManager associationManager, AwsKinesisFirehoseLogger kinesisLogger, StackStatusDao stackStatusDao, FilesScannerStatusDao statusDao, FileHandleDao fileHandleDao, FileHandleAssociationScannerNotifier notifier, Clock clock) {
 		this.associationManager = associationManager;
 		this.kinesisLogger = kinesisLogger;
 		this.stackStatusDao = stackStatusDao;
 		this.statusDao = statusDao;
+		this.fileHandleDao = fileHandleDao;
 		this.notifier = notifier;
 		this.clock = clock;
 	}
@@ -73,6 +79,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		Iterable<ScannedFileHandleAssociation> iterable = associationManager.scanRange(request.getAssociationType(), request.getIdRange());
 
 		int totalRecords = 0;
+		int relinkedRecords = 0;
 
 		for (ScannedFileHandleAssociation association : iterable) {
 
@@ -83,9 +90,12 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 			}
 
 			recordsBatch.addAll(associationRecords);
-
+			
 			if (recordsBatch.size() >= KINESIS_BATCH_SIZE) {
+				validateStackReadWrite();
+				relinkedRecords += relinkRecords(recordsBatch);
 				totalRecords += flushRecordsBatch(recordsBatch);
+				recordsBatch.clear();
 				batchTimestamp = clock.currentTimeMillis();
 
 				// Put a small sleep before continuing with the next batch to avoid saturating kinesis
@@ -98,10 +108,12 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		}
 
 		if (!recordsBatch.isEmpty()) {
+			validateStackReadWrite();
+			relinkedRecords += relinkRecords(recordsBatch);
 			totalRecords += flushRecordsBatch(recordsBatch);
 		}
 
-		statusDao.increaseJobCompletedCount(request.getJobId(), totalRecords);
+		statusDao.increaseJobCompletedCount(request.getJobId(), totalRecords, relinkedRecords);
 
 		return totalRecords;
 		
@@ -180,15 +192,46 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 	}
 	
 	private int flushRecordsBatch(Set<FileHandleAssociationRecord> recordsBatch) throws RecoverableMessageException {
-		validateStackReadWrite();
+		if (recordsBatch.isEmpty()) {
+			return 0;
+		}
+		
 		int size = recordsBatch.size();
+		
 		try {
 			kinesisLogger.logBatch(FileHandleAssociationRecord.STREAM_NAME, new ArrayList<>(recordsBatch));
 		} catch (AwsKinesisDeliveryException e) {
 			throw new RecoverableMessageException(e);
 		}
-		recordsBatch.clear();
+		
 		return size;
+	}
+	
+	private int relinkRecords(Set<FileHandleAssociationRecord> recordsBatch) {
+		
+		int relinkedCount = 0;
+		
+		if (recordsBatch.isEmpty()) {
+			return relinkedCount;
+		}
+		
+		List<Long> fileHandleIds = new ArrayList<>(recordsBatch.stream()
+				.map(FileHandleAssociationRecord::getFileHandleId)
+				.collect(Collectors.toSet()));
+		
+		if (fileHandleDao.hasStatusBatch(fileHandleIds, FileHandleStatus.UNLINKED)) {
+
+			List<Long> updatedIds = fileHandleDao.updateBatchStatus(fileHandleIds, FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
+
+			relinkedCount = updatedIds.size();
+			
+			if (!updatedIds.isEmpty()) {
+				LOG.warn("{} scanned records were UNLINKED and set to AVAILABLE: {}", relinkedCount, updatedIds);
+			}
+			
+		}
+		
+		return relinkedCount;
 	}
 	
 	private void validateStackReadWrite() throws RecoverableMessageException {

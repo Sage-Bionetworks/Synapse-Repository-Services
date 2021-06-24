@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.Date;
+import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * Utils for translating DBOAsynchJobStatus to/from AsynchronousJobStatus
@@ -22,38 +24,42 @@ public class AsynchJobStatusUtils {
 	 * @param dbo
 	 * @return
 	 */
-	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo){
-		// Read in the compressed data
+	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo) {
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
+		// set the asynch request body
 		try {
-			// The compressed body contains the truth data for all type specific data.
-			AsynchronousRequestBody asynchronousRequestBody = (AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getRequestXStream(), dbo.getRequestBody());
+			AsynchronousRequestBody asynchronousRequestBody = 
+					EntityFactory.createEntityFromJSONString(dbo.getRequestBody(), AsynchronousRequestBody.class);
 			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
 			dto.setRequestBody(asynchronousRequestBody);
-		} catch (IOException e) {
+		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-		if(dbo.getResponseBody() != null){
-			try {
-				dto.setResponseBody((AsynchronousResponseBody) JDOSecondaryPropertyUtils.decompressObject(AsynchJobType.getResponseXStream(), dbo.getResponseBody()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+		// set the asynch response body
+		try {
+			if (dbo.getResponseBody() != null) {
+				AsynchronousResponseBody asynchronousResponseBody = 
+						EntityFactory.createEntityFromJSONString(dbo.getResponseBody(), AsynchronousResponseBody.class);
+				asynchronousResponseBody.setConcreteType(asynchronousResponseBody.getClass().getName());
+				dto.setResponseBody(asynchronousResponseBody);
 			}
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 		// The database contains the truth data for all generic data.
-		dto.setChangedOn(dbo.getChangedOn());
+		dto.setChangedOn(new Date(dbo.getChangedOn().getTime()));
 		dto.setException(dbo.getException());
 		dto.setErrorDetails(dbo.getErrorDetails());
 		dto.setErrorMessage(dbo.getErrorMessage());
 		dto.setEtag(dbo.getEtag());
 		dto.setJobId(dbo.getJobId().toString());
-		dto.setJobState(AsynchJobState.valueOf(dbo.getJobState().name()));
+		dto.setJobState(AsynchJobState.valueOf(dbo.getJobState()));
 		dto.setJobCanceling(dbo.getCanceling());
 		dto.setProgressCurrent(dbo.getProgressCurrent());
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setStartedByUserId(dbo.getStartedByUserId());
-		dto.setStartedOn(dbo.getStartedOn());
+		dto.setStartedOn(new Date(dbo.getStartedOn().getTime()));
 		dto.setRuntimeMS(dbo.getRuntimeMS());
 		return dto;
 	}
@@ -63,13 +69,13 @@ public class AsynchJobStatusUtils {
 	 * @param dto
 	 * @return
 	 */
-	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto){
+	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto) {
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
 		AsynchronousRequestBody requestBody = dto.getRequestBody();
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(requestBody.getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
-		dbo.setChangedOn(dto.getChangedOn()); 
+		dbo.setChangedOn(new Timestamp(dto.getChangedOn().getTime())); 
 		dbo.setException(dto.getException());
 		dbo.setErrorDetails(dto.getErrorDetails());
 		dbo.setErrorMessage(truncateMessageStringIfNeeded(dto.getErrorMessage()));
@@ -82,33 +88,23 @@ public class AsynchJobStatusUtils {
 		dbo.setProgressTotal(dto.getProgressTotal());
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));
 		dbo.setStartedByUserId(dto.getStartedByUserId());
-		dbo.setStartedOn(dto.getStartedOn());
+		dbo.setStartedOn(new Timestamp(dto.getStartedOn().getTime()));
 		dbo.setRuntimeMS(dto.getRuntimeMS());
-		// Compress the body
+		// set the request body
 		try {
-			dbo.setRequestBody(JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getRequestXStream(), requestBody));
-		} catch (IOException e) {
+			dbo.setRequestBody(EntityFactory.createJSONStringForEntity(requestBody));
+		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-		if(dto.getResponseBody() != null){
-			dbo.setResponseBody(getBytesForResponseBody(type, dto.getResponseBody()));
+		// set the response body
+		try {
+			if (dto.getResponseBody() != null) {
+				dbo.setResponseBody(EntityFactory.createJSONStringForEntity(dto.getResponseBody()));
+			}
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 		return dbo;
-	}
-	
-	/**
-	 * Get the bytes for a compressed response body.
-	 * 
-	 * @param type
-	 * @param body
-	 * @return
-	 */
-	public static byte[] getBytesForResponseBody(AsynchJobType type, AsynchronousResponseBody body){
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getResponseXStream(), body);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 	
 	/**
@@ -123,20 +119,6 @@ public class AsynchJobStatusUtils {
 			return message.substring(0, DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1);
 		}else{
 			return message;
-		}
-	}
-	
-	/**
-	 * UTF-8
-	 * @param bytes
-	 * @return
-	 */
-	public static String bytesToString(byte[] bytes){
-		if(bytes == null) return null;
-		try {
-			return new String(bytes, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
 		}
 	}
 	

@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILES_SCANNER_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES_SCANNER_STATUS;
 
@@ -29,7 +30,8 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 			new FieldColumn("updatedOn", COL_FILES_SCANNER_STATUS_UPDATED_ON),
 			new FieldColumn("jobsStartedCount", COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT),
 			new FieldColumn("jobsCompletedCount", COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT),
-			new FieldColumn("scannedAssociationsCount", COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT)
+			new FieldColumn("scannedAssociationsCount", COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT),
+			new FieldColumn("relinkedFilesCount", COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT)
 	};
 
 	static final TableMapping<DBOFilesScannerStatus> TABLE_MAPPING = new TableMapping<DBOFilesScannerStatus>() {
@@ -44,6 +46,7 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 			status.setJobsStartedCount(rs.getLong(COL_FILES_SCANNER_STATUS_JOBS_STARTED_COUNT));
 			status.setJobsCompletedCount(rs.getLong(COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT));
 			status.setScannedAssociationsCount(rs.getLong(COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT));
+			status.setRelinkedFilesCount(rs.getLong(COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT));
 
 			return status;
 
@@ -76,6 +79,7 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 	private Long jobsStartedCount;
 	private Long jobsCompletedCount;
 	private Long scannedAssociationsCount;
+	private Long relinkedFilesCount;
 
 	public Long getId() {
 		return id;
@@ -125,6 +129,14 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 		this.scannedAssociationsCount = scannedAssociationsCount;
 	}
 	
+	public Long getRelinkedFilesCount() {
+		return relinkedFilesCount;
+	}
+	
+	public void setRelinkedFilesCount(Long relinkedFilesCount) {
+		this.relinkedFilesCount = relinkedFilesCount;
+	}
+	
 	@Override
 	public TableMapping<DBOFilesScannerStatus> getTableMapping() {
 		return TABLE_MAPPING;
@@ -132,7 +144,7 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, jobsCompletedCount, jobsStartedCount, scannedAssociationsCount, startedOn, updatedOn);
+		return Objects.hash(id, jobsCompletedCount, jobsStartedCount, relinkedFilesCount, scannedAssociationsCount, startedOn, updatedOn);
 	}
 
 	@Override
@@ -148,7 +160,7 @@ public class DBOFilesScannerStatus implements DatabaseObject<DBOFilesScannerStat
 		}
 		DBOFilesScannerStatus other = (DBOFilesScannerStatus) obj;
 		return Objects.equals(id, other.id) && Objects.equals(jobsCompletedCount, other.jobsCompletedCount)
-				&& Objects.equals(jobsStartedCount, other.jobsStartedCount)
+				&& Objects.equals(jobsStartedCount, other.jobsStartedCount) && Objects.equals(relinkedFilesCount, other.relinkedFilesCount)
 				&& Objects.equals(scannedAssociationsCount, other.scannedAssociationsCount) && Objects.equals(startedOn, other.startedOn)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}

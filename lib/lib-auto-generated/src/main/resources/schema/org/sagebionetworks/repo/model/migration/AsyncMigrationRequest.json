@@ -3,6 +3,9 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody"
 		}
 	],
 	"properties": {
