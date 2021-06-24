@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -57,7 +58,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET "
 			+ COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, " + COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON + " = ?, " + COL_ASYNCH_JOB_RUNTIME_MS
-			+ " = ? - " + COL_ASYNCH_JOB_STARTED_ON + " WHERE " + COL_ASYNCH_JOB_ID
+			+ " = UNIX_TIMESTAMP(NOW(3))*1000 - UNIX_TIMESTAMP(" + COL_ASYNCH_JOB_STARTED_ON + ")*1000 WHERE " + COL_ASYNCH_JOB_ID
 			+ " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
 	
 	private static final String SQL_SET_FAILED = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_EXCEPTION + " = ?, "
@@ -81,7 +82,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 
 	@Override
-	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException {
 		if(jobId == null){
 			throw new IllegalArgumentException("Job id cannot be null");
 		}
@@ -108,7 +109,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@NewWriteTransaction
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws JSONObjectAdapterException {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -133,7 +134,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		progressMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, now, jobId);
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, new Timestamp(now), jobId);
 	}
 
 	@WriteTransaction
@@ -155,7 +156,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		} catch (SecurityException e) {
 			// ignore
 		}
-		jdbcTemplate.update(SQL_SET_FAILED, exceptionClass, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
+		jdbcTemplate.update(SQL_SET_FAILED, exceptionClass, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, new Timestamp(now), jobId);
 		return newEtag;
 	}
 
@@ -170,25 +171,29 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	@WriteTransaction
 	@Override
 	public long setComplete(String jobId, AsynchronousResponseBody body,
-			String requestHash) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+			String requestHash) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
 		DBOAsynchJobStatus dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
 		// Calculate the runtime
 		long now = System.currentTimeMillis();
-		long runtimeMS = now - dbo.getStartedOn();
+		long runtimeMS = now - dbo.getStartedOn().getTime();
 		dbo.setRuntimeMS(runtimeMS);
 		String newEtag = UUID.randomUUID().toString();
 		dbo.setEtag(newEtag);
 		dbo.setProgressMessage("Complete");
-		dbo.setChangedOn(now);
+		dbo.setChangedOn(new Timestamp(now));
 		dbo.setException(null);
 		dbo.setErrorDetails(null);
 		dbo.setErrorMessage(null);
 		dbo.setJobState(JobState.COMPLETE);
 		dbo.setProgressCurrent(dbo.getProgressTotal());
-		dbo.setResponseBody(EntityFactory.createJSONStringForEntity(body));
+		try {
+			dbo.setResponseBody(EntityFactory.createJSONStringForEntity(body));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
 		return runtimeMS;
@@ -199,7 +204,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 * @see org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO#findCompletedJobStatus(java.lang.String, java.lang.String, java.lang.Long)
 	 */
 	@Override
-	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) throws JSONObjectAdapterException {
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) {
 		if(requestHash == null){
 			throw new IllegalArgumentException("requestHash cannot be null");
 		}

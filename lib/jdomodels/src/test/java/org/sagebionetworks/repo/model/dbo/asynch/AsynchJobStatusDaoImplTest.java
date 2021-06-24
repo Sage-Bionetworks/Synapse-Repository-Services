@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ThreadStepper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -82,7 +81,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 
 	@Test
-	public void testUploadCreateGet() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status.getJobId());
 		assertNotNull(status.getEtag());
@@ -100,12 +99,12 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test (expected=NotFoundException.class)
-	public void testNotFound() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testNotFound() throws DatastoreException, NotFoundException{
 		asynchJobStatusDao.getJobStatus("-99");
 	}
 	
 	@Test
-	public void testUpdateProgress() throws DatastoreException, NotFoundException, InterruptedException, JSONObjectAdapterException{
+	public void testUpdateProgress() throws DatastoreException, NotFoundException, InterruptedException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		// sleep to increase elapse time
 		Thread.sleep(1);
@@ -124,7 +123,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateProgressNotProcessing() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testUpdateProgressNotProcessing() throws DatastoreException, NotFoundException {
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -251,7 +250,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 
 	@Test
-	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -268,7 +267,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testSetFailed() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testSetFailed() throws DatastoreException, NotFoundException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -292,7 +291,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testSetFailedNonStringConstructor() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testSetFailedNonStringConstructor() throws DatastoreException, NotFoundException {
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		// update the progress
 		Throwable error = new TermsOfUseException();
@@ -302,7 +301,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 
 	@Test
-	public void testSetCanceling() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testSetCanceling() throws DatastoreException, NotFoundException {
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertFalse(status.getJobCanceling());
 		// update the progress
@@ -314,7 +313,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 
 	@Test
-	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException, JSONObjectAdapterException{
+	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
@@ -345,7 +344,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 
 	@Test
-	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testFindCompletedJobStatusCompleted() throws DatastoreException, NotFoundException{
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(status);
@@ -360,7 +359,7 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
-	public void testFindCompletedJobStatusMultiple() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testFindCompletedJobStatusMultiple() throws DatastoreException, NotFoundException{
 		String requestHash = "sd1zQvpC67saUigIElscOgHash";
 		AsynchronousJobStatus one = asynchJobStatusDao.startJob(creatorUserGroupId, body);
 		assertNotNull(one);
@@ -384,12 +383,12 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testIdNull() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testIdNull(){
 		asynchJobStatusDao.getJobStatus(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testIdNAN() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testIdNAN(){
 		asynchJobStatusDao.getJobStatus("not a number");
 	}
 }

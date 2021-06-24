@@ -24,6 +24,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_ASYNCH_J
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -84,9 +85,9 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	private Long progressCurrent;
 	private Long progressTotal;
 	private String progressMessage;
-	private Long startedOn;
+	private Timestamp startedOn;
 	private Long startedByUserId;
-	private Long changedOn;
+	private Timestamp changedOn;
 	private String requestBody;
 	private String responseBody;
 	private Long runtimeMS;
@@ -180,11 +181,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.progressMessage = progressMessage;
 	}
 
-	public Long getStartedOn() {
+	public Timestamp getStartedOn() {
 		return startedOn;
 	}
 
-	public void setStartedOn(long startedOn) {
+	public void setStartedOn(Timestamp startedOn) {
 		this.startedOn = startedOn;
 	}
 
@@ -196,11 +197,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.startedByUserId = startedByUserId;
 	}
 
-	public Long getChangedOn() {
+	public Timestamp getChangedOn() {
 		return changedOn;
 	}
 
-	public void setChangedOn(long now) {
+	public void setChangedOn(Timestamp now) {
 		this.changedOn = now;
 	}
 
@@ -256,17 +257,8 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			dbo.setJobType(AsynchJobType.valueOf(rs.getString(COL_ASYNCH_JOB_TYPE)));
 			dbo.setCanceling(rs.getBoolean(COL_ASYNCH_JOB_CANCELING));
 			dbo.setException(rs.getString(COL_ASYNCH_JOB_EXCEPTION));
-			if (rs.wasNull()) {
-				dbo.setException(null);
-			}
 			dbo.setErrorMessage(rs.getString(COL_ASYNCH_JOB_ERROR_MESSAGE));
-			if (rs.wasNull()) {
-				dbo.setErrorMessage(null);
-			}
 			dbo.setErrorDetails(rs.getString(COL_ASYNCH_JOB_ERROR_DETAILS));
-			if(rs.wasNull()) {
-				dbo.setErrorDetails(null);
-			}
 			dbo.setProgressCurrent(rs.getLong(COL_ASYNCH_JOB_PROGRESS_CURRENT));
 			if(rs.wasNull()) {
 				dbo.setProgressCurrent(null);
@@ -276,24 +268,13 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 				dbo.setProgressTotal(null);
 			}
 			dbo.setProgressMessage(rs.getString(COL_ASYNCH_JOB_PROGRESS_MESSAGE));
-			if(rs.wasNull()) {
-				dbo.setProgressMessage(null);
-			}
-			dbo.setStartedOn(rs.getLong(COL_ASYNCH_JOB_STARTED_ON));
+			dbo.setStartedOn(rs.getTimestamp(COL_ASYNCH_JOB_STARTED_ON));
 			dbo.setStartedByUserId(rs.getLong(COL_ASYNCH_JOB_STARTED_BY));
-			dbo.setChangedOn(rs.getLong(COL_ASYNCH_JOB_CHANGED_ON));
+			dbo.setChangedOn(rs.getTimestamp(COL_ASYNCH_JOB_CHANGED_ON));
 			dbo.setRequestBody(rs.getString(COL_ASYNCH_JOB_REQUEST_BODY));
-			String responseBody = rs.getString(COL_ASYNCH_JOB_RESPONSE_BODY);
-			if (rs.wasNull()) {
-				dbo.setResponseBody(null);
-			} else {
-				dbo.setResponseBody(responseBody);
-			}
+			dbo.setResponseBody(rs.getString(COL_ASYNCH_JOB_RESPONSE_BODY));
 			dbo.setRuntimeMS(rs.getLong(COL_ASYNCH_JOB_RUNTIME_MS));
 			dbo.setRequestHash(rs.getString(COL_ASYNCH_JOB_REQUEST_HASH));
-			if(rs.wasNull()) {
-				dbo.setRequestHash(null);
-			}
 			return dbo;
 		}
 

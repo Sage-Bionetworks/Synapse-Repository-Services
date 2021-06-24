@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class AsynchJobStatusUtilsTest {
 	TableUpdateTransactionRequest requestBody;
@@ -50,7 +49,7 @@ public class AsynchJobStatusUtilsTest {
 	}
 
 	@Test
-	public void testUploadRoundTrip() throws JSONObjectAdapterException{
+	public void testUploadRoundTrip(){
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(responseBody);
 
@@ -61,7 +60,7 @@ public class AsynchJobStatusUtilsTest {
 	}
 	
 	@Test
-	public void testUploadRoundTripNullReponse() throws JSONObjectAdapterException{
+	public void testUploadRoundTripNullReponse(){
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(null);
 		
@@ -91,7 +90,7 @@ public class AsynchJobStatusUtilsTest {
 	}
 	
 	@Test
-	public void testRoundTripTruncate() throws JSONObjectAdapterException{
+	public void testRoundTripTruncate(){
 		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS+1];
 		Arrays.fill(chars, '1');
 		String tooBig = new String(chars);

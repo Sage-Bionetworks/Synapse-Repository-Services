@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Date;
+import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -24,25 +25,31 @@ public class AsynchJobStatusUtils {
 	 * Create a DTO from a DBO
 	 * @param dbo
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 */
-	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo) throws JSONObjectAdapterException {
-		// Read in the compressed data
+	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo) {
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		// set the asynch request body
-		AsynchronousRequestBody asynchronousRequestBody = 
-				EntityFactory.createEntityFromJSONString(dbo.getRequestBody(), AsynchronousRequestBody.class);
-		asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
-		dto.setRequestBody(asynchronousRequestBody);
+		try {
+			AsynchronousRequestBody asynchronousRequestBody = 
+					EntityFactory.createEntityFromJSONString(dbo.getRequestBody(), AsynchronousRequestBody.class);
+			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
+			dto.setRequestBody(asynchronousRequestBody);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		// set the asynch response body
-		if (dbo.getResponseBody() != null) {
-			AsynchronousResponseBody asynchronousResponseBody = 
-					EntityFactory.createEntityFromJSONString(dbo.getResponseBody(), AsynchronousResponseBody.class);
-			asynchronousResponseBody.setConcreteType(asynchronousResponseBody.getClass().getName());
-			dto.setResponseBody(asynchronousResponseBody);
+		try {
+			if (dbo.getResponseBody() != null) {
+				AsynchronousResponseBody asynchronousResponseBody = 
+						EntityFactory.createEntityFromJSONString(dbo.getResponseBody(), AsynchronousResponseBody.class);
+				asynchronousResponseBody.setConcreteType(asynchronousResponseBody.getClass().getName());
+				dto.setResponseBody(asynchronousResponseBody);
+			}
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 		// The database contains the truth data for all generic data.
-		dto.setChangedOn(new Date(dbo.getChangedOn()));
+		dto.setChangedOn(new Date(dbo.getChangedOn().getTime()));
 		dto.setException(dbo.getException());
 		dto.setErrorDetails(dbo.getErrorDetails());
 		dto.setErrorMessage(dbo.getErrorMessage());
@@ -54,7 +61,7 @@ public class AsynchJobStatusUtils {
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setStartedByUserId(dbo.getStartedByUserId());
-		dto.setStartedOn(new Date(dbo.getStartedOn()));
+		dto.setStartedOn(new Date(dbo.getStartedOn().getTime()));
 		dto.setRuntimeMS(dbo.getRuntimeMS());
 		return dto;
 	}
@@ -63,15 +70,14 @@ public class AsynchJobStatusUtils {
 	 * Create DBO from a DTO
 	 * @param dto
 	 * @return
-	 * @throws JSONObjectAdapterException 
 	 */
-	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto) throws JSONObjectAdapterException{
+	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto) {
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
 		AsynchronousRequestBody requestBody = dto.getRequestBody();
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(requestBody.getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
-		dbo.setChangedOn(dto.getChangedOn().getTime()); 
+		dbo.setChangedOn(new Timestamp(dto.getChangedOn().getTime())); 
 		dbo.setException(dto.getException());
 		dbo.setErrorDetails(dto.getErrorDetails());
 		dbo.setErrorMessage(truncateMessageStringIfNeeded(dto.getErrorMessage()));
@@ -84,13 +90,21 @@ public class AsynchJobStatusUtils {
 		dbo.setProgressTotal(dto.getProgressTotal());
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));
 		dbo.setStartedByUserId(dto.getStartedByUserId());
-		dbo.setStartedOn(dto.getStartedOn().getTime());
+		dbo.setStartedOn(new Timestamp(dto.getStartedOn().getTime()));
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// set the request body
-		dbo.setRequestBody(EntityFactory.createJSONStringForEntity(requestBody));
+		try {
+			dbo.setRequestBody(EntityFactory.createJSONStringForEntity(requestBody));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		// set the response body
-		if (dto.getResponseBody() != null) {
-			dbo.setResponseBody(EntityFactory.createJSONStringForEntity(dto.getResponseBody()));
+		try {
+			if (dto.getResponseBody() != null) {
+				dbo.setResponseBody(EntityFactory.createJSONStringForEntity(dto.getResponseBody()));
+			}
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 		return dbo;
 	}

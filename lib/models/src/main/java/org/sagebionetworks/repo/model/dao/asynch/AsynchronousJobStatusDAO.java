@@ -23,9 +23,8 @@ public interface AsynchronousJobStatusDAO {
 	 * @param requestHash For jobs that are cacheable a hash of the job body + object etag will be included.
 	 * This hash can then be used to find existing jobs with the same hash.
 	 * @return
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body) throws JSONObjectAdapterException;
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -34,9 +33,8 @@ public interface AsynchronousJobStatusDAO {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Update the progress of a job.
@@ -74,10 +72,9 @@ public interface AsynchronousJobStatusDAO {
 	 * 
 	 * @return runtime MS.
 	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException
 	 */
-	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
 
 	
 	/**
@@ -93,9 +90,8 @@ public interface AsynchronousJobStatusDAO {
 	 * @return A list of all AsynchronousJobStatus with the given request hash and userId.  Will return an empty list if there are no matches.
 	 * 
 	 * Note: This method will never return more than five results.
-	 * @throws JSONObjectAdapterException 
 	 */
-	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId) throws JSONObjectAdapterException;
+	public List<AsynchronousJobStatus> findCompletedJobStatus(String requestHash, Long userId);
 	
 
 }
