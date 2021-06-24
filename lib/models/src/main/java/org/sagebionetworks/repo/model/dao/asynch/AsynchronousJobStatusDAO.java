@@ -71,6 +71,7 @@ public interface AsynchronousJobStatusDAO {
 	 * 
 	 * @return runtime MS.
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	public long setComplete(String jobId, AsynchronousResponseBody body, String requestHash) throws DatastoreException, NotFoundException;
 
