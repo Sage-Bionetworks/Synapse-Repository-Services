@@ -1,24 +1,24 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 
-
+@ExtendWith(MockitoExtension.class)
 public class AsynchronousJobServicesImplTest {
 	
 	@Mock
@@ -26,32 +26,25 @@ public class AsynchronousJobServicesImplTest {
 	@Mock
 	private AsynchJobStatusManager mockAsynchJobStatusManager;
 	@Mock
-	private AsyncMigrationRequest mockAdminRequest;
+	private AsynchronousAdminRequestBody mockAdminRequest;
 	@Mock
 	private AsynchronousRequestBody mockRequest;
 	
-	AsynchronousJobServicesImpl svc;
+	@InjectMocks
+	private AsynchronousJobServicesImpl svc;
 
-	
-	@Before
-	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		svc = new AsynchronousJobServicesImpl();
-		ReflectionTestUtils.setField(svc, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(svc, "asynchJobStatusManager", mockAsynchJobStatusManager);
-	}
-
-	@After
-	public void tearDown() throws Exception {
-	}
-
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testStartAdminJobAsRegular() {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
-		svc.startJob(userId, mockAdminRequest);
+		
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
+			svc.startJob(userId, mockAdminRequest);
+		});
+		
+		assertEquals("Only an administrator may start this job.", ex.getMessage());
 	}
 	
 	@Test
