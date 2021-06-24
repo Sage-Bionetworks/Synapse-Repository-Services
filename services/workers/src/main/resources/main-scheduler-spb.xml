@@ -70,6 +70,7 @@
     <import resource="classpath:schema-validation-worker-spb.xml" />
     <import resource="classpath:multipart-cleanup-spb.xml" />
     <import resource="classpath:file-scanner-spb.xml" />
+    <import resource="classpath:file-archival-spb.xml"/>
     <import resource="classpath:download-list-query-worker-spb.xml" />
     <import resource="classpath:download-list-add-worker-spb.xml" />
     <import resource="classpath:download-list-package-worker-spb.xml" />
@@ -134,6 +135,7 @@
 		<ref bean="downloadListAddTrigger" />
 		<ref bean="downloadListPackageTrigger" />
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
+		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
