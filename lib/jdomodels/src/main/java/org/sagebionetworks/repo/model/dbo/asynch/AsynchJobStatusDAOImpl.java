@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,6 +37,8 @@ import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -55,7 +58,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET "
 			+ COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, " + COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, "
 			+ COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON + " = ?, " + COL_ASYNCH_JOB_RUNTIME_MS
-			+ " = ? - " + COL_ASYNCH_JOB_STARTED_ON + " WHERE " + COL_ASYNCH_JOB_ID
+			+ " = UNIX_TIMESTAMP(NOW(3))*1000 - UNIX_TIMESTAMP(" + COL_ASYNCH_JOB_STARTED_ON + ")*1000 WHERE " + COL_ASYNCH_JOB_ID
 			+ " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
 	
 	private static final String SQL_SET_FAILED = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_EXCEPTION + " = ?, "
@@ -130,7 +133,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		progressMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, now, jobId);
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, new Timestamp(now), jobId);
 	}
 
 	@WriteTransaction
@@ -152,7 +155,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		} catch (SecurityException e) {
 			// ignore
 		}
-		jdbcTemplate.update(SQL_SET_FAILED, exceptionClass, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
+		jdbcTemplate.update(SQL_SET_FAILED, exceptionClass, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, new Timestamp(now), jobId);
 		return newEtag;
 	}
 
@@ -179,13 +182,17 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		String newEtag = UUID.randomUUID().toString();
 		dbo.setEtag(newEtag);
 		dbo.setProgressMessage("Complete");
-		dbo.setChangedOn(new Date(now));
+		dbo.setChangedOn(new Timestamp(now));
 		dbo.setException(null);
 		dbo.setErrorDetails(null);
 		dbo.setErrorMessage(null);
 		dbo.setJobState(JobState.COMPLETE);
 		dbo.setProgressCurrent(dbo.getProgressTotal());
-		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(dbo.getJobType(), body));
+		try {
+			dbo.setResponseBody(EntityFactory.createJSONStringForEntity(body));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
 		return runtimeMS;
