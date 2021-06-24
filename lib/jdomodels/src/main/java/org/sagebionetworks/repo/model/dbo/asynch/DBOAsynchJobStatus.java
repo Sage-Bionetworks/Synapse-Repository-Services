@@ -258,11 +258,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 			dbo.setErrorMessage(rs.getString(COL_ASYNCH_JOB_ERROR_MESSAGE));
 			dbo.setErrorDetails(rs.getString(COL_ASYNCH_JOB_ERROR_DETAILS));
 			dbo.setProgressCurrent(rs.getLong(COL_ASYNCH_JOB_PROGRESS_CURRENT));
-			if(rs.wasNull()) {
+			if (rs.wasNull()) {
 				dbo.setProgressCurrent(null);
 			}
 			dbo.setProgressTotal(rs.getLong(COL_ASYNCH_JOB_PROGRESS_TOTAL));
-			if(rs.wasNull()) {
+			if (rs.wasNull()) {
 				dbo.setProgressTotal(null);
 			}
 			dbo.setProgressMessage(rs.getString(COL_ASYNCH_JOB_PROGRESS_MESSAGE));

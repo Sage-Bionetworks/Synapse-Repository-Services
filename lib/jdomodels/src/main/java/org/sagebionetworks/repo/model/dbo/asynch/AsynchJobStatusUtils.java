@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -10,7 +9,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -110,21 +108,6 @@ public class AsynchJobStatusUtils {
 	}
 	
 	/**
-	 * Get the bytes for a compressed response body.
-	 * 
-	 * @param type
-	 * @param body
-	 * @return
-	 */
-	public static byte[] getBytesForResponseBody(AsynchJobType type, AsynchronousResponseBody body){
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(AsynchJobType.getResponseXStream(), body);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
 	 * Ensures messages fit in the table.
 	 * 
 	 * @param message
@@ -136,20 +119,6 @@ public class AsynchJobStatusUtils {
 			return message.substring(0, DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1);
 		}else{
 			return message;
-		}
-	}
-	
-	/**
-	 * UTF-8
-	 * @param bytes
-	 * @return
-	 */
-	public static String bytesToString(byte[] bytes){
-		if(bytes == null) return null;
-		try {
-			return new String(bytes, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
 		}
 	}
 	
