@@ -1,0 +1,14 @@
+{
+	"description": "Request used to tag unlinked file handles for archival. Only administrator can perform this kind of job.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody"
+		}
+	],
+	"properties": {
+		"limit": {
+			"type": "integer",
+			"description": "The maximum number of file handles to tag for archival in a single job, defaults to 100000 if not supplied and can be at most 100000"
+		}
+	}
+}
