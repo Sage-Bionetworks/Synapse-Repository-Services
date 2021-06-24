@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
@@ -92,7 +91,7 @@ public class AsynchJobStatusManagerImplTest {
 	long runtimeMS;
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void before() throws DatastoreException, NotFoundException{
 		startedJobId = "99999";
 		when(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
@@ -130,17 +129,17 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testStartJobNulls() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testStartJobNulls() throws DatastoreException, NotFoundException{
 		manager.startJob(null, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testStartJobBodyNull() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testStartJobBodyNull() throws DatastoreException, NotFoundException{
 		manager.startJob(user, null);
 	}
 	
 	@Test
-	public void testStartJobBodyUploadHappy() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testStartJobBodyUploadHappy() throws DatastoreException, NotFoundException{
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
@@ -151,32 +150,32 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testGetJobStatusUnauthorizedException() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusUnauthorizedException() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(false);
 		manager.getJobStatus(user,"999");
 	}
 	
 	@Test(expected = UnauthorizedException.class)
-	public void testCancelJobStatusUnauthorizedException() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testCancelJobStatusUnauthorizedException() throws DatastoreException, NotFoundException {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(false);
 		manager.cancelJob(user, "999");
 	}
 
 	@Test
-	public void testGetJobStatusHappy() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusHappy() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		AsynchronousJobStatus status = manager.getJobStatus(user,"999");
 		assertNotNull(status);
 	}
 	
 	@Test
-	public void testLookupStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testLookupStatus(){
 		AsynchronousJobStatus status = manager.lookupJobStatus("999");
 		assertNotNull(status);
 	}
 	
 	@Test
-	public void testLookupStatusReadOnlyJob() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testLookupStatusReadOnlyJob() {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
@@ -193,7 +192,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test(expected=IllegalStateException.class)
-	public void testLookupStatusWriteJobProcessing() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testLookupStatusWriteJobProcessing() {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
@@ -208,7 +207,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testLookupStatusWriteJobComplete() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public void testLookupStatusWriteJobComplete() {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
@@ -227,10 +226,9 @@ public class AsynchJobStatusManagerImplTest {
 	 * Should be able to get a completed job while in read-only mode.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
 	 */
 	@Test
-	public void testGetJobStatusReadOnlyComplete() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusReadOnlyComplete() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -246,10 +244,9 @@ public class AsynchJobStatusManagerImplTest {
 	 * Should be able to get a failed job while in read-only mode.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
 	 */
 	@Test
-	public void testGetJobStatusReadOnlyFailed() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusReadOnlyFailed() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -266,10 +263,9 @@ public class AsynchJobStatusManagerImplTest {
 	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testGetJobStatusReadOnlyProcessing() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusReadOnlyProcessing() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -286,10 +282,9 @@ public class AsynchJobStatusManagerImplTest {
 	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
 	 */
 	@Test (expected=IllegalStateException.class)
-	public void testGetJobStatusDownProcessing() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testGetJobStatusDownProcessing() throws DatastoreException, NotFoundException{
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -422,7 +417,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testStartJobCacheHit() throws JSONObjectAdapterException{
+	public void testStartJobCacheHit(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -446,7 +441,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testStartJobMultipleCacheHit() throws JSONObjectAdapterException{
+	public void testStartJobMultipleCacheHit(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -486,7 +481,7 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
-	public void testStartJobCacheMiss() throws JSONObjectAdapterException{
+	public void testStartJobCacheMiss(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -508,10 +503,9 @@ public class AsynchJobStatusManagerImplTest {
 	
 	/**
 	 * A hash is used to lookup an existing job request so we still need to check if request body is equal to the cache hit.
-	 * @throws JSONObjectAdapterException 
 	 */
 	@Test
-	public void testStartJobCacheHitNotEquals() throws JSONObjectAdapterException{
+	public void testStartJobCacheHitNotEquals(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -540,13 +534,10 @@ public class AsynchJobStatusManagerImplTest {
 	
 	/**
 	 * A null jobHash means the job cannot be cached.
-	 * @throws JSONObjectAdapterException 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
 	 * 
 	 */
 	@Test
-	public void testStartJobNullHash() throws DatastoreException, NotFoundException, JSONObjectAdapterException{
+	public void testStartJobNullHash(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");

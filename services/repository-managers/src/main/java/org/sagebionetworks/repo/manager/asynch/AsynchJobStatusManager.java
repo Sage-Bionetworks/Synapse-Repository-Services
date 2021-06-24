@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for an AsynchronousJobStatus CRUD.
@@ -26,9 +25,8 @@ public interface AsynchJobStatusManager {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the current status of a job.
@@ -38,9 +36,8 @@ public interface AsynchJobStatusManager {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus getJobStatus(UserInfo user, String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public AsynchronousJobStatus getJobStatus(UserInfo user, String jobId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lookup an job status using only the ID.
@@ -50,9 +47,8 @@ public interface AsynchJobStatusManager {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus lookupJobStatus(String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public AsynchronousJobStatus lookupJobStatus(String jobId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Stop a job.
@@ -62,9 +58,8 @@ public interface AsynchJobStatusManager {
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
-	 * @throws JSONObjectAdapterException 
 	 */
-	public void cancelJob(UserInfo user, String jobId) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
+	public void cancelJob(UserInfo user, String jobId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Update the progress of a job.
@@ -106,9 +101,8 @@ public interface AsynchJobStatusManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws IOException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public void setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException, IOException, JSONObjectAdapterException;
+	public void setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException, IOException;
 
 	public void emptyAllQueues();
 }

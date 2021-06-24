@@ -27,6 +27,7 @@ public class AsynchJobStatusUtils {
 	 * @throws JSONObjectAdapterException
 	 */
 	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo) throws JSONObjectAdapterException {
+		// Read in the compressed data
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		// set the asynch request body
 		AsynchronousRequestBody asynchronousRequestBody = 
