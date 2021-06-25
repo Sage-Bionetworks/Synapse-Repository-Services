@@ -216,4 +216,11 @@ public class MySqlFunctionTest {
 		assertEquals("WEEKOFYEAR('2007-02-03')", element.toSql());
 		assertEquals(FunctionReturnType.LONG, element.getFunctionReturnType());
 	}
+	
+	@Test
+	public void testRound() throws ParseException {
+		MySqlFunction element = new TableQueryParser("round(2.6)").mysqlFunction();
+		assertEquals("ROUND(2.6)", element.toSql());
+		assertEquals(FunctionReturnType.DOUBLE, element.getFunctionName().getFunctionReturnType());
+	}
 }

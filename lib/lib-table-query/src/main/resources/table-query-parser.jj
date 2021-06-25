@@ -252,6 +252,11 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
+/* numeric functions */
+TOKEN [IGNORE_CASE]: {
+	< numeric_function_name: "ROUND" >
+}
+
 /* list functions */
 TOKEN [IGNORE_CASE]: {
   < array_function_name:
@@ -1065,6 +1070,7 @@ MySqlFunctionName mySqlFunctionName():
 	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <numeric_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 
 StringValueExpression stringValueExpression():
