@@ -2581,16 +2581,15 @@ public class FileHandleManagerImplTest {
 				String url = manager.getURLForFileHandle(mockUser, handle);
 				
 				assertEquals(expectedUrl, url);
-				
-				verify(mockCloudWatchClient).addProfileData(captor.capture());
-				
-				ProfileData data = captor.getValue();
-				expectedData.setTimestamp(data.getTimestamp());
-				
-				assertEquals(expectedData, data);
-				
 			});
 		
+		verify(mockCloudWatchClient, times(FileHandleStatus.values().length - 1)).addProfileData(captor.capture());
+		
+		for (ProfileData data : captor.getAllValues()) {
+			expectedData.setTimestamp(data.getTimestamp());
+			
+			assertEquals(expectedData, data);
+		}
 	}
 	
 	@Test

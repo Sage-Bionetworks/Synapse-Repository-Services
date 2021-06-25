@@ -55,7 +55,7 @@
             "enum": [
                 {
                     "name": "AVAILABLE",
-                    "description": "The default status of a file hanlde that is considered available and linked to at least on object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>)."
+                    "description": "The default status of a file handle that is considered available and linked to at least on object (For the possible associations see <a href=\"${org.sagebionetworks.repo.model.file.FileHandleAssociateType}\">FileHandleAssociateType</a>)."
                 },
                 {
                     "name": "UNLINKED",
