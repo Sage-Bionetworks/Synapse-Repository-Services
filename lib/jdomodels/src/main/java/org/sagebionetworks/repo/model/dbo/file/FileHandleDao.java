@@ -184,10 +184,9 @@ public interface FileHandleDao {
 	 * @param modifedBefore Include only files modified before the given instant
 	 * @param modifiedAfter Include only files modified after the given instant
 	 * @param limit The limit to apply
-	 * @param offset The offset to apply
 	 * @return A batch of keys of file handles that are unlinked within the given range
 	 */
-	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit, int offset);
+	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
 	
 	/**
 	 * Deleted all file data

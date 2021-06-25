@@ -17,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager {
 	
 	private static final String PROCESS_QUEUE_NAME = "FILE_KEY_ARCHIVE";
+	private static final int DEFAULT_ARCHIVE_LIMIT = 100_000;
+	private static final int FETCH_BATCH_SIZE = 10_000;
 
 	private AmazonSQS sqsClient;
 	private ObjectMapper objectMapper;
@@ -38,12 +40,17 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	public FileHandleArchivalResponse processFileHandleArchivalRequest(UserInfo user, FileHandleArchivalRequest request) {
 		ValidateArgument.required(user, "The user");
 		ValidateArgument.required(request, "The request");
+		ValidateArgument.requirement(request.getLimit() == null || (request.getLimit() > 0 && request.getLimit() <= DEFAULT_ARCHIVE_LIMIT), "If supplied the limit must be in the range [0, " + DEFAULT_ARCHIVE_LIMIT + ")");
 		
 		if (!user.isAdmin()) {
 			throw new UnauthorizedException("Only administrators can access this service.");
 		}
 		
 		Long count = 0L;
+		
+		int limit = request.getLimit() == null ? DEFAULT_ARCHIVE_LIMIT : request.getLimit().intValue();
+		
+		// getUnlinkedKeysForBucket(bucketName, null, null, maxCount, maxCount)
 		
 		// TODO
 		return new FileHandleArchivalResponse().setCount(count);

@@ -1128,66 +1128,9 @@ public class DBOFileHandleDaoImplTest {
 		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file3, file4, file5));
 		
 		// Call under test		
-		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10, 0);
+		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10);
 		
 		assertEquals(Arrays.asList("key2"), keys);
-	}
-	
-	@Test
-	public void testGetUnlinkedKeysForBucketWithOffset() {
-		
-		String bucket = "bucket";
-		
-		int days = 5;
-		
-		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
-		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
-		
-		Instant inRange = modifiedBefore.minus(1, ChronoUnit.HOURS);
-		Instant afterRange = modifiedBefore.plus(1, ChronoUnit.HOURS);
-				
-		// After the range
-		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file1.setBucketName(bucket);
-		file1.setUpdatedOn(Timestamp.from(afterRange));
-		file1.setStatus(FileHandleStatus.UNLINKED.name());
-		file1.setKey("key1");
-				
-		// In the range
-		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file2.setBucketName(bucket);
-		file2.setUpdatedOn(Timestamp.from(inRange));
-		file2.setStatus(FileHandleStatus.UNLINKED.name());
-		file2.setKey("key2");
-		
-		// In the range but different bucket
-		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file3.setBucketName("anotherBucket");
-		file3.setUpdatedOn(Timestamp.from(inRange));
-		file3.setStatus(FileHandleStatus.UNLINKED.name());
-		file3.setKey("key3");
-		
-		// In the range but different AVAILABLE
-		DBOFileHandle file4 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file4.setBucketName(bucket);
-		file4.setUpdatedOn(Timestamp.from(inRange));
-		file4.setStatus(FileHandleStatus.AVAILABLE.name());
-		file4.setKey("key4");
-		
-		// Before the range
-		DBOFileHandle file5 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file5.setBucketName(bucket);
-		file5.setUpdatedOn(Timestamp.from(inRange));
-		file5.setStatus(FileHandleStatus.UNLINKED.name());
-		file5.setKey("key5");
-		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file3, file4, file5));
-		
-		// Call under test		
-		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1, 1);
-		
-		assertEquals(Arrays.asList("key5"), keys);
 	}
 	
 	@Test
@@ -1202,7 +1145,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
 		});
 		
 		assertEquals("The bucket name is required and must not be the empty string.", ex.getMessage());
@@ -1220,7 +1163,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
 		});
 		
 		assertEquals("The modifiedBefore is required.", ex.getMessage());
@@ -1238,7 +1181,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
 		});
 		
 		assertEquals("The modifiedAfter is required.", ex.getMessage());
@@ -1256,7 +1199,7 @@ public class DBOFileHandleDaoImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
 		});
 		
 		assertEquals("modifiedAfter must be before modifiedBefore.", ex.getMessage());
@@ -1274,28 +1217,10 @@ public class DBOFileHandleDaoImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, -1, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, -1);
 		});
 		
 		assertEquals("The limit must be greater than 0.", ex.getMessage());
-	}
-	
-	@Test
-	public void testGetUnlinkedKeysForBucketWithNegativeOffset() {
-		String bucket = "bucket";
-		
-		int days = 5;
-		
-		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
-		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10, -1);
-		});
-		
-		assertEquals("The offset must be greater or equal than 0.", ex.getMessage());
 	}
 	
 }
