@@ -134,6 +134,7 @@
 		<ref bean="downloadListPackageTrigger" />
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
+		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
