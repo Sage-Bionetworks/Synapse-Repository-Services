@@ -14,9 +14,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.FILE_ALREADY_ADDED;
-import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT;
-import static org.sagebionetworks.repo.manager.file.FileHandleSupportImpl.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_ALREADY_ADDED;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT;
+import static org.sagebionetworks.repo.manager.file.FileHandlePackageManagerImpl.RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE;
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.FileEntity;
 import static org.sagebionetworks.repo.model.file.FileHandleAssociateType.TableEntity;
 
@@ -45,7 +45,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -67,7 +66,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
-public class FileHandleSupportImplTest {
+public class FileHandlePackageManagerImplTest {
 
 	@Mock
 	private FileHandleDao mockFileHandleDao;
@@ -94,7 +93,7 @@ public class FileHandleSupportImplTest {
 
 	@Spy
 	@InjectMocks
-	private FileHandleSupportImpl fileHandleSupportSpy;
+	private FileHandlePackageManagerImpl fileHandleSupportSpy;
 
 	private UserInfo userInfo;
 	private List<FileHandleAssociation> associations;
@@ -247,7 +246,7 @@ public class FileHandleSupportImplTest {
 		verify(fileHandleSupportSpy).addFilesToZip(userInfo, request, mockTempFile);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
-				.withFileToUpload(mockTempFile).withContentType(FileHandleSupportImpl.APPLICATION_ZIP));
+				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
 		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
@@ -310,7 +309,7 @@ public class FileHandleSupportImplTest {
 		verify(fileHandleSupportSpy).addFilesToZip(userInfo, request, mockTempFile);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest()
 				.withFileName(request.getZipFileName()).withUserId(userInfo.getId().toString())
-				.withFileToUpload(mockTempFile).withContentType(FileHandleSupportImpl.APPLICATION_ZIP));
+				.withFileToUpload(mockTempFile).withContentType(FileHandlePackageManagerImpl.APPLICATION_ZIP));
 		verify(fileHandleSupportSpy).collectDownloadStatistics(userInfo.getId(), summaryResults);
 		verify(mockTempFile).delete();
 	}
@@ -637,7 +636,7 @@ public class FileHandleSupportImplTest {
 	@Test
 	public void testCreateZipEntryNameProviderCommandLine() {
 		ZipFileFormat format = ZipFileFormat.CommandLineCache;
-		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		ZipEntryNameProvider provider = FileHandlePackageManagerImpl.createZipEntryNameProvider(format);
 		assertNotNull(provider);
 		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
 	}
@@ -645,7 +644,7 @@ public class FileHandleSupportImplTest {
 	@Test
 	public void testCreateZipEntryNameProviderFlat() {
 		ZipFileFormat format = ZipFileFormat.Flat;
-		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		ZipEntryNameProvider provider = FileHandlePackageManagerImpl.createZipEntryNameProvider(format);
 		assertNotNull(provider);
 		assertTrue(provider instanceof FlatZipEntryNameProvider);
 	}
@@ -654,7 +653,7 @@ public class FileHandleSupportImplTest {
 	public void testCreateZipEntryNameProviderDefault() {
 		// when null the default should be used.
 		ZipFileFormat format = null;
-		ZipEntryNameProvider provider = FileHandleSupportImpl.createZipEntryNameProvider(format);
+		ZipEntryNameProvider provider = FileHandlePackageManagerImpl.createZipEntryNameProvider(format);
 		assertNotNull(provider);
 		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
 	}

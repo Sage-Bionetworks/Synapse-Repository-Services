@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.file.FileHandleSupport;
+import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
@@ -41,7 +41,7 @@ public class BulkFileDownloadWorkerTest {
 	@Mock
 	private UserManager mockUserManger;
 	@Mock
-	private FileHandleSupport mockBulkDownloadManager;
+	private FileHandlePackageManager mockBulkDownloadManager;
 	@Mock
 	private ProgressCallback mockProgress;
 	@InjectMocks

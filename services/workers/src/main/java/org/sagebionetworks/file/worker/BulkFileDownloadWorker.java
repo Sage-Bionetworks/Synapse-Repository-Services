@@ -4,7 +4,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
-import org.sagebionetworks.repo.manager.file.FileHandleSupport;
+import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -19,11 +19,11 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private UserManager userManger;
-	private FileHandleSupport fileHandleSupport;
+	private FileHandlePackageManager fileHandleSupport;
 
 	@Autowired
 	public BulkFileDownloadWorker(AsynchJobStatusManager asynchJobStatusManager, UserManager userManger,
-			FileHandleSupport fileHandleSupport) {
+			FileHandlePackageManager fileHandleSupport) {
 		super();
 		this.asynchJobStatusManager = asynchJobStatusManager;
 		this.userManger = userManger;

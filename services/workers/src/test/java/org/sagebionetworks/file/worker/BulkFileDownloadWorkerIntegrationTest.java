@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.CommandLineCacheZipEntryNameProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.FileHandleSupport;
+import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -55,7 +55,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	FileHandleSupport bulkDownloadManager;
+	FileHandlePackageManager bulkDownloadManager;
 	@Autowired
 	EntityManager entityManager;
 	

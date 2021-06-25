@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
@@ -50,9 +51,13 @@ import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
+import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
+import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -73,7 +78,7 @@ public class DownloadListDaoImplTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
-	private DaoObjectHelper<S3FileHandle> fileHandleDaoHelper;
+	private FileHandleObjectHelper fileHandleObjectHelper;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
@@ -687,7 +692,7 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.project);
 		});
 
-		FileHandle fh1 = fileHandleDaoHelper.create(h -> {
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
 			h.setContentSize(123L);
 			h.setFileName("file.txt");
 			h.setBucketName(null);
@@ -718,7 +723,7 @@ public class DownloadListDaoImplTest {
 		expectedResult.setCreatedBy(file.getCreatedByPrincipalId().toString());
 		expectedResult.setCreatedOn(file.getCreatedOn());
 		expectedResult.setFileSizeBytes(fh1.getContentSize());
-		expectedResult.setIsEligibleForPackaging(false);
+		expectedResult.setIsEligibleForPackaging(true);
 		expectedResult.setFileHandleId(fh1.getId());
 
 		List<DownloadListItemResult> expected = Arrays.asList(expectedResult);
@@ -862,14 +867,14 @@ public class DownloadListDaoImplTest {
 	public void testBuildAvailableFilterWithEligible() {
 		AvailableFilter filter = AvailableFilter.eligibleForPackaging;
 		// call under test
-		assertEquals(" WHERE F.BUCKET_NAME = :bucketName", DownloadListDAOImpl.buildAvailableFilter(filter));
+		assertEquals(" WHERE F.METADATA_TYPE = 'S3' AND F.CONTENT_SIZE <= :maxEligibleSize", DownloadListDAOImpl.buildAvailableFilter(filter));
 	}
 	
 	@Test
 	public void testBuildAvailableFilterWithIneligible() {
 		AvailableFilter filter = AvailableFilter.ineligibleForPackaging;
 		// call under test
-		assertEquals(" WHERE F.BUCKET_NAME <> :bucketName OR F.BUCKET_NAME IS NULL", DownloadListDAOImpl.buildAvailableFilter(filter));
+		assertEquals(" WHERE F.METADATA_TYPE <> 'S3' OR F.CONTENT_SIZE > :maxEligibleSize", DownloadListDAOImpl.buildAvailableFilter(filter));
 	}
 	
 	
@@ -920,26 +925,31 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.project);
 		});
 
-		// Synapse bucket
-		Long contentSize = 85L;
-		String fileName = "hasSynpaseBucket";
-		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
-		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 under max (eligible)
+		String fileName = "s3UnderSize";
+		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+		}, S3FileHandle.class);
+		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
-		// some other bucket
-		fileName = "hasSomeOtherBucket";
-		bucketName = "some-other-bucket";
-		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 over max (ineligible)
+		fileName = "s3OverSize";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+		}, S3FileHandle.class);
+		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
-		// null bucket
-		fileName = "hasNullBucket";
-		bucketName = null;
-		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// External (ineligible)
+		fileName = "external";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize( 101L);
+		}, ExternalFileHandle.class);
+		Node fileExternal = createFile(project.getId(), fileName, fileHandle);
 
 		List<DownloadListItem> toAdd = Arrays.asList(
-				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+				new DownloadListItem().setFileEntityId(fileS3UnderSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileS3OverSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileExternal.getId()).setVersionNumber(1L));
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 
 		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(0), toAdd.get(2), toAdd.get(1));
@@ -969,26 +979,31 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.project);
 		});
 
-		// Synapse bucket
-		Long contentSize = 85L;
-		String fileName = "hasSynpaseBucket";
-		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
-		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 under max (eligible)
+		String fileName = "s3UnderSize";
+		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+		}, S3FileHandle.class);
+		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
-		// some other bucket
-		fileName = "hasSomeOtherBucket";
-		bucketName = "some-other-bucket";
-		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 over max (ineligible)
+		fileName = "s3OverSize";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+		}, S3FileHandle.class);
+		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
-		// null bucket
-		fileName = "hasNullBucket";
-		bucketName = null;
-		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// External (ineligible)
+		fileName = "external";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize( 101L);
+		}, ExternalFileHandle.class);
+		Node fileExternal = createFile(project.getId(), fileName, fileHandle);
 
 		List<DownloadListItem> toAdd = Arrays.asList(
-				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+				new DownloadListItem().setFileEntityId(fileS3UnderSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileS3OverSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileExternal.getId()).setVersionNumber(1L));
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 
 		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(0));
@@ -1012,26 +1027,31 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.project);
 		});
 
-		// Synapse bucket
-		Long contentSize = 85L;
-		String fileName = "hasSynpaseBucket";
-		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
-		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 under max (eligible)
+		String fileName = "s3UnderSize";
+		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+		}, S3FileHandle.class);
+		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
-		// some other bucket
-		fileName = "hasSomeOtherBucket";
-		bucketName = "some-other-bucket";
-		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 over max (ineligible)
+		fileName = "s3OverSize";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+		}, S3FileHandle.class);
+		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
-		// null bucket
-		fileName = "hasNullBucket";
-		bucketName = null;
-		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// External (ineligible)
+		fileName = "external";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize( 101L);
+		}, ExternalFileHandle.class);
+		Node fileExternal = createFile(project.getId(), fileName, fileHandle);
 
 		List<DownloadListItem> toAdd = Arrays.asList(
-				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+				new DownloadListItem().setFileEntityId(fileS3UnderSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileS3OverSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileExternal.getId()).setVersionNumber(1L));
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 
 		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(2), toAdd.get(1));
@@ -1055,26 +1075,31 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.project);
 		});
 
-		// Synapse bucket
-		Long contentSize = 85L;
-		String fileName = "hasSynpaseBucket";
-		String bucketName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
-		Node fileWithSynapseBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 under max (eligible)
+		String fileName = "s3UnderSize";
+		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+		}, S3FileHandle.class);
+		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
-		// some other bucket
-		fileName = "hasSomeOtherBucket";
-		bucketName = "some-other-bucket";
-		Node fileWithOtherBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// S3 over max (ineligible)
+		fileName = "s3OverSize";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+		}, S3FileHandle.class);
+		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
-		// null bucket
-		fileName = "hasNullBucket";
-		bucketName = null;
-		Node fileWithNullBucket = createFile(project.getId(), contentSize, fileName, bucketName);
+		// External (ineligible)
+		fileName = "external";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize( 101L);
+		}, ExternalFileHandle.class);
+		Node fileExternal = createFile(project.getId(), fileName, fileHandle);
 
 		List<DownloadListItem> toAdd = Arrays.asList(
-				new DownloadListItem().setFileEntityId(fileWithSynapseBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithOtherBucket.getId()).setVersionNumber(1L),
-				new DownloadListItem().setFileEntityId(fileWithNullBucket.getId()).setVersionNumber(1L));
+				new DownloadListItem().setFileEntityId(fileS3UnderSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileS3OverSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileExternal.getId()).setVersionNumber(1L));
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
 
 		List<DownloadListItemResult> expected = downloadListDao.getDownloadListItems(userOneIdLong, toAdd.get(2), toAdd.get(1), toAdd.get(0));
@@ -1535,19 +1560,22 @@ public class DownloadListDaoImplTest {
 					n.setParentId(project.getId());
 					n.setNodeType(EntityType.folder);
 				});
-				String s3BuckentName = DownloadListDAOImpl.SYNAPSE_S3_BUCKET;
 				for (int f = 0; f < filesPerFolder; f++) {
 					final int fileNumber = f;
 					final String fileName = String.join("-", "file", "" + projectNumber, "" + dirNumber,
 							"" + fileNumber);
 					Long contentSize = 1L + (2L * fileNumber);
-					Node file = createFile(dir.getId(), contentSize, fileName, s3BuckentName);
+					FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+						h.setContentSize(contentSize);
+						h.setFileName(fileName);
+					});
+					
+					Node file = createFile(dir.getId(), fileName, fh1);
 					// Create a second version for this file.
 					final String fileName2 = String.join("-", fileName, "v2");
-					FileHandle fh2 = fileHandleDaoHelper.create(h -> {
+					FileHandle fh2 = fileHandleObjectHelper.create(h -> {
 						h.setContentSize(1L + (2L * fileNumber + 1));
 						h.setFileName(fileName2);
-						h.setBucketName(s3BuckentName);
 					});
 					file.setFileHandleId(fh2.getId());
 					file.setVersionComment("v2");
@@ -1563,24 +1591,15 @@ public class DownloadListDaoImplTest {
 
 	/**
 	 * Create a single file in the given folder.
-	 * @param folder
-	 * @param contentSize
-	 * @param fileName
-	 * @param storageLocationId
-	 * @return
+
 	 */
-	Node createFile(String parentId, Long contentSize, final String fileName, final String bucketName) {
-		FileHandle fh1 = fileHandleDaoHelper.create(h -> {
-			h.setContentSize(contentSize);
-			h.setFileName(fileName);
-			h.setBucketName(bucketName);
-		});
+	Node createFile(String parentId, String fileName, FileHandle fileHandle) {
 		Node file = nodeDaoHelper.create(n -> {
 			n.setName(fileName);
 			n.setCreatedByPrincipalId(userOneIdLong);
 			n.setParentId(parentId);
 			n.setNodeType(EntityType.file);
-			n.setFileHandleId(fh1.getId());
+			n.setFileHandleId(fileHandle.getId());
 			n.setVersionNumber(1L);
 			n.setVersionComment("v1");
 			n.setVersionLabel("v1");

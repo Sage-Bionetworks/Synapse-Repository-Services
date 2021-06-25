@@ -3956,7 +3956,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseResultNotReadyException
 	 */
-	DownloadListPackageResponse getADownloadListPackageResponse(String asyncJobToken)
+	DownloadListPackageResponse getDownloadListPackageResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
 
 }
