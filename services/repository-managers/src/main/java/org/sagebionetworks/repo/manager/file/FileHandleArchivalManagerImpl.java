@@ -5,8 +5,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -15,6 +13,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,8 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager {
-	
-	private static final Logger LOG = LogManager.getLogger(FileHandleArchivalManagerImpl.class);
 	
 	static final int ARCHIVE_BUFFER_DAYS = 30;
 	static final int SCAN_WINDOW_DAYS = 7;
@@ -92,15 +89,29 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	}
 	
 	@Override
-	public void processFileHandleKeyArchiveRequest(Message message) {
-		FileHandleKeysArchiveRequest request = fromSqsMessage(message);
-
-		LOG.info(request);
+	public FileHandleKeysArchiveRequest parseArchiveKeysRequestFromSqsMessage(Message message) {
+		ValidateArgument.required(message, "The message");
 		
-		// TODO
+		try {
+			return objectMapper.readValue(message.getBody(), FileHandleKeysArchiveRequest.class);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Could not deserialize FileHandleKeysArchiveRequest message: " + e.getMessage(), e);
+		}
 	}
 	
-	void pushAndClearBatch(Instant modifiedBefore, String bucket, List<String> keysBatch) {
+	@Override
+	@WriteTransaction
+	public void archiveUnlinkedFileHandlesByKey(String bucket, String key, Instant modifedBefore) {
+		// TODO
+		// 1. Set all UNLKINKED file handles with key and modifiedOn < modifiedBefore as ARCHIVED
+		// 	-> If none return
+		// 2. Count C all file handles that are AVAILABLE or (UNLINKED with modifiedOn >= modifiedBefore)
+		// 3. If C == 0 fetch the tags of key and merge synapse-status=archive
+		// 	-> If not found delete all UNLINKED file handles also deleting their previews
+		// 4. Delete all previews of ARCHIVED file handles
+	}
+	
+	private void pushAndClearBatch(Instant modifiedBefore, String bucket, List<String> keysBatch) {
 		if (keysBatch.isEmpty()) {
 			return;
 		}
@@ -123,14 +134,6 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		keysBatch.clear();
 	}
 	
-	FileHandleKeysArchiveRequest fromSqsMessage(Message message) {
-		ValidateArgument.required(message, "The message");
-		
-		try {
-			return objectMapper.readValue(message.getBody(), FileHandleKeysArchiveRequest.class);
-		} catch (JsonProcessingException e) {
-			throw new IllegalStateException("Could not deserialize FileHandleKeysArchiveRequest message: " + e.getMessage(), e);
-		}
-	}
+	
 
 }
