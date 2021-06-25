@@ -1104,6 +1104,13 @@ public class DBOFileHandleDaoImplTest {
 		file2.setStatus(FileHandleStatus.UNLINKED.name());
 		file2.setKey("key2");
 		
+		// In the range duplicated key
+		DBOFileHandle file2_dup = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2_dup.setBucketName(bucket);
+		file2_dup.setUpdatedOn(Timestamp.from(inRange));
+		file2_dup.setStatus(FileHandleStatus.UNLINKED.name());
+		file2_dup.setKey("key2");
+		
 		// In the range but different bucket
 		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
 		file3.setBucketName("anotherBucket");

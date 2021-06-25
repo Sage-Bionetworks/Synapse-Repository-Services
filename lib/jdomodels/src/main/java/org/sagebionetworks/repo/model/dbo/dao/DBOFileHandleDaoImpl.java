@@ -82,7 +82,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String UPDATE_MARK_FILE_AS_PREVIEW  = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_IS_PREVIEW+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
 	private static final String SQL_CHECK_BATCH_STATUS= "SELECT COUNT(*) FROM (SELECT " + COL_FILES_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " ) AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS + " LIMIT 1) AS T";
-	private static final String SQL_SELECT_KEY_BATCH_BY_STATUS = "SELECT `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_UPDATED_ON + " > ? AND " + COL_FILES_UPDATED_ON + " < ? AND " + COL_FILES_STATUS + "= ? LIMIT ?";
+	private static final String SQL_SELECT_KEY_BATCH_BY_STATUS = "SELECT DISTINCT `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_UPDATED_ON + " > ? AND " + COL_FILES_UPDATED_ON + " < ? AND " + COL_FILES_STATUS + "= ? LIMIT ?";
 	
 	/**
 	 * Used to detect if a file object already exists.
