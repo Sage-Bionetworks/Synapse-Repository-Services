@@ -7,8 +7,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_V2_UPDATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
@@ -30,9 +31,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -68,8 +70,6 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public static final String CREATED_BY = "CREATED_BY";
 	public static final String ENTITY_NAME = "ENTITY_NAME";
 	public static final String IS_ELIGIBLE_FOR_PACKAGING = "IS_ELIGIBLE_FOR_PACKAGING";
-	
-	public static final String SYNAPSE_S3_BUCKET = StackConfigurationSingleton.singleton().getS3Bucket();
 
 	public static final String DOWNLOAD_LIST_RESULT_TEMPLATE = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/DownloadListResultsTemplate.sql");
@@ -86,6 +86,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	private static final int BATCH_SIZE = 10000;
 
 	public static final Long NULL_VERSION_NUMBER = -1L;
+	
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -279,7 +280,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-			params.addValue("bucketName", SYNAPSE_S3_BUCKET);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
 
@@ -324,7 +325,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			params.addValue("bucketName", SYNAPSE_S3_BUCKET);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
@@ -337,21 +338,28 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	 * @return
 	 */
 	public static String buildAvailableFilter(AvailableFilter filter) {
-		StringBuilder builder = new StringBuilder();
-		if (filter != null) {
-			builder.append(" WHERE F.").append(COL_FILES_BUCKET_NAME);
-			switch (filter) {
-			case eligibleForPackaging:
-				builder.append(" = ").append(":bucketName");
-				break;
-			case ineligibleForPackaging:
-				builder.append(" <> ").append(":bucketName").append(" OR F.").append(COL_FILES_BUCKET_NAME).append(" IS NULL");
-				break;
-			default:
-				throw new IllegalArgumentException("Unknown type: " + filter.name());
-			}
+		if (filter == null) {
+			return "";
 		}
-		return builder.toString();
+		String typeOpperator, conditionOperator, sizeOpperator;
+		switch (filter) {
+		case eligibleForPackaging:
+			typeOpperator = "=";
+			conditionOperator = "AND";
+			sizeOpperator = "<=";
+			break;
+		case ineligibleForPackaging:
+			typeOpperator = "<>";
+			conditionOperator = "OR";
+			sizeOpperator = ">";
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown type: " + filter.name());
+		}
+		return String.format(
+				" WHERE F." + COL_FILES_METADATA_TYPE + " %s '%s' %s F." + COL_FILES_CONTENT_SIZE
+						+ " %s :maxEligibleSize",
+				typeOpperator, FileHandleMetadataType.S3, conditionOperator, sizeOpperator);
 	}
 
 	/**

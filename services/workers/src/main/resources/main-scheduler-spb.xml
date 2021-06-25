@@ -71,9 +71,7 @@
     <import resource="classpath:multipart-cleanup-spb.xml" />
     <import resource="classpath:file-scanner-spb.xml" />
     <import resource="classpath:file-archival-spb.xml"/>
-    <import resource="classpath:download-list-query-worker-spb.xml" />
-    <import resource="classpath:download-list-add-worker-spb.xml" />
-    <import resource="classpath:download-list-package-worker-spb.xml" />
+    <import resource="classpath:download-list-workers-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->

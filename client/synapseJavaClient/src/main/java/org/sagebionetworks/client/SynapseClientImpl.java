@@ -5988,7 +5988,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DownloadListPackageResponse getADownloadListPackageResponse(String asyncJobToken)
+	public DownloadListPackageResponse getDownloadListPackageResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
 		String url = DOWNLOAD_LIST_PACKAGE + ASYNC_GET + asyncJobToken;

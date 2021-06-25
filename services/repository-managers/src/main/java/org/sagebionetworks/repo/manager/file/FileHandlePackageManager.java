@@ -9,12 +9,8 @@ import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
-/**
- * A data access object used to support bulk file download.  This abstraction contains 
- * 
- *
- */
-public interface FileHandleSupport {
+
+public interface FileHandlePackageManager {
 
 	/**
 	 * Create a temporary file on the local machine.
