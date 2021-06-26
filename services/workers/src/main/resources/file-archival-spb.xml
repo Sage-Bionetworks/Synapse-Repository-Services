@@ -14,6 +14,9 @@
 	<!-- This worker process the request for file handle archival -->
 	<bean id="fileHandleArchivalRequestWorker" class="org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker" scope="singleton" />
 	
+	<!-- This worker does the actual archiving of a set of file handle keys -->
+	<bean id="fileHandleKeysArchiveWorker" class="org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker" scope="singleton" />
+	
 	<bean id="fileHandleArchivalRequestWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -48,6 +51,38 @@
 		<property name="repeatInterval" value="2014" />
 	</bean>
 	
-	
+	<bean id="fileHandleKeysArchiveWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner" ref="fileHandleKeysArchiveWorker"/>
+								<property name="semaphoreLockKey" value="fileHandleKeysArchiveWorker" />
+								<property name="semaphoreMaxLockCount" value="20" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_KEY_ARCHIVE')}" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
 
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="453" />
+		<property name="repeatInterval" value="786" />
+	</bean>
+	
 </beans>

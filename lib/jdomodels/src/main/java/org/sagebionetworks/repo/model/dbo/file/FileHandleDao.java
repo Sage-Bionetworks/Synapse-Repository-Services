@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,6 +178,15 @@ public interface FileHandleDao {
 	 * @return The plain DBO object for the file handles with the given id
 	 */
 	List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays);
+	
+	/**
+	 * @param bucketName The name of the bucket to filter for
+	 * @param modifedBefore Include only files modified before the given instant
+	 * @param modifiedAfter Include only files modified after the given instant
+	 * @param limit The limit to apply
+	 * @return A batch of keys of file handles that are unlinked within the given range
+	 */
+	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
 	
 	/**
 	 * Deleted all file data

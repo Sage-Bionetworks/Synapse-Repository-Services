@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -162,6 +163,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 	
 	@Override
 	public List<DBOFileHandle> getDBOFileHandlesBatch(List<Long> ids, int updatedOnBeforeDays) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
 		// TODO Auto-generated method stub
 		return null;
 	}
