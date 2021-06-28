@@ -21,7 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -29,6 +32,9 @@ import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandleKeysArchiveWorkerTest {
+	
+	@Mock
+	private UserManager mockUserManager;
 	
 	@Mock
 	private FileHandleArchivalManager mockManager;
@@ -48,6 +54,8 @@ public class FileHandleKeysArchiveWorkerTest {
 	@Captor
 	private ArgumentCaptor<String> keyCaptor;
 	
+	private UserInfo adminUser = new UserInfo(true);
+	
 	@Test
 	public void testRun() throws RecoverableMessageException, Exception {
 		
@@ -55,6 +63,7 @@ public class FileHandleKeysArchiveWorkerTest {
 		Long modifiedBefore = System.currentTimeMillis();
 		List<String> keys = Arrays.asList("key1", "key2", "key3");
 		
+		when(mockUserManager.getUserInfo(any())).thenReturn(adminUser);
 		when(mockManager.parseArchiveKeysRequestFromSqsMessage(any())).thenReturn(mockRequest);
 		when(mockRequest.getBucket()).thenReturn(bucket);
 		when(mockRequest.getModifiedBefore()).thenReturn(modifiedBefore);
@@ -64,7 +73,8 @@ public class FileHandleKeysArchiveWorkerTest {
 		worker.run(mockCallback, mockMessage);
 		
 		verify(mockManager).parseArchiveKeysRequestFromSqsMessage(mockMessage);
-		verify(mockManager, times(3)).archiveUnlinkedFileHandlesByKey(eq(bucket), keyCaptor.capture(), eq(Instant.ofEpochMilli(modifiedBefore)));
+		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		verify(mockManager, times(3)).archiveUnlinkedFileHandlesByKey(eq(adminUser), eq(bucket), keyCaptor.capture(), eq(Instant.ofEpochMilli(modifiedBefore)));
 		
 		assertEquals(keys, keyCaptor.getAllValues());
 	}

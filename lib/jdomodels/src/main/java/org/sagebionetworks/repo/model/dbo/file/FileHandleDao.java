@@ -166,14 +166,14 @@ public interface FileHandleDao {
 	/**
 	 * Updates the status of all the file handles matching the given bucket, key and status whose modifedOn is before the given instant
 	 * 
-	 * @param bucket The bucket name
+	 * @param bucketName The bucket name
 	 * @param key The key
 	 * @param newStatus The new status to set
 	 * @param currentStatus The current status
 	 * @param modifiedBefore The upper bound for modifiedOn
 	 * @return The number of updated file handles
 	 */
-	int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore);
+	int updateStatusByBucketAndKey(String bucketName, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore);
 	
 	/**
 	 * Get the given list of file handles, filtering those that are not in the given status
@@ -199,6 +199,16 @@ public interface FileHandleDao {
 	 * @return A batch of keys of file handles that are unlinked within the given range
 	 */
 	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
+	
+	/**
+	 * Counts the number of file handles that matches the given bucket and key and that are either available or unlinked but modified after the given instant
+	 * 
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 * @param modifiedAfter The lower bound for the filter
+	 * @return The count of file handles for the given key that are available or that are unlinked but modified after the given instant
+	 */
+	int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter);
 	
 	/**
 	 * Deleted all file data

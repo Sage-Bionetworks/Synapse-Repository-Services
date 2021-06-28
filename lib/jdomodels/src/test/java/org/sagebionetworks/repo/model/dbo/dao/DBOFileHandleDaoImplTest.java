@@ -1155,7 +1155,7 @@ public class DBOFileHandleDaoImplTest {
 			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
 		});
 		
-		assertEquals("The bucket name is required and must not be the empty string.", ex.getMessage());
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
 	}
 	
 	@Test
@@ -1342,7 +1342,7 @@ public class DBOFileHandleDaoImplTest {
 			fileHandleDao.updateStatusByBucketAndKey(bucket, "key2", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
 		});
 		
-		assertEquals("The bucket is required and must not be the empty string.", ex.getMessage());
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
 	}
 	
 	@Test
@@ -1408,5 +1408,111 @@ public class DBOFileHandleDaoImplTest {
 		});
 		
 		assertEquals("The modifiedBefore is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetAvailableOrEarlyUnlinkedFileHandlesCount() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedAfter = now.minus(days, ChronoUnit.DAYS);
+		
+		Instant inRange = modifiedAfter.minus(1, ChronoUnit.HOURS);
+		Instant afterRange = modifiedAfter.plus(1, ChronoUnit.HOURS);
+				
+		// Non available but after the range
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setUpdatedOn(Timestamp.from(afterRange));
+		file1.setStatus(FileHandleStatus.UNLINKED.name());
+		file1.setKey("key1");
+		
+		// In the range, matching key
+		DBOFileHandle file1_matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1_matching.setBucketName(bucket);
+		file1_matching.setUpdatedOn(Timestamp.from(inRange));
+		file1_matching.setStatus(FileHandleStatus.UNLINKED.name());
+		file1_matching.setKey("key1");
+				
+		// In the range but different key
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName(bucket);
+		file2.setUpdatedOn(Timestamp.from(inRange));
+		file2.setStatus(FileHandleStatus.AVAILABLE.name());
+		file2.setKey("key2");
+		
+		// In the range but different bucket
+		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file3.setBucketName("anotherBucket");
+		file3.setUpdatedOn(Timestamp.from(inRange));
+		file3.setStatus(FileHandleStatus.AVAILABLE.name());
+		file3.setKey("key1");
+		
+		// In the range and available
+		DBOFileHandle file4 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file4.setBucketName(bucket);
+		file4.setUpdatedOn(Timestamp.from(inRange));
+		file4.setStatus(FileHandleStatus.AVAILABLE.name());
+		file4.setKey("key1");
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1_matching, file2, file3, file4));
+		
+		// Call under test		
+		int result = fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, "key1", modifiedAfter);
+		
+		assertEquals(2, result);
+	}
+	
+	@Test
+	public void testGetAvailableOrEarlyUnlinkedFileHandlesCountWithEmptyBucket() {
+		String bucket = "";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedAfter = now.minus(days, ChronoUnit.DAYS);
+		
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, "key1", modifiedAfter);
+		});
+		
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetAvailableOrEarlyUnlinkedFileHandlesCountWithEmptyKey() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedAfter = now.minus(days, ChronoUnit.DAYS);
+		
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, "", modifiedAfter);
+		});
+		
+		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetAvailableOrEarlyUnlinkedFileHandlesCountWithNullModifiedAfter() {
+		String bucket = "bucket";
+		
+		Instant modifiedAfter = null;
+		
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, "key1", modifiedAfter);
+		});
+		
+		assertEquals("The modifiedAfter is required.", ex.getMessage());
 	}
 }

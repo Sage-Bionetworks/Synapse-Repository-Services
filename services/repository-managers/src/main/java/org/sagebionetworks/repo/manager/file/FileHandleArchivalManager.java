@@ -41,10 +41,11 @@ public interface FileHandleArchivalManager {
 	 * 
 	 * If the S3 key does not exists the unlinked file handles will be deleted.
 	 * 
+	 * @param user The user asking for the archival, must be an admin
 	 * @param bucket The bucket name
 	 * @param key The S3 object key
 	 * @param modifedBefore Defines the upper bound for the modifiedOn when updating the matching file handles
 	 */
-	void archiveUnlinkedFileHandlesByKey(String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
+	void archiveUnlinkedFileHandlesByKey(UserInfo user, String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
 
 }

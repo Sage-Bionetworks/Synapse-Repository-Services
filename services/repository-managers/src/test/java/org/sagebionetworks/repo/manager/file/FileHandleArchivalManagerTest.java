@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.ARCHIVE_BUFFER_DAYS;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.DEFAULT_ARCHIVE_LIMIT;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
@@ -329,5 +331,90 @@ public class FileHandleArchivalManagerTest {
 		assertEquals("Could not deserialize FileHandleKeysArchiveRequest message: Some error", result.getMessage());
 		verify(mockMapper).readValue("Message", FileHandleKeysArchiveRequest.class);
 		
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKey() {
+		String key = "key1";
+		
+		Instant modifiedBefore = Instant.parse("2021-02-03T10:00:00.00Z");
+		int updated = 2;
+		int availableAfterUpdate = 0;
+		
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
+		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		
+		// Call under test
+		manager.archiveUnlinkedFileHandlesByKey(mockUser, bucket, key, modifiedBefore);
+		
+		verify(mockFileDao).updateStatusByBucketAndKey(bucket, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		verify(mockFileDao).getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, key, modifiedBefore);
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKeyWithNotAdmin() {
+		String key = "key1";
+		
+		Instant modifiedAfter = Instant.parse("2021-02-03T10:00:00.00Z");
+		
+		when(mockUser.isAdmin()).thenReturn(false);
+		
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.archiveUnlinkedFileHandlesByKey(mockUser, bucket, key, modifiedAfter);
+		});
+		
+		assertEquals("Only administrators can access this service.", ex.getMessage());
+		
+		verifyZeroInteractions(mockFileDao);
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKeyWithEmptyBucket() {
+		String key = "key1";
+		
+		Instant modifiedAfter = Instant.parse("2021-02-03T10:00:00.00Z");
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.archiveUnlinkedFileHandlesByKey(mockUser, "", key, modifiedAfter);
+		});
+		
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
+		
+		verifyZeroInteractions(mockFileDao);
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKeyWithEmptyKey() {
+		String key = "";
+		
+		Instant modifiedAfter = Instant.parse("2021-02-03T10:00:00.00Z");
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.archiveUnlinkedFileHandlesByKey(mockUser, bucket, key, modifiedAfter);
+		});
+		
+		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
+		
+		verifyZeroInteractions(mockFileDao);
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKeyWithNullModifiedBefore() {
+		String key = "key1";
+		
+		Instant modifiedAfter = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.archiveUnlinkedFileHandlesByKey(mockUser, bucket, key, modifiedAfter);
+		});
+		
+		assertEquals("The modifiedBefore is required.", ex.getMessage());
+		
+		verifyZeroInteractions(mockFileDao);
 	}
 }

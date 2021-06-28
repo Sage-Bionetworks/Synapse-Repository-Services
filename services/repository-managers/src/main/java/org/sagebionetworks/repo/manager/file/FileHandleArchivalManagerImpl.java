@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,7 +102,29 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	
 	@Override
 	@WriteTransaction
-	public void archiveUnlinkedFileHandlesByKey(String bucket, String key, Instant modifedBefore) {
+	public void archiveUnlinkedFileHandlesByKey(UserInfo user, String bucketName, String key, Instant modifedBefore) {
+		ValidateArgument.required(user, "The userInfo");
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(modifedBefore, "The modifiedBefore");
+		
+		if (!user.isAdmin()) {
+			throw new UnauthorizedException("Only administrators can access this service.");
+		}
+		
+		final int archived = fileHandleDao.updateStatusByBucketAndKey(bucketName, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifedBefore);
+		
+		if (archived <= 0) {
+			return;
+		}
+		
+		final int availableAfterUpdate = fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucketName, key, modifedBefore);
+		
+		// The key is not referenced anymore by any available (or unlinked but too early) file handles, we can proceed and tag the objects in S3
+		if (availableAfterUpdate <= 0) {
+			
+		}
+		
 		// TODO
 		// 1. Set all UNLKINKED file handles with key and modifiedOn < modifiedBefore as ARCHIVED
 		// 	-> If none return
@@ -111,13 +134,13 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		// 4. Delete all previews of ARCHIVED file handles
 	}
 	
-	private void pushAndClearBatch(Instant modifiedBefore, String bucket, List<String> keysBatch) {
+	private void pushAndClearBatch(Instant modifiedBefore, String bucketName, List<String> keysBatch) {
 		if (keysBatch.isEmpty()) {
 			return;
 		}
 		
 		FileHandleKeysArchiveRequest request = new FileHandleKeysArchiveRequest()
-				.withBucket(bucket)
+				.withBucket(bucketName)
 				.withModifiedBefore(modifiedBefore.toEpochMilli())
 				.withKeys(new ArrayList<>(keysBatch));
 		

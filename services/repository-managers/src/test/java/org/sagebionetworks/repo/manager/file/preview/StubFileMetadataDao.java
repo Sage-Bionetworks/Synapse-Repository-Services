@@ -168,6 +168,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 	
 	@Override
+	public int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
 	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
 		// TODO Auto-generated method stub
 		return null;

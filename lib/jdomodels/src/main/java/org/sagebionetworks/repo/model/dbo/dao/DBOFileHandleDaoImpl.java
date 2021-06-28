@@ -84,7 +84,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_CHECK_BATCH_STATUS= "SELECT COUNT(*) FROM (SELECT " + COL_FILES_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " ) AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS + " LIMIT 1) AS T";
 	private static final String SQL_SELECT_KEY_BATCH_BY_STATUS = "SELECT DISTINCT `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_UPDATED_ON + " > ? AND " + COL_FILES_UPDATED_ON + " < ? AND " + COL_FILES_STATUS + "= ? LIMIT ?";
 	private static final String SQL_UPDATE_STATUS_BY_KEY = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_UPDATED_ON + "<? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + "=?";
-	
+	private static final String SQL_COUNT_AVAILABLE_BY_KEY = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_BUCKET_NAME + "=?"
+			+ " AND (" + COL_FILES_STATUS + "='" + FileHandleStatus.AVAILABLE.name() + "' OR ("+ COL_FILES_STATUS + "='" + FileHandleStatus.UNLINKED.name() + "' AND " + COL_FILES_UPDATED_ON + ">=?))";
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -394,7 +395,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	@Override
 	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
-		ValidateArgument.requiredNotBlank(bucketName, "The bucket name");
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
 		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
 		ValidateArgument.required(modifiedAfter, "The modifiedAfter");
 		ValidateArgument.requirement(modifiedAfter.isBefore(modifiedBefore), "modifiedAfter must be before modifiedBefore.");
@@ -450,8 +451,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	@Override
 	@WriteTransaction
-	public int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore) {
-		ValidateArgument.requiredNotBlank(bucket, "The bucket");
+	public int updateStatusByBucketAndKey(String bucketName, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
 		ValidateArgument.requiredNotBlank(key, "The key");
 		ValidateArgument.required(newStatus, "The newStatus");
 		ValidateArgument.required(currentStatus, "The currentStatus");
@@ -463,7 +464,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			return updated;
 		}
 
-		return jdbcTemplate.update(SQL_UPDATE_STATUS_BY_KEY, newStatus.name(), key, Timestamp.from(modifiedBefore), bucket, currentStatus.name());
+		return jdbcTemplate.update(SQL_UPDATE_STATUS_BY_KEY, newStatus.name(), key, Timestamp.from(modifiedBefore), bucketName, currentStatus.name());
+	}
+	
+	@Override
+	public int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(modifiedAfter, "The modifiedAfter");
+		
+		return jdbcTemplate.queryForObject(SQL_COUNT_AVAILABLE_BY_KEY, Long.class, key, bucketName, Timestamp.from(modifiedAfter)).intValue();
 	}
 	
 	@Override
