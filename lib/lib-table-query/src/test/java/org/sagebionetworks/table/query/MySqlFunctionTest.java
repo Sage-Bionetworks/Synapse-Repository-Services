@@ -219,8 +219,8 @@ public class MySqlFunctionTest {
 	
 	@Test
 	public void testRound() throws ParseException {
-		MySqlFunction element = new TableQueryParser("round(2.6)").mysqlFunction();
-		assertEquals("ROUND(2.6)", element.toSql());
+		MySqlFunction element = new TableQueryParser("round(foo,2)").mysqlFunction();
+		assertEquals("ROUND(foo,2)", element.toSql());
 		assertEquals(FunctionReturnType.DOUBLE, element.getFunctionName().getFunctionReturnType());
 	}
 }
