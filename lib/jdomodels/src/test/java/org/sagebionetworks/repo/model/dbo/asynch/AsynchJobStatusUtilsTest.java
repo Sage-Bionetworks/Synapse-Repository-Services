@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -22,7 +22,7 @@ public class AsynchJobStatusUtilsTest {
 	AsynchronousJobStatus status;
 
 
-	@Before
+	@BeforeEach
 	public void setUp(){
 		// request
 		requestBody= new TableUpdateTransactionRequest();
@@ -63,7 +63,7 @@ public class AsynchJobStatusUtilsTest {
 	public void testUploadRoundTripNullReponse(){
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setResponseBody(null);
-		
+	               
 		// to DBO
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
@@ -87,6 +87,30 @@ public class AsynchJobStatusUtilsTest {
 		String tooBig = new String(chars);
 		String truncate = AsynchJobStatusUtils.truncateMessageStringIfNeeded(tooBig);
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, truncate.length());
+	}
+	
+	@Test
+	public void testUploadRoundTripWithNullRequestBodyConcreteType() {
+		status.setJobState(AsynchJobState.PROCESSING);
+		status.setResponseBody(responseBody);
+		requestBody.setConcreteType(null);
+
+		// to DBO
+		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
+		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
+		assertEquals(status, clone);
+	}
+	
+	@Test
+	public void testUploadRoundTripWithNullResponseBodyConcreteType() {
+		status.setJobState(AsynchJobState.PROCESSING);
+		responseBody.setConcreteType(null);
+		status.setResponseBody(responseBody);
+
+		// to DBO
+		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
+		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
+		assertEquals(status, clone);
 	}
 	
 	@Test
