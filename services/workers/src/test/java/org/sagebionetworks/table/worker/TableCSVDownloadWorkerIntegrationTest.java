@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -369,7 +370,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertNotNull(fileHandle.getFileName());
 		assertNotNull(fileHandle.getContentMd5());
 		// Download the file
-		File temp = File.createTempFile("DownloadCSV", ".csv");
+		File temp = File.createTempFile("DownloadCSV", "."+CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
+				.getSeparator()));
 		try{
 			s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), temp);
 			// Load the CSV data

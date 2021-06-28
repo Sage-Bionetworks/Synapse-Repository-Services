@@ -928,14 +928,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -982,14 +982,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1030,14 +1030,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1078,14 +1078,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 

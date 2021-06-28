@@ -1,5 +1,7 @@
 package org.sagebionetworks.util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,7 +12,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.zip.GZIPInputStream;
@@ -51,7 +52,7 @@ public class FileProviderImpl implements FileProvider {
 
 	@Override
 	public Writer createWriter(OutputStream out, Charset charSet) throws FileNotFoundException {
-		return new OutputStreamWriter(out, charSet);
+		return new BufferedWriter(new OutputStreamWriter(out, charSet));
 	}
 
 	@Override
@@ -66,7 +67,17 @@ public class FileProviderImpl implements FileProvider {
 
 	@Override
 	public Reader createReader(InputStream in, Charset charset) {
-		return new InputStreamReader(in, charset);
+		return new BufferedReader(new InputStreamReader(in, charset));
+	}
+
+	@Override
+	public <R> R createTemporaryFile(String prefix, String suffix, FileHandler<R> function) throws IOException {
+		File file = File.createTempFile(prefix, suffix);
+		try {
+			return function.apply(file);
+		}finally {
+			file.delete();
+		}
 	}
 
 }

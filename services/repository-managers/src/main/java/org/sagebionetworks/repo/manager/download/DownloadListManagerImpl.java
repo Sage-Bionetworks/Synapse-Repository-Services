@@ -1,9 +1,17 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,7 +19,9 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -37,6 +47,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -57,6 +69,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -67,14 +80,19 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
@@ -102,16 +120,21 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
-	private FileHandlePackageManager fileHandleSupport;
+	private FileHandlePackageManager fileHandlePackageManager;
+	private FileHandleManager fileHandleManager;
+	private FileProvider fileProvider;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, FileHandlePackageManager fileHandleSupport) {
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager,
+			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
 		this.tableQueryManager = tableQueryManager;
-		this.fileHandleSupport = fileHandleSupport;
+		this.fileHandlePackageManager = fileHandlePackageManager;
+		this.fileHandleManager = fileHandleManager;
+		this.fileProvider = fileProvider;
 	}
 
 	@WriteTransaction
@@ -495,19 +518,19 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		// build the package zip file.
 		// @formatter:off
-		String zipFileHandleId = fileHandleSupport.buildZip(userInfo,
+		String zipFileHandleId = fileHandlePackageManager.buildZip(userInfo,
 						new BulkFileDownloadRequest()
 						.setRequestedFiles(associations)
 						.setZipFileName(requestBody.getZipFileName())
 						.setZipFileFormat(ZipFileFormat.Flat))
 				.getResultZipFileHandleId();
 		// @formatter:on
-		
+
 		// remove these files from the download list
 		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), toDelete);
 		return new DownloadListPackageResponse().setResultFileHandleId(zipFileHandleId);
 	}
-	
+
 	/**
 	 * Create a FileHandleAssociation from the given DownloadListItemResult.
 	 * 
@@ -517,6 +540,75 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static FileHandleAssociation createAssociationForItem(DownloadListItemResult item) {
 		return new FileHandleAssociation().setAssociateObjectId(item.getFileEntityId())
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setFileHandleId(item.getFileHandleId());
+	}
+
+	@Override
+	public DownloadListManifestResponse createManifest(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListManifestRequest request) throws IOException {
+		validateUser(userInfo);
+		AvailableFilter filter = null;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.DESC));
+		PaginationIterator<DownloadListItemResult> itertor = new PaginationIterator<>(
+				(limit, offset) -> downloadListDao.getFilesAvailableToDownloadFromDownloadList(
+						createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset),
+				MAX_FILES_PER_BATCH);
+		String manifestFileHandleId = buildManifest(userInfo, request.getCsvTableDescriptor(), itertor);
+		return new DownloadListManifestResponse().setResultFileHandleId(manifestFileHandleId);
+	}
+
+	/**
+	 * Build a manifest CSV that includes a row for each provided DownloadListItemResult 
+	 * @param user
+	 * @param descriptor
+	 * @param iterator
+	 * @return The fileHandle ID of the the resulting CSV.
+	 * @throws IOException
+	 */
+	String buildManifest(UserInfo user, CsvTableDescriptor descriptor, Iterator<DownloadListItemResult> iterator)
+			throws IOException {
+
+		return fileProvider.createTemporaryFile("items", ".txt", temp -> {
+
+			try (Writer writer = fileProvider.createWriter(fileProvider.createFileOutputStream(temp),
+					StandardCharsets.UTF_8)) {
+				while (iterator.hasNext()) {
+					DownloadListItemResult item = iterator.next();
+					writer.append(item.toString());
+				}
+			}
+
+			return buildManifestCSV(user, descriptor, null, null);
+		});
+	}
+	
+	String buildManifestCSV(UserInfo user, CsvTableDescriptor descriptor, Reader reader, List<String> annotations)
+			throws IOException {
+		final String seporator = descriptor == null ? null : descriptor.getSeparator();
+		return fileProvider.createTemporaryFile("manifest", "." + CSVUtils.guessExtension(seporator), temp -> {
+
+			try (CSVWriter writer = CSVUtils.createCSVWriter(
+					fileProvider.createWriter(fileProvider.createFileOutputStream(temp), StandardCharsets.UTF_8),
+					descriptor)) {
+				writer.writeNext("ID");
+
+			}
+			String contentType = CSVUtils.guessContentType(seporator);
+			return fileHandleManager
+					.uploadLocalFile(new LocalFileUploadRequest().withContentType(contentType)
+							.withFileName("manifest.csv").withFileToUpload(temp).withUserId(user.getId().toString()))
+					.getId();
+		});
+	}
+	
+	public static void main(String[] arg) throws IOException {
+		File temp = File.createTempFile("manifest", ".csv");
+		try(CSVWriter writer = new CSVWriter(new FileWriter(temp))){
+			writer.writeNext("one","two","three");
+			for(int i=0;i<10;i++) {
+				writer.writeNext(""+i,""+i,""+i,""+i);
+			}
+		}
+		System.out.println(temp.getAbsolutePath());
 	}
 
 }

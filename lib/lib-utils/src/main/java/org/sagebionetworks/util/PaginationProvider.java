@@ -8,6 +8,7 @@ import java.util.List;
  *
  * @param <T>
  */
+@FunctionalInterface
 public interface PaginationProvider<T> {
 
 	/**

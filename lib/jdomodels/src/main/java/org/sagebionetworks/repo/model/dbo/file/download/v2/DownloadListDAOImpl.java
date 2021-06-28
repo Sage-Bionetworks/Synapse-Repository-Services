@@ -280,7 +280,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
 
@@ -325,7 +325,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
@@ -341,16 +341,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		if (filter == null) {
 			return "";
 		}
-		String typeOpperator, conditionOperator, sizeOpperator;
+		String typeOpperator, conditionOpperator, sizeOpperator;
 		switch (filter) {
 		case eligibleForPackaging:
 			typeOpperator = "=";
-			conditionOperator = "AND";
+			conditionOpperator = "AND";
 			sizeOpperator = "<=";
 			break;
 		case ineligibleForPackaging:
 			typeOpperator = "<>";
-			conditionOperator = "OR";
+			conditionOpperator = "OR";
 			sizeOpperator = ">";
 			break;
 		default:
@@ -359,7 +359,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return String.format(
 				" WHERE F." + COL_FILES_METADATA_TYPE + " %s '%s' %s F." + COL_FILES_CONTENT_SIZE
 						+ " %s :maxEligibleSize",
-				typeOpperator, FileHandleMetadataType.S3, conditionOperator, sizeOpperator);
+				typeOpperator, FileHandleMetadataType.S3, conditionOpperator, sizeOpperator);
 	}
 
 	/**

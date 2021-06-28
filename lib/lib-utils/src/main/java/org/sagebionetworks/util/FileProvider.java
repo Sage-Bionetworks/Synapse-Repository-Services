@@ -78,4 +78,15 @@ public interface FileProvider {
 	 * @return
 	 */
 	Reader createReader(InputStream in, Charset charset);
+	
+	/**
+	 * A temporary file will be created and passed to the provided function. The
+	 * temporary file will be unconditionally deleted after the function applies.
+	 * @param <R>
+	 * 
+	 * @param prefix
+	 * @param suffix
+	 * @param consumer
+	 */
+	<R> R createTemporaryFile(String prefix, String suffix, FileHandler<R> function) throws IOException;
 }

@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -295,7 +297,7 @@ public class DownloadListController {
 	 * packaging will be included.
 	 * 
 	 * <p>
-	 * Use <a href="${GET.download.list.add.async.get.asyncToken}">GET
+	 * Use <a href="${GET.download.list.package.async.get.asyncToken}">GET
 	 * /download/list/package/async/get/{asyncToken}</a> to get both the job status
 	 * and job results.
 	 * </p>
@@ -322,8 +324,8 @@ public class DownloadListController {
 	/**
 	 * Get the results of an asynchronous job to package files from a user's
 	 * download list started with:
-	 * <a href="${POST.download.list.add.async.start}">POST
-	 * /download/list/package/async/start</a>.  The response includes a fileHandleId,
+	 * <a href="${POST.download.list.package.async.start}">POST
+	 * /download/list/package/async/start</a>. The response includes a fileHandleId,
 	 * that can be used to download the resulting zip file.
 	 * 
 	 * <p>
@@ -347,5 +349,65 @@ public class DownloadListController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 				asyncToken);
 		return (DownloadListPackageResponse) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Start an asynchronous job to generate a metadata manifest CSV of the
+	 * available files on the use’s download list.
+	 * 
+	 * <p>
+	 * Use <a href="${GET.download.list.manifest.async.get.asyncToken}">GET
+	 * /download/list/manifest/async/get/{asyncToken}</a> to get both the job status
+	 * and job results.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({ view, modify, download })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_MANIFEST_START_ASYNCH, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startDownloadListManifest(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadListManifestRequest request)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of an asynchronous job to generate a metadata manifest CSV of
+	 * the available files from the user's download list download list started with:
+	 * <a href="${POST.download.list.manifest.async.start}">POST
+	 * /download/list/manifest/async/start</a>. The response includes a
+	 * fileHandleId, that can be used to download the resulting CSV file.
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_MANIFEST_ASYNCH, method = RequestMethod.GET)
+	public @ResponseBody DownloadListManifestResponse getDownloadListManifestResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
+		return (DownloadListManifestResponse) jobStatus.getResponseBody();
 	}
 }
