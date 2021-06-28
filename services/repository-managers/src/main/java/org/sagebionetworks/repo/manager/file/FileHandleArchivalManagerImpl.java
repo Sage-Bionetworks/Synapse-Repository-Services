@@ -4,21 +4,30 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import org.apache.http.HttpStatus;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
+import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -35,7 +44,10 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	static final int KEYS_PER_MESSAGE = 100;
 	static final String PROCESS_QUEUE_NAME = "FILE_KEY_ARCHIVE";
 
+	static final Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archived"); 
+	
 	private AmazonSQS sqsClient;
+	private SynapseS3Client s3Client;
 	private ObjectMapper objectMapper;
 	private FileHandleDao fileHandleDao;
 	private DBOBasicDao basicDao;
@@ -43,8 +55,9 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	private String bucketName;
 	
 	@Autowired
-	public FileHandleArchivalManagerImpl(AmazonSQS sqsClient, ObjectMapper objectMapper, FileHandleDao fileHandleDao, DBOBasicDao basicDao) {
+	public FileHandleArchivalManagerImpl(AmazonSQS sqsClient, SynapseS3Client s3Client, ObjectMapper objectMapper, FileHandleDao fileHandleDao, DBOBasicDao basicDao) {
 		this.sqsClient = sqsClient;
+		this.s3Client = s3Client;
 		this.objectMapper = objectMapper;
 		this.fileHandleDao = fileHandleDao;
 		this.basicDao = basicDao;
@@ -102,7 +115,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	
 	@Override
 	@WriteTransaction
-	public void archiveUnlinkedFileHandlesByKey(UserInfo user, String bucketName, String key, Instant modifedBefore) {
+	public FileHandleKeyArchiveResult archiveUnlinkedFileHandlesByKey(UserInfo user, String bucketName, String key, Instant modifedBefore) {
 		ValidateArgument.required(user, "The userInfo");
 		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
 		ValidateArgument.requiredNotBlank(key, "The key");
@@ -115,23 +128,68 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		final int archived = fileHandleDao.updateStatusByBucketAndKey(bucketName, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifedBefore);
 		
 		if (archived <= 0) {
-			return;
+			return new FileHandleKeyArchiveResult(archived, false);
 		}
 		
 		final int availableAfterUpdate = fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucketName, key, modifedBefore);
 		
+		boolean tagged = false;
+		boolean keyDeleted = false;
+		
 		// The key is not referenced anymore by any available (or unlinked but too early) file handles, we can proceed and tag the objects in S3
 		if (availableAfterUpdate <= 0) {
-			
+			try {
+				tagged = tagObjectForArchival(bucketName, key);
+			} catch (AmazonServiceException e) {
+				keyDeleted = handleAmazonS3Exception(e, (ex) -> Boolean.TRUE);
+			}
 		}
 		
-		// TODO
-		// 1. Set all UNLKINKED file handles with key and modifiedOn < modifiedBefore as ARCHIVED
-		// 	-> If none return
-		// 2. Count C all file handles that are AVAILABLE or (UNLINKED with modifiedOn >= modifiedBefore)
-		// 3. If C == 0 fetch the tags of key and merge synapse-status=archive
-		// 	-> If not found delete all UNLINKED file handles also deleting their previews
-		// 4. Delete all previews of ARCHIVED file handles
+		cleanupArchivedFileHandlesPreviews(bucketName, key);
+		
+		if (keyDeleted) {
+			deleteNonAvailableFileHandles(bucketName, key);
+		}
+		
+		return new FileHandleKeyArchiveResult(archived, tagged);
+	}
+	
+	private <T> T handleAmazonS3Exception(AmazonServiceException ex, Function<AmazonS3Exception, T> onKeyNotFound) {
+		if (ex instanceof AmazonS3Exception && HttpStatus.SC_NOT_FOUND == ex.getStatusCode()) {
+			return onKeyNotFound.apply((AmazonS3Exception) ex);
+		} else if (ErrorType.Service.equals(ex.getErrorType())) {
+			throw new RecoverableMessageException(ex);
+		}
+		throw ex;
+	}
+
+	boolean tagObjectForArchival(String bucketName, String key) {
+		List<Tag> objectTags = s3Client.getObjectTags(bucketName, key);
+
+		if (objectTags == null || objectTags.isEmpty()) {
+			objectTags = new ArrayList<>();
+		} else {
+			objectTags = new ArrayList<>(objectTags);
+		}
+
+		if (objectTags.stream().filter(tag -> tag.getKey().equals(S3_TAG_ARCHIVED.getKey())).findFirst().isPresent()) {
+			return false;
+		}
+		
+		objectTags.add(S3_TAG_ARCHIVED);
+		
+		s3Client.setObjectTags(bucketName, key, objectTags);
+		
+		return true;
+	}
+	
+	void cleanupArchivedFileHandlesPreviews(String bucketName, String key) {
+		
+	}
+	
+	void deleteNonAvailableFileHandles(String bucketName2, String key) {
+		
+		
 	}
 	
 	private void pushAndClearBatch(Instant modifiedBefore, String bucketName, List<String> keysBatch) {

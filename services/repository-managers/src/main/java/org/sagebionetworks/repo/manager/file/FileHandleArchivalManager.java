@@ -5,6 +5,7 @@ import java.time.Instant;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
+import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -46,6 +47,6 @@ public interface FileHandleArchivalManager {
 	 * @param key The S3 object key
 	 * @param modifedBefore Defines the upper bound for the modifiedOn when updating the matching file handles
 	 */
-	void archiveUnlinkedFileHandlesByKey(UserInfo user, String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
+	FileHandleKeyArchiveResult archiveUnlinkedFileHandlesByKey(UserInfo user, String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
 
 }
