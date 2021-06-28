@@ -62,7 +62,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/userinfo", config.getUserinfo_endpoint());
 		assertEquals(Collections.singletonList(OIDCSigningAlgorithm.RS256), config.getUserinfo_signing_alg_values_supported());
 		assertEquals(ImmutableList.of("client_secret_basic","client_secret_post"), config.getToken_endpoint_auth_methods_supported());
-		assertEquals(ImmutableList.of("none"), config.getRequest_object_signing_alg_values_supported());
+		assertTrue(config.getRequest_object_signing_alg_values_supported().isEmpty());
 	}
 	
 	@Test

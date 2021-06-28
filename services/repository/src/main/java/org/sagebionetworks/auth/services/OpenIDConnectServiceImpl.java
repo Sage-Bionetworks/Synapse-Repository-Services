@@ -121,7 +121,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
 		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
 		// Synapse does not support passing authorization requests by the 'requests' parameter
-		result.setRequest_object_signing_alg_values_supported(Collections.singletonList("none"));
+		result.setRequest_object_signing_alg_values_supported(Collections.EMPTY_LIST);
 		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
