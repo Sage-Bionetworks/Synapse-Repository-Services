@@ -161,7 +161,19 @@ public interface FileHandleDao {
 	 * 
 	 * @return The list of file handle ids that were actually modified
 	 */
-	List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays);
+	List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays);
+	
+	/**
+	 * Updates the status of all the file handles matching the given bucket, key and status whose modifedOn is before the given instant
+	 * 
+	 * @param bucket The bucket name
+	 * @param key The key
+	 * @param newStatus The new status to set
+	 * @param currentStatus The current status
+	 * @param modifiedBefore The upper bound for modifiedOn
+	 * @return The number of updated file handles
+	 */
+	int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore);
 	
 	/**
 	 * Get the given list of file handles, filtering those that are not in the given status

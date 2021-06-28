@@ -48,7 +48,7 @@ public class FileHandleUnlinkedQueryProcessorTest {
 		
 		processor.processQueryResultsPage(resultsPage);
 		
-		verify(mockFileHandleDao).updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, FileHandleUnlinkedQueryProcessor.UPDATED_ON_DAYS_LIMIT);
+		verify(mockFileHandleDao).updateStatusForBatch(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, FileHandleUnlinkedQueryProcessor.UPDATED_ON_DAYS_LIMIT);
 	}
 
 }

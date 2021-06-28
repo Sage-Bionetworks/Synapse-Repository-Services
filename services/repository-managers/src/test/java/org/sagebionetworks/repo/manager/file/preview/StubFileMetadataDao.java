@@ -149,7 +149,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus,
+	public List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus,
 			int updatedOnBeforeDays) {
 		// TODO Auto-generated method stub
 		return null;
@@ -177,6 +177,13 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public boolean hasStatusBatch(List<Long> ids, FileHandleStatus status) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+	
+	@Override
+	public int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus,
+			Instant modifiedBefore) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

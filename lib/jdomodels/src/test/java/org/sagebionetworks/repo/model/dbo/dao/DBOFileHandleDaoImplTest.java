@@ -860,7 +860,7 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(ids, result);
 		
 		// Change the first to UNLINKED
-		fileHandleDao.updateBatchStatus(Arrays.asList(Long.valueOf(file1.getId())), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, /* updated before */ 0);
+		fileHandleDao.updateStatusForBatch(Arrays.asList(Long.valueOf(file1.getId())), FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, /* updated before */ 0);
 		
 		result = fileHandleDao.getFileHandlesBatchByStatus(ids, FileHandleStatus.AVAILABLE).stream().map(file-> Long.valueOf(file.getId())).collect(Collectors.toList());
 		
@@ -940,7 +940,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateBatchStatusWithNoUpdatedOnFilter() {
+	public void testUpdateStatusForBatchWithNoUpdatedOnFilter() {
 		
 		// Slightly in the past to account for database time drifting
 		Date createdOn = Date.from(Instant.now().minusSeconds(60));
@@ -958,7 +958,7 @@ public class DBOFileHandleDaoImplTest {
 		List<Long> ids = Arrays.asList(file1.getId(), file2.getId()).stream().map(id-> Long.valueOf(id)).collect(Collectors.toList());
 		
 		// Call under test
-		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, 0);
+		List<Long> updatedIds = fileHandleDao.updateStatusForBatch(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, 0);
 		
 		assertEquals(ids, updatedIds);
 		
@@ -981,7 +981,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateBatchStatusWithUpdatedOnFilter() {
+	public void testUpdateStatusForBatchWithUpdatedOnFilter() {
 		
 		int updatedOnBeforeDays = 2;
 		
@@ -1005,7 +1005,7 @@ public class DBOFileHandleDaoImplTest {
 		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
 		
 		// Call under test
-		List<Long> updatedIds = fileHandleDao.updateBatchStatus(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, updatedOnBeforeDays);
+		List<Long> updatedIds = fileHandleDao.updateStatusForBatch(ids, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, updatedOnBeforeDays);
 		
 		assertEquals(Arrays.asList(file1.getId()), updatedIds);
 		
@@ -1132,7 +1132,7 @@ public class DBOFileHandleDaoImplTest {
 		file5.setStatus(FileHandleStatus.UNLINKED.name());
 		file5.setKey("key5");
 		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file3, file4, file5));
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file2_dup, file3, file4, file5));
 		
 		// Call under test		
 		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10);
@@ -1230,4 +1230,183 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals("The limit must be greater than 0.", ex.getMessage());
 	}
 	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKey() {
+		
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		Instant inRange = modifiedBefore.minus(1, ChronoUnit.HOURS);
+		Instant afterRange = modifiedBefore.plus(1, ChronoUnit.HOURS);
+				
+		// After the range
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setUpdatedOn(Timestamp.from(afterRange));
+		file1.setStatus(FileHandleStatus.UNLINKED.name());
+		file1.setKey("key1");
+		
+		// In the range, matching key
+		DBOFileHandle file1_matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1_matching.setBucketName(bucket);
+		file1_matching.setUpdatedOn(Timestamp.from(inRange));
+		file1_matching.setStatus(FileHandleStatus.UNLINKED.name());
+		file1_matching.setKey("key1");
+				
+		// In the range but different key
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName(bucket);
+		file2.setUpdatedOn(Timestamp.from(inRange));
+		file2.setStatus(FileHandleStatus.UNLINKED.name());
+		file2.setKey("key2");
+		
+		// In the range but different bucket
+		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file3.setBucketName("anotherBucket");
+		file3.setUpdatedOn(Timestamp.from(inRange));
+		file3.setStatus(FileHandleStatus.UNLINKED.name());
+		file3.setKey("key1");
+		
+		// In the range but different status
+		DBOFileHandle file4 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file4.setBucketName(bucket);
+		file4.setUpdatedOn(Timestamp.from(inRange));
+		file4.setStatus(FileHandleStatus.AVAILABLE.name());
+		file4.setKey("key1");
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1_matching, file2, file3, file4));
+		
+		// Call under test		
+		int result = fileHandleDao.updateStatusByBucketAndKey(bucket, "key1", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		
+		assertEquals(1, result);
+		
+		List<DBOFileHandle> files = fileHandleDao.getDBOFileHandlesBatch(Arrays.asList(file1.getId(), file1_matching.getId(), file2.getId(), file3.getId(), file4.getId()), 0);
+		
+		assertEquals(file1.getStatus(), files.get(0).getStatus());
+		assertEquals(file1.getEtag(), files.get(0).getEtag());
+		
+		assertEquals(FileHandleStatus.ARCHIVED.name(), files.get(1).getStatus());
+		assertNotEquals(file1_matching.getEtag(), files.get(1).getEtag());
+		
+		assertEquals(file2.getStatus(), files.get(2).getStatus());
+		assertEquals(file2.getEtag(), files.get(2).getEtag());
+		
+		assertEquals(file3.getStatus(), files.get(3).getStatus());
+		assertEquals(file3.getEtag(), files.get(3).getEtag());
+		
+		assertEquals(file4.getStatus(), files.get(4).getStatus());
+		assertEquals(file4.getEtag(), files.get(4).getEtag());
+		
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithNoUpdates() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		Instant inRange = modifiedBefore.minus(1, ChronoUnit.HOURS);
+						
+		// In the range, matching key
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setUpdatedOn(Timestamp.from(inRange));
+		file1.setStatus(FileHandleStatus.UNLINKED.name());
+		file1.setKey("key1");
+		
+		// Call under test		
+		int result = fileHandleDao.updateStatusByBucketAndKey(bucket, "key2", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		
+		assertEquals(0, result);
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithEmptyBucket() {
+		String bucket = "";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.updateStatusByBucketAndKey(bucket, "key2", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		});
+		
+		assertEquals("The bucket is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithEmptyKey() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.updateStatusByBucketAndKey(bucket, "", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		});
+		
+		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithNullStatus() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.updateStatusByBucketAndKey(bucket, "key1", null, FileHandleStatus.UNLINKED, modifiedBefore);
+		});
+		
+		assertEquals("The newStatus is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithNullCurrentStatus() {
+		String bucket = "bucket";
+		
+		int days = 5;
+		
+		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
+		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.updateStatusByBucketAndKey(bucket, "key1", FileHandleStatus.ARCHIVED, null, modifiedBefore);
+		});
+		
+		assertEquals("The currentStatus is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateStatusBatchByBucketAndKeyWithNullModifedBefore() {
+		String bucket = "bucket";
+		
+		Instant modifiedBefore = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test		
+			fileHandleDao.updateStatusByBucketAndKey(bucket, "key1", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		});
+		
+		assertEquals("The modifiedBefore is required.", ex.getMessage());
+	}
 }

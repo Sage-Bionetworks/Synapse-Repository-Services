@@ -83,6 +83,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
 	private static final String SQL_CHECK_BATCH_STATUS= "SELECT COUNT(*) FROM (SELECT " + COL_FILES_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " ) AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS + " LIMIT 1) AS T";
 	private static final String SQL_SELECT_KEY_BATCH_BY_STATUS = "SELECT DISTINCT `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_UPDATED_ON + " > ? AND " + COL_FILES_UPDATED_ON + " < ? AND " + COL_FILES_STATUS + "= ? LIMIT ?";
+	private static final String SQL_UPDATE_STATUS_BY_KEY = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_UPDATED_ON + "<? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + "=?";
 	
 	/**
 	 * Used to detect if a file object already exists.
@@ -404,7 +405,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	@Override
 	@WriteTransaction
-	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
+	public List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
 		ValidateArgument.required(newStatus, "The newStatus");
 		ValidateArgument.required(currentStatus, "The currentStatus");
 		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
@@ -445,6 +446,24 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		
 		return updatedIds;
 		
+	}
+	
+	@Override
+	@WriteTransaction
+	public int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore) {
+		ValidateArgument.requiredNotBlank(bucket, "The bucket");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(newStatus, "The newStatus");
+		ValidateArgument.required(currentStatus, "The currentStatus");
+		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
+		
+		int updated = 0;
+		
+		if (newStatus.equals(currentStatus)) {
+			return updated;
+		}
+
+		return jdbcTemplate.update(SQL_UPDATE_STATUS_BY_KEY, newStatus.name(), key, Timestamp.from(modifiedBefore), bucket, currentStatus.name());
 	}
 	
 	@Override
