@@ -30,7 +30,6 @@ public class AsynchJobStatusUtils {
 		try {
 			AsynchronousRequestBody asynchronousRequestBody = 
 					EntityFactory.createEntityFromJSONString(dbo.getRequestBody(), AsynchronousRequestBody.class);
-			asynchronousRequestBody.setConcreteType(asynchronousRequestBody.getClass().getName());
 			dto.setRequestBody(asynchronousRequestBody);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
@@ -40,7 +39,6 @@ public class AsynchJobStatusUtils {
 			if (dbo.getResponseBody() != null) {
 				AsynchronousResponseBody asynchronousResponseBody = 
 						EntityFactory.createEntityFromJSONString(dbo.getResponseBody(), AsynchronousResponseBody.class);
-				asynchronousResponseBody.setConcreteType(asynchronousResponseBody.getClass().getName());
 				dto.setResponseBody(asynchronousResponseBody);
 			}
 		} catch (JSONObjectAdapterException e) {
@@ -92,14 +90,21 @@ public class AsynchJobStatusUtils {
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// set the request body
 		try {
+			if (requestBody.getConcreteType() == null) {
+				requestBody.setConcreteType(requestBody.getClass().getName());
+			}
 			dbo.setRequestBody(EntityFactory.createJSONStringForEntity(requestBody));
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
 		// set the response body
 		try {
-			if (dto.getResponseBody() != null) {
-				dbo.setResponseBody(EntityFactory.createJSONStringForEntity(dto.getResponseBody()));
+			AsynchronousResponseBody responseBody = dto.getResponseBody();
+			if (responseBody != null) {
+				if (responseBody.getConcreteType() == null) {
+					responseBody.setConcreteType(responseBody.getClass().getName());
+				}
+				dbo.setResponseBody(EntityFactory.createJSONStringForEntity(responseBody));
 			}
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
