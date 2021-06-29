@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,9 +40,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
@@ -358,6 +363,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
 		when(mockS3Client.getObjectTags(anyString(), anyString())).thenReturn(Collections.emptyList());
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(Collections.emptySet());
 		
 		FileHandleKeyArchiveResult expected = new FileHandleKeyArchiveResult(updated, true);
 		
@@ -370,6 +376,8 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, key, modifiedBefore);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 
 	@Test
@@ -387,6 +395,35 @@ public class FileHandleArchivalManagerTest {
 		AmazonS3Exception ex = new AmazonS3Exception("Key not found");
 		
 		ex.setStatusCode(HttpStatus.SC_NOT_FOUND);
+		
+		doThrow(ex).when(mockS3Client).getObjectTags(any(), any());
+
+		FileHandleKeyArchiveResult expected = new FileHandleKeyArchiveResult(updated, false);
+		
+		// Call under test
+		FileHandleKeyArchiveResult result = manager.archiveUnlinkedFileHandlesByKey(mockUser, bucket, key, modifiedBefore);
+		
+		assertEquals(expected, result);
+		
+		verify(mockFileDao).updateStatusByBucketAndKey(bucket, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
+		verify(mockFileDao).getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, key, modifiedBefore);
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testArchiveUnlinkedFileHandlesByKeyWithBucketNotFoundExceptionWhileTagging() {
+		String key = "key1";
+		
+		Instant modifiedBefore = Instant.parse("2021-02-03T10:00:00.00Z");
+		int updated = 2;
+		int availableAfterUpdate = 0;
+		
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
+		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		
+		CannotDetermineBucketLocationException ex = new CannotDetermineBucketLocationException("Key not found");
 		
 		doThrow(ex).when(mockS3Client).getObjectTags(any(), any());
 
@@ -637,4 +674,198 @@ public class FileHandleArchivalManagerTest {
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreview() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.emptySet());
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1"),
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key2")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(any(), any(), any())).thenReturn(0L);
+		
+		// Call under test
+		manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		
+		List<String> keys = Arrays.asList("preview_key1", "preview_key2");
+		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+		
+		verify(mockFileDao, times(2)).getNumberOfReferencesToFile(eq(FileHandleMetadataType.S3), eq(bucket), keyCaptor.capture());
+		assertEquals(new HashSet<>(keys), new HashSet<>(keyCaptor.getAllValues()));
+		
+		verify(mockS3Client, times(2)).deleteObject(eq(bucket), keyCaptor.capture());
+		assertEquals(new HashSet<>(keys), new HashSet<>(keyCaptor.getAllValues()));
+		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithReferencedPreviews() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.singleton(2L));
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(any(), any(), any())).thenReturn(0L);
+		
+		// Call under test
+		manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L, 3L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L, 3L)));
+		
+		List<String> keys = Arrays.asList("preview_key1");
+		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+		
+		verify(mockFileDao).getNumberOfReferencesToFile(eq(FileHandleMetadataType.S3), eq(bucket), keyCaptor.capture());
+		assertEquals(new HashSet<>(keys), new HashSet<>(keyCaptor.getAllValues()));
+		
+		verify(mockS3Client).deleteObject(eq(bucket), keyCaptor.capture());
+		assertEquals(new HashSet<>(keys), new HashSet<>(keyCaptor.getAllValues()));
+		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithReferencedPreviewsKeys() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.emptySet());
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1"),
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key2")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key1")).thenReturn(0L);
+		when(mockFileDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key2")).thenReturn(1L);
+		
+		// Call under test
+		manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key1");
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key2");
+		
+		verify(mockS3Client).deleteObject(bucket, "preview_key1");
+		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithRecoverableException() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.emptySet());
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(any(), any(), any())).thenReturn(0L);
+		
+		AmazonS3Exception ex = new AmazonS3Exception("Something wrong");
+		ex.setErrorType(ErrorType.Service);
+		
+		doThrow(ex).when(mockS3Client).deleteObject(any(), any());
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// Call under test
+			manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		});
+		
+		assertEquals(ex, result.getCause());
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key1");
+		verify(mockS3Client).deleteObject(bucket, "preview_key1");
+		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithUnrecoverableException() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.emptySet());
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(any(), any(), any())).thenReturn(0L);
+		
+		AmazonS3Exception ex = new AmazonS3Exception("Something wrong");
+		
+		doThrow(ex).when(mockS3Client).deleteObject(any(), any());
+		
+		AmazonS3Exception result = assertThrows(AmazonS3Exception.class, () -> {
+			// Call under test
+			manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		});
+		
+		assertEquals(ex, result);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L)));
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key1");
+		verify(mockS3Client).deleteObject(bucket, "preview_key1");
+		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithBucketNotFoundException() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(Collections.emptySet());
+		
+		when(mockFileDao.getBucketAndKeyBatch(any())).thenReturn(new HashSet<>(Arrays.asList(
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key1"),
+			new BucketAndKey().withBucket(bucket).withtKey("preview_key2")
+		)));
+		
+		when(mockFileDao.getNumberOfReferencesToFile(any(), any(), any())).thenReturn(0L);
+		
+		CannotDetermineBucketLocationException ex = new CannotDetermineBucketLocationException("Something wrong");
+		
+		doThrow(ex).when(mockS3Client).deleteObject(bucket, "preview_key1");
+		
+		// Call under test
+		manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).getBucketAndKeyBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).deleteBatch(new HashSet<>(Arrays.asList(1L, 2L)));
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key1");
+		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key2");
+		verify(mockS3Client).deleteObject(bucket, "preview_key1");
+		verify(mockS3Client).deleteObject(bucket, "preview_key2");
+	}
+	
 }

@@ -4,13 +4,19 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
@@ -36,6 +42,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager {
 	
+	private static final Logger LOG = LogManager.getLogger(FileHandleArchivalManagerImpl.class);
+	
 	static final int ARCHIVE_BUFFER_DAYS = 30;
 	static final int SCAN_WINDOW_DAYS = 7;
 	
@@ -44,13 +52,15 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	static final int KEYS_PER_MESSAGE = 100;
 	static final String PROCESS_QUEUE_NAME = "FILE_KEY_ARCHIVE";
 
-	static final Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archived"); 
+	static final Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archived");
+	static final int S3_DELETE_BATCH_SIZE = 1000;
 	
 	private AmazonSQS sqsClient;
 	private SynapseS3Client s3Client;
 	private ObjectMapper objectMapper;
 	private FileHandleDao fileHandleDao;
 	private DBOBasicDao basicDao;
+	
 	private String processQueueUrl;
 	private String bucketName;
 	
@@ -134,33 +144,35 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		final int availableAfterUpdate = fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucketName, key, modifedBefore);
 		
 		boolean tagged = false;
-		boolean keyDeleted = false;
+		boolean keyUnavailable = false;
 		
 		// The key is not referenced anymore by any available (or unlinked but too early) file handles, we can proceed and tag the objects in S3
 		if (availableAfterUpdate <= 0) {
 			try {
 				tagged = tagObjectForArchival(bucketName, key);
-			} catch (AmazonServiceException e) {
-				keyDeleted = handleAmazonS3Exception(e, (ex) -> Boolean.TRUE);
+			} catch (AmazonServiceException ex) {
+				if (ex instanceof AmazonS3Exception && HttpStatus.SC_NOT_FOUND == ex.getStatusCode()) {
+					LOG.warn("Attempted to tag key {} in bucket {} for archival but the object didn't exist: {}", key, bucketName, ex.getMessage());
+					keyUnavailable = true;
+				} else if (ErrorType.Service.equals(ex.getErrorType())) {
+					throw new RecoverableMessageException(ex);
+				} else {
+					throw ex;
+				}
+			} catch (CannotDetermineBucketLocationException ex) {
+				LOG.warn("Attempted to tag key {} in bucket {} for archival but the bucket didn't exist: {}", key, bucketName, ex.getMessage());
+				keyUnavailable = true;
 			}
+			
 		}
 		
 		cleanupArchivedFileHandlesPreviews(bucketName, key);
 		
-		if (keyDeleted) {
+		if (keyUnavailable) {
 			deleteNonAvailableFileHandles(bucketName, key);
 		}
 		
 		return new FileHandleKeyArchiveResult(archived, tagged);
-	}
-	
-	private <T> T handleAmazonS3Exception(AmazonServiceException ex, Function<AmazonS3Exception, T> onKeyNotFound) {
-		if (ex instanceof AmazonS3Exception && HttpStatus.SC_NOT_FOUND == ex.getStatusCode()) {
-			return onKeyNotFound.apply((AmazonS3Exception) ex);
-		} else if (ErrorType.Service.equals(ex.getErrorType())) {
-			throw new RecoverableMessageException(ex);
-		}
-		throw ex;
 	}
 
 	boolean tagObjectForArchival(String bucketName, String key) {
@@ -184,10 +196,47 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	}
 	
 	void cleanupArchivedFileHandlesPreviews(String bucketName, String key) {
+		Set<Long> clearedPreviewIds = fileHandleDao.clearPreviewByKeyAndStatus(bucketName, key, FileHandleStatus.ARCHIVED);
+		
+		if (clearedPreviewIds.isEmpty()) {
+			return;
+		}
+		
+		Set<Long> referencedPreviewIds = fileHandleDao.getReferencedPreviews(clearedPreviewIds);
+		
+		Set<Long> unreferencedPreviewIds = clearedPreviewIds.stream().filter(id -> !referencedPreviewIds.contains(id)).collect(Collectors.toSet());
+
+		if (unreferencedPreviewIds.isEmpty()) {
+			return;
+		}
+		
+		Set<BucketAndKey> bucketAndKeys = fileHandleDao.getBucketAndKeyBatch(unreferencedPreviewIds);
+		
+		fileHandleDao.deleteBatch(unreferencedPreviewIds);
+		
+		for (BucketAndKey bucketAndKey : bucketAndKeys) {
+			String previewBucket = bucketAndKey.getBucket();
+			String previewKey = bucketAndKey.getKey();
+			
+			if (fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, previewBucket, previewKey) > 0) {
+				continue;
+			}
+			
+			try {
+				s3Client.deleteObject(previewBucket, previewKey);
+			}  catch (AmazonServiceException ex) {
+				if (ErrorType.Service.equals(ex.getErrorType())) {
+					throw new RecoverableMessageException(ex);
+				}
+				throw ex;
+			} catch (CannotDetermineBucketLocationException ex) {
+				LOG.warn("Attempted to delete preview key {} in bucket {} but the bucket didn't exist: {}", previewKey, previewBucket, ex.getMessage());
+			}
+		}
 		
 	}
 	
-	void deleteNonAvailableFileHandles(String bucketName2, String key) {
+	void deleteNonAvailableFileHandles(String bucketName, String key) {
 		
 		
 	}

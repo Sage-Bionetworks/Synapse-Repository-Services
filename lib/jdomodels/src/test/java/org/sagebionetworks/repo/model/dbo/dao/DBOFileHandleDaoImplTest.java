@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
@@ -1105,11 +1107,11 @@ public class DBOFileHandleDaoImplTest {
 		file2.setKey("key2");
 		
 		// In the range duplicated key
-		DBOFileHandle file2_dup = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file2_dup.setBucketName(bucket);
-		file2_dup.setUpdatedOn(Timestamp.from(inRange));
-		file2_dup.setStatus(FileHandleStatus.UNLINKED.name());
-		file2_dup.setKey("key2");
+		DBOFileHandle file2Dup = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2Dup.setBucketName(bucket);
+		file2Dup.setUpdatedOn(Timestamp.from(inRange));
+		file2Dup.setStatus(FileHandleStatus.UNLINKED.name());
+		file2Dup.setKey("key2");
 		
 		// In the range but different bucket
 		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
@@ -1132,7 +1134,7 @@ public class DBOFileHandleDaoImplTest {
 		file5.setStatus(FileHandleStatus.UNLINKED.name());
 		file5.setKey("key5");
 		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file2_dup, file3, file4, file5));
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file2Dup, file3, file4, file5));
 		
 		// Call under test		
 		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10);
@@ -1251,11 +1253,11 @@ public class DBOFileHandleDaoImplTest {
 		file1.setKey("key1");
 		
 		// In the range, matching key
-		DBOFileHandle file1_matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file1_matching.setBucketName(bucket);
-		file1_matching.setUpdatedOn(Timestamp.from(inRange));
-		file1_matching.setStatus(FileHandleStatus.UNLINKED.name());
-		file1_matching.setKey("key1");
+		DBOFileHandle file1Matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Matching.setBucketName(bucket);
+		file1Matching.setUpdatedOn(Timestamp.from(inRange));
+		file1Matching.setStatus(FileHandleStatus.UNLINKED.name());
+		file1Matching.setKey("key1");
 				
 		// In the range but different key
 		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
@@ -1278,20 +1280,20 @@ public class DBOFileHandleDaoImplTest {
 		file4.setStatus(FileHandleStatus.AVAILABLE.name());
 		file4.setKey("key1");
 		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1_matching, file2, file3, file4));
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1Matching, file2, file3, file4));
 		
 		// Call under test		
 		int result = fileHandleDao.updateStatusByBucketAndKey(bucket, "key1", FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
 		
 		assertEquals(1, result);
 		
-		List<DBOFileHandle> files = fileHandleDao.getDBOFileHandlesBatch(Arrays.asList(file1.getId(), file1_matching.getId(), file2.getId(), file3.getId(), file4.getId()), 0);
+		List<DBOFileHandle> files = fileHandleDao.getDBOFileHandlesBatch(Arrays.asList(file1.getId(), file1Matching.getId(), file2.getId(), file3.getId(), file4.getId()), 0);
 		
 		assertEquals(file1.getStatus(), files.get(0).getStatus());
 		assertEquals(file1.getEtag(), files.get(0).getEtag());
 		
 		assertEquals(FileHandleStatus.ARCHIVED.name(), files.get(1).getStatus());
-		assertNotEquals(file1_matching.getEtag(), files.get(1).getEtag());
+		assertNotEquals(file1Matching.getEtag(), files.get(1).getEtag());
 		
 		assertEquals(file2.getStatus(), files.get(2).getStatus());
 		assertEquals(file2.getEtag(), files.get(2).getEtag());
@@ -1430,11 +1432,11 @@ public class DBOFileHandleDaoImplTest {
 		file1.setKey("key1");
 		
 		// In the range, matching key
-		DBOFileHandle file1_matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file1_matching.setBucketName(bucket);
-		file1_matching.setUpdatedOn(Timestamp.from(inRange));
-		file1_matching.setStatus(FileHandleStatus.UNLINKED.name());
-		file1_matching.setKey("key1");
+		DBOFileHandle file1Matching = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Matching.setBucketName(bucket);
+		file1Matching.setUpdatedOn(Timestamp.from(inRange));
+		file1Matching.setStatus(FileHandleStatus.UNLINKED.name());
+		file1Matching.setKey("key1");
 				
 		// In the range but different key
 		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
@@ -1457,7 +1459,7 @@ public class DBOFileHandleDaoImplTest {
 		file4.setStatus(FileHandleStatus.AVAILABLE.name());
 		file4.setKey("key1");
 		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1_matching, file2, file3, file4));
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1Matching, file2, file3, file4));
 		
 		// Call under test		
 		int result = fileHandleDao.getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, "key1", modifiedAfter);
@@ -1514,5 +1516,237 @@ public class DBOFileHandleDaoImplTest {
 		});
 		
 		assertEquals("The modifiedAfter is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testClearPreviewByKeyAndStatus() {
+		String bucket = "bucket";
+		
+		DBOFileHandle file1Preview = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Preview.setBucketName(bucket);
+		file1Preview.setKey("file1_preview");
+		file1Preview.setIsPreview(true);
+		
+		// Matching status
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1.setKey("key1");
+		file1.setPreviewId(file1Preview.getId());
+		
+		// Different file handle, same preview
+		DBOFileHandle file1Copy = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Copy.setBucketName(bucket);
+		file1Copy.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1Copy.setKey("key1");
+		file1Copy.setPreviewId(file1.getPreviewId());
+		
+		DBOFileHandle file2Preview = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2Preview.setBucketName(bucket);
+		file2Preview.setKey("file2_preview");
+		file2Preview.setIsPreview(true);
+		
+		// Same key, different status
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName(bucket);
+		file2.setStatus(FileHandleStatus.UNLINKED.name());
+		file2.setKey("key1");
+		file2.setPreviewId(file2Preview.getId());
+		
+		// Different key
+		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file3.setBucketName(bucket);
+		file3.setStatus(FileHandleStatus.ARCHIVED.name());
+		file3.setKey("key2");
+		file3.setPreviewId(file2.getPreviewId());
+		
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1Preview, file1, file1Copy, file2Preview, file2, file3));
+		
+		// Call under test
+		Set<Long> previewIds = fileHandleDao.clearPreviewByKeyAndStatus(bucket, "key1", FileHandleStatus.ARCHIVED);
+		
+		assertEquals(new HashSet<>(Arrays.asList(file1.getPreviewId())), previewIds);
+		
+		List<DBOFileHandle> files = fileHandleDao.getDBOFileHandlesBatch(Arrays.asList(file1.getId(), file1Copy.getId(), file2.getId(), file3.getId()), 0);
+		
+		assertNull(files.get(0).getPreviewId());
+		assertNull(files.get(1).getPreviewId());
+		assertEquals(file2Preview.getId(), files.get(2).getPreviewId());
+		assertEquals(file2Preview.getId(), files.get(3).getPreviewId());
+	}
+	
+	@Test
+	public void testClearPreviewByKeyAndStatusWithEmptyBucket() {
+		String bucket = "";
+		String key = "key1";
+		FileHandleStatus status = FileHandleStatus.ARCHIVED;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			fileHandleDao.clearPreviewByKeyAndStatus(bucket, key, status);
+		});
+		
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testClearPreviewByKeyAndStatusWithEmptyKey() {
+		String bucket = "bucket";
+		String key = "";
+		FileHandleStatus status = FileHandleStatus.ARCHIVED;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			fileHandleDao.clearPreviewByKeyAndStatus(bucket, key, status);
+		});
+		
+		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testClearPreviewByKeyAndStatusWithNullStatus() {
+		String bucket = "bucket";
+		String key = "key1";
+		FileHandleStatus status = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			fileHandleDao.clearPreviewByKeyAndStatus(bucket, key, status);
+		});
+		
+		assertEquals("The status is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetReferencedPreviews() {
+		
+		String bucket = "bucket";
+		
+		// Referenced preview
+		DBOFileHandle file1Preview = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Preview.setBucketName(bucket);
+		file1Preview.setKey("file1_preview");
+		file1Preview.setIsPreview(true);
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1.setKey("key1");
+		file1.setPreviewId(file1Preview.getId());
+		
+		// Different file handle, same preview
+		DBOFileHandle file1Copy = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Copy.setBucketName(bucket);
+		file1Copy.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1Copy.setKey("key1");
+		file1Copy.setPreviewId(file1.getPreviewId());
+		
+		DBOFileHandle file2Preview = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2Preview.setBucketName(bucket);
+		file2Preview.setKey("file2_preview");
+		file2Preview.setIsPreview(true);
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1Preview, file1, file1Copy, file2Preview));
+	
+		Set<Long> previewIds = new HashSet<>(Arrays.asList(file1Preview.getId(), file2Preview.getId()));
+		
+		// Call under test
+		Set<Long> result = fileHandleDao.getReferencedPreviews(previewIds);
+		
+		assertEquals(new HashSet<>(Arrays.asList(file1Preview.getId())), result);
+	}
+	
+	@Test
+	public void testGetReferencedPreviewsWithEmptyInput() {
+		Set<Long> previewIds = Collections.emptySet();
+		
+		// Call under test
+		Set<Long> result = fileHandleDao.getReferencedPreviews(previewIds);
+	
+		assertTrue(result.isEmpty());
+	}
+	
+	@Test
+	public void testGetReferencedPreviewsWithNullSet() {
+		Set<Long> previewIds = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			fileHandleDao.getReferencedPreviews(previewIds);
+		});
+		
+		assertEquals("The previewIds is required.", ex.getMessage());
+	
+	}
+	
+	@Test
+	public void testGetBucketAndKeyBatch() {
+		String bucket = "bucket";
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1.setKey("key1");
+		
+		// Different file handle, same preview
+		DBOFileHandle file1Copy = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Copy.setBucketName(bucket);
+		file1Copy.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1Copy.setKey("key1");
+		file1Copy.setPreviewId(file1.getPreviewId());
+		
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName("anotherBucket");
+		file2.setStatus(FileHandleStatus.ARCHIVED.name());
+		file2.setKey("key2");
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1Copy, file2));
+	
+		Set<Long> ids = new HashSet<>(Arrays.asList(file1.getId(), file1Copy.getId(), file2.getId()));
+		
+		Set<BucketAndKey> expected = new HashSet<>(Arrays.asList(
+				new BucketAndKey().withBucket(bucket).withtKey("key1"),
+				new BucketAndKey().withBucket("anotherBucket").withtKey("key2")
+		));
+		
+		// Call under test
+		Set<BucketAndKey> result = fileHandleDao.getBucketAndKeyBatch(ids);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testDeleteBatch() {
+		String bucket = "bucket";
+		
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1.setKey("key1");
+		
+		// Different file handle, same preview
+		DBOFileHandle file1Copy = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1Copy.setBucketName(bucket);
+		file1Copy.setStatus(FileHandleStatus.ARCHIVED.name());
+		file1Copy.setKey("key1");
+		file1Copy.setPreviewId(file1.getPreviewId());
+		
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName(bucket);
+		file2.setStatus(FileHandleStatus.ARCHIVED.name());
+		file2.setKey("key2");
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file1Copy, file2));
+		
+		List<Long> ids = Arrays.asList(file1.getId(), file2.getId());
+		
+		// Call under test
+		fileHandleDao.deleteBatch(new HashSet<>(ids));
+
+		List<DBOFileHandle> files = fileHandleDao.getDBOFileHandlesBatch(Arrays.asList(file1.getId(), file1Copy.getId(), file2.getId()), 0);
+		
+		assertEquals(1, files.size());
+		assertEquals(file1Copy.getId(), files.get(0).getId());
 	}
 }

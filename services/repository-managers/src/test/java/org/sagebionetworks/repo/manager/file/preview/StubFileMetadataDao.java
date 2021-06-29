@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
@@ -190,6 +191,30 @@ public class StubFileMetadataDao implements FileHandleDao {
 			Instant modifiedBefore) {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+	
+	@Override
+	public Set<Long> clearPreviewByKeyAndStatus(String bucketName, String key, FileHandleStatus status) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Set<Long> getReferencedPreviews(Set<Long> previewIds) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Set<BucketAndKey> getBucketAndKeyBatch(Set<Long> ids) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public void deleteBatch(Set<Long> ids) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
