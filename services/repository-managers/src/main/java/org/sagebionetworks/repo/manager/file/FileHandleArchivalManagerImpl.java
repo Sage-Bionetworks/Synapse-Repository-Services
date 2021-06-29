@@ -169,7 +169,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		cleanupArchivedFileHandlesPreviews(bucketName, key);
 		
 		if (keyUnavailable) {
-			deleteNonAvailableFileHandles(bucketName, key);
+			fileHandleDao.deleteUnavailableByBucketAndKey(bucketName, key);
 		}
 		
 		return new FileHandleKeyArchiveResult(archived, tagged);
@@ -233,11 +233,6 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 				LOG.warn("Attempted to delete preview key {} in bucket {} but the bucket didn't exist: {}", previewKey, previewBucket, ex.getMessage());
 			}
 		}
-		
-	}
-	
-	void deleteNonAvailableFileHandles(String bucketName, String key) {
-		
 		
 	}
 	

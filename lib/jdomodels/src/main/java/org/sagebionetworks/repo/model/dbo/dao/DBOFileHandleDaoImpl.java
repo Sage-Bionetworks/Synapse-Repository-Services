@@ -93,7 +93,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_REFERENCED_PREVIEWS_IDS = "SELECT DISTINCT " + COL_FILES_PREVIEW_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_PREVIEW_ID + " IN (" +IDS_PARAM + ")";
 	private static final String SQL_SELECT_BUCKET_AND_KEY = "SELECT DISTINCT " + COL_FILES_BUCKET_NAME + ", `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
 	private static final String SQL_DELETE_BATCH = "DELETE FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
-	
+	private static final String SQL_DELETE_UNAVAILABLE_BY_KEY = "DELETE FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "` =? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + " <> '" + FileHandleStatus.AVAILABLE +"'";
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -550,6 +550,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
+	@WriteTransaction
 	public void deleteBatch(Set<Long> ids) {
 		ValidateArgument.required(ids, "The id set");
 		
@@ -560,6 +561,15 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		SqlParameterSource params = new MapSqlParameterSource("ids", ids);
 		
 		namedJdbcTemplate.update(SQL_DELETE_BATCH, params);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteUnavailableByBucketAndKey(String bucketName, String key) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		
+		jdbcTemplate.update(SQL_DELETE_UNAVAILABLE_BY_KEY, key, bucketName);
 	}
 
 	@WriteTransaction

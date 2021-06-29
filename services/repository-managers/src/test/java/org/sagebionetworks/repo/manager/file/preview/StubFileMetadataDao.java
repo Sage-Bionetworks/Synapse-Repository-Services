@@ -216,5 +216,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void deleteUnavailableByBucketAndKey(String bucketName, String key) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

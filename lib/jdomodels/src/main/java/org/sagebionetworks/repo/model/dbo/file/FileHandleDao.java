@@ -202,7 +202,7 @@ public interface FileHandleDao {
 	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
 	
 	/**
-	 * Counts the number of file handles that matches the given bucket and key and that are either available or unlinked but modified after the given instant
+	 * Counts the number of file handles that matches the given bucket and key and that are either {@link FileHandleStatus#AVAILABLE} or {@link FileHandleStatus#UNLINKED} but modified after the given instant
 	 * 
 	 * @param bucketName The name of the bucket
 	 * @param key The object key
@@ -234,6 +234,14 @@ public interface FileHandleDao {
 	 * @return The bucket/key pairs for the file handles matching the ids in the set
 	 */
 	Set<BucketAndKey> getBucketAndKeyBatch(Set<Long> ids);
+	
+	/**
+	 * Deletes all the file handles that match the given bucket name and key and that are not {@link FileHandleStatus#AVAILABLE}
+	 * 
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 */
+	void deleteUnavailableByBucketAndKey(String bucketName, String key);
 	
 	/**
 	 * Deletes a batch of file handles by ids
