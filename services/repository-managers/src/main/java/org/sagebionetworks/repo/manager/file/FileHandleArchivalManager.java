@@ -10,12 +10,15 @@ import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
+import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Entry point for file handles archival
  */
 public interface FileHandleArchivalManager {
+	
+	Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archive");
 
 	/**
 	 * Process a request to submit a batch of UNLINKED file handles for archival

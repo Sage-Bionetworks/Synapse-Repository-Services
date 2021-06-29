@@ -23,6 +23,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -175,7 +176,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		
 		List<Tag> tags = s3Client.getObjectTags(bucket, handle.getKey());
 		
-		if (tagged && !tags.stream().filter(t->t.getKey().equals("synapse-status") && t.getValue().equals("archived")).findFirst().isPresent()) {
+		if (tagged && !tags.stream().filter(t->t.equals(FileHandleArchivalManager.S3_TAG_ARCHIVED)).findFirst().isPresent()) {
 			fail("The file handle with key " + handle.getKey() + " was not tagged");
 		} else if (!tagged && !tags.isEmpty()) {
 			fail("The file handle with key " + handle.getKey() + " was not supposed to be tagged");
