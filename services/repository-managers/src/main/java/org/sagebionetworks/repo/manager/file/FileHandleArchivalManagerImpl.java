@@ -51,8 +51,6 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	
 	static final int KEYS_PER_MESSAGE = 100;
 	static final String PROCESS_QUEUE_NAME = "FILE_KEY_ARCHIVE";
-
-	static final int S3_DELETE_BATCH_SIZE = 1000;
 	
 	private AmazonSQS sqsClient;
 	private SynapseS3Client s3Client;
