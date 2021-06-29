@@ -19,6 +19,8 @@ import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerIm
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.KEYS_PER_MESSAGE;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.PROCESS_QUEUE_NAME;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.SCAN_WINDOW_DAYS;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -362,6 +364,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(anyString(), anyString())).thenReturn(Collections.emptyList());
 		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(Collections.emptySet());
 		
@@ -375,7 +378,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).updateStatusByBucketAndKey(bucket, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
 		verify(mockFileDao).getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, key, modifiedBefore);
 		verify(mockS3Client).getObjectTags(bucket, key);
-		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(S3_TAG_ARCHIVED));
 		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
 		verifyNoMoreInteractions(mockS3Client);
 	}
@@ -391,6 +394,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		
 		AmazonS3Exception ex = new AmazonS3Exception("Key not found");
 		
@@ -423,6 +427,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		
 		CannotDetermineBucketLocationException ex = new CannotDetermineBucketLocationException("Key not found");
 		
@@ -452,6 +457,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		
 		AmazonS3Exception ex = new AmazonS3Exception("Some error");
 		
@@ -483,6 +489,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockFileDao.updateStatusByBucketAndKey(anyString(), anyString(), any(), any(), any())).thenReturn(updated);
 		when(mockFileDao.getAvailableOrEarlyUnlinkedFileHandlesCount(anyString(), anyString(), any())).thenReturn(availableAfterUpdate);
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		
 		AmazonS3Exception ex = new AmazonS3Exception("Some error");
 		
@@ -620,6 +627,7 @@ public class FileHandleArchivalManagerTest {
 	public void testTagObjectForArchivalWithEmptyTags() {
 		String key = "key";
 		
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
 		
 		// Call under test
@@ -627,14 +635,16 @@ public class FileHandleArchivalManagerTest {
 		
 		assertTrue(result);
 		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
-		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(S3_TAG_ARCHIVED));
 	}
 	
 	@Test
 	public void testTagObjectForArchivalWithNullTags() {
 		String key = "key";
 		
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(null);
 		
 		// Call under test
@@ -642,14 +652,16 @@ public class FileHandleArchivalManagerTest {
 		
 		assertTrue(result);
 		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
-		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(S3_TAG_ARCHIVED));
 	}
 	
 	@Test
 	public void testTagObjectForArchivalWithExistingAndNotMatchingTags() {
 		String key = "key";
 		
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(new Tag("key", "value")));
 		
 		// Call under test
@@ -657,22 +669,57 @@ public class FileHandleArchivalManagerTest {
 		
 		assertTrue(result);
 		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
-		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(new Tag("key", "value"), FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(new Tag("key", "value"), S3_TAG_ARCHIVED));
 	}
 	
 	@Test
 	public void testTagObjectForArchivalWithExistingAndMatchingTags() {
 		String key = "key";
 		
-		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(FileHandleArchivalManagerImpl.S3_TAG_ARCHIVED));
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(S3_TAG_ARCHIVED));
 		
 		// Call under test
 		boolean result = manager.tagObjectForArchival(bucket, key);
 		
 		assertFalse(result);
 		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testTagObjectForArchivalWithSizeUnderThreshold() {
+		String key = "key";
+		
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD - 1);
+		
+		// Call under test
+		boolean result = manager.tagObjectForArchival(bucket, key);
+		
+		assertFalse(result);
+		
+		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testTagObjectForArchivalWithNullSize() {
+		String key = "key";
+		
+		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(null);
+		
+		// Call under test
+		boolean result = manager.tagObjectForArchival(bucket, key);
+		
+		assertFalse(result);
+		
+		
+		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
 	

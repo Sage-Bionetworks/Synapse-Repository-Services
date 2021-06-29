@@ -222,5 +222,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public Long getContentSizeByKey(String bucketName, String key) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

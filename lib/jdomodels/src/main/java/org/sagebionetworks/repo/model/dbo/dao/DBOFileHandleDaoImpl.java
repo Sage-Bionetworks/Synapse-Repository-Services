@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -94,6 +95,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_SELECT_BUCKET_AND_KEY = "SELECT DISTINCT " + COL_FILES_BUCKET_NAME + ", `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
 	private static final String SQL_DELETE_BATCH = "DELETE FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
 	private static final String SQL_DELETE_UNAVAILABLE_BY_KEY = "DELETE FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "` =? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + " <> '" + FileHandleStatus.AVAILABLE +"'";
+	private static final String SQL_SELECT_CONTENT_SIZE_BY_KEY = "SELECT MAX("+ COL_FILES_CONTENT_SIZE + ") FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "` =? AND " + COL_FILES_BUCKET_NAME + "=?";
+	
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -570,6 +573,14 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		ValidateArgument.requiredNotBlank(key, "The key");
 		
 		jdbcTemplate.update(SQL_DELETE_UNAVAILABLE_BY_KEY, key, bucketName);
+	}
+	
+	@Override
+	public Long getContentSizeByKey(String bucketName, String key) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		
+		return jdbcTemplate.queryForObject(SQL_SELECT_CONTENT_SIZE_BY_KEY, Long.class, key, bucketName);
 	}
 
 	@WriteTransaction

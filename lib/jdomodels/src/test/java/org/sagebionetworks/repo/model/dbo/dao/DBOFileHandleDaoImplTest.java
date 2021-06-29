@@ -1788,4 +1788,90 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(file2.getId(), files.get(1).getId());
 		assertEquals(file3.getId(), files.get(2).getId());
 	}
+	
+	@Test
+	public void testGetContentSizeByKey() {
+		String bucket = "bucket";
+		
+		// Available
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.AVAILABLE.name());
+		file1.setKey("key1");
+		file1.setContentSize(123L);
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1));
+		
+		// Call under test
+		Long result = fileHandleDao.getContentSizeByKey(bucket, "key1");
+		
+		assertEquals(123L, result);
+	}
+	
+	@Test
+	public void testGetContentSizeByKeyWithEmptyBucket() {
+		String bucket = "";
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			fileHandleDao.getContentSizeByKey(bucket, "key1");
+		});
+		
+		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetContentSizeByKeyWithEmptyKey() {
+		String bucket = "bucket";
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			fileHandleDao.getContentSizeByKey(bucket, "");
+		});
+		
+		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetContentSizeByKeyWithNonExisting() {
+		String bucket = "bucket";
+		
+		// Call under test
+		Long result = fileHandleDao.getContentSizeByKey(bucket, "key1");
+		
+		assertNull(result);
+	}
+	
+	@Test
+	public void testGetContentSizeByKeyWithMultiple() {
+		String bucket = "bucket";
+		
+		// With size
+		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file1.setBucketName(bucket);
+		file1.setStatus(FileHandleStatus.AVAILABLE.name());
+		file1.setKey("key1");
+		file1.setContentSize(123L);
+		
+		// No size
+		DBOFileHandle file2 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file2.setBucketName(bucket);
+		file2.setStatus(FileHandleStatus.AVAILABLE.name());
+		file2.setKey("key1");
+		file2.setContentSize(null);
+		
+		// Max size
+		DBOFileHandle file3 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		file3.setBucketName(bucket);
+		file3.setStatus(FileHandleStatus.AVAILABLE.name());
+		file3.setKey("key1");
+		file3.setContentSize(256L);
+		
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file3));
+		
+		// Call under test
+		Long result = fileHandleDao.getContentSizeByKey(bucket, "key1");
+		
+		assertEquals(256L, result);
+	}
 }

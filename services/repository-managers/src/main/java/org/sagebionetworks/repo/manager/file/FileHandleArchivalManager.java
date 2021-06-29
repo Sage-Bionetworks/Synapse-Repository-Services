@@ -18,7 +18,15 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public interface FileHandleArchivalManager {
 	
+	/**
+	 * The default S3 Tag assigned to archived objects
+	 */
 	Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archive");
+	
+	/**
+	 * The default size threshold for tagging S3 objects
+	 */
+	long S3_TAG_SIZE_THRESHOLD = 128 * 1024;
 
 	/**
 	 * Process a request to submit a batch of UNLINKED file handles for archival

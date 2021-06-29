@@ -173,6 +173,12 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	}
 
 	boolean tagObjectForArchival(String bucketName, String key) {
+		Long contentSize = fileHandleDao.getContentSizeByKey(bucketName, key);
+		
+		if (contentSize == null || contentSize < S3_TAG_SIZE_THRESHOLD) {
+			return false;
+		}
+		
 		List<Tag> objectTags = s3Client.getObjectTags(bucketName, key);
 
 		if (objectTags == null || objectTags.isEmpty()) {

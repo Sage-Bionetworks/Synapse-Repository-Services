@@ -3,6 +3,8 @@ package org.sagebionetworks.file.worker;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
+import static org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -23,7 +25,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -101,6 +102,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		String key5 = uploadFile("key_5", true);
 		String key6 = uploadFile("key_6", true);
 		String key7 = uploadFile("key_7", false);
+		String key8 = uploadFile("key_8", true);
 		
 		// After range
 		Long key0File1 = createDBOFile(bucket, now, FileHandleStatus.UNLINKED, key0).getId(); // -> untouched
@@ -109,15 +111,15 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		// After range but available and copy of one in range
 		Long key3File1 = createDBOFile(bucket, now, FileHandleStatus.AVAILABLE, key3).getId(); // -> untouched
 		
-		Long key1PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key1Preview, true, null).getId();
+		Long key1PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key1Preview, 123L, true, null).getId();
 		// In range
-		Long key1File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
+		Long key1File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
 		// In range and a copy
-		Long key1File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
+		Long key1File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
 		
-		Long key2PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key2Preview, true, null).getId();
+		Long key2PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key2Preview, 123L, true, null).getId();
 		// In range
-		Long key2File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key2, false, key2PreviewId).getId(); // -> archive and tag, but does not delete the preview as it is used
+		Long key2File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key2, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> archive and tag, but does not delete the preview as it is used
 		// In range
 		Long key3File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key3).getId(); // -> archive but not tagged
 		// In range but available
@@ -126,11 +128,13 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		Long key5File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key5).getId(); // -> archived but not tagged
 		// In range
 		Long key7File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key7).getId(); // -> deleted
+		// In range
+		Long key8File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key8, S3_TAG_SIZE_THRESHOLD - 1, false, null).getId(); // -> archived but not tagged as under the threshold
 		
 		// Before range, but copy of a key in range
 		Long key2File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.UNLINKED, key2).getId(); // -> archive and tag
 		// Before range, but AVAILABLE
-		Long key6File1 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key6, false, key2PreviewId).getId(); // -> untouched
+		Long key6File1 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key6, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> untouched
 		// Before range, but AVAILABLE and copy of a key in range
 		Long key5File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key5).getId(); // -> untouched
 		
@@ -138,7 +142,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		
 		// First wait for the dispatcher job
 		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
-			assertEquals(5L, response.getCount());
+			assertEquals(6L, response.getCount());
 		}, MAX_WAIT_MS);
 
 		// Now wait to verify the results
@@ -157,6 +161,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 				verify(key4File1, FileHandleStatus.AVAILABLE, null, false);
 				verify(key5File1, FileHandleStatus.ARCHIVED, null, false);
 				assertFalse(fileHandleDao.doesExist(key7File1.toString()));
+				verify(key8File1, FileHandleStatus.ARCHIVED, null, false);
 				verify(key2File2, FileHandleStatus.ARCHIVED, null, true);
 				verify(key6File1, FileHandleStatus.AVAILABLE, key2PreviewId, false);
 				verify(key5File2, FileHandleStatus.AVAILABLE, null, false);
@@ -177,7 +182,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		
 		List<Tag> tags = s3Client.getObjectTags(bucket, handle.getKey());
 		
-		if (tagged && !tags.stream().filter(t->t.equals(FileHandleArchivalManager.S3_TAG_ARCHIVED)).findFirst().isPresent()) {
+		if (tagged && !tags.stream().filter(t->t.equals(S3_TAG_ARCHIVED)).findFirst().isPresent()) {
 			fail("The file handle with key " + handle.getKey() + " was not tagged");
 		} else if (!tagged && !tags.isEmpty()) {
 			fail("The file handle with key " + handle.getKey() + " was not supposed to be tagged");
@@ -196,10 +201,10 @@ public class FileHandleArchivalWorkerIngegrationTest {
 	}
 	
 	private DBOFileHandle createDBOFile(String bucket, Instant updatedOn, FileHandleStatus status, String key) {
-		return createDBOFile(bucket, updatedOn, status, key, false, null);
+		return createDBOFile(bucket, updatedOn, status, key, S3_TAG_SIZE_THRESHOLD, false, null);
 	}
 
-	private DBOFileHandle createDBOFile(String bucket, Instant updatedOn, FileHandleStatus status, String key, boolean isPreview, Long previewId) {
+	private DBOFileHandle createDBOFile(String bucket, Instant updatedOn, FileHandleStatus status, String key, Long contentSize, boolean isPreview, Long previewId) {
 		DBOFileHandle file = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(adminUser.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString()));
 		
 		file.setBucketName(bucket);
@@ -208,6 +213,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		file.setStatus(status.name());
 		file.setIsPreview(isPreview);
 		file.setPreviewId(previewId);
+		file.setContentSize(contentSize);
 		
 		fileHandleDao.createBatchDbo(Arrays.asList(file));
 		return file;

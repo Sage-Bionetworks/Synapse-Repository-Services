@@ -251,6 +251,13 @@ public interface FileHandleDao {
 	void deleteBatch(Set<Long> ids);
 	
 	/**
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 * @return The max size assigned to the given key, can be null if no content size is assigned
+	 */
+	Long getContentSizeByKey(String bucketName, String key);
+	
+	/**
 	 * Deleted all file data
 	 */
 	void truncateTable();
