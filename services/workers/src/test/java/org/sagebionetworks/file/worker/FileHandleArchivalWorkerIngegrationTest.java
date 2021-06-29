@@ -80,6 +80,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 	@AfterEach
 	public void cleanup() {
 		S3TestUtils.doDeleteAfter(s3Client);
+		fileHandleDao.truncateTable();
 	}
 
 	@Test
