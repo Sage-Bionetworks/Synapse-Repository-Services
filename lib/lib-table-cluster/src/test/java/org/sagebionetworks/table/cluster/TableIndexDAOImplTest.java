@@ -4198,4 +4198,38 @@ public class TableIndexDAOImplTest {
 		});
 	}
 
+	@Test
+	public void testRoundQuery() throws ParseException {
+		// Create the table
+		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		createOrUpdateTable(doubleColumn, tableId, isView);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 2);
+		// insert special values
+		rows.get(0).getValues().set(0, "1.234");
+		rows.get(1).getValues().set(0, "100.1899");
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
+		// This is our query
+		SqlQuery query = new SqlQueryBuilder("select round(col1, 2) from " + tableId, doubleColumn, userId).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId.toString(), results.getTableId());
+		assertEquals(2, results.getRows().size());
+		assertEquals("1.23", results.getRows().get(0).getValues().get(0));
+		assertEquals("100.19", results.getRows().get(1).getValues().get(0));
+	}
 }
