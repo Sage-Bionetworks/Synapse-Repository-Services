@@ -42,5 +42,8 @@
 				level="debug" additivity="false">
 			<appender-ref ref="traceProfiling" />
 		</logger>
+		<logger name="org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker" level="debug">
+			<appender-ref ref="workers" />
+		</logger>
 	</loggers>
 </configuration>

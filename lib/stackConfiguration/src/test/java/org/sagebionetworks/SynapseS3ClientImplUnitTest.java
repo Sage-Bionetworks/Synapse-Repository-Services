@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -10,14 +11,19 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3ClientImpl;
 
@@ -34,6 +40,8 @@ import com.amazonaws.services.s3.model.CopyPartResult;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
@@ -44,8 +52,11 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.SetObjectTaggingResult;
+import com.amazonaws.services.s3.model.Tag;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SynapseS3ClientImplUnitTest {
 	
 	@Mock
@@ -65,7 +76,7 @@ public class SynapseS3ClientImplUnitTest {
 	
 	private static final String OBJECT_KEY = "s3-object-key";
 
-	@Before
+	@BeforeEach
 	public void before() {
 		Map<Region, AmazonS3> regionSpecificClients = new HashMap<Region, AmazonS3>();
 		regionSpecificClients.put(BUCKET_REGION_US_STANDARD, mockAmazonUSStandardClient);
@@ -74,7 +85,8 @@ public class SynapseS3ClientImplUnitTest {
 		
 		// this setting is used by most tests in this class, overridden where necessary
 		HeadBucketResult headBucketResult = new HeadBucketResult().withBucketRegion(BUCKET_REGION.getFirstRegionId());
-		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(headBucketResult);
+		// Set as lenient as only one test is not using this
+		Mockito.lenient().doReturn(headBucketResult).when(mockAmazonUSStandardClient).headBucket(any());
 	}
 	
 	@Test
@@ -95,10 +107,19 @@ public class SynapseS3ClientImplUnitTest {
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
 	}
 	
-	@Test(expected=CannotDetermineBucketLocationException.class)
+	@Test
 	public void testGetRegionForBucketCantTellRegion() {
-		when(mockAmazonUSStandardClient.headBucket(any())).thenThrow(new AmazonS3Exception("can't check region"));
-		client.getRegionForBucket(BUCKET_NAME);
+		
+		AmazonS3Exception s3Ex = new AmazonS3Exception("can't check region");
+		
+		when(mockAmazonUSStandardClient.headBucket(any())).thenThrow(s3Ex);
+		
+		CannotDetermineBucketLocationException ex = assertThrows(CannotDetermineBucketLocationException.class, () -> {			
+			client.getRegionForBucket(BUCKET_NAME);
+		});
+		
+		assertEquals(s3Ex, ex.getCause());
+		assertEquals("Failed to determine the Amazon region for bucket '"+BUCKET_NAME+"'. Please ensure that the bucket exists, is shared with Synapse, in particular granting ListObject permission.", ex.getMessage());
 	}
 	
 	@Test
@@ -230,6 +251,7 @@ public class SynapseS3ClientImplUnitTest {
 
 	@Test
 	public void testCreateBucket() {
+		
 		Bucket expected = new Bucket(BUCKET_NAME);
 		when(mockAmazonUSStandardClient.createBucket(BUCKET_NAME)).thenReturn(expected);
 		
@@ -356,6 +378,49 @@ public class SynapseS3ClientImplUnitTest {
 		
 		verify(mockAmazonClient).getBucketCrossOriginConfiguration(BUCKET_NAME);
 		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testGetObjectTags() {
+		
+		List<Tag> tags = Arrays.asList(
+				new Tag("key", "value"), new Tag("key2", "value")
+		);
+		
+		when(mockAmazonClient.getObjectTagging(any())).thenReturn(new GetObjectTaggingResult(tags));
+		
+		// Call under test
+		List<Tag> result = client.getObjectTags(BUCKET_NAME, OBJECT_KEY);
+		
+		assertEquals(tags, result);
+		
+		ArgumentCaptor<GetObjectTaggingRequest> requestCaptor = ArgumentCaptor.forClass(GetObjectTaggingRequest.class);
+		
+		verify(mockAmazonClient).getObjectTagging(requestCaptor.capture());
+		
+		assertEquals(BUCKET_NAME, requestCaptor.getValue().getBucketName());
+		assertEquals(OBJECT_KEY, requestCaptor.getValue().getKey());
+	}
+	
+	@Test
+	public void testSetObjectTags() {
+		
+		List<Tag> tags = Arrays.asList(
+				new Tag("key", "value"), new Tag("key2", "value")
+		);
+		
+		when(mockAmazonClient.setObjectTagging(any())).thenReturn(new SetObjectTaggingResult());
+		
+		// Call under test
+		client.setObjectTags(BUCKET_NAME, OBJECT_KEY, tags);
+		
+		ArgumentCaptor<SetObjectTaggingRequest> requestCaptor = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
+		
+		verify(mockAmazonClient).setObjectTagging(requestCaptor.capture());
+		
+		assertEquals(BUCKET_NAME, requestCaptor.getValue().getBucketName());
+		assertEquals(OBJECT_KEY, requestCaptor.getValue().getKey());
+		assertEquals(tags, requestCaptor.getValue().getTagging().getTagSet());
 	}
 
 }

@@ -221,7 +221,7 @@ public class FileHandleAssociationScannerJobManagerImpl implements FileHandleAss
 		
 		if (fileHandleDao.hasStatusBatch(fileHandleIds, FileHandleStatus.UNLINKED)) {
 
-			List<Long> updatedIds = fileHandleDao.updateBatchStatus(fileHandleIds, FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
+			List<Long> updatedIds = fileHandleDao.updateStatusForBatch(fileHandleIds, FileHandleStatus.AVAILABLE, FileHandleStatus.UNLINKED, 0);
 
 			relinkedCount = updatedIds.size();
 			

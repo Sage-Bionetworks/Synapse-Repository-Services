@@ -43,7 +43,7 @@ public class FileHandleUnlinkedQueryProcessor implements RecurrentAthenaQueryPro
 	@Override
 	public void processQueryResultsPage(List<Long> resultsPage) {
 		// Note that we do not update file handles that have been set as AVAILABLE within the last 30 days, this allows to restore file handles without being unlinked again
-		fileHandleDao.updateBatchStatus(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, UPDATED_ON_DAYS_LIMIT);
+		fileHandleDao.updateStatusForBatch(resultsPage, FileHandleStatus.UNLINKED, FileHandleStatus.AVAILABLE, UPDATED_ON_DAYS_LIMIT);
 	}
 
 }

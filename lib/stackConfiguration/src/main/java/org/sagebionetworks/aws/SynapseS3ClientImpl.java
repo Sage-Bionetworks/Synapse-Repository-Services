@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,8 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
@@ -33,10 +36,13 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.util.StringUtils;
 
 /*
@@ -223,5 +229,21 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	@Override
 	public String getAccountOwnerId(String bucketName) {
 		return getS3ClientForBucket(bucketName).getS3AccountOwner().getId();
+	}
+	
+	@Override
+	public List<Tag> getObjectTags(String bucketName, String key) {
+		GetObjectTaggingRequest request = new GetObjectTaggingRequest(bucketName, key);
+		
+		GetObjectTaggingResult response = getS3ClientForBucket(bucketName).getObjectTagging(request);
+		
+		return response.getTagSet();
+	}
+	
+	@Override
+	public void setObjectTags(String bucketName, String key, List<Tag> tags) {
+		SetObjectTaggingRequest request = new SetObjectTaggingRequest(bucketName, key, new ObjectTagging(tags));
+		
+		getS3ClientForBucket(bucketName).setObjectTagging(request);
 	}
 }

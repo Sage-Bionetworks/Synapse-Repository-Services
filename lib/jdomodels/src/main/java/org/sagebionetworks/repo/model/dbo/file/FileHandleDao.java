@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
@@ -161,7 +162,19 @@ public interface FileHandleDao {
 	 * 
 	 * @return The list of file handle ids that were actually modified
 	 */
-	List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays);
+	List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays);
+	
+	/**
+	 * Updates the status of all the file handles matching the given bucket, key and status whose modifedOn is before the given instant
+	 * 
+	 * @param bucketName The bucket name
+	 * @param key The key
+	 * @param newStatus The new status to set
+	 * @param currentStatus The current status
+	 * @param modifiedBefore The upper bound for modifiedOn
+	 * @return The number of updated file handles
+	 */
+	int updateStatusByBucketAndKey(String bucketName, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore);
 	
 	/**
 	 * Get the given list of file handles, filtering those that are not in the given status
@@ -187,6 +200,62 @@ public interface FileHandleDao {
 	 * @return A batch of keys of file handles that are unlinked within the given range
 	 */
 	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
+	
+	/**
+	 * Counts the number of file handles that matches the given bucket and key and that are either {@link FileHandleStatus#AVAILABLE} or {@link FileHandleStatus#UNLINKED} but modified after the given instant
+	 * 
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 * @param modifiedAfter The lower bound for the filter
+	 * @return The count of file handles for the given key that are available or that are unlinked but modified after the given instant
+	 */
+	int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter);
+	
+	/**
+	 * Clear all the previews for the file handles matching the given bucket, key and status
+	 * 
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 * @param status The status filter
+	 * @return The set of ids of the cleared previews
+	 */
+	Set<Long> clearPreviewByKeyAndStatus(String bucketName, String key, FileHandleStatus status);
+	
+	/**
+	 * Given the list of preview ids returns the subset of previews that are not referenced by file handles
+	 * 
+	 * @param previewIds The list of preview ids
+	 * @return The subset of preview ids that are not referenced anymore
+	 */
+	Set<Long> getReferencedPreviews(Set<Long> previewIds);
+	
+	/**
+	 * @param ids The set of file handle ids
+	 * @return The bucket/key pairs for the file handles matching the ids in the set
+	 */
+	Set<BucketAndKey> getBucketAndKeyBatch(Set<Long> ids);
+	
+	/**
+	 * Deletes all the file handles that match the given bucket name and key and that are not {@link FileHandleStatus#AVAILABLE}
+	 * 
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 */
+	void deleteUnavailableByBucketAndKey(String bucketName, String key);
+	
+	/**
+	 * Deletes a batch of file handles by ids
+	 * 
+	 * @param ids
+	 */
+	void deleteBatch(Set<Long> ids);
+	
+	/**
+	 * @param bucketName The name of the bucket
+	 * @param key The object key
+	 * @return The max size assigned to the given key, can be null if no content size is assigned
+	 */
+	Long getContentSizeByKey(String bucketName, String key);
 	
 	/**
 	 * Deleted all file data

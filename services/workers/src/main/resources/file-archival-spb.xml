@@ -67,7 +67,7 @@
 								<property name="runner" ref="fileHandleKeysArchiveWorker"/>
 								<property name="semaphoreLockKey" value="fileHandleKeysArchiveWorker" />
 								<property name="semaphoreMaxLockCount" value="20" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_KEY_ARCHIVE')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />

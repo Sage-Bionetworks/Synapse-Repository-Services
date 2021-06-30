@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
@@ -149,7 +150,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus,
+	public List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus,
 			int updatedOnBeforeDays) {
 		// TODO Auto-generated method stub
 		return null;
@@ -168,6 +169,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 	
 	@Override
+	public int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
 	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
 		// TODO Auto-generated method stub
 		return null;
@@ -177,6 +184,49 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public boolean hasStatusBatch(List<Long> ids, FileHandleStatus status) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+	
+	@Override
+	public int updateStatusByBucketAndKey(String bucket, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus,
+			Instant modifiedBefore) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
+	public Set<Long> clearPreviewByKeyAndStatus(String bucketName, String key, FileHandleStatus status) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Set<Long> getReferencedPreviews(Set<Long> previewIds) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Set<BucketAndKey> getBucketAndKeyBatch(Set<Long> ids) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public void deleteBatch(Set<Long> ids) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void deleteUnavailableByBucketAndKey(String bucketName, String key) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public Long getContentSizeByKey(String bucketName, String key) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
@@ -53,6 +55,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -83,6 +86,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private static final String SQL_UPDATE_STATUS_BATCH = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE " + COL_FILES_ID + "=? AND " + COL_FILES_STATUS + "=?";
 	private static final String SQL_CHECK_BATCH_STATUS= "SELECT COUNT(*) FROM (SELECT " + COL_FILES_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN ( " + IDS_PARAM + " ) AND " + COL_FILES_STATUS + "=:" + COL_FILES_STATUS + " LIMIT 1) AS T";
 	private static final String SQL_SELECT_KEY_BATCH_BY_STATUS = "SELECT DISTINCT `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_UPDATED_ON + " > ? AND " + COL_FILES_UPDATED_ON + " < ? AND " + COL_FILES_STATUS + "= ? LIMIT ?";
+	private static final String SQL_UPDATE_STATUS_BY_KEY = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_STATUS + "=?, " + COL_FILES_ETAG + "=UUID(), " + COL_FILES_UPDATED_ON + "=NOW() WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_UPDATED_ON + "<? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + "=?";
+	private static final String SQL_COUNT_AVAILABLE_BY_KEY = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_BUCKET_NAME + "=?"
+			+ " AND (" + COL_FILES_STATUS + "='" + FileHandleStatus.AVAILABLE.name() + "' OR ("+ COL_FILES_STATUS + "='" + FileHandleStatus.UNLINKED.name() + "' AND " + COL_FILES_UPDATED_ON + ">=?))";
+	private static final String SQL_SELECT_PREVIEW_ID_BY_KEY_AND_STATUS = "SELECT DISTINCT " + COL_FILES_PREVIEW_ID + " FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + "=?";
+	private static final String SQL_CLEAR_PREVIEW_ID_BY_KEY_AND_STATUS = "UPDATE " + TABLE_FILES + " SET " + COL_FILES_PREVIEW_ID + " = NULL WHERE `" + COL_FILES_KEY + "`=? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + "=?";
+	private static final String SQL_SELECT_REFERENCED_PREVIEWS_IDS = "SELECT DISTINCT " + COL_FILES_PREVIEW_ID + " FROM " + TABLE_FILES + " WHERE " + COL_FILES_PREVIEW_ID + " IN (" +IDS_PARAM + ")";
+	private static final String SQL_SELECT_BUCKET_AND_KEY = "SELECT DISTINCT " + COL_FILES_BUCKET_NAME + ", `" + COL_FILES_KEY + "` FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
+	private static final String SQL_DELETE_BATCH = "DELETE FROM " + TABLE_FILES + " WHERE " + COL_FILES_ID + " IN (" +IDS_PARAM + ")";
+	private static final String SQL_DELETE_UNAVAILABLE_BY_KEY = "DELETE FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "` =? AND " + COL_FILES_BUCKET_NAME + "=? AND " + COL_FILES_STATUS + " <> '" + FileHandleStatus.AVAILABLE +"'";
+	private static final String SQL_SELECT_CONTENT_SIZE_BY_KEY = "SELECT MAX("+ COL_FILES_CONTENT_SIZE + ") FROM " + TABLE_FILES + " WHERE `" + COL_FILES_KEY + "` =? AND " + COL_FILES_BUCKET_NAME + "=?";
 	
 	/**
 	 * Used to detect if a file object already exists.
@@ -386,14 +399,14 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			sql.append(" AND ").append(COL_FILES_UPDATED_ON).append(" < NOW() - INTERVAL ").append(updatedOnBeforeDays).append(" DAY");
 		}
 		
-		MapSqlParameterSource paramSource = new  MapSqlParameterSource("ids", ids);
+		MapSqlParameterSource paramSource = new MapSqlParameterSource("ids", ids);
 		
 		return namedJdbcTemplate.query(sql.toString(), paramSource, DBO_MAPPER);
 	}
 	
 	@Override
 	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
-		ValidateArgument.requiredNotBlank(bucketName, "The bucket name");
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
 		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
 		ValidateArgument.required(modifiedAfter, "The modifiedAfter");
 		ValidateArgument.requirement(modifiedAfter.isBefore(modifiedBefore), "modifiedAfter must be before modifiedBefore.");
@@ -404,7 +417,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	@Override
 	@WriteTransaction
-	public List<Long> updateBatchStatus(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
+	public List<Long> updateStatusForBatch(List<Long> ids, FileHandleStatus newStatus, FileHandleStatus currentStatus, int updatedOnBeforeDays) {
 		ValidateArgument.required(newStatus, "The newStatus");
 		ValidateArgument.required(currentStatus, "The currentStatus");
 		ValidateArgument.requirement(updatedOnBeforeDays >= 0, "The updatedOnBeforeDays must be greater or equal than 0");
@@ -448,6 +461,62 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
+	@WriteTransaction
+	public int updateStatusByBucketAndKey(String bucketName, String key, FileHandleStatus newStatus, FileHandleStatus currentStatus, Instant modifiedBefore) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(newStatus, "The newStatus");
+		ValidateArgument.required(currentStatus, "The currentStatus");
+		ValidateArgument.required(modifiedBefore, "The modifiedBefore");
+		
+		int updated = 0;
+		
+		if (newStatus.equals(currentStatus)) {
+			return updated;
+		}
+
+		return jdbcTemplate.update(SQL_UPDATE_STATUS_BY_KEY, newStatus.name(), key, Timestamp.from(modifiedBefore), bucketName, currentStatus.name());
+	}
+	
+	@Override
+	public int getAvailableOrEarlyUnlinkedFileHandlesCount(String bucketName, String key, Instant modifiedAfter) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(modifiedAfter, "The modifiedAfter");
+		
+		return jdbcTemplate.queryForObject(SQL_COUNT_AVAILABLE_BY_KEY, Long.class, key, bucketName, Timestamp.from(modifiedAfter)).intValue();
+	}
+	
+	@Override
+	@WriteTransaction
+	public Set<Long> clearPreviewByKeyAndStatus(String bucketName, String key, FileHandleStatus status) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		ValidateArgument.required(status, "The status");
+		
+		List<Long> previewIds = jdbcTemplate.queryForList(SQL_SELECT_PREVIEW_ID_BY_KEY_AND_STATUS, Long.class, key, bucketName, status.name());
+		
+		jdbcTemplate.update(SQL_CLEAR_PREVIEW_ID_BY_KEY_AND_STATUS, key, bucketName, status.name());
+		
+		return new HashSet<>(previewIds);
+	}
+	
+	@Override
+	public Set<Long> getReferencedPreviews(Set<Long> previewIds) {
+		ValidateArgument.required(previewIds, "The previewIds");
+		
+		if (previewIds.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		SqlParameterSource params = new MapSqlParameterSource("ids", previewIds);
+		
+		List<Long> idList = namedJdbcTemplate.queryForList(SQL_SELECT_REFERENCED_PREVIEWS_IDS, params, Long.class);
+		
+		return new HashSet<>(idList);
+	}
+	
+	@Override
 	public boolean hasStatusBatch(List<Long> ids, FileHandleStatus status) {
 		ValidateArgument.required(ids, "The ids batch");
 		ValidateArgument.required(status, "The status");
@@ -461,6 +530,57 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 				.addValue(COL_FILES_STATUS, status.name());
 		
 		return namedJdbcTemplate.queryForObject(SQL_CHECK_BATCH_STATUS, params, Long.class) > 0;
+	}
+	
+	@Override
+	public Set<BucketAndKey> getBucketAndKeyBatch(Set<Long> ids) {
+		ValidateArgument.required(ids, "The id set");
+		if (ids.isEmpty()) {
+			return Collections.emptySet();
+		}
+		
+		SqlParameterSource params = new MapSqlParameterSource("ids", ids);
+		
+		Set<BucketAndKey> result = new HashSet<>();
+		
+		namedJdbcTemplate.query(SQL_SELECT_BUCKET_AND_KEY, params, (RowCallbackHandler) rs -> {
+            String bucket = rs.getString(1);
+            String key = rs.getString(2);
+            result.add(new BucketAndKey().withBucket(bucket).withtKey(key));
+		});
+		
+		return result;
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteBatch(Set<Long> ids) {
+		ValidateArgument.required(ids, "The id set");
+		
+		if (ids.isEmpty()) {
+			return;
+		}
+		
+		SqlParameterSource params = new MapSqlParameterSource("ids", ids);
+		
+		namedJdbcTemplate.update(SQL_DELETE_BATCH, params);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteUnavailableByBucketAndKey(String bucketName, String key) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		
+		jdbcTemplate.update(SQL_DELETE_UNAVAILABLE_BY_KEY, key, bucketName);
+	}
+	
+	@Override
+	public Long getContentSizeByKey(String bucketName, String key) {
+		ValidateArgument.requiredNotBlank(bucketName, "The bucketName");
+		ValidateArgument.requiredNotBlank(key, "The key");
+		
+		return jdbcTemplate.queryForObject(SQL_SELECT_CONTENT_SIZE_BY_KEY, Long.class, key, bucketName);
 	}
 
 	@WriteTransaction

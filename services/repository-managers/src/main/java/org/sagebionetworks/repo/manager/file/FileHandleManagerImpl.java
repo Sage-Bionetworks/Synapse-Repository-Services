@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -26,7 +27,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.entity.ContentType;
-import org.joda.time.Instant;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
@@ -383,7 +383,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		cloudWatchData.setNamespace(CLOUD_WATCH_NAMESPACE_PREFIX + " - " + config.getStackInstance());
 		cloudWatchData.setName(CLOUD_WATCH_METRIC_UNAVAILABLE_FILE_ACCESSED);
-		cloudWatchData.setTimestamp(Instant.now().toDate());
+		cloudWatchData.setTimestamp(Date.from(Instant.now()));
 		cloudWatchData.setValue(Double.valueOf(handle.getId()));
 		
 		// We do not use a unit as the value of the metric is the file handle id itself
