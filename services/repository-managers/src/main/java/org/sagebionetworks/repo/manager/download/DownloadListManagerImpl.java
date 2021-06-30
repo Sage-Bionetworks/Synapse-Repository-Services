@@ -3,19 +3,19 @@ package org.sagebionetworks.repo.manager.download;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.json.JSONObject;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ManifestKeys;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
@@ -91,6 +92,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -547,11 +550,11 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			DownloadListManifestRequest request) throws IOException {
 		validateUser(userInfo);
 		AvailableFilter filter = null;
-		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.DESC));
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC));
 		PaginationIterator<DownloadListItemResult> itertor = new PaginationIterator<>(
 				(limit, offset) -> downloadListDao.getFilesAvailableToDownloadFromDownloadList(
 						createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset),
-				MAX_FILES_PER_BATCH);
+				MAX_QUERY_PAGE_SIZE);
 		String manifestFileHandleId = buildManifest(userInfo, request.getCsvTableDescriptor(), itertor);
 		return new DownloadListManifestResponse().setResultFileHandleId(manifestFileHandleId);
 	}
@@ -566,49 +569,121 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	String buildManifest(UserInfo user, CsvTableDescriptor descriptor, Iterator<DownloadListItemResult> iterator)
 			throws IOException {
-
+		// Write all of the data to a text file, and gather the unique annotation names to determine the columns of the CSV.
 		return fileProvider.createTemporaryFile("items", ".txt", temp -> {
-
-			try (Writer writer = fileProvider.createWriter(fileProvider.createFileOutputStream(temp),
-					StandardCharsets.UTF_8)) {
+			Set<String> annotationKeys = new HashSet<>();
+			Set<String> defaultKeys = Stream.of(ManifestKeys.values()).map(k->k.name()).collect(Collectors.toSet());
+			try (BufferedWriter writer = fileProvider.createBufferedWriter(temp,StandardCharsets.UTF_8)) {
 				while (iterator.hasNext()) {
 					DownloadListItemResult item = iterator.next();
-					writer.append(item.toString());
+					JSONObject details = downloadListDao.getItemManifestDetails(item);
+					// Capture any new annotation keys (excluding all default keys).
+					annotationKeys.addAll(Sets.difference(details.keySet(), defaultKeys));
+					writer.append(details.toString());
+					writer.newLine();
 				}
 			}
-
-			return buildManifestCSV(user, descriptor, null, null);
+			LinkedHashMap<String, Integer> keyToIndexMap = mapKeysToColumnIndex(annotationKeys);
+			// build the manifest from the text file.
+			return buildManifestCSV(user, descriptor, temp, keyToIndexMap);
 		});
 	}
 	
-	String buildManifestCSV(UserInfo user, CsvTableDescriptor descriptor, Reader reader, List<String> annotations)
+	
+	/**
+	 * Build a map of the column names to the final column index in the CSV.
+	 * @param annotationNames
+	 * @return
+	 */
+	LinkedHashMap<String, Integer> mapKeysToColumnIndex(Set<String> annotationNames){
+		LinkedHashMap<String, Integer> map = new LinkedHashMap<>(annotationNames.size());
+		// the first columns are always the default manifest keys
+		int index = 0;
+		for(ManifestKeys defaultKey: ManifestKeys.values()) {
+			map.put(defaultKey.name(), index);
+			index++;
+		}
+		// next add the sorted annotation keys 
+		List<String> sortedAnnotationNames = annotationNames.stream().sorted().collect(Collectors.toList());
+		for(String annoKey: sortedAnnotationNames) {
+			map.put(annoKey, index);
+			index++;
+		}
+		return map;
+	}
+	
+	/**
+	 * Build a CSV manifest file from the provided JSON text file and upload the results to S3
+	 * @param user
+	 * @param descriptor
+	 * @param tempTextFile
+	 * @param keyToColumnIndex
+	 * @return
+	 * @throws IOException
+	 */
+	String buildManifestCSV(UserInfo user, CsvTableDescriptor descriptor, File tempTextFile, LinkedHashMap<String, Integer> keyToColumnIndex)
 			throws IOException {
 		final String seporator = descriptor == null ? null : descriptor.getSeparator();
-		return fileProvider.createTemporaryFile("manifest", "." + CSVUtils.guessExtension(seporator), temp -> {
-
-			try (CSVWriter writer = CSVUtils.createCSVWriter(
-					fileProvider.createWriter(fileProvider.createFileOutputStream(temp), StandardCharsets.UTF_8),
-					descriptor)) {
-				writer.writeNext("ID");
-
+		String fileExtention = CSVUtils.guessExtension(seporator);
+		return fileProvider.createTemporaryFile("manifest", "." + fileExtention, tempCSV -> {
+			try(BufferedReader textReader = fileProvider.createBufferedReader(tempTextFile, StandardCharsets.UTF_8)){
+				try (CSVWriter writer = createCSVWriter(descriptor, tempCSV)) {
+					copyFromTextToCSV(keyToColumnIndex, textReader, writer);
+				}
+				String contentType = CSVUtils.guessContentType(seporator);
+				return fileHandleManager
+						.uploadLocalFile(new LocalFileUploadRequest().withContentType(contentType)
+								.withFileName("manifest."+fileExtention).withFileToUpload(tempCSV).withUserId(user.getId().toString()))
+						.getId();
 			}
-			String contentType = CSVUtils.guessContentType(seporator);
-			return fileHandleManager
-					.uploadLocalFile(new LocalFileUploadRequest().withContentType(contentType)
-							.withFileName("manifest.csv").withFileToUpload(temp).withUserId(user.getId().toString()))
-					.getId();
+
 		});
 	}
 	
-	public static void main(String[] arg) throws IOException {
-		File temp = File.createTempFile("manifest", ".csv");
-		try(CSVWriter writer = new CSVWriter(new FileWriter(temp))){
-			writer.writeNext("one","two","three");
-			for(int i=0;i<10;i++) {
-				writer.writeNext(""+i,""+i,""+i,""+i);
-			}
-		}
-		System.out.println(temp.getAbsolutePath());
+	/**
+	 * Create a CSVWriter for the given descriptor and file.
+	 * @param descriptor
+	 * @param temp
+	 * @return
+	 * @throws IOException
+	 */
+	CSVWriter createCSVWriter(CsvTableDescriptor descriptor, File temp) throws IOException {
+		return CSVUtils.createCSVWriter(
+				fileProvider.createWriter(fileProvider.createFileOutputStream(temp), StandardCharsets.UTF_8),
+				descriptor);
 	}
 
+	/**
+	 * Copy all of the JSON data from the given reader into the given CSV writer.
+	 * 
+	 * @param keyToColumnIndex
+	 * @param textReader
+	 * @param writer
+	 * @throws IOException
+	 */
+	void copyFromTextToCSV(LinkedHashMap<String, Integer> keyToColumnIndex, BufferedReader textReader, CSVWriter writer)
+			throws IOException {
+		// Write the header
+		String[] header = new String[keyToColumnIndex.size()];
+		int index = 0;
+		for(String key: keyToColumnIndex.keySet()) {
+			header[index] = key;
+			index++;
+		}
+		writer.writeNext(header);
+		
+		String line = null;
+		while((line = textReader.readLine()) != null) {
+			JSONObject itemJson = new JSONObject(line);
+			String[] row = new String[keyToColumnIndex.size()];
+			for(String key: keyToColumnIndex.keySet()) {
+				index = keyToColumnIndex.get(key);
+				if(itemJson.has(key)) {
+					row[index] = itemJson.getString(key);
+				}
+			}
+			writer.writeNext(row);
+		}
+	}
+	
 }

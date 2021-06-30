@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -140,5 +141,12 @@ public interface DownloadListDAO {
 	 * @return The total number of files added.
 	 */
 	Long addChildrenToDownloadList(Long id, Long parentId, boolean useVersion, long limit);
+	
+	/**
+	 * For the given item load all of the details needed to write to a manifest
+	 * @param item
+	 * @return
+	 */
+	JSONObject getItemManifestDetails(DownloadListItem item);
 
 }
