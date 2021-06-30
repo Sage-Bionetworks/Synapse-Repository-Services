@@ -162,6 +162,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -658,6 +660,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String DOWNLOAD_LIST = "/download/list";
 	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
 	public static final String DOWNLOAD_LIST_PACKAGE = DOWNLOAD_LIST+"/package";
+	public static final String DOWNLOAD_LIST_MANIFEST = DOWNLOAD_LIST+"/manifest";
 	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
 	public static final String DOWNLOAD_LIST_CLEAR = DOWNLOAD_LIST+"/clear";
 	
@@ -5993,5 +5996,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
 		String url = DOWNLOAD_LIST_PACKAGE + ASYNC_GET + asyncJobToken;
 		return (DownloadListPackageResponse) getAsynchJobResponse(url, DownloadListPackageResponse.class, getRepoEndpoint());
+	}
+	
+	@Override
+	public String startDownloadListManifest(DownloadListManifestRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.DownloadPackageList, request);
+	}
+
+	@Override
+	public DownloadListManifestResponse getDownloadListManifestResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		String url = DOWNLOAD_LIST_PACKAGE + ASYNC_GET + asyncJobToken;
+		return (DownloadListManifestResponse) getAsynchJobResponse(url, DownloadListManifestResponse.class, getRepoEndpoint());
 	}
 }

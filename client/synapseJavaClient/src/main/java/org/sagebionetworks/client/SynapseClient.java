@@ -126,6 +126,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -3958,5 +3960,27 @@ public interface SynapseClient extends BaseClient {
 	 */
 	DownloadListPackageResponse getDownloadListPackageResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Start an asynchronous job to generate a metadata manifest CSV of the
+	 * available files on the use’s download list.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	DownloadListManifestResponse getDownloadListManifestResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get the results of an asynchronous job to generate a metadata manifest CSV of
+	 * the available files from the user's download list download list
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startDownloadListManifest(DownloadListManifestRequest request) throws SynapseException;
 
 }

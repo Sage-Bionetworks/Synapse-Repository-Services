@@ -1714,6 +1714,36 @@ public class DownloadListManagerImplTest {
 		
 	}
 	
+	
+	@Test
+	public void testBuildManifestWithNoFiles() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		when(mockFileProvider.createBufferedWriter(any(), any())).thenReturn(mockBufferedWritter);
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		
+		// call under test part one
+		String resultFileHandleId = managerSpy.buildManifest(userOne, csvTableDescriptor, Collections.emptyIterator());
+		assertEquals(fileHandleId, resultFileHandleId);
+		
+		verify(mockFileProvider).createTemporaryFile(eq("items"), eq(".txt"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test part two
+			handler.apply(mockFile);
+		}).getMessage();
+		assertEquals(DownloadListManagerImpl.NO_FILES_AVAILABLE_FOR_DOWNLOAD, message);
+	
+		verify(mockFileProvider).createBufferedWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockBufferedWritter).close();
+		
+		verify(mockBufferedWritter, never()).append(any());
+		verify(mockBufferedWritter, never()).newLine();
+		
+		verify(managerSpy, never()).mapKeysToColumnIndex(any());
+		verify(managerSpy, never()).buildManifestCSV(any(), any(), any(), any());
+	}
+	
 	@Test
 	public void testMapKeysToColumnIndex() {
 		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
@@ -1759,7 +1789,8 @@ public class DownloadListManagerImplTest {
 		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
 				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
-		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter);
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
 	}
 	
 	@Test
@@ -1788,7 +1819,8 @@ public class DownloadListManagerImplTest {
 		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
 				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
-		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter);
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
 	}
 	
 	@Test
@@ -1817,7 +1849,8 @@ public class DownloadListManagerImplTest {
 		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
 				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
-		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter);
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
 	}
 	
 	@Test
@@ -1847,7 +1880,39 @@ public class DownloadListManagerImplTest {
 		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
 		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/tsv")
 				.withFileName("manifest.tsv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
-		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter);
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithNoHeader() throws IOException {
+		csvTableDescriptor.setIsFirstLineHeader(false);
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".csv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
+				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = false;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
 	}
 
 	@Test
@@ -1863,17 +1928,48 @@ public class DownloadListManagerImplTest {
 		itemTwo.put("c", "three");
 		itemTwo.put("b", "four");
 		when(mockBufferedReader.readLine()).thenReturn(itemOne.toString(), itemTwo.toString(), null);
+		boolean includeHeader = true;
 
 		// call under test
-		managerSpy.copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter);
+		managerSpy.copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+
+		List<String> headerList = Stream.of(ManifestKeys.values()).map(k -> k.name()).collect(Collectors.toList());
+		headerList.addAll(Arrays.asList("a", "b", "c"));
+
+		verify(mockCSVWriter, times(3)).writeNext(any());
+		// First row is the header
+		verify(mockCSVWriter).writeNext(new String[] { "ID", "name", "versionNumber", "contentType",
+				"dataFileSizeBytes", "createdBy", "createdOn", "modifiedBy", "modifiedOn", "parentId", "synapseURL",
+				"dataFileMD5Hex", "a", "b", "c" });
+		verify(mockCSVWriter).writeNext(new String[] { "1-0", "1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8",
+				"1-9", "1-10", "1-11", "one", null, "two" });
+		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",
+				"2-9", "2-10", "2-11", null, "four", "three" });
+	}
+	
+	@Test
+	public void testCopyFromTextToCSVWithNoHeader() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		JSONObject itemOne = createJSONObjectForItem(1);
+		itemOne.put("a", "one");
+		itemOne.put("c", "two");
+		JSONObject itemTwo = createJSONObjectForItem(2);
+		itemTwo.put("c", "three");
+		itemTwo.put("b", "four");
+		when(mockBufferedReader.readLine()).thenReturn(itemOne.toString(), itemTwo.toString(), null);
+		boolean includeHeader = false;
+
+		// call under test
+		managerSpy.copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
 
 		List<String> headerList = Stream.of(ManifestKeys.values()).map(k -> k.name()).collect(Collectors.toList());
 		headerList.addAll(Arrays.asList("a", "b", "c"));
 
 		// First row is the header
-		verify(mockCSVWriter).writeNext(new String[] { "ID", "name", "versionNumber", "contentType",
-				"dataFileSizeBytes", "createdBy", "createdOn", "modifiedBy", "modifiedOn", "parentId", "synapseURL",
-				"dataFileMD5Hex", "a", "b", "c" });
+		verify(mockCSVWriter, times(2)).writeNext(any());
 		verify(mockCSVWriter).writeNext(new String[] { "1-0", "1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8",
 				"1-9", "1-10", "1-11", "one", null, "two" });
 		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",

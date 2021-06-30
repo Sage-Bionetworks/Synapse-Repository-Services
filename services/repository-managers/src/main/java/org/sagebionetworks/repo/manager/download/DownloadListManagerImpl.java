@@ -100,6 +100,8 @@ import au.com.bytecode.opencsv.CSVWriter;
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+
+	public static final String NO_FILES_AVAILABLE_FOR_DOWNLOAD = "No files available for download.";
 	public static final String NO_FILES_ARE_ELIGIBLE_FOR_PACKAGING = "No files are eligible for packaging.";
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
@@ -574,6 +576,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			Set<String> annotationKeys = new HashSet<>();
 			Set<String> defaultKeys = Stream.of(ManifestKeys.values()).map(k->k.name()).collect(Collectors.toSet());
 			try (BufferedWriter writer = fileProvider.createBufferedWriter(temp,StandardCharsets.UTF_8)) {
+				int count = 0;
 				while (iterator.hasNext()) {
 					DownloadListItemResult item = iterator.next();
 					JSONObject details = downloadListDao.getItemManifestDetails(item);
@@ -581,6 +584,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 					annotationKeys.addAll(Sets.difference(details.keySet(), defaultKeys));
 					writer.append(details.toString());
 					writer.newLine();
+					count++;
+				}
+				if(count < 1) {
+					throw new IllegalArgumentException(NO_FILES_AVAILABLE_FOR_DOWNLOAD);
 				}
 			}
 			LinkedHashMap<String, Integer> keyToIndexMap = mapKeysToColumnIndex(annotationKeys);
@@ -624,11 +631,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	String buildManifestCSV(UserInfo user, CsvTableDescriptor descriptor, File tempTextFile, LinkedHashMap<String, Integer> keyToColumnIndex)
 			throws IOException {
 		final String seporator = descriptor == null ? null : descriptor.getSeparator();
+		final boolean includeHeader =  descriptor == null || descriptor.getIsFirstLineHeader() == null ? true : descriptor.getIsFirstLineHeader();
 		String fileExtention = CSVUtils.guessExtension(seporator);
 		return fileProvider.createTemporaryFile("manifest", "." + fileExtention, tempCSV -> {
 			try(BufferedReader textReader = fileProvider.createBufferedReader(tempTextFile, StandardCharsets.UTF_8)){
 				try (CSVWriter writer = createCSVWriter(descriptor, tempCSV)) {
-					copyFromTextToCSV(keyToColumnIndex, textReader, writer);
+					copyFromTextToCSV(keyToColumnIndex, textReader, writer, includeHeader);
 				}
 				String contentType = CSVUtils.guessContentType(seporator);
 				return fileHandleManager
@@ -661,17 +669,19 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param writer
 	 * @throws IOException
 	 */
-	void copyFromTextToCSV(LinkedHashMap<String, Integer> keyToColumnIndex, BufferedReader textReader, CSVWriter writer)
+	void copyFromTextToCSV(LinkedHashMap<String, Integer> keyToColumnIndex, BufferedReader textReader, CSVWriter writer, boolean includeHeader)
 			throws IOException {
-		// Write the header
-		String[] header = new String[keyToColumnIndex.size()];
 		int index = 0;
-		for(String key: keyToColumnIndex.keySet()) {
-			header[index] = key;
-			index++;
+		if(includeHeader) {
+			// Write the header
+			String[] header = new String[keyToColumnIndex.size()];
+			for(String key: keyToColumnIndex.keySet()) {
+				header[index] = key;
+				index++;
+			}
+			writer.writeNext(header);
 		}
-		writer.writeNext(header);
-		
+
 		String line = null;
 		while((line = textReader.readLine()) != null) {
 			JSONObject itemJson = new JSONObject(line);
