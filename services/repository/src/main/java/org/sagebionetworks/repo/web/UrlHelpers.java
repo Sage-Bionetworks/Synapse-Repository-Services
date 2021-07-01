@@ -261,7 +261,6 @@ public class UrlHelpers {
 	public static final String DOWNLOAD_LIST_QUERY_START_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_QUERY_GET_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_GET_REQUEST;
 	
-	
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
@@ -573,6 +572,10 @@ public class UrlHelpers {
 	public static final String EXTERNAL_FILE_HANDLE_S3 = EXTERNAL_FILE_HANDLE + "/s3";
 	public static final String EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD = EXTERNAL_FILE_HANDLE + "/googleCloud";
 	public static final String EXTERNAL_FILE_HANDLE_PROXY = EXTERNAL_FILE_HANDLE + "/proxy";
+	
+	public static final String FILE_HANDLE_RESTORE = FILE_HANDLE + "/restore";
+	public static final String FILE_HANDLE_RESTORE_START_ASYNCH = FILE_HANDLE_RESTORE + ASYNC_START_REQUEST;
+	public static final String FILE_HANDLE_RESTORE_GET_ASYNCH = FILE_HANDLE_RESTORE + ASYNC_GET_REQUEST;
 
 
 	/**
