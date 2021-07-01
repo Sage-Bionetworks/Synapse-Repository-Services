@@ -1,9 +1,12 @@
 package org.sagebionetworks.util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,7 +27,9 @@ public class FileProviderImpl implements FileProvider {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.util.FileProvider#createTempFile(java.lang.String, java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.util.FileProvider#createTempFile(java.lang.String,
+	 * java.lang.String)
 	 */
 	@Override
 	public File createTempFile(String prefix, String suffix) throws IOException {
@@ -33,7 +38,9 @@ public class FileProviderImpl implements FileProvider {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.util.FileProvider#createFileOutputStream(java.io.File)
+	 * 
+	 * @see
+	 * org.sagebionetworks.util.FileProvider#createFileOutputStream(java.io.File)
 	 */
 	@Override
 	public FileOutputStream createFileOutputStream(File file) throws FileNotFoundException {
@@ -42,7 +49,9 @@ public class FileProviderImpl implements FileProvider {
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.util.FileProvider#createFileInputStream(java.io.File)
+	 * 
+	 * @see
+	 * org.sagebionetworks.util.FileProvider#createFileInputStream(java.io.File)
 	 */
 	@Override
 	public FileInputStream createFileInputStream(File file) throws FileNotFoundException {
@@ -51,7 +60,7 @@ public class FileProviderImpl implements FileProvider {
 
 	@Override
 	public Writer createWriter(OutputStream out, Charset charSet) throws FileNotFoundException {
-		return new OutputStreamWriter(out, charSet);
+		return new BufferedWriter(new OutputStreamWriter(out, charSet));
 	}
 
 	@Override
@@ -66,7 +75,27 @@ public class FileProviderImpl implements FileProvider {
 
 	@Override
 	public Reader createReader(InputStream in, Charset charset) {
-		return new InputStreamReader(in, charset);
+		return new BufferedReader(new InputStreamReader(in, charset));
+	}
+
+	@Override
+	public <R> R createTemporaryFile(String prefix, String suffix, FileHandler<R> function) throws IOException {
+		File file = File.createTempFile(prefix, suffix);
+		try {
+			return function.apply(file);
+		} finally {
+			file.delete();
+		}
+	}
+
+	@Override
+	public BufferedWriter createBufferedWriter(File out, Charset charSet) throws FileNotFoundException {
+		return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(out), charSet));
+	}
+
+	@Override
+	public BufferedReader createBufferedReader(File file, Charset charset) throws FileNotFoundException {
+		return new BufferedReader(new InputStreamReader(new FileInputStream(file), charset));
 	}
 
 }

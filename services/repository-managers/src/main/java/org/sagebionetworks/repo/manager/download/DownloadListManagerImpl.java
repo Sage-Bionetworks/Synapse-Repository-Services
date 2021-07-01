@@ -1,17 +1,27 @@
 package org.sagebionetworks.repo.manager.download;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.json.JSONObject;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -25,6 +35,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ManifestKeys;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
@@ -37,6 +48,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -57,6 +70,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -67,18 +81,27 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVWriter;
+
 @Service
 public class DownloadListManagerImpl implements DownloadListManager {
 
+
+	public static final String NO_FILES_AVAILABLE_FOR_DOWNLOAD = "No files available for download.";
 	public static final String NO_FILES_ARE_ELIGIBLE_FOR_PACKAGING = "No files are eligible for packaging.";
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
 	public static final String YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST = "You must login to access your download list";
@@ -102,16 +125,21 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
-	private FileHandlePackageManager fileHandleSupport;
+	private FileHandlePackageManager fileHandlePackageManager;
+	private FileHandleManager fileHandleManager;
+	private FileProvider fileProvider;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
-			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, FileHandlePackageManager fileHandleSupport) {
+			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager,
+			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
 		this.tableQueryManager = tableQueryManager;
-		this.fileHandleSupport = fileHandleSupport;
+		this.fileHandlePackageManager = fileHandlePackageManager;
+		this.fileHandleManager = fileHandleManager;
+		this.fileProvider = fileProvider;
 	}
 
 	@WriteTransaction
@@ -495,19 +523,19 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		// build the package zip file.
 		// @formatter:off
-		String zipFileHandleId = fileHandleSupport.buildZip(userInfo,
+		String zipFileHandleId = fileHandlePackageManager.buildZip(userInfo,
 						new BulkFileDownloadRequest()
 						.setRequestedFiles(associations)
 						.setZipFileName(requestBody.getZipFileName())
 						.setZipFileFormat(ZipFileFormat.Flat))
 				.getResultZipFileHandleId();
 		// @formatter:on
-		
+
 		// remove these files from the download list
 		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), toDelete);
 		return new DownloadListPackageResponse().setResultFileHandleId(zipFileHandleId);
 	}
-	
+
 	/**
 	 * Create a FileHandleAssociation from the given DownloadListItemResult.
 	 * 
@@ -519,4 +547,153 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setFileHandleId(item.getFileHandleId());
 	}
 
+	@Override
+	public DownloadListManifestResponse createManifest(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListManifestRequest request) throws IOException {
+		validateUser(userInfo);
+		AvailableFilter filter = null;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC));
+		PaginationIterator<DownloadListItemResult> itertor = new PaginationIterator<>(
+				(limit, offset) -> downloadListDao.getFilesAvailableToDownloadFromDownloadList(
+						createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset),
+				MAX_QUERY_PAGE_SIZE);
+		String manifestFileHandleId = buildManifest(userInfo, request.getCsvTableDescriptor(), itertor);
+		return new DownloadListManifestResponse().setResultFileHandleId(manifestFileHandleId);
+	}
+
+	/**
+	 * Build a manifest CSV that includes a row for each provided DownloadListItemResult 
+	 * @param user
+	 * @param descriptor
+	 * @param iterator
+	 * @return The fileHandle ID of the the resulting CSV.
+	 * @throws IOException
+	 */
+	String buildManifest(UserInfo user, CsvTableDescriptor descriptor, Iterator<DownloadListItemResult> iterator)
+			throws IOException {
+		// Write all of the data to a text file, and gather the unique annotation names to determine the columns of the CSV.
+		return fileProvider.createTemporaryFile("items", ".txt", temp -> {
+			Set<String> annotationKeys = new HashSet<>();
+			Set<String> defaultKeys = Stream.of(ManifestKeys.values()).map(k->k.name()).collect(Collectors.toSet());
+			try (BufferedWriter writer = fileProvider.createBufferedWriter(temp,StandardCharsets.UTF_8)) {
+				int count = 0;
+				while (iterator.hasNext()) {
+					DownloadListItemResult item = iterator.next();
+					JSONObject details = downloadListDao.getItemManifestDetails(item);
+					// Capture any new annotation keys (excluding all default keys).
+					annotationKeys.addAll(Sets.difference(details.keySet(), defaultKeys));
+					writer.append(details.toString());
+					writer.newLine();
+					count++;
+				}
+				if(count < 1) {
+					throw new IllegalArgumentException(NO_FILES_AVAILABLE_FOR_DOWNLOAD);
+				}
+			}
+			LinkedHashMap<String, Integer> keyToIndexMap = mapKeysToColumnIndex(annotationKeys);
+			// build the manifest from the text file.
+			return buildManifestCSV(user, descriptor, temp, keyToIndexMap);
+		});
+	}
+	
+	
+	/**
+	 * Build a map of the column names to the final column index in the CSV.
+	 * @param annotationNames
+	 * @return
+	 */
+	LinkedHashMap<String, Integer> mapKeysToColumnIndex(Set<String> annotationNames){
+		LinkedHashMap<String, Integer> map = new LinkedHashMap<>(annotationNames.size());
+		// the first columns are always the default manifest keys
+		int index = 0;
+		for(ManifestKeys defaultKey: ManifestKeys.values()) {
+			map.put(defaultKey.name(), index);
+			index++;
+		}
+		// next add the sorted annotation keys 
+		List<String> sortedAnnotationNames = annotationNames.stream().sorted().collect(Collectors.toList());
+		for(String annoKey: sortedAnnotationNames) {
+			map.put(annoKey, index);
+			index++;
+		}
+		return map;
+	}
+	
+	/**
+	 * Build a CSV manifest file from the provided JSON text file and upload the results to S3
+	 * @param user
+	 * @param descriptor
+	 * @param tempTextFile
+	 * @param keyToColumnIndex
+	 * @return
+	 * @throws IOException
+	 */
+	String buildManifestCSV(UserInfo user, CsvTableDescriptor descriptor, File tempTextFile, LinkedHashMap<String, Integer> keyToColumnIndex)
+			throws IOException {
+		final String seporator = descriptor == null ? null : descriptor.getSeparator();
+		final boolean includeHeader =  descriptor == null || descriptor.getIsFirstLineHeader() == null ? true : descriptor.getIsFirstLineHeader();
+		String fileExtention = CSVUtils.guessExtension(seporator);
+		return fileProvider.createTemporaryFile("manifest", "." + fileExtention, tempCSV -> {
+			try(BufferedReader textReader = fileProvider.createBufferedReader(tempTextFile, StandardCharsets.UTF_8)){
+				try (CSVWriter writer = createCSVWriter(descriptor, tempCSV)) {
+					copyFromTextToCSV(keyToColumnIndex, textReader, writer, includeHeader);
+				}
+				String contentType = CSVUtils.guessContentType(seporator);
+				return fileHandleManager
+						.uploadLocalFile(new LocalFileUploadRequest().withContentType(contentType)
+								.withFileName("manifest."+fileExtention).withFileToUpload(tempCSV).withUserId(user.getId().toString()))
+						.getId();
+			}
+
+		});
+	}
+	
+	/**
+	 * Create a CSVWriter for the given descriptor and file.
+	 * @param descriptor
+	 * @param temp
+	 * @return
+	 * @throws IOException
+	 */
+	CSVWriter createCSVWriter(CsvTableDescriptor descriptor, File temp) throws IOException {
+		return CSVUtils.createCSVWriter(
+				fileProvider.createWriter(fileProvider.createFileOutputStream(temp), StandardCharsets.UTF_8),
+				descriptor);
+	}
+
+	/**
+	 * Copy all of the JSON data from the given reader into the given CSV writer.
+	 * 
+	 * @param keyToColumnIndex
+	 * @param textReader
+	 * @param writer
+	 * @throws IOException
+	 */
+	void copyFromTextToCSV(LinkedHashMap<String, Integer> keyToColumnIndex, BufferedReader textReader, CSVWriter writer, boolean includeHeader)
+			throws IOException {
+		int index = 0;
+		if(includeHeader) {
+			// Write the header
+			String[] header = new String[keyToColumnIndex.size()];
+			for(String key: keyToColumnIndex.keySet()) {
+				header[index] = key;
+				index++;
+			}
+			writer.writeNext(header);
+		}
+
+		String line = null;
+		while((line = textReader.readLine()) != null) {
+			JSONObject itemJson = new JSONObject(line);
+			String[] row = new String[keyToColumnIndex.size()];
+			for(String key: keyToColumnIndex.keySet()) {
+				index = keyToColumnIndex.get(key);
+				if(itemJson.has(key)) {
+					row[index] = itemJson.getString(key);
+				}
+			}
+			writer.writeNext(row);
+		}
+	}
+	
 }

@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -76,6 +78,8 @@ public enum AsynchJobType {
 	ADD_TO_DOWNLOAD_LIST(AddToDownloadListRequest.class, AddToDownloadListResponse.class),
 	
 	DOWNLOAD_LIST_PACKAGE(DownloadListPackageRequest.class, DownloadListPackageResponse.class),
+	
+	DOWNLOAD_LIST_MANIFEST(DownloadListManifestRequest.class, DownloadListManifestResponse.class),
 	
 	FILE_HANDLE_ARCHIVAL_REQUEST(FileHandleArchivalRequest.class, FileHandleArchivalResponse.class);
 

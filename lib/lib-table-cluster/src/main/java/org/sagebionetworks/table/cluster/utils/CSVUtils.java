@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.utils;
 
 import java.io.Reader;
+import java.io.Writer;
 
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -9,6 +10,7 @@ import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 
 import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
@@ -187,5 +189,44 @@ public class CSVUtils {
 			contentType = "text/tsv";
 		}
 		return contentType;
+	}
+	
+	/**
+	 * Prepare a writer with the parameters from the request.
+	 * @param writer
+	 * @param request
+	 * @return
+	 */
+	public static CSVWriter createCSVWriter(Writer writer, CsvTableDescriptor csvTableDescriptor) {
+
+		char separator = Constants.DEFAULT_SEPARATOR;
+		char quotechar = Constants.DEFAULT_QUOTE_CHARACTER;
+		char escape = Constants.DEFAULT_ESCAPE_CHARACTER;
+		String lineEnd = Constants.DEFAULT_LINE_END;
+		if (csvTableDescriptor != null) {
+			if (csvTableDescriptor.getSeparator() != null) {
+				if (csvTableDescriptor.getSeparator().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.separator must be exactly one character.");
+				}
+				separator = csvTableDescriptor.getSeparator().charAt(0);
+			}
+			if (csvTableDescriptor.getQuoteCharacter() != null) {
+				if (csvTableDescriptor.getQuoteCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.quoteCharacter must be exactly one character.");
+				}
+				quotechar = csvTableDescriptor.getQuoteCharacter().charAt(0);
+			}
+			if (csvTableDescriptor.getEscapeCharacter() != null) {
+				if (csvTableDescriptor.getEscapeCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.escapeCharacter must be exactly one character.");
+				}
+				escape = csvTableDescriptor.getEscapeCharacter().charAt(0);
+			}
+			if (csvTableDescriptor.getLineEnd() != null) {
+				lineEnd = csvTableDescriptor.getLineEnd();
+			}
+		}
+		// Create the reader.
+		return new CSVWriter(writer, separator, quotechar, escape, lineEnd);
 	}
 }

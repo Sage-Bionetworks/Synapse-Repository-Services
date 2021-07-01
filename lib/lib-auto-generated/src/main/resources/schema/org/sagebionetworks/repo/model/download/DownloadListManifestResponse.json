@@ -1,0 +1,14 @@
+{
+	"description": "The results of a job to generate a metadata manifest CSV of the available files from the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"resultFileHandleId": {
+			"description": "The identifier of a FileHandle that contains the resulting files manifest.",
+			"type": "string"
+		}
+	}
+}

@@ -20,16 +20,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -39,7 +51,9 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -55,6 +69,7 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.ManifestKeys;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
@@ -67,6 +82,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -86,8 +103,10 @@ import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -100,8 +119,14 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.util.FileHandler;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+
+import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 @ExtendWith(MockitoExtension.class)
 public class DownloadListManagerImplTest {
@@ -115,7 +140,31 @@ public class DownloadListManagerImplTest {
 	@Mock
 	private ProgressCallback mockProgressCallback;
 	@Mock
-	private FileHandlePackageManager mockFileHandleSupport;
+	private FileHandlePackageManager mockFileHandlePackageManager;
+	@Mock
+	private FileHandleManager mockFileHandleManager;
+	@Mock
+	private FileProvider mockFileProvider;
+	@Mock
+	private File mockFile;
+	@Mock
+	private File mockFileTwo;
+	@Mock
+	private BufferedWriter mockBufferedWritter;
+	@Mock
+	private BufferedReader mockBufferedReader;
+	@Mock
+	private JSONObject mockDetails;
+	@Mock
+	private CSVWriter mockCSVWriter;
+	@Captor
+	private ArgumentCaptor<Iterator<DownloadListItemResult>>  iteratorCaptor;
+	@Captor
+	private ArgumentCaptor<FileHandler<String>> fileHandlerStringCaptor;
+	@Captor
+	private ArgumentCaptor<Set<String>> annotationNamesCaptor;
+	@Captor
+	private ArgumentCaptor<String[]> rowCaptor;
 
 	@InjectMocks
 	private DownloadListManagerImpl manager;
@@ -136,6 +185,9 @@ public class DownloadListManagerImplTest {
 	private DownloadListItemResult downloadListItemResult;
 	private List<DownloadListItemResult> downloadListItems;
 	private BulkFileDownloadResponse bulkFileDownloadResponse;
+	private CsvTableDescriptor csvTableDescriptor;
+	private DownloadListManifestRequest downloadListManifestRequest;
+	private DownloadListManifestResponse downloadListManifestResponse;
 
 	@BeforeEach
 	public void before() {
@@ -173,6 +225,10 @@ public class DownloadListManagerImplTest {
 				.setFileSizeBytes(101L).setFileEntityId("syn123");
 		downloadListItems = Arrays.asList(downloadListItemResult);
 		bulkFileDownloadResponse = new BulkFileDownloadResponse().setResultZipFileHandleId("987");
+		
+		csvTableDescriptor = new CsvTableDescriptor().setSeparator(",");
+		downloadListManifestRequest = new DownloadListManifestRequest().setCsvTableDescriptor(csvTableDescriptor);
+		downloadListManifestResponse = new DownloadListManifestResponse().setResultFileHandleId("999");
 	}
 
 	@Test
@@ -1421,7 +1477,7 @@ public class DownloadListManagerImplTest {
 		DownloadListPackageRequest request = new DownloadListPackageRequest();
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandleSupport.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1437,7 +1493,7 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
-		verify(mockFileHandleSupport).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
 	}
@@ -1449,7 +1505,7 @@ public class DownloadListManagerImplTest {
 		DownloadListPackageRequest request = new DownloadListPackageRequest();
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandleSupport.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1465,7 +1521,7 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
-		verify(mockFileHandleSupport).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
 	}
@@ -1491,7 +1547,7 @@ public class DownloadListManagerImplTest {
 				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
 				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
 		
-		verifyNoMoreInteractions(mockFileHandleSupport);
+		verifyNoMoreInteractions(mockFileHandlePackageManager);
 	}
 	
 	@Test
@@ -1515,7 +1571,7 @@ public class DownloadListManagerImplTest {
 				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
 				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
 		
-		verifyNoMoreInteractions(mockFileHandleSupport);
+		verifyNoMoreInteractions(mockFileHandlePackageManager);
 	}
 	
 	@Test
@@ -1530,7 +1586,7 @@ public class DownloadListManagerImplTest {
 		
 		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
 		verifyNoMoreInteractions(mockDownloadListDao);
-		verifyNoMoreInteractions(mockFileHandleSupport);
+		verifyNoMoreInteractions(mockFileHandlePackageManager);
 	}
 	
 	@Test
@@ -1548,7 +1604,7 @@ public class DownloadListManagerImplTest {
 		
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandleSupport.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1564,9 +1620,375 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(one)));
-		verify(mockFileHandleSupport).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
 		// both files should get deleted
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(one, two);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+	}
+
+	@Test
+	public void testCreateManifest() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
+				.thenReturn(downloadListItems, Collections.emptyList());
+		String fileHandleId = "999";
+		doReturn(fileHandleId).when(managerSpy).buildManifest(any(), any(), any());
+		
+		// call under test
+		DownloadListManifestResponse response = managerSpy.createManifest(mockProgressCallback, userOne,
+				downloadListManifestRequest);
+		
+		assertEquals(new DownloadListManifestResponse().setResultFileHandleId(fileHandleId), response);
+		verify(managerSpy).buildManifest(eq(userOne), eq(downloadListManifestRequest.getCsvTableDescriptor()),
+				iteratorCaptor.capture());
+		Iterator<DownloadListItemResult> iterator = iteratorCaptor.getValue();
+		assertTrue(iterator.hasNext());
+		assertEquals(downloadListItemResult, iterator.next());
+		assertFalse(iterator.hasNext());
+		verify(managerSpy, times(2)).createAccessCallback(userOne);
+		AvailableFilter filter = null;
+		List<Sort> sort = Arrays.asList(new Sort().setField(SortField.fileName).setDirection(SortDirection.ASC));
+		// pane one
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()), eq(filter),
+				eq(sort), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
+		// page two
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()), eq(filter),
+				eq(sort), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE));
+	}
+	
+	@Test
+	public void testCreateManifestWithAnonymous() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			managerSpy.createManifest(mockProgressCallback, anonymousUser,
+					downloadListManifestRequest);
+		}).getMessage();
+		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
+
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
+		verify(managerSpy, never()).createAccessCallback(any());
+	}
+	
+	@Test
+	public void testBuildManifest() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		when(mockFileProvider.createBufferedWriter(any(), any())).thenReturn(mockBufferedWritter);
+		when(mockDownloadListDao.getItemManifestDetails(any())).thenReturn(mockDetails);
+		LinkedHashMap<String, Integer> keyToIndexMap = new LinkedHashMap<String, Integer>();
+		doReturn(keyToIndexMap).when(managerSpy).mapKeysToColumnIndex(any());
+		String fileHandleId = "999";
+		doReturn(fileHandleId).when(managerSpy).buildManifestCSV(any(), any(), any(), any());
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		
+		// start with the default keys
+		Set<String> keys = Stream.of(ManifestKeys.values()).map(k->k.name()).collect(Collectors.toSet());
+		keys.add("one");
+		keys.add("two");
+		keys.add("three");
+		when(mockDetails.keySet()).thenReturn(keys);
+		
+		String detailsJson = "{\"a\":[1,2]}";
+		when(mockDetails.toString()).thenReturn(detailsJson);
+		
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifest(userOne, csvTableDescriptor, downloadListItems.iterator());
+		assertEquals(fileHandleId, resultFileHandleId);
+		
+		verify(mockFileProvider).createTemporaryFile(eq("items"), eq(".txt"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFile);
+		assertEquals(fileHandleId, result);
+		
+		verify(mockFileProvider).createBufferedWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockBufferedWritter).close();
+		
+		verify(mockBufferedWritter).append(detailsJson);
+		verify(mockBufferedWritter).newLine();
+		
+		verify(managerSpy).mapKeysToColumnIndex(annotationNamesCaptor.capture());
+		// only the annotation keys should have been captured.
+		assertEquals(Sets.newHashSet("one","two","three"), annotationNamesCaptor.getValue());
+		
+		verify(managerSpy).buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		
+	}
+	
+	
+	@Test
+	public void testBuildManifestWithNoFiles() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		when(mockFileProvider.createBufferedWriter(any(), any())).thenReturn(mockBufferedWritter);
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		
+		// call under test part one
+		String resultFileHandleId = managerSpy.buildManifest(userOne, csvTableDescriptor, Collections.emptyIterator());
+		assertEquals(fileHandleId, resultFileHandleId);
+		
+		verify(mockFileProvider).createTemporaryFile(eq("items"), eq(".txt"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test part two
+			handler.apply(mockFile);
+		}).getMessage();
+		assertEquals(DownloadListManagerImpl.NO_FILES_AVAILABLE_FOR_DOWNLOAD, message);
+	
+		verify(mockFileProvider).createBufferedWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockBufferedWritter).close();
+		
+		verify(mockBufferedWritter, never()).append(any());
+		verify(mockBufferedWritter, never()).newLine();
+		
+		verify(managerSpy, never()).mapKeysToColumnIndex(any());
+		verify(managerSpy, never()).buildManifestCSV(any(), any(), any(), any());
+	}
+	
+	@Test
+	public void testMapKeysToColumnIndex() {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b","c","a");
+		// call under test
+		LinkedHashMap<String, Integer> result = managerSpy.mapKeysToColumnIndex(annotationNames);
+		LinkedHashMap<String, Integer> expected = new LinkedHashMap<>();
+		int index = 0;
+		for(ManifestKeys defaultKey: ManifestKeys.values()) {
+			expected.put(defaultKey.name(), index);
+			index++;
+		}
+		// annotations added in alphabetical order at the end.
+		expected.put("a", index++);
+		expected.put("b", index++);
+		expected.put("c", index++);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithComma() throws IOException {
+		csvTableDescriptor.setSeparator(",");
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".csv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
+				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithNullSepeartor() throws IOException {
+		csvTableDescriptor.setSeparator(null);
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".csv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
+				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithNullDescriptor() throws IOException {
+		csvTableDescriptor = null;
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".csv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
+				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithTab() throws IOException {
+		csvTableDescriptor.setSeparator("\t");
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".tsv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/tsv")
+				.withFileName("manifest.tsv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = true;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+	
+	@Test
+	public void testBuildManifestCSVWithNoHeader() throws IOException {
+		csvTableDescriptor.setIsFirstLineHeader(false);
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		String fileHandleId = "999";
+		when(mockFileProvider.createTemporaryFile(any(), any(), any())).thenReturn(fileHandleId);
+		when(mockFileProvider.createBufferedReader(any(), any())).thenReturn(mockBufferedReader);
+		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+		doReturn(mockCSVWriter).when(managerSpy).createCSVWriter(any(), any());
+
+
+		// call under test
+		String resultFileHandleId = managerSpy.buildManifestCSV(userOne, csvTableDescriptor, mockFile, keyToIndexMap);
+		assertEquals(fileHandleId, resultFileHandleId);
+
+		verify(mockFileProvider).createTemporaryFile(eq("manifest"), eq(".csv"), fileHandlerStringCaptor.capture());
+		FileHandler<String> handler = fileHandlerStringCaptor.getValue();
+		String result = handler.apply(mockFileTwo);
+		assertEquals(fileHandleId, result);
+
+		verify(mockFileProvider).createBufferedReader(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileHandleManager).uploadLocalFile(new LocalFileUploadRequest().withContentType("text/csv")
+				.withFileName("manifest.csv").withFileToUpload(mockFileTwo).withUserId(userOne.getId().toString()));
+		boolean includeHeader = false;
+		verify(managerSpy).copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+	}
+
+	@Test
+	public void testCopyFromTextToCSV() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		JSONObject itemOne = createJSONObjectForItem(1);
+		itemOne.put("a", "one");
+		itemOne.put("c", "two");
+		JSONObject itemTwo = createJSONObjectForItem(2);
+		itemTwo.put("c", "three");
+		itemTwo.put("b", "four");
+		when(mockBufferedReader.readLine()).thenReturn(itemOne.toString(), itemTwo.toString(), null);
+		boolean includeHeader = true;
+
+		// call under test
+		managerSpy.copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+
+		List<String> headerList = Stream.of(ManifestKeys.values()).map(k -> k.name()).collect(Collectors.toList());
+		headerList.addAll(Arrays.asList("a", "b", "c"));
+
+		verify(mockCSVWriter, times(3)).writeNext(any());
+		// First row is the header
+		verify(mockCSVWriter).writeNext(new String[] { "ID", "name", "versionNumber", "contentType",
+				"dataFileSizeBytes", "createdBy", "createdOn", "modifiedBy", "modifiedOn", "parentId", "synapseURL",
+				"dataFileMD5Hex", "a", "b", "c" });
+		verify(mockCSVWriter).writeNext(new String[] { "1-0", "1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8",
+				"1-9", "1-10", "1-11", "one", null, "two" });
+		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",
+				"2-9", "2-10", "2-11", null, "four", "three" });
+	}
+	
+	@Test
+	public void testCopyFromTextToCSVWithNoHeader() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		Set<String> annotationNames = Sets.newHashSet("b", "c", "a");
+		LinkedHashMap<String, Integer> keyToIndexMap = managerSpy.mapKeysToColumnIndex(annotationNames);
+
+		JSONObject itemOne = createJSONObjectForItem(1);
+		itemOne.put("a", "one");
+		itemOne.put("c", "two");
+		JSONObject itemTwo = createJSONObjectForItem(2);
+		itemTwo.put("c", "three");
+		itemTwo.put("b", "four");
+		when(mockBufferedReader.readLine()).thenReturn(itemOne.toString(), itemTwo.toString(), null);
+		boolean includeHeader = false;
+
+		// call under test
+		managerSpy.copyFromTextToCSV(keyToIndexMap, mockBufferedReader, mockCSVWriter, includeHeader);
+
+		List<String> headerList = Stream.of(ManifestKeys.values()).map(k -> k.name()).collect(Collectors.toList());
+		headerList.addAll(Arrays.asList("a", "b", "c"));
+
+		// First row is the header
+		verify(mockCSVWriter, times(2)).writeNext(any());
+		verify(mockCSVWriter).writeNext(new String[] { "1-0", "1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8",
+				"1-9", "1-10", "1-11", "one", null, "two" });
+		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",
+				"2-9", "2-10", "2-11", null, "four", "three" });
+	}
+	
+	/**
+	 * Create a test JSONObject populated from the manifest.
+	 * 
+	 * @param index
+	 * @return
+	 */
+	public JSONObject createJSONObjectForItem(int index) {
+		JSONObject itemOne = new JSONObject();
+		int i = 0;
+		for(ManifestKeys key: ManifestKeys.values()) {
+			itemOne.put(key.name(), index+"-"+i);
+			i++;
+		}
+		return itemOne;
 	}
 }

@@ -132,6 +132,7 @@
 		<ref bean="downloadListQueryTrigger" />
 		<ref bean="downloadListAddTrigger" />
 		<ref bean="downloadListPackageTrigger" />
+		<ref bean="downloadListManifestTrigger" />
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>

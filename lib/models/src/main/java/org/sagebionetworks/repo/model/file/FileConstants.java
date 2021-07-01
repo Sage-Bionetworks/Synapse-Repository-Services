@@ -12,6 +12,6 @@ public class FileConstants {
 	/**
 	 * The maximum size of a file that is eligible for packing.
 	 */
-	public static final long MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE = BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES/10L;
+	public static final long MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING = BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES/10L;
 	
 }

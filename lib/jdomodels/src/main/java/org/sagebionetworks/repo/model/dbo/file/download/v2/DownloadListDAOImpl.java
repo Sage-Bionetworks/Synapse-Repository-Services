@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER;
@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CUR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
@@ -31,8 +32,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
@@ -144,6 +149,30 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return new ActionRequiredCount().setCount(count).setAction(action);
 	};
 
+	private static final RowMapper<JSONObject> JSON_OBJECT_MAPPER = (ResultSet rs, int rowNum) -> {
+		JSONObject json = new JSONObject();
+		for (ManifestKeys key : ManifestKeys.values()) {
+			String value = rs.getString(key.getColumnName());
+			if (ManifestKeys.ID.equals(key) || ManifestKeys.parentId.equals(key)) {
+				value = "syn" + value;
+			}
+			json.put(key.name(), value);
+		}
+		String jsonString = rs.getString(COL_REVISION_USER_ANNOS_JSON);
+		Annotations annos = AnnotationsV2Utils.fromJSONString(jsonString);
+		if (annos != null && annos.getAnnotations() != null) {
+			for (String key : annos.getAnnotations().keySet()) {
+				AnnotationsValue value = annos.getAnnotations().get(key);
+				if (value != null) {
+					if (!json.has(key)) {
+						json.put(key, AnnotationsV2Utils.toJSONString(value));
+					}
+				}
+			}
+		}
+		return json;
+	};
+	
 	@WriteTransaction
 	@Override
 	public long addBatchOfFilesToDownloadList(Long userId, List<DownloadListItem> batchToAdd) {
@@ -280,7 +309,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
 
@@ -325,7 +354,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
@@ -341,16 +370,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		if (filter == null) {
 			return "";
 		}
-		String typeOpperator, conditionOperator, sizeOpperator;
+		String typeOpperator, conditionOpperator, sizeOpperator;
 		switch (filter) {
 		case eligibleForPackaging:
 			typeOpperator = "=";
-			conditionOperator = "AND";
+			conditionOpperator = "AND";
 			sizeOpperator = "<=";
 			break;
 		case ineligibleForPackaging:
 			typeOpperator = "<>";
-			conditionOperator = "OR";
+			conditionOpperator = "OR";
 			sizeOpperator = ">";
 			break;
 		default:
@@ -359,7 +388,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return String.format(
 				" WHERE F." + COL_FILES_METADATA_TYPE + " %s '%s' %s F." + COL_FILES_CONTENT_SIZE
 						+ " %s :maxEligibleSize",
-				typeOpperator, FileHandleMetadataType.S3, conditionOperator, sizeOpperator);
+				typeOpperator, FileHandleMetadataType.S3, conditionOpperator, sizeOpperator);
 	}
 
 	/**
@@ -664,6 +693,27 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				+ COL_NODE_TYPE + " = '" + EntityType.file.name() + "' LIMIT ?", versionString);
 		createOrUpdateDownloadList(userId);
 		return (long) jdbcTemplate.update(sql, userId, parentId, limit);
+	}
+
+	@Override
+	public JSONObject getItemManifestDetails(DownloadListItem item) {
+		String sql = null;
+		if (item.getVersionNumber() == null) {
+			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + " FROM " + TABLE_NODE
+					+ " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE
+					+ " AND N." + COL_NODE_CURRENT_REV + " = R." + COL_REVISION_NUMBER + ") JOIN " + TABLE_FILES
+					+ " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + ") WHERE N." + COL_NODE_ID
+					+ " = :synId";
+		}else {
+			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + " FROM " + TABLE_NODE
+					+ " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE
+					+ " ) JOIN " + TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
+					+ ") WHERE N." + COL_NODE_ID + " = :synId AND R." + COL_REVISION_NUMBER + " = :version";
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("synId", KeyFactory.stringToKey(item.getFileEntityId()));
+		params.addValue("version", item.getVersionNumber());
+		return namedJdbcTemplate.queryForObject(sql, params, JSON_OBJECT_MAPPER);
 	}
 
 }

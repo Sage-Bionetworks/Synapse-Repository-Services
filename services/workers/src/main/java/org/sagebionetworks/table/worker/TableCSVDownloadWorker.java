@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -83,7 +84,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 					"."
 							+ CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
 									.getSeparator()));
-			writer = createCSVWriter(new FileWriter(temp), request);
+			writer = CSVUtils.createCSVWriter(new FileWriter(temp), request.getCsvTableDescriptor());
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
 			// Execute the actual query and stream the results to the file.
@@ -131,46 +132,6 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 				temp.delete();
 			}
 		}
-	}
-	
-	/**
-	 * Prepare a writer with the parameters from the request.
-	 * @param writer
-	 * @param request
-	 * @return
-	 */
-	public static CSVWriter createCSVWriter(Writer writer, DownloadFromTableRequest request) {
-		if (request == null)
-			throw new IllegalArgumentException("DownloadFromTableRequest cannot be null");
-		char separator = Constants.DEFAULT_SEPARATOR;
-		char quotechar = Constants.DEFAULT_QUOTE_CHARACTER;
-		char escape = Constants.DEFAULT_ESCAPE_CHARACTER;
-		String lineEnd = Constants.DEFAULT_LINE_END;
-		if (request.getCsvTableDescriptor() != null) {
-			if (request.getCsvTableDescriptor().getSeparator() != null) {
-				if (request.getCsvTableDescriptor().getSeparator().length() != 1) {
-					throw new IllegalArgumentException("CsvTableDescriptor.separator must be exactly one character.");
-				}
-				separator = request.getCsvTableDescriptor().getSeparator().charAt(0);
-			}
-			if (request.getCsvTableDescriptor().getQuoteCharacter() != null) {
-				if (request.getCsvTableDescriptor().getQuoteCharacter().length() != 1) {
-					throw new IllegalArgumentException("CsvTableDescriptor.quoteCharacter must be exactly one character.");
-				}
-				quotechar = request.getCsvTableDescriptor().getQuoteCharacter().charAt(0);
-			}
-			if (request.getCsvTableDescriptor().getEscapeCharacter() != null) {
-				if (request.getCsvTableDescriptor().getEscapeCharacter().length() != 1) {
-					throw new IllegalArgumentException("CsvTableDescriptor.escapeCharacter must be exactly one character.");
-				}
-				escape = request.getCsvTableDescriptor().getEscapeCharacter().charAt(0);
-			}
-			if (request.getCsvTableDescriptor().getLineEnd() != null) {
-				lineEnd = request.getCsvTableDescriptor().getLineEnd();
-			}
-		}
-		// Create the reader.
-		return new CSVWriter(writer, separator, quotechar, escape, lineEnd);
 	}
 
 }

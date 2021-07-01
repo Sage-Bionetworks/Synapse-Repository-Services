@@ -222,4 +222,16 @@ public class AnnotationsV2Utils {
 		}
 		return false;
 	}
+	
+	public static String toJSONString(AnnotationsValue value) {
+		if(value == null || value.getValue() == null || value.getValue().isEmpty()) {
+			return null;
+		}
+		List<String> list = value.getValue();
+		if(list.size() == 1) {
+			return list.get(0);
+		}else {
+			return list.toString();
+		}
+	}
 }

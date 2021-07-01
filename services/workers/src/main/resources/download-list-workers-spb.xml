@@ -119,9 +119,51 @@
 									value="downloadListPackage" />
 								<property name="semaphoreMaxLockCount" value="8" />
 								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
+									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
 								<property name="queueName"
 									value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_PACKAGE')}" />
+								<property name="gate">
+									<bean
+										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="213" />
+		<property name="repeatInterval" value="1001" />
+	</bean>
+	
+	<bean id="downloadListManifestTrigger"
+		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean
+										class="org.sagebionetworks.download.worker.DownloadListManifestWorker" />
+								</property>
+								<property name="semaphoreLockKey"
+									value="downloadListManifest" />
+								<property name="semaphoreMaxLockCount" value="8" />
+								<property
+									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="queueName"
+									value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_MANIFEST')}" />
 								<property name="gate">
 									<bean
 										class="org.sagebionetworks.worker.utils.StackStatusGate" />

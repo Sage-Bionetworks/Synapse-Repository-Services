@@ -1,5 +1,7 @@
 package org.sagebionetworks.util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,6 +54,15 @@ public interface FileProvider {
 	 * @throws UnsupportedEncodingException 
 	 */
 	Writer createWriter(OutputStream out, Charset charSet) throws FileNotFoundException, UnsupportedEncodingException;
+	
+	/**
+	 * Create a buffered writer for the given file.
+	 * @param out
+	 * @param charSet
+	 * @return
+	 * @throws FileNotFoundException
+	 */
+	BufferedWriter createBufferedWriter(File out, Charset charSet) throws FileNotFoundException;
 
 	/**
 	 * Create a FileInputStream for the given file.
@@ -78,4 +89,24 @@ public interface FileProvider {
 	 * @return
 	 */
 	Reader createReader(InputStream in, Charset charset);
+	
+	/**
+	 * Create a buffered reader for the given file.
+	 * @param file
+	 * @param charset
+	 * @return
+	 * @throws FileNotFoundException
+	 */
+	BufferedReader createBufferedReader(File file, Charset charset) throws FileNotFoundException;
+	
+	/**
+	 * A temporary file will be created and passed to the provided function. The
+	 * temporary file will be unconditionally deleted after the function applies.
+	 * @param <R>
+	 * 
+	 * @param prefix
+	 * @param suffix
+	 * @param consumer
+	 */
+	<R> R createTemporaryFile(String prefix, String suffix, FileHandler<R> function) throws IOException;
 }

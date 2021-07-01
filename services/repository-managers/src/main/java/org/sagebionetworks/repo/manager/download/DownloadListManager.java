@@ -8,9 +8,10 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
-import org.sagebionetworks.repo.model.download.DownloadListPageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
@@ -61,18 +62,32 @@ public interface DownloadListManager {
 	 * @param requestBody
 	 * @return
 	 */
-	AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo, AddToDownloadListRequest requestBody);
+	AddToDownloadListResponse addToDownloadList(ProgressCallback progressCallback, UserInfo userInfo,
+			AddToDownloadListRequest requestBody);
 
 	/**
 	 * Request to package files from a user's download list into a zip file.
+	 * 
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param requestBody
+	 * @return
+	 * @throws IOException
+	 */
+	DownloadListPackageResponse packageFiles(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListPackageRequest requestBody) throws IOException;
+
+	/**
+	 * Request to create a CSV manifest for the available files from a user's
+	 * download list.
+	 * 
 	 * @param progressCallback
 	 * @param userInfo
 	 * @param requestBody
 	 * @return
 	 * @throws IOException 
 	 */
-	DownloadListPackageResponse packageFiles(ProgressCallback progressCallback, UserInfo userInfo,
-			DownloadListPackageRequest requestBody) throws IOException;
+	DownloadListManifestResponse createManifest(ProgressCallback progressCallback, UserInfo userInfo,
+			DownloadListManifestRequest requestBody) throws IOException;
 
-	
 }

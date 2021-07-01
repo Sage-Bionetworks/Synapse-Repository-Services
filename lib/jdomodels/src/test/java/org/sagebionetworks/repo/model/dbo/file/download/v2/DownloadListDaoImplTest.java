@@ -11,6 +11,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType.BOOLEAN;
+import static org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType.DOUBLE;
+import static org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType.LONG;
+import static org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType.STRING;
+import static org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType.TIMESTAMP_MS;
 import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.ACTUAL_VERSION;
 import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl.CREATED_BY;
@@ -25,9 +30,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +46,8 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
@@ -56,7 +64,6 @@ import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
-import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -928,14 +935,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -982,14 +989,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1030,14 +1037,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1078,14 +1085,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEINGE+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -2008,4 +2015,259 @@ public class DownloadListDaoImplTest {
 				downloadListDao.getDBODownloadListItems(userOneIdLong));
 	}
 	
+	@Test
+	public void testGetItemManifestDetailsWithVersionNumber() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 1));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		// v1
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(101L);
+			h.setFileName("one.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("one.txt");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		Annotations annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put("one", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("v1")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		// v2
+		FileHandle fh2 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(202L);
+			h.setFileName("two.txt");
+		});
+		file.setFileHandleId(fh2.getId());
+		file.setName("two.txt");
+		file.setVersionComment("v2");
+		file.setVersionLabel("v2");
+		file.setVersionNumber(2L);
+		nodeDao.createNewVersion(file);
+		annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put("one", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("v2")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		
+		// call under test
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L));
+		
+		JSONObject expected = new JSONObject();
+		expected.put(ManifestKeys.ID.name(), file.getId());
+		expected.put(ManifestKeys.name.name(), file.getName());
+		expected.put(ManifestKeys.versionNumber.name(), 1L);
+		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
+		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
+		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.parentId.name(), file.getParentId());
+		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
+		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
+		expected.put("one", "v1");
+		assertJSONEquals(expected, object);
+	}
+	
+	@Test
+	public void testGetItemManifestDetailsWithNullVersionNumber() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 1));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		// v1
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(101L);
+			h.setFileName("one.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("one.txt");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		Annotations annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put("one", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("v1")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		// v2
+		FileHandle fh2 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(202L);
+			h.setFileName("two.txt");
+		});
+		file.setFileHandleId(fh2.getId());
+		file.setName("two.txt");
+		file.setVersionComment("v2");
+		file.setVersionLabel("v2");
+		file.setVersionNumber(2L);
+		nodeDao.createNewVersion(file);
+		annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put("one", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("v2")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		
+		// call under test
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(null));
+		
+		JSONObject expected = new JSONObject();
+		expected.put(ManifestKeys.ID.name(), file.getId());
+		expected.put(ManifestKeys.name.name(), file.getName());
+		expected.put(ManifestKeys.versionNumber.name(), 2L);
+		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
+		expected.put(ManifestKeys.dataFileSizeBytes.name(), "202");
+		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.parentId.name(), file.getParentId());
+		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".2");
+		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
+		expected.put("one", "v2");
+		assertJSONEquals(expected, object);
+	}
+	
+	
+	@Test
+	public void testGetItemManifestDetailsWithEachAnnotationType() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 1));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		// v1
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(101L);
+			h.setFileName("one.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("one.txt");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		Annotations annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put("string", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("v1")));
+		annotations.getAnnotations().put("boolean", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("false")));
+		annotations.getAnnotations().put("double", new AnnotationsValue().setType(DOUBLE).setValue(Arrays.asList("1.3")));
+		annotations.getAnnotations().put("long", new AnnotationsValue().setType(LONG).setValue(Arrays.asList("987654")));
+		annotations.getAnnotations().put("timestamp", new AnnotationsValue().setType(TIMESTAMP_MS).setValue(Arrays.asList("2222")));
+		annotations.getAnnotations().put("strings", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("a","b","c")));
+		annotations.getAnnotations().put("booleans", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("true","false")));
+		annotations.getAnnotations().put("doubles", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("1.1","1.2")));
+		annotations.getAnnotations().put("longs", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("111","222")));
+		annotations.getAnnotations().put("timestamps", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("44","55")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		
+		// call under test
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L));
+		
+		JSONObject expected = new JSONObject();
+		expected.put(ManifestKeys.ID.name(), file.getId());
+		expected.put(ManifestKeys.name.name(), file.getName());
+		expected.put(ManifestKeys.versionNumber.name(), 1L);
+		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
+		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
+		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.parentId.name(), file.getParentId());
+		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
+		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
+		expected.put("string", "v1");
+		expected.put("boolean", "false");
+		expected.put("double", "1.3");
+		expected.put("long", "987654");
+		expected.put("timestamp", "2222");
+		expected.put("strings", "[a, b, c]");
+		expected.put("booleans", "[true, false]");
+		expected.put("doubles", "[1.1, 1.2]");
+		expected.put("longs", "[111, 222]");
+		expected.put("timestamps", "[44, 55]");
+		assertJSONEquals(expected, object);
+	}
+	
+	@Test
+	public void testGetItemManifestDetailsWithIgnoreDefaultNamedAnnotations() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 1));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		// v1
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(101L);
+			h.setFileName("one.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("one.txt");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		Annotations annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put(ManifestKeys.name.name(), new AnnotationsValue().setType(STRING).setValue(Arrays.asList("ignore me")));
+		annotations.getAnnotations().put("boolean", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("false")));
+		annotations.getAnnotations().put("nullValue", null);
+		annotations.getAnnotations().put("nullType", new AnnotationsValue().setType(null).setValue(Arrays.asList("not")));
+		annotations.getAnnotations().put("emptyValue", new AnnotationsValue().setType(STRING).setValue(Collections.emptyList()));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		
+		// call under test
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L));
+		
+		JSONObject expected = new JSONObject();
+		expected.put(ManifestKeys.ID.name(), file.getId());
+		expected.put(ManifestKeys.name.name(), file.getName());
+		expected.put(ManifestKeys.versionNumber.name(), 1L);
+		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
+		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
+		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.parentId.name(), file.getParentId());
+		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
+		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
+		expected.put("boolean", "false");
+		expected.put("nullType", "not");
+		assertJSONEquals(expected, object);
+	}
+
+
+	
+	/**
+	 * Helper to compare two JSON objects.
+	 * @param one
+	 * @param two
+	 */
+	public static void assertJSONEquals(JSONObject one, JSONObject two) {
+		assertNotNull(one);
+		assertNotNull(two);
+		assertEquals(one.keySet(), two.keySet());
+		for(String key: one.keySet()) {
+			assertEquals(one.getString(key), two.getString(key), "key: "+key);
+		}
+	}
 }

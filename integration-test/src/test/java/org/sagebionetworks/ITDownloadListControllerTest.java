@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
+import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
 import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
@@ -255,6 +257,21 @@ public class ITDownloadListControllerTest {
 			}, MAX_WAIT_MS, MAX_RETIES).getResponse();
 		}).getMessage();
 		assertEquals("No files are eligible for packaging.", message);
+	}
+	
+	@Test
+	public void testDownloadListManifest() throws Exception {
+		synapse.clearUsersDownloadList();
+		
+		DownloadListManifestRequest request = new DownloadListManifestRequest();
+		
+		String message = assertThrows(SynapseBadRequestException.class, ()->{
+			// call under test
+			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.DownloadListManifest, request, body -> {
+				assertTrue(body instanceof DownloadListManifestResponse);
+			}, MAX_WAIT_MS, MAX_RETIES).getResponse();
+		}).getMessage();
+		assertEquals("No files available for download.", message);
 	}
 
 	/**

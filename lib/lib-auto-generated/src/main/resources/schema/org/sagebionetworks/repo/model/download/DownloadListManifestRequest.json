@@ -1,0 +1,14 @@
+{
+	"description": "Start an asynchronous job to generate a metadata manifest CSV of the available files on the use’s download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"csvTableDescriptor": {
+			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor",
+			"description": "Describes how the CSV should be constructed."
+		}
+	}
+}
