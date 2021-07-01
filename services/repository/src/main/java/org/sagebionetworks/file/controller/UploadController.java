@@ -1078,7 +1078,7 @@ public class UploadController {
 	 * A limit of 1000 file handle ids is imposed for the request. The user initiating the request must be the owner of the file handles for the operation to succeed.
 	 * </p>
 	 * <p>
-	 * Use <a href="${GET.fileHandle.restore..async.get.asyncToken}">GET /fileHandle/restore/async/get/{asyncToken}</a> to get both the job status and job results.
+	 * Use <a href="${GET.fileHandle.restore.async.get.asyncToken}">GET /fileHandle/restore/async/get/{asyncToken}</a> to get both the job status and job results.
 	 * </p>
 	 * @param userId
 	 * @param request
