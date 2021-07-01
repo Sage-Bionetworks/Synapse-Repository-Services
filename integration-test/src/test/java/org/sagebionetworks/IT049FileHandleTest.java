@@ -674,7 +674,7 @@ public class IT049FileHandleTest {
 		
 		FileHandleRestoreResponse expectedResponse = new FileHandleRestoreResponse()
 			.setRestoreResults(Arrays.asList(
-					new FileHandleRestoreResult().setFileHandleId(file.getId()).setStatus(FileHandleRestoreStatus.NO_ACTION)
+					new FileHandleRestoreResult().setFileHandleId(file.getId()).setStatus(FileHandleRestoreStatus.NO_ACTION).setStatusMessage("The file handle is already AVAILABLE")
 			)
 		);
 		
