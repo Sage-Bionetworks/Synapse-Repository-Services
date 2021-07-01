@@ -343,4 +343,38 @@ public class AnnotationsV2UtilsTest {
 			AnnotationsV2Utils.checkValue(key, annotationsV2Value);
 		});
 	}
+	
+	@Test
+	public void testToJSONStringWithSingle() {
+		String result = AnnotationsV2Utils.toJSONString(
+				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(Arrays.asList("one")));
+		assertEquals("one", result);
+	}
+	
+	@Test
+	public void testToJSONStringWithMultipe() {
+		String result = AnnotationsV2Utils.toJSONString(
+				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(Arrays.asList("one", "two")));
+		assertEquals("[one, two]", result);
+	}
+	
+	@Test
+	public void testToJSONStringWithNull() {
+		String result = AnnotationsV2Utils.toJSONString(null);
+		assertNull(result);
+	}
+	
+	@Test
+	public void testToJSONStringWithNullValue() {
+		String result = AnnotationsV2Utils
+				.toJSONString(new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(null));
+		assertNull(result);
+	}
+
+	@Test
+	public void testToJSONStringWithEmptyValue() {
+		String result = AnnotationsV2Utils.toJSONString(
+				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(Collections.emptyList()));
+		assertNull(result);
+	}
 }

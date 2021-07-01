@@ -935,14 +935,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -989,14 +989,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1037,14 +1037,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -1085,14 +1085,14 @@ public class DownloadListDaoImplTest {
 		// S3 under max (eligible)
 		String fileName = "s3UnderSize";
 		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 		}, S3FileHandle.class);
 		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
 
 		// S3 over max (ineligible)
 		fileName = "s3OverSize";
 		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
-			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING+1);
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING+1);
 		}, S3FileHandle.class);
 		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
 
@@ -2066,9 +2066,9 @@ public class DownloadListDaoImplTest {
 		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
 		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
 		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.createdOn.name(), ""+file.getCreatedOn().getTime());
 		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.modifiedOn.name(), ""+file.getModifiedOn().getTime());
 		expected.put(ManifestKeys.parentId.name(), file.getParentId());
 		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
 		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
@@ -2127,9 +2127,9 @@ public class DownloadListDaoImplTest {
 		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
 		expected.put(ManifestKeys.dataFileSizeBytes.name(), "202");
 		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.createdOn.name(), ""+file.getCreatedOn().getTime());
 		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.modifiedOn.name(), ""+file.getModifiedOn().getTime());
 		expected.put(ManifestKeys.parentId.name(), file.getParentId());
 		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".2");
 		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
@@ -2184,9 +2184,9 @@ public class DownloadListDaoImplTest {
 		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
 		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
 		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.createdOn.name(), ""+file.getCreatedOn().getTime());
 		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.modifiedOn.name(), ""+file.getModifiedOn().getTime());
 		expected.put(ManifestKeys.parentId.name(), file.getParentId());
 		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
 		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
@@ -2244,9 +2244,9 @@ public class DownloadListDaoImplTest {
 		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
 		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
 		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.createdOn.name(), object.get(ManifestKeys.createdOn.name()));
+		expected.put(ManifestKeys.createdOn.name(), ""+file.getCreatedOn().getTime());
 		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
-		expected.put(ManifestKeys.modifiedOn.name(), object.get(ManifestKeys.modifiedOn.name()));
+		expected.put(ManifestKeys.modifiedOn.name(), ""+file.getModifiedOn().getTime());
 		expected.put(ManifestKeys.parentId.name(), file.getParentId());
 		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
 		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
