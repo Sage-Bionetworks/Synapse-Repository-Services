@@ -198,6 +198,8 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -676,6 +678,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String SCHEMA_TYPE_CREATE = "/schema/type/create/";
 	public static final String SCHEMA_TYPE_VALIDATION = "/schema/type/validation/";
 	public static final String VIEW_COLUMNS = "/column/view/scope/";
+	
+	public static final String FILE_HANDLE_RESTORE = FILE_HANDLE + "/restore";
 	
 
 	/**
@@ -6010,5 +6014,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
 		String url = DOWNLOAD_LIST_PACKAGE + ASYNC_GET + asyncJobToken;
 		return (DownloadListManifestResponse) getAsynchJobResponse(url, DownloadListManifestResponse.class, getRepoEndpoint());
+	}
+	
+	@Override
+	public String startFileHandleRestoreRequest(FileHandleRestoreRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.FileHandleRestore, request);
+	}
+	
+	@Override
+	public FileHandleRestoreResponse getFileHandleRestoreResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		String url = FILE_HANDLE_RESTORE + ASYNC_GET + asyncJobToken;
+		return (FileHandleRestoreResponse) getAsynchJobResponse(url, FileHandleRestoreResponse.class, getRepoEndpoint());
 	}
 }

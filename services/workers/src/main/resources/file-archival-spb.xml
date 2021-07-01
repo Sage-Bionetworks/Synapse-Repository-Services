@@ -103,7 +103,7 @@
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner" ref="fileHandleRestoreRequestWorker"/>
 								<property name="semaphoreLockKey" value="fileHandleRestoreRequestWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_HANDLE_RESTORE_REQUEST')}" />
 								<property name="gate">
