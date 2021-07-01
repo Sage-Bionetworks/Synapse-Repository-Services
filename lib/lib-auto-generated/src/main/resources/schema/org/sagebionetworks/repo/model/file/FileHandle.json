@@ -64,6 +64,10 @@
                 {
                     "name": "ARCHIVED",
                     "description": "The file handle has been archived after being UNLINKED for more than 30 days. The file handle can be restored by the creator using the dedicated API. When ARCHIVED the file might not be readily accessible and restoring might take a few hours."
+                },
+                {
+                    "name": "RESTORING",
+                    "description": "The file handle is currently being restored and will be set as AVAILABLE as soon as possible."
                 }
             ]
 		}
