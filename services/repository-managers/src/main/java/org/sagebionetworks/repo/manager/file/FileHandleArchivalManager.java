@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResult;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -60,4 +61,13 @@ public interface FileHandleArchivalManager {
 	 */
 	FileHandleKeyArchiveResult archiveUnlinkedFileHandlesByKey(UserInfo user, String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
 
+	/**
+	 * Restore the file handle with the given id
+	 * 
+	 * @param user The user initiating the request, must be the owner of the file handle
+	 * @param id The id of the file handle to restore
+	 * @return The result of the restore operation
+	 */
+	FileHandleRestoreResult restoreFileHandle(UserInfo user, String id);
+	
 }

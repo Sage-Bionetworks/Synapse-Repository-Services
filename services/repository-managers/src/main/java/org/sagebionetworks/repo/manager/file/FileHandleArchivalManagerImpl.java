@@ -23,12 +23,14 @@ import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResult;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
@@ -170,6 +172,17 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		}
 		
 		return new FileHandleKeyArchiveResult(archived, tagged);
+	}
+	
+	@Override
+	@Transactional
+	public FileHandleRestoreResult restoreFileHandle(UserInfo user, String id) {
+		ValidateArgument.required(user, "The user");
+		ValidateArgument.required(id, "The id");
+		
+		
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	boolean tagObjectForArchival(String bucketName, String key) {
