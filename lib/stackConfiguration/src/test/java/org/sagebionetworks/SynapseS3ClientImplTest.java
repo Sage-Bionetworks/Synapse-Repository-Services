@@ -1,9 +1,10 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3ClientImpl;
@@ -17,7 +18,7 @@ public class SynapseS3ClientImplTest {
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		synapseS3Client = (SynapseS3ClientImpl)AwsClientFactory.createAmazonS3Client();
 	}
@@ -27,19 +28,16 @@ public class SynapseS3ClientImplTest {
 		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucket(S3_BUCKET_NAME));
 	}
 
-	@Test(expected=CannotDetermineBucketLocationException.class)
+	@Test
 	public void testGetRegionNonexistentBucket() {
-		synapseS3Client.getRegionForBucket("some-nonexistent-bucket");
+		assertThrows(CannotDetermineBucketLocationException.class, () -> {
+			synapseS3Client.getRegionForBucket("some-nonexistent-bucket");
+		});
 	}
 
 	@Test
 	public void testGetStandardRegionClient() {
 		assertEquals(Region.US_Standard, synapseS3Client.getUSStandardAmazonClient().getRegion());
-	}
-
-	@Test(expected=CannotDetermineBucketLocationException.class)
-	public void testGetRegionForBucket_NonexistentBucket() {
-		assertEquals(Region.US_Standard, synapseS3Client.getRegionForBucket("some-nonexistent-bucket"));
 	}
 
 	@Test

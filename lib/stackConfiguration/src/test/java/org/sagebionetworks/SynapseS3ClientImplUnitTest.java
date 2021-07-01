@@ -22,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3ClientImpl;
@@ -51,6 +50,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.RestoreObjectRequest;
+import com.amazonaws.services.s3.model.RestoreObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.SetObjectTaggingResult;
@@ -421,6 +422,23 @@ public class SynapseS3ClientImplUnitTest {
 		assertEquals(BUCKET_NAME, requestCaptor.getValue().getBucketName());
 		assertEquals(OBJECT_KEY, requestCaptor.getValue().getKey());
 		assertEquals(tags, requestCaptor.getValue().getTagging().getTagSet());
+	}
+	
+	@Test
+	public void testRestoreObject() {
+		
+		RestoreObjectRequest request = new RestoreObjectRequest(BUCKET_NAME, OBJECT_KEY);
+		RestoreObjectResult expectedResult = new RestoreObjectResult();
+		
+		when(mockAmazonClient.restoreObjectV2(request)).thenReturn(expectedResult);
+		
+		// Call under test
+		RestoreObjectResult result = client.restoreObject(request);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockAmazonClient).restoreObjectV2(request);
+		
 	}
 
 }
