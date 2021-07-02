@@ -14,13 +14,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.ARCHIVE_BUFFER_DAYS;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.DEFAULT_ARCHIVE_LIMIT;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.KEYS_PER_MESSAGE;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.PROCESS_QUEUE_NAME;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.SCAN_WINDOW_DAYS;
-import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
-import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -1036,30 +1036,7 @@ public class FileHandleArchivalManagerTest {
 		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
 				.setFileHandleId(fileHandleId)
 				.setStatus(FileHandleRestoreStatus.NO_ACTION)
-				.setStatusMessage("The file handle is already AVAILABLE");
-		
-		// Call under test
-		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
-		
-		assertEquals(expectedResult, result);
-		
-		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verifyZeroInteractions(mockFileDao);
-		verifyZeroInteractions(mockS3Client);
-	}
-	
-	@Test
-	public void testRestoreFileHandleWithAlreadyRestoring() {
-		String fileHandleId = "1";
-		FileHandleStatus currentStatus = FileHandleStatus.RESTORING;
-		
-		when(mockFileHandle.getStatus()).thenReturn(currentStatus);
-		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockFileHandle);
-		
-		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
-				.setFileHandleId(fileHandleId)
-				.setStatus(FileHandleRestoreStatus.RESTORING)
-				.setStatusMessage("The file handle is already being RESTORED");
+				.setStatusMessage("The file handle is already AVAILABLE. For files in the synapse bucket it might take a few hours before the file can be downloaded.");
 		
 		// Call under test
 		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
@@ -1146,7 +1123,7 @@ public class FileHandleArchivalManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.RESTORING, currentStatus, 0);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
 		verifyZeroInteractions(mockS3Client);
 	}
@@ -1175,7 +1152,7 @@ public class FileHandleArchivalManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.RESTORING, currentStatus, 0);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
 		verify(mockS3Client).restoreObject(new RestoreObjectRequest(bucket, key));
 		

@@ -69,5 +69,5 @@ public interface FileHandleArchivalManager {
 	 * @return The result of the restore operation
 	 */
 	FileHandleRestoreResult restoreFileHandle(UserInfo user, String id);
-	
+		
 }

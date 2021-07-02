@@ -200,16 +200,10 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			return result.setStatus(FileHandleRestoreStatus.NOT_FOUND).setStatusMessage(ex.getMessage());
 		}
 		
-		switch (fileHandle.getStatus()) {
-		case AVAILABLE:
-			return result.setStatus(FileHandleRestoreStatus.NO_ACTION).setStatusMessage("The file handle is already AVAILABLE");
-		case RESTORING:
-			return result.setStatus(FileHandleRestoreStatus.RESTORING).setStatusMessage("The file handle is already being RESTORED");
-		default:
-			break;
+		if (FileHandleStatus.AVAILABLE.equals(fileHandle.getStatus())) {
+			return result.setStatus(FileHandleRestoreStatus.NO_ACTION).setStatusMessage("The file handle is already AVAILABLE. For files in the synapse bucket it might take a few hours before the file can be downloaded.");
 		}
 		
-		FileHandleStatus newFileHandleStatus = FileHandleStatus.AVAILABLE;
 		FileHandleRestoreStatus restoreStatus = FileHandleRestoreStatus.RESTORED;
 		
 		// Objects in the synapse bucket might have been archived in S3 
@@ -217,22 +211,21 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			
 			S3FileHandle s3FileHandle = (S3FileHandle) fileHandle;
 			
+			// We currently archive in S3 only files in the default Synapse bucket
 			if (synapseBucketName.equals(s3FileHandle.getBucketName())) {
 				ObjectMetadata s3ObjectMetaData = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
 				
 				if (s3ObjectMetaData.getArchiveStatus() != null && !s3ObjectMetaData.getOngoingRestore()) {
 					s3Client.restoreObject(new RestoreObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey()));
-					newFileHandleStatus = FileHandleStatus.RESTORING;
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
 				} else if (s3ObjectMetaData.getOngoingRestore()) {
-					newFileHandleStatus = FileHandleStatus.RESTORING;
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
 				}
 			}
 			
 		}
 				
-		fileHandleDao.updateStatusForBatch(Collections.singletonList(Long.valueOf(id)), newFileHandleStatus, fileHandle.getStatus(), 0);
+		fileHandleDao.updateStatusForBatch(Collections.singletonList(Long.valueOf(id)), FileHandleStatus.AVAILABLE, fileHandle.getStatus(), 0);
 
 		return result.setStatus(restoreStatus);
 	}

@@ -24,15 +24,15 @@
                 },
                 {
                     "name": "NO_ACTION",
-                    "description": "The file handle was already AVAILABLE or a restore operation is already in progress"
+                    "description": "The file handle was already AVAILABLE"
                 },
                 {
                     "name": "RESTORED",
-                    "description": "The file handle was set back to AVAILABLE"
+                    "description": "The file handle status was set to AVAILABLE and can be accessed"
                 },
                 {
                     "name": "RESTORING",
-                    "description": "The file handle is currently being restored and will be set back to AVAILABLE when possible"
+                    "description": "The file handle status was set to AVAILABLE and a request to restore the data was submitted. It might take a few hours before the file can be downloaded"
                 }
             ]
         },

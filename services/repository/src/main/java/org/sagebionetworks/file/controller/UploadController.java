@@ -1071,8 +1071,7 @@ public class UploadController {
 	 * Starts an asynchronous job to restore a batch of file handles that were ARCHIVED or UNLINKED.
 	 * </p>
 	 * <p>
-	 * When a file handle is ARCHIVED the restore operation might take in some cases a few hours. The job response will 
-	 * return quickly and the status of the file handle will be set as RESTORING. The file handle will be set as AVAILABLE when the restore operation is completed.
+	 * The file handles status will be set as AVAILABLE. Note that when the file handle is ARCHIVED in the Synapse bucket it might take a few hours before the file is available for download.
 	 * </p>
 	 * <p>
 	 * A limit of 1000 file handle ids is imposed for the request. The user initiating the request must be the owner of the file handles for the operation to succeed.
