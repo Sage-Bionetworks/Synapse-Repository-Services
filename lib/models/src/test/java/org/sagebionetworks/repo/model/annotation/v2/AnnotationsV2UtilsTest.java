@@ -364,12 +364,6 @@ public class AnnotationsV2UtilsTest {
 		assertNull(result);
 	}
 	
-	@Test
-	public void testToJSONStringWithNullValue() {
-		String result = AnnotationsV2Utils
-				.toJSONString(new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(null));
-		assertNull(result);
-	}
 
 	@Test
 	public void testToJSONStringWithEmptyValue() {
