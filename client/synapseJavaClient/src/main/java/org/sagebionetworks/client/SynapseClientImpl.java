@@ -6008,7 +6008,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DownloadListManifestResponse getDownloadListManifestResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
-		String url = DOWNLOAD_LIST_PACKAGE + ASYNC_GET + asyncJobToken;
+		String url = DOWNLOAD_LIST_MANIFEST + ASYNC_GET + asyncJobToken;
 		return (DownloadListManifestResponse) getAsynchJobResponse(url, DownloadListManifestResponse.class, getRepoEndpoint());
 	}
 }

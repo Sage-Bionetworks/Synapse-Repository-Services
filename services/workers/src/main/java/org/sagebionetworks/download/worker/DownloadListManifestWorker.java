@@ -18,7 +18,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class DownloadListManifestWorker implements MessageDrivenRunner {
 
-	static private Logger log = LogManager.getLogger(DownloadListPackageWorker.class);
+	static private Logger log = LogManager.getLogger(DownloadListManifestWorker.class);
 
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private DownloadListManager downloadListManager;

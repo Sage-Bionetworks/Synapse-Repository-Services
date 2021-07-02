@@ -402,7 +402,7 @@ public class DownloadListController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_MANIFEST_ASYNCH, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_MANIFEST_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody DownloadListManifestResponse getDownloadListManifestResults(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
 			throws Throwable {
