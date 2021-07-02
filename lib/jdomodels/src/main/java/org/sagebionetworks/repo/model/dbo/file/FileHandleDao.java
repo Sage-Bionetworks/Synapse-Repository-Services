@@ -195,11 +195,10 @@ public interface FileHandleDao {
 	/**
 	 * @param bucketName The name of the bucket to filter for
 	 * @param modifedBefore Include only files modified before the given instant
-	 * @param modifiedAfter Include only files modified after the given instant
 	 * @param limit The limit to apply
 	 * @return A batch of keys of file handles that are unlinked within the given range
 	 */
-	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit);
+	List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, int limit);
 	
 	/**
 	 * Counts the number of file handles that matches the given bucket and key and that are either {@link FileHandleStatus#AVAILABLE} or {@link FileHandleStatus#UNLINKED} but modified after the given instant

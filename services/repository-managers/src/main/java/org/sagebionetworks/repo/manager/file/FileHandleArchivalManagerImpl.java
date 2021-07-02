@@ -54,7 +54,6 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	private static final Logger LOG = LogManager.getLogger(FileHandleArchivalManagerImpl.class);
 	
 	static final int ARCHIVE_BUFFER_DAYS = 30;
-	static final int SCAN_WINDOW_DAYS = 7;
 	
 	static final int DEFAULT_ARCHIVE_LIMIT = 100_000;
 	
@@ -103,9 +102,8 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		
 		Instant now = Instant.ofEpochMilli(timestamp);
 		Instant modifiedBefore = now.minus(ARCHIVE_BUFFER_DAYS, ChronoUnit.DAYS);
-		Instant modifiedAfter = modifiedBefore.minus(SCAN_WINDOW_DAYS, ChronoUnit.DAYS);
 		
-		List<String> unlinkedKeys = fileHandleDao.getUnlinkedKeysForBucket(synapseBucketName, modifiedBefore, modifiedAfter, limit);
+		List<String> unlinkedKeys = fileHandleDao.getUnlinkedKeysForBucket(synapseBucketName, modifiedBefore, limit);
 		List<String> keysBatch = new ArrayList<>(KEYS_PER_MESSAGE);
 
 		for (String key : unlinkedKeys) {

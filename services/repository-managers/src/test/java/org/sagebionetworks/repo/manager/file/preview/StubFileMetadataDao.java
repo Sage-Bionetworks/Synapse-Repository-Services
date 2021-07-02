@@ -175,7 +175,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 	
 	@Override
-	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, Instant modifiedAfter, int limit) {
+	public List<String> getUnlinkedKeysForBucket(String bucketName, Instant modifiedBefore, int limit) {
 		// TODO Auto-generated method stub
 		return null;
 	}

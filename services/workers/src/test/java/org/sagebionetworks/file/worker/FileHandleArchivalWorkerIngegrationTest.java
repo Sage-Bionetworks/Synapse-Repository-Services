@@ -89,8 +89,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		
 		Instant now = Instant.now();
 		
-		Instant inRange = now.minus(31, ChronoUnit.DAYS);
-		Instant beforeRange = now.minus(60, ChronoUnit.DAYS);
+		Instant modifiedOn = now.minus(31, ChronoUnit.DAYS);
 		
 		String key0 = uploadFile("key_0", true);
 		String key1 = uploadFile("key_1", true);
@@ -111,32 +110,32 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		// After range but available and copy of one in range
 		Long key3File1 = createDBOFile(bucket, now, FileHandleStatus.AVAILABLE, key3).getId(); // -> untouched
 		
-		Long key1PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key1Preview, 123L, true, null).getId();
+		Long key1PreviewId = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, key1Preview, 123L, true, null).getId();
 		// In range
-		Long key1File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
+		Long key1File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
 		// In range and a copy
-		Long key1File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
+		Long key1File2 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
 		
-		Long key2PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key2Preview, 123L, true, null).getId();
+		Long key2PreviewId = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, key2Preview, 123L, true, null).getId();
 		// In range
-		Long key2File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key2, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> archive and tag, but does not delete the preview as it is used
+		Long key2File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key2, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> archive and tag, but does not delete the preview as it is used
 		// In range
-		Long key3File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key3).getId(); // -> archive but not tagged
+		Long key3File2 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key3).getId(); // -> archive but not tagged
 		// In range but available
-		Long key4File1 = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key4).getId(); // -> untouched
+		Long key4File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, key4).getId(); // -> untouched
 		// In range
-		Long key5File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key5).getId(); // -> archived but not tagged
+		Long key5File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key5).getId(); // -> archived but not tagged
 		// In range
-		Long key7File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key7).getId(); // -> deleted
+		Long key7File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key7).getId(); // -> deleted
 		// In range
-		Long key8File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key8, S3_TAG_SIZE_THRESHOLD - 1, false, null).getId(); // -> archived but not tagged as under the threshold
+		Long key8File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key8, S3_TAG_SIZE_THRESHOLD - 1, false, null).getId(); // -> archived but not tagged as under the threshold
 		
-		// Before range, but copy of a key in range
-		Long key2File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.UNLINKED, key2).getId(); // -> archive and tag
-		// Before range, but AVAILABLE
-		Long key6File1 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key6, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> untouched
-		// Before range, but AVAILABLE and copy of a key in range
-		Long key5File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key5).getId(); // -> untouched
+		// In range, copy of a key
+		Long key2File2 = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, key2).getId(); // -> archive and tag
+		// In range, but AVAILABLE
+		Long key6File1 = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, key6, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> untouched
+		// In range, but AVAILABLE and copy of a key in range
+		Long key5File2 = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, key5).getId(); // -> untouched
 		
 		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
 		

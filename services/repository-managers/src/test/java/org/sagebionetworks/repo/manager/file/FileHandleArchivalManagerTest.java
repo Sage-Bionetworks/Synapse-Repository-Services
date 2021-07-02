@@ -20,7 +20,6 @@ import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerIm
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.DEFAULT_ARCHIVE_LIMIT;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.KEYS_PER_MESSAGE;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.PROCESS_QUEUE_NAME;
-import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.SCAN_WINDOW_DAYS;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -153,12 +152,12 @@ public class FileHandleArchivalManagerTest {
 		when(mockBasicDao.getDatabaseTimestampMillis()).thenReturn(timestamp);
 		when(mockRequest.getLimit()).thenReturn(Long.valueOf(limit));
 		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), any(), anyInt())).thenReturn(keys);
+		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), anyInt())).thenReturn(keys);
 		when(mockMapper.writeValueAsString(any())).thenReturn("messageBody");
 		
 		FileHandleArchivalResponse expectedResponse = new FileHandleArchivalResponse().setCount(Long.valueOf(keys.size()));
 		Instant expectedModifiedBefore = Instant.ofEpochMilli(timestamp).minus(ARCHIVE_BUFFER_DAYS, ChronoUnit.DAYS);
-		Instant expectedModifiedAfter = expectedModifiedBefore.minus(SCAN_WINDOW_DAYS, ChronoUnit.DAYS);
+		
 		FileHandleKeysArchiveRequest expectedMessage = new FileHandleKeysArchiveRequest()
 				.withBucket(bucket)
 				.withModifiedBefore(expectedModifiedBefore.toEpochMilli())
@@ -169,7 +168,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals(expectedResponse, response);
 		
-		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, expectedModifiedAfter, limit);
+		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, limit);
 		verify(mockMapper).writeValueAsString(expectedMessage);
 		verify(mockSqs).sendMessage(queueUrl, "messageBody");
 		
@@ -184,12 +183,12 @@ public class FileHandleArchivalManagerTest {
 		when(mockBasicDao.getDatabaseTimestampMillis()).thenReturn(timestamp);
 		when(mockRequest.getLimit()).thenReturn(null);
 		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), any(), anyInt())).thenReturn(keys);
+		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), anyInt())).thenReturn(keys);
 		when(mockMapper.writeValueAsString(any())).thenReturn("messageBody");
 		
 		FileHandleArchivalResponse expectedResponse = new FileHandleArchivalResponse().setCount(Long.valueOf(keys.size()));
 		Instant expectedModifiedBefore = Instant.ofEpochMilli(timestamp).minus(ARCHIVE_BUFFER_DAYS, ChronoUnit.DAYS);
-		Instant expectedModifiedAfter = expectedModifiedBefore.minus(SCAN_WINDOW_DAYS, ChronoUnit.DAYS);
+		
 		FileHandleKeysArchiveRequest expectedMessage = new FileHandleKeysArchiveRequest()
 				.withBucket(bucket)
 				.withModifiedBefore(expectedModifiedBefore.toEpochMilli())
@@ -200,7 +199,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals(expectedResponse, response);
 		
-		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, expectedModifiedAfter, DEFAULT_ARCHIVE_LIMIT);
+		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, DEFAULT_ARCHIVE_LIMIT);
 		verify(mockMapper).writeValueAsString(expectedMessage);
 		verify(mockSqs).sendMessage(queueUrl, "messageBody");
 		
@@ -217,12 +216,12 @@ public class FileHandleArchivalManagerTest {
 		when(mockBasicDao.getDatabaseTimestampMillis()).thenReturn(timestamp);
 		when(mockRequest.getLimit()).thenReturn(Long.valueOf(limit));
 		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), any(), anyInt())).thenReturn(keys);
+		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), anyInt())).thenReturn(keys);
 		when(mockMapper.writeValueAsString(any())).thenReturn("messageBody");
 		
 		FileHandleArchivalResponse expectedResponse = new FileHandleArchivalResponse().setCount(Long.valueOf(keys.size()));
 		Instant expectedModifiedBefore = Instant.ofEpochMilli(timestamp).minus(ARCHIVE_BUFFER_DAYS, ChronoUnit.DAYS);
-		Instant expectedModifiedAfter = expectedModifiedBefore.minus(SCAN_WINDOW_DAYS, ChronoUnit.DAYS);
+		
 		List<FileHandleKeysArchiveRequest> expectedRequests = ListUtils.partition(keys, KEYS_PER_MESSAGE).stream()
 				.map( batch -> new FileHandleKeysArchiveRequest().withKeys(batch).withBucket(bucket).withModifiedBefore(expectedModifiedBefore.toEpochMilli()))
 				.collect(Collectors.toList());
@@ -232,7 +231,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals(expectedResponse, response);
 		
-		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, expectedModifiedAfter, limit);
+		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, limit);
 		verify(mockMapper, times(keys.size()/KEYS_PER_MESSAGE)).writeValueAsString(requestCaptor.capture());
 		assertEquals(expectedRequests, requestCaptor.getAllValues());
 		verify(mockSqs, times(keys.size()/KEYS_PER_MESSAGE)).sendMessage(queueUrl, "messageBody");
@@ -249,14 +248,14 @@ public class FileHandleArchivalManagerTest {
 		when(mockBasicDao.getDatabaseTimestampMillis()).thenReturn(timestamp);
 		when(mockRequest.getLimit()).thenReturn(Long.valueOf(limit));
 		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), any(), anyInt())).thenReturn(keys);
+		when(mockFileDao.getUnlinkedKeysForBucket(any(), any(), anyInt())).thenReturn(keys);
 		
 		JsonProcessingException ex = new JsonParseException(null, "error");
 		
 		doThrow(ex).when(mockMapper).writeValueAsString(any());
 		
 		Instant expectedModifiedBefore = Instant.ofEpochMilli(timestamp).minus(ARCHIVE_BUFFER_DAYS, ChronoUnit.DAYS);
-		Instant expectedModifiedAfter = expectedModifiedBefore.minus(SCAN_WINDOW_DAYS, ChronoUnit.DAYS);
+		
 		FileHandleKeysArchiveRequest expectedMessage = new FileHandleKeysArchiveRequest()
 				.withBucket(bucket)
 				.withModifiedBefore(expectedModifiedBefore.toEpochMilli())
@@ -267,7 +266,7 @@ public class FileHandleArchivalManagerTest {
 			manager.processFileHandleArchivalRequest(mockUser, mockRequest);
 		});
 		
-		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, expectedModifiedAfter, limit);
+		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, limit);
 		verify(mockMapper).writeValueAsString(expectedMessage);
 		verifyNoMoreInteractions(mockSqs);
 		
