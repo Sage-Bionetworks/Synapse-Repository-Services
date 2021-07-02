@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -156,7 +157,8 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		// The key is not referenced anymore by any available (or unlinked but too early) file handles, we can proceed and tag the objects in S3
 		if (availableAfterUpdate <= 0) {
 			try {
-				tagged = tagObjectForArchival(bucketName, key);
+				Long contentSize = fileHandleDao.getContentSizeByKey(bucketName, key);
+				tagged = addOrClearArchivalTag(bucketName, key, contentSize, false);
 			} catch (AmazonServiceException ex) {
 				if (ex instanceof AmazonS3Exception && HttpStatus.SC_NOT_FOUND == ex.getStatusCode()) {
 					LOG.warn("Attempted to tag key {} in bucket {} for archival but the object didn't exist: {}", key, bucketName, ex.getMessage());
@@ -205,6 +207,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		}
 		
 		FileHandleRestoreStatus restoreStatus = FileHandleRestoreStatus.RESTORED;
+		String statusMessage = "The file handle is now AVAILABLE";
 		
 		// Objects in the synapse bucket might have been archived in S3 
 		if (FileHandleStatus.ARCHIVED.equals(fileHandle.getStatus()) && fileHandle instanceof S3FileHandle) {
@@ -213,26 +216,30 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			
 			// We currently archive in S3 only files in the default Synapse bucket
 			if (synapseBucketName.equals(s3FileHandle.getBucketName())) {
+				
+				addOrClearArchivalTag(s3FileHandle.getBucketName(), s3FileHandle.getKey(), s3FileHandle.getContentSize(), true);
+					
 				ObjectMetadata s3ObjectMetaData = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
 				
-				if (s3ObjectMetaData.getArchiveStatus() != null && s3ObjectMetaData.getOngoingRestore() != null && !s3ObjectMetaData.getOngoingRestore()) {
+				if (s3ObjectMetaData.getArchiveStatus() != null && (s3ObjectMetaData.getOngoingRestore() == null || !s3ObjectMetaData.getOngoingRestore())) {
 					s3Client.restoreObject(new RestoreObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey()));
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
+					statusMessage = "The file handle is now AVAILABLE and a request to restore the data was submitted. The file will be downloadable in a few hours.";
 				} else if (s3ObjectMetaData.getOngoingRestore() != null && s3ObjectMetaData.getOngoingRestore()) {
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
+					statusMessage = "The file handle is now AVAILABLE and a request to restore the data is ongoing. The file will be downloadable in a few hours.";
 				}
+				
 			}
 			
 		}
 				
 		fileHandleDao.updateStatusForBatch(Collections.singletonList(Long.valueOf(id)), FileHandleStatus.AVAILABLE, fileHandle.getStatus(), 0);
 
-		return result.setStatus(restoreStatus);
+		return result.setStatus(restoreStatus).setStatusMessage(statusMessage);
 	}
 	
-	boolean tagObjectForArchival(String bucketName, String key) {
-		Long contentSize = fileHandleDao.getContentSizeByKey(bucketName, key);
-		
+	boolean addOrClearArchivalTag(String bucketName, String key, Long contentSize, boolean clearTag) {
 		if (contentSize == null || contentSize < S3_TAG_SIZE_THRESHOLD) {
 			return false;
 		}
@@ -244,12 +251,16 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		} else {
 			objectTags = new ArrayList<>(objectTags);
 		}
+		
+		Optional<Tag> archivalTag = objectTags.stream().filter(tag -> tag.getKey().equals(S3_TAG_ARCHIVED.getKey())).findFirst();
 
-		if (objectTags.stream().filter(tag -> tag.getKey().equals(S3_TAG_ARCHIVED.getKey())).findFirst().isPresent()) {
+		if (archivalTag.isPresent() && clearTag) {
+			objectTags.remove(S3_TAG_ARCHIVED);
+		} else if (!archivalTag.isPresent() && !clearTag) {
+			objectTags.add(S3_TAG_ARCHIVED);
+		} else {
 			return false;
 		}
-		
-		objectTags.add(S3_TAG_ARCHIVED);
 		
 		s3Client.setObjectTags(bucketName, key, objectTags);
 		

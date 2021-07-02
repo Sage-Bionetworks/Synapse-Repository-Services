@@ -18,6 +18,8 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
+import org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -101,6 +103,7 @@ public class FileHandleRestoreRequestWorkerIntegrationTest {
 		List<FileHandleRestoreResult> expectedResults = Collections.singletonList(
 				new FileHandleRestoreResult().setFileHandleId(fileHandle.getIdString())
 					.setStatus(FileHandleRestoreStatus.RESTORED)
+					.setStatusMessage("The file handle is now AVAILABLE")
 		);
 		
 		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleRestoreResponse response) -> {
@@ -119,11 +122,34 @@ public class FileHandleRestoreRequestWorkerIntegrationTest {
 		List<FileHandleRestoreResult> expectedResults = Collections.singletonList(
 				new FileHandleRestoreResult().setFileHandleId(fileHandle.getIdString())
 					.setStatus(FileHandleRestoreStatus.RESTORED)
+					.setStatusMessage("The file handle is now AVAILABLE")
 		);
 		
 		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleRestoreResponse response) -> {
 			assertEquals(expectedResults, response.getRestoreResults());
 			assertEquals(FileHandleStatus.AVAILABLE, fileHandleDao.get(fileHandle.getIdString()).getStatus());
+		}, MAX_WAIT_MS);
+		
+	}
+	
+	@Test
+	public void testRestoreRequestForArchivedWithTags() throws Exception {
+		DBOFileHandle fileHandle = createFile(FileHandleStatus.ARCHIVED);
+		
+		s3Client.setObjectTags(bucket, fileHandle.getKey(), Collections.singletonList(FileHandleArchivalManager.S3_TAG_ARCHIVED));
+		
+		FileHandleRestoreRequest request = new FileHandleRestoreRequest().setFileHandleIds(Collections.singletonList(fileHandle.getIdString()));
+		
+		List<FileHandleRestoreResult> expectedResults = Collections.singletonList(
+				new FileHandleRestoreResult().setFileHandleId(fileHandle.getIdString())
+					.setStatus(FileHandleRestoreStatus.RESTORED)
+					.setStatusMessage("The file handle is now AVAILABLE")
+		);
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleRestoreResponse response) -> {
+			assertEquals(expectedResults, response.getRestoreResults());
+			assertEquals(FileHandleStatus.AVAILABLE, fileHandleDao.get(fileHandle.getIdString()).getStatus());
+			assertEquals(Collections.emptyList(), s3Client.getObjectTags(bucket, fileHandle.getKey()));
 		}, MAX_WAIT_MS);
 		
 	}
@@ -134,14 +160,14 @@ public class FileHandleRestoreRequestWorkerIntegrationTest {
 		file.setBucketName(bucket);
 		file.setKey(uploadTestFile());
 		file.setStatus(status.name());
-		file.setContentSize(123L);
+		file.setContentSize(FileHandleArchivalManagerImpl.S3_TAG_SIZE_THRESHOLD);
 		
 		fileHandleDao.createBatchDbo(Arrays.asList(file));
 		return file;
 	}
 	
 	private String uploadTestFile() throws Exception {
-		String key = "tests/" + FileHandleRestoreRequestWorkerIntegrationTest.class.getSimpleName() + "/" + "/" + UUID.randomUUID().toString();
+		String key = "tests/" + FileHandleRestoreRequestWorkerIntegrationTest.class.getSimpleName() + "/" + UUID.randomUUID().toString();
 	
 		S3TestUtils.createObjectFromString(bucket, key, "Some data", s3Client);
 		

@@ -62,7 +62,7 @@ public interface FileHandleArchivalManager {
 	FileHandleKeyArchiveResult archiveUnlinkedFileHandlesByKey(UserInfo user, String bucket, String key, Instant modifedBefore) throws RecoverableMessageException;
 
 	/**
-	 * Restore the file handle with the given id
+	 * Restore the file handle with the given id. If the operation fails the exception is thrown
 	 * 
 	 * @param user The user initiating the request, must be the owner of the file handle
 	 * @param id The id of the file handle to restore
