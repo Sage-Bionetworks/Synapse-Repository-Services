@@ -37,6 +37,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -1062,5 +1064,56 @@ public class UploadController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody DownloadOrderSummaryRequest request) throws Throwable {
 		return this.fileService.getDownloadOrderHistory(userId, request);
+	}
+	
+	/**
+	 * <p>
+	 * Starts an asynchronous job to restore a batch of file handles that were ARCHIVED or UNLINKED.
+	 * </p>
+	 * <p>
+	 * The file handles status will be set as AVAILABLE. Note that when the file handle is ARCHIVED in the Synapse bucket it might take a few hours before the file is available for download.
+	 * </p>
+	 * <p>
+	 * A limit of 1000 file handle ids is imposed for the request. The user initiating the request must be the owner of the file handles for the operation to succeed.
+	 * </p>
+	 * <p>
+	 * Use <a href="${GET.fileHandle.restore.async.get.asyncToken}">GET /fileHandle/restore/async/get/{asyncToken}</a> to get both the job status and job results.
+	 * </p>
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_RESTORE_START_ASYNCH, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startRestoreFileHandles(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody FileHandleRestoreRequest request) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		return new AsyncJobId().setToken(job.getJobId());
+	}
+	
+	/**
+	 * Get the results of an asynchronous job to restore a batch of files handles started with:
+	 * <a href="${POST.fileHandle.restore.async.start}">POST /fileHandle/restore/package/async/start</a>. The response includes for each file handle in the orignal request the result of the restore operation.
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_RESTORE_GET_ASYNCH, method = RequestMethod.GET)
+	public @ResponseBody FileHandleRestoreResponse getRestoreFileHandlesResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken) throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (FileHandleRestoreResponse) jobStatus.getResponseBody();
 	}
 }

@@ -1,0 +1,44 @@
+{
+    "description": "Result of a single file handle restore operation.",
+    "properties": {
+        "fileHandleId": {
+            "type": "string",
+            "description": "The id of the file handle in the original restore request."
+        },
+        "status": {
+            "type": "string",
+            "description": "The status of the restore operation on the file handle.",
+            "name": "FileHandleRestoreStatus",
+            "enum": [
+                {
+                    "name": "NOT_FOUND",
+                    "description": "The file handle did not exist"
+                },
+                {
+                    "name": "UNAUTHORIZED",
+                    "description": "The user was not the owner of the file handle"
+                },
+                {
+                	"name": "FAILED",
+                	"description": "The operation failed and might be retried on a later moment"
+                },
+                {
+                    "name": "NO_ACTION",
+                    "description": "The file handle was already AVAILABLE"
+                },
+                {
+                    "name": "RESTORED",
+                    "description": "The file handle status was set to AVAILABLE and can be accessed"
+                },
+                {
+                    "name": "RESTORING",
+                    "description": "The file handle status was set to AVAILABLE and a request to restore the data was submitted. It might take a few hours before the file can be downloaded"
+                }
+            ]
+        },
+        "statusMessage": {
+        	"type": "string",
+        	"description": "A descriptive message for the status"
+        }
+    }
+}

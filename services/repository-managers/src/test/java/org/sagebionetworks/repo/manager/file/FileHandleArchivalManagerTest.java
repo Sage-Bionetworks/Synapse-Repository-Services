@@ -14,13 +14,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
+import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.ARCHIVE_BUFFER_DAYS;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.DEFAULT_ARCHIVE_LIMIT;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.KEYS_PER_MESSAGE;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.PROCESS_QUEUE_NAME;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl.SCAN_WINDOW_DAYS;
-import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
-import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -50,15 +50,22 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResult;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreStatus;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.RestoreObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
@@ -88,6 +95,9 @@ public class FileHandleArchivalManagerTest {
 	@Mock
 	private FileHandleDao mockFileDao;
 	
+	@Mock
+	private FileHandleManager mockFileHandleManager;
+	
 	@InjectMocks
 	private FileHandleArchivalManagerImpl manager;
 	
@@ -102,12 +112,23 @@ public class FileHandleArchivalManagerTest {
 	
 	@Mock
 	private Message mockMessage;
+
+	@Mock
+	private FileHandle mockFileHandle;
+	
+	@Mock
+	private S3FileHandle mockS3FileHandle;
+
+	@Mock
+	private ObjectMetadata mockObjectMetaData;
 	
 	@Captor
 	private ArgumentCaptor<FileHandleKeysArchiveRequest> requestCaptor;
 	
 	private String queueUrl = "queueUrl";
 	private String bucket = "bucket";
+
+	
 	
 	@BeforeEach
 	public void setup() {
@@ -116,7 +137,7 @@ public class FileHandleArchivalManagerTest {
 		when(mockSqs.getQueueUrl(anyString())).thenReturn(new GetQueueUrlResult().withQueueUrl(queueUrl));
 		
 		// This is invoked automatically by spring
-		manager.configureQueue(mockConfig);
+		manager.configure(mockConfig);
 		
 		verify(mockConfig).getQueueName(PROCESS_QUEUE_NAME);
 		verify(mockSqs).getQueueUrl("queueName");
@@ -624,104 +645,197 @@ public class FileHandleArchivalManagerTest {
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithEmptyTags() {
+	public void testAddOrClearArchivalTagWithAddAndEmptyTags() {
 		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = false;
 		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertTrue(result);
 		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(S3_TAG_ARCHIVED));
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithNullTags() {
+	public void testAddOrClearArchivalTagWithAddWithNullTags() {
 		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = false;
 		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(null);
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertTrue(result);
 		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(S3_TAG_ARCHIVED));
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithExistingAndNotMatchingTags() {
+	public void testAddOrClearArchivalTagWithAddAndExistingAndNotMatchingTags() {
 		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = false;
 		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(new Tag("key", "value")));
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertTrue(result);
 		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(new Tag("key", "value"), S3_TAG_ARCHIVED));
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithExistingAndMatchingTags() {
+	public void testAddOrClearArchivalTagWithAddAndExistingAndMatchingTags() {
 		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = false;
 		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD);
 		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(S3_TAG_ARCHIVED));
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertFalse(result);
 		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithSizeUnderThreshold() {
+	public void testAddOrClearArchivalTagWithAddAndSizeUnderThreshold() {
 		String key = "key";
-		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(S3_TAG_SIZE_THRESHOLD - 1);
+		Long contentSize = S3_TAG_SIZE_THRESHOLD - 1;
+		boolean clear = false;
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertFalse(result);
 		
-		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
-	public void testTagObjectForArchivalWithNullSize() {
+	public void testAddOrClearArchivalTagWithAddAndNullSize() {
 		String key = "key";
-		
-		when(mockFileDao.getContentSizeByKey(any(), any())).thenReturn(null);
+		Long contentSize = null;
+		boolean clear = false;
 		
 		// Call under test
-		boolean result = manager.tagObjectForArchival(bucket, key);
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
 		
 		assertFalse(result);
 		
-		
-		verify(mockFileDao).getContentSizeByKey(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearAndEmptyTags() {
+		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = true;
+		
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertFalse(result);
+		
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearWithNullTags() {
+		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = true;
+		
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(null);
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertFalse(result);
+		
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearAndExistingAndNotMatchingTags() {
+		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = true;
+		
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(new Tag("key", "value")));
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertFalse(result);
+		
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearAndExistingAndMatchingTags() {
+		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD;
+		boolean clear = true;
+		
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Arrays.asList(new Tag("key", "value"), S3_TAG_ARCHIVED));
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertTrue(result);
+		
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verify(mockS3Client).setObjectTags(bucket, key, Arrays.asList(new Tag("key", "value")));
+	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearAndSizeUnderThreshold() {
+		String key = "key";
+		Long contentSize = S3_TAG_SIZE_THRESHOLD - 1;
+		boolean clear = true;
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertFalse(result);
+		
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testAddOrClearArchivalTagWithClearAndNullSize() {
+		String key = "key";
+		Long contentSize = null;
+		boolean clear = true;
+		
+		// Call under test
+		boolean result = manager.addOrClearArchivalTag(bucket, key, contentSize, clear);
+		
+		assertFalse(result);
+		
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
 	
 	@Test
 	public void testCleanupArchivedFileHandlesPreview() {
@@ -754,6 +868,21 @@ public class FileHandleArchivalManagerTest {
 		verify(mockS3Client, times(2)).deleteObject(eq(bucket), keyCaptor.capture());
 		assertEquals(new HashSet<>(keys), new HashSet<>(keyCaptor.getAllValues()));
 		
+	}
+	
+	@Test
+	public void testCleanupArchivedFileHandlesPreviewWithNoUnreferencedPreviews() {
+		String key = "key";
+		
+		when(mockFileDao.clearPreviewByKeyAndStatus(any(), any(), any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
+		when(mockFileDao.getReferencedPreviews(any())).thenReturn(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
+				
+		// Call under test
+		manager.cleanupArchivedFileHandlesPreviews(bucket, key);
+		
+		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
+		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
+		verifyZeroInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -914,6 +1043,364 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).getNumberOfReferencesToFile(FileHandleMetadataType.S3, bucket, "preview_key2");
 		verify(mockS3Client).deleteObject(bucket, "preview_key1");
 		verify(mockS3Client).deleteObject(bucket, "preview_key2");
+	}
+	
+	@Test
+	public void testRestoreFileHandle() {
+		String fileHandleId = "1";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockFileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockFileHandle);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORED)
+				.setStatusMessage("The file handle is now AVAILABLE");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithNoUser() {
+		String fileHandleId = "1";
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.restoreFileHandle(null, fileHandleId);
+		});
+		
+		assertEquals("The user is required.", result.getMessage());
+	}
+
+	@Test
+	public void testRestoreFileHandleWithNoId() {
+		String fileHandleId = null;
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.restoreFileHandle(mockUser, fileHandleId);
+		});
+		
+		assertEquals("The file handle id is required.", result.getMessage());
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithUnauthorized() {
+		String fileHandleId = "1";
+		
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenThrow(new UnauthorizedException("nope"));
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.UNAUTHORIZED)
+				.setStatusMessage("nope");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verifyZeroInteractions(mockFileDao);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithNotFound() {
+		String fileHandleId = "1";
+		
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenThrow(new NotFoundException("nope"));
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.NOT_FOUND)
+				.setStatusMessage("nope");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verifyZeroInteractions(mockFileDao);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithAlreadyAvailable() {
+		String fileHandleId = "1";
+		FileHandleStatus currentStatus = FileHandleStatus.AVAILABLE;
+		
+		when(mockFileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockFileHandle);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.NO_ACTION)
+				.setStatusMessage("The file handle is already AVAILABLE. For files in the synapse bucket it might take a few hours before the file can be downloaded.");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verifyZeroInteractions(mockFileDao);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndExternalBucket() {
+		String fileHandleId = "1";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn("externalBucket");
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORED)
+				.setStatusMessage("The file handle is now AVAILABLE");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketNotArchivedAndOnGoingRestoreNull() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn(null);
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(null);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORED)
+				.setStatusMessage("The file handle is now AVAILABLE");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketNotArchivedAndOnGoingRestore() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn(null);
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(true);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORING)
+				.setStatusMessage("The file handle is now AVAILABLE and a request to restore the data is ongoing. The file will be downloadable in a few hours.");
+		
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketNotArchivedAndNotOnGoingRestore() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(any(), any())).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn(null);
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(false);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORED)
+				.setStatusMessage("The file handle is now AVAILABLE");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verifyZeroInteractions(mockS3Client);
+	}
+
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketAndArchived() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(bucket, key)).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn("archived");
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(false);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORING)
+				.setStatusMessage("The file handle is now AVAILABLE and a request to restore the data was submitted. The file will be downloadable in a few hours.");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verify(mockS3Client).restoreObject(new RestoreObjectRequest(bucket, key));
+		verifyZeroInteractions(mockS3Client);
+	}
+		
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketAndArchivedAndOngoingRestore() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(bucket, key)).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn("archived");
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(true);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORING)
+				.setStatusMessage("The file handle is now AVAILABLE and a request to restore the data is ongoing. The file will be downloadable in a few hours.");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithS3FileHandleAndSynapseBucketAndArchivedAndOnGoingRestoreNull() {
+		String fileHandleId = "1";
+		String key = "key";
+		FileHandleStatus currentStatus = FileHandleStatus.ARCHIVED;
+		
+		when(mockS3FileHandle.getBucketName()).thenReturn(bucket);
+		when(mockS3FileHandle.getKey()).thenReturn(key);
+		when(mockS3FileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockS3FileHandle.getContentSize()).thenReturn(S3_TAG_SIZE_THRESHOLD);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockS3FileHandle);
+		when(mockS3Client.getObjectTags(bucket, key)).thenReturn(Collections.emptyList());
+		when(mockS3Client.getObjectMetadata(any(), any())).thenReturn(mockObjectMetaData);
+		when(mockObjectMetaData.getArchiveStatus()).thenReturn("archived");
+		when(mockObjectMetaData.getOngoingRestore()).thenReturn(null);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORING)
+				.setStatusMessage("The file handle is now AVAILABLE and a request to restore the data was submitted. The file will be downloadable in a few hours.");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verify(mockS3Client).getObjectTags(bucket, key);
+		verify(mockS3Client).getObjectMetadata(bucket, key);
+		verify(mockS3Client).restoreObject(new RestoreObjectRequest(bucket, key));
+		verifyZeroInteractions(mockS3Client);
+	}
+	
+	@Test
+	public void testRestoreFileHandleWithUnlinked() {
+		String fileHandleId = "1";
+		FileHandleStatus currentStatus = FileHandleStatus.UNLINKED;
+		
+		when(mockFileHandle.getStatus()).thenReturn(currentStatus);
+		when(mockFileHandleManager.getRawFileHandle(any(), any())).thenReturn(mockFileHandle);
+		
+		FileHandleRestoreResult expectedResult = new FileHandleRestoreResult()
+				.setFileHandleId(fileHandleId)
+				.setStatus(FileHandleRestoreStatus.RESTORED)
+				.setStatusMessage("The file handle is now AVAILABLE");
+		
+		// Call under test
+		FileHandleRestoreResult result = manager.restoreFileHandle(mockUser, fileHandleId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
+		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
+		verifyZeroInteractions(mockS3Client);
+		
 	}
 	
 }

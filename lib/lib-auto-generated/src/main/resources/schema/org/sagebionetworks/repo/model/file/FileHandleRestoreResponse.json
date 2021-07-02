@@ -1,0 +1,17 @@
+{
+	"description": "Response of a restore operation. Each item in the list match the order of the file handle id in the original request.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"restoreResults": {
+			"description": "The list of restore operation status for each of the file handle in the original request.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandleRestoreResult"
+			}
+		}
+	}
+}
