@@ -215,10 +215,10 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			if (synapseBucketName.equals(s3FileHandle.getBucketName())) {
 				ObjectMetadata s3ObjectMetaData = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
 				
-				if (s3ObjectMetaData.getArchiveStatus() != null && !s3ObjectMetaData.getOngoingRestore()) {
+				if (s3ObjectMetaData.getArchiveStatus() != null && s3ObjectMetaData.getOngoingRestore() != null && !s3ObjectMetaData.getOngoingRestore()) {
 					s3Client.restoreObject(new RestoreObjectRequest(s3FileHandle.getBucketName(), s3FileHandle.getKey()));
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
-				} else if (s3ObjectMetaData.getOngoingRestore()) {
+				} else if (s3ObjectMetaData.getOngoingRestore() != null && s3ObjectMetaData.getOngoingRestore()) {
 					restoreStatus = FileHandleRestoreStatus.RESTORING;
 				}
 			}
