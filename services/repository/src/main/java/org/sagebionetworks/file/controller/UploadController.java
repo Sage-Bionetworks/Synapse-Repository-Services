@@ -1096,7 +1096,7 @@ public class UploadController {
 	
 	/**
 	 * Get the results of an asynchronous job to restore a batch of files handles started with:
-	 * <a href="${POST.fileHandle.restore.async.start}">POST /fileHandle/restore/package/async/start</a>. The response includes for each file handle in the orignal request the result of the restore operation.
+	 * <a href="${POST.fileHandle.restore.async.start}">POST /fileHandle/restore/async/start</a>. The response includes for each file handle in the original request the result of the restore operation.
 	 * 
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status code
