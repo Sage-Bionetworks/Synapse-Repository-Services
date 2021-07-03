@@ -111,7 +111,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		ValidateArgument.required(changePasswordWithToken.getPasswordChangeToken(), "changePasswordWithToken.passwordChangeToken");
 
 		if(!passwordResetTokenGenerator.isValidToken(changePasswordWithToken.getPasswordChangeToken())){
-			throw new UnauthenticatedException("Password reset token is invalid");
+			throw new IllegalArgumentException("Password reset token is invalid");
 		}
 
 		return Long.parseLong(changePasswordWithToken.getPasswordChangeToken().getUserId());
