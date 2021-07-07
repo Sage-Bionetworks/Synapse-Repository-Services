@@ -405,7 +405,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testValidateChangePassword_withToken_invalidToken(){
 		when(mockPasswordResetTokenGenerator.isValidToken(passwordResetSignedToken)).thenReturn(false);
-		Assertions.assertThrows(UnauthenticatedException.class, () -> {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			authManager.validateChangePassword(changePasswordWithToken);
 		});
