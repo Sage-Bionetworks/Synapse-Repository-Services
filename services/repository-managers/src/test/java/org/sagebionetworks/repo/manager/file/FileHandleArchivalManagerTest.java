@@ -463,6 +463,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).updateStatusByBucketAndKey(bucket, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
 		verify(mockFileDao).getAvailableOrEarlyUnlinkedFileHandlesCount(bucket, key, modifiedBefore);
 		verify(mockS3Client).getObjectTags(bucket, key);
+		verify(mockFileDao).deleteUnavailableByBucketAndKey(bucket, key);
 		verifyNoMoreInteractions(mockS3Client);
 	}
 	
