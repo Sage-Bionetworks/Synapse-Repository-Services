@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
@@ -159,10 +160,9 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		
 		request.setViewScope(viewScope);
 		
-		// expect 50L when empty string is given in the annotations
+		// expect ColumnConstants.DEFAULT_STRING_SIZE as max size when empty string is given in the annotations
 		List<ColumnModel> expectedResult = ImmutableList.of(
-				columnModel("foo", ColumnType.STRING, 50L)
-		);
+				columnModel("foo", ColumnType.STRING, ColumnConstants.DEFAULT_STRING_SIZE));
 		
 		asyncHelper.assertJobResponse(evaluationOwner, request, (ViewColumnModelResponse response) -> {
 			List<ColumnModel> results = response.getResults();

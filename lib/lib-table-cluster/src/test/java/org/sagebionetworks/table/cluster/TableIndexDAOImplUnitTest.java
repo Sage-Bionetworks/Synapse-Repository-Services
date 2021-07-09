@@ -22,6 +22,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -249,20 +250,20 @@ public class TableIndexDAOImplUnitTest {
 		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(zero,one,two,three));
 		assertEquals(6, results.size());
 		
-		// case 1: string column type with 0L max size, should give 50L max size
+		// case 1: string column type with 0L max size, should give ColumnConstants.DEFAULT_STRING_SIZE max size
 		ColumnModel cm = results.get(0);
 		assertEquals("foo", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 		
-		// case 2: column type with string and double type with 0L max size, should give 50L max size
-		// for string column model, and double column model with null max size
+		// case 2: column type with string and double type with 0L max size, should give ColumnConstants.DEFAULT_STRING_SIZE
+		// as max size for string column model, and double column model with null max size
 		cm = results.get(1);
 		assertEquals("bar", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 		
 		cm = results.get(2);
 		assertEquals("bar", cm.getName());
@@ -270,21 +271,23 @@ public class TableIndexDAOImplUnitTest {
 		assertEquals(null, cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
 		
-		// case 3: string list column type with 0L max size should give 50L max size
+		// case 3: string list column type with 0L max size should give 
+		// ColumnConstants.DEFAULT_STRING_SIZE as max size
 		cm = results.get(3);
 		assertEquals("foobar", cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
 		assertEquals(3L, cm.getMaximumListLength());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 		
 		// case 4: column type of string and double with list length of 3 and 0L max string size,
-		// should give string list with 50L string size for string column model, and a double column model
-		// with null list length and null max size since there is no such thing as a double list
+		// should give string list with ColumnConstants.DEFAULT_STRING_SIZE string size for 
+		// string column model, and a double column model with null list length and null 
+		// max size since there is no such thing as a double list
 		cm = results.get(4);
 		assertEquals("barbaz", cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
 		assertEquals(3L, cm.getMaximumListLength());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 
 		cm = results.get(5);
 		assertEquals("barbaz", cm.getName());

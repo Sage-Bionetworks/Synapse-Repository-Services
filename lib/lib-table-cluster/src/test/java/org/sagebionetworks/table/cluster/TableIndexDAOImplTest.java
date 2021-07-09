@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -2519,16 +2520,17 @@ public class TableIndexDAOImplTest {
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		
-		// both column models should have 50L max size due to empty string(s)
+		// both column models should have ColumnConstants.DEFAULT_STRING_SIZE as 
+		// max size due to empty string(s)
 		ColumnModel cm = columns.get(0);
 		assertEquals(testKey1, cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 		
 		cm = columns.get(1);
 		assertEquals(testKey2, cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
-		assertEquals(50L, cm.getMaximumSize());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 	}
 	
 	@Test

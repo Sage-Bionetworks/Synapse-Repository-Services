@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
@@ -144,8 +145,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-	
-	private static final Long DEFAULT_MAX_STRING_SIZE = 50L;
 
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
@@ -153,7 +152,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
 	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
-	
 	
 	@Autowired
 	public TableIndexDAOImpl(ObjectFieldModelResolverFactory objectFieldModelResolverFactory) {
@@ -1186,8 +1184,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 				model.setColumnType(type);
 				if (ColumnType.STRING == type || ColumnType.STRING_LIST == type) {
-					if (aggregation.getMaxStringElementSize() == 0) {
-						model.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
+					if (aggregation.getMaxStringElementSize() == 0L || 
+							aggregation.getMaxStringElementSize() == null) {
+						model.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
 					} else {
 						model.setMaximumSize(aggregation.getMaxStringElementSize());
 					}
