@@ -144,6 +144,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
+	
+	private static final Long DEFAULT_MAX_STRING_SIZE = 50L;
 
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
@@ -1183,8 +1185,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}
 
 				model.setColumnType(type);
-				if(ColumnType.STRING == type || ColumnType.STRING_LIST==type) {
-					model.setMaximumSize(aggregation.getMaxStringElementSize());
+				if (ColumnType.STRING == type || ColumnType.STRING_LIST == type) {
+					if (aggregation.getMaxStringElementSize() == 0) {
+						model.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
+					} else {
+						model.setMaximumSize(aggregation.getMaxStringElementSize());
+					}
 				}
 				results.add(model);
 			}

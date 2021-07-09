@@ -131,6 +131,46 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		}, MAX_WAIT);	
 	}
 	
+	// Reproduce PLFM-6344
+	@Test
+	public void testViewColumnModelRequestWorkerWithEmptyStringAnnotation() throws Exception {
+		Folder entity = testHelper.createFolder(submitter, submitterProject);
+		
+		SubmissionBundle submission = testHelper.createSubmission(submitter, evaluation, entity);
+		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission.getSubmission().getId());
+		
+		Annotations annotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		// put empty string
+		AnnotationsV2TestUtils.putAnnotations(annotations, "foo", "", AnnotationsValueType.STRING);
+		
+		status.setSubmissionAnnotations(annotations);
+		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
+		
+		// Wait for the object replication
+		asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
+				
+		ViewScope viewScope = new ViewScope();
+		
+		viewScope.setViewEntityType(ViewEntityType.submissionview);
+		viewScope.setScope(ImmutableList.of(evaluation.getId()));
+		
+		ViewColumnModelRequest request = new ViewColumnModelRequest();
+		
+		request.setViewScope(viewScope);
+		
+		// expect 50L when empty string is given in the annotations
+		List<ColumnModel> expectedResult = ImmutableList.of(
+				columnModel("foo", ColumnType.STRING, 50L)
+		);
+		
+		asyncHelper.assertJobResponse(evaluationOwner, request, (ViewColumnModelResponse response) -> {
+			List<ColumnModel> results = response.getResults();
+			assertEquals(expectedResult, results);
+			assertNull(response.getNextPageToken());
+		}, MAX_WAIT);	
+	}
+	
 	private static ColumnModel columnModel(String name, ColumnType type) {
 		return columnModel(name, type, null);
 	}
