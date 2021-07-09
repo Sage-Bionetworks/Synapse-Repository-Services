@@ -215,85 +215,109 @@ public class TableIndexDAOImplUnitTest {
 	
 	// relevant to PLFM-6344
 	@Test
-	public void testExpandFromAggregationWithZeroMaxStringElementSize() {
-		
-		// case 1: string column type, max string size is 0
-		ColumnAggregation zero = new ColumnAggregation();
-		zero.setColumnName("foo");
-		zero.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
-		zero.setMaxStringElementSize(0L);
-		zero.setMaxListSize(1L);
-		
-		// case 2: string and double column type, max string size is 0
-		ColumnAggregation one = new ColumnAggregation();
-		one.setColumnName("bar");
-		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
-		one.setMaxStringElementSize(0L);
-		one.setMaxListSize(1L);
-
-		// case 3: string list column type, max string size is 0
-		ColumnAggregation two = new ColumnAggregation();
-		two.setColumnName("foobar");
-		two.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
-		two.setMaxStringElementSize(0L);
-		two.setMaxListSize(3L);
-		
-		// case 4: string and double list column type, max string size is 0
-		// 		   string and double column type, max string size is 0
-		ColumnAggregation three = new ColumnAggregation();
-		three.setColumnName("barbaz");
-		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
-		three.setMaxStringElementSize(0L);
-		three.setMaxListSize(3L);
-
+	public void testExpandFromAggregationWithZeroMaxStringSize() {
+		// string type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foo");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(1L);
 		// call under test
-		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(zero,one,two,three));
-		assertEquals(6, results.size());
-		
-		// case 1: string column type with 0L max size, should give ColumnConstants.DEFAULT_STRING_SIZE max size
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
 		ColumnModel cm = results.get(0);
 		assertEquals("foo", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
+		// gives default string size rather than 0
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
-		
-		// case 2: column type with string and double type with 0L max size, should give ColumnConstants.DEFAULT_STRING_SIZE
-		// as max size for string column model, and double column model with null max size
-		cm = results.get(1);
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithStringDoubleTypeAndZeroMaxStringSize() {
+		// string and double type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("bar");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(1L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		// first column model will be string with default string size as max string size
+		ColumnModel cm = results.get(0);
 		assertEquals("bar", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
-		
-		cm = results.get(2);
+		// second column model will be double with null max string size
+		cm = results.get(1);
 		assertEquals("bar", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
-		
-		// case 3: string list column type with 0L max size should give 
-		// ColumnConstants.DEFAULT_STRING_SIZE as max size
-		cm = results.get(3);
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithStringListTypeAndZeroMaxStringSize() {
+		// string list with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foobar");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(3L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		ColumnModel cm = results.get(0);
 		assertEquals("foobar", cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
 		assertEquals(3L, cm.getMaximumListLength());
+		// gives default string size for max string size, rather than 0
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
-		
-		// case 4: column type of string and double with list length of 3 and 0L max string size,
-		// should give string list with ColumnConstants.DEFAULT_STRING_SIZE string size for 
-		// string column model, and a double column model with null list length and null 
-		// max size since there is no such thing as a double list
-		cm = results.get(4);
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithDoubleStringListTypeAndZeroMaxStringSize() {
+		// string list + double type with 0 max string size
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("barbaz");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(3L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		// first column type becomes a string list
+		ColumnModel cm = results.get(0);
 		assertEquals("barbaz", cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
 		assertEquals(3L, cm.getMaximumListLength());
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
-
-		cm = results.get(5);
+		// second column type is double
+		cm = results.get(1);
 		assertEquals("barbaz", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals(null, cm.getMaximumListLength());
 		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithNullMaxStringSize() {
+		// string type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foo");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(null);
+		columnAggregation.setMaxListSize(1L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		ColumnModel cm = results.get(0);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		// gives default string size when null is in column aggregation
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 	}
 	
 	/**
