@@ -1185,7 +1185,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				model.setColumnType(type);
 				if (ColumnType.STRING == type || ColumnType.STRING_LIST == type) {
 					if (aggregation.getMaxStringElementSize() == null || 
-							aggregation.getMaxStringElementSize() == 0) {
+							aggregation.getMaxStringElementSize() == 0L) {
 						model.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
 					} else {
 						model.setMaximumSize(aggregation.getMaxStringElementSize());
