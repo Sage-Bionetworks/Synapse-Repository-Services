@@ -1086,11 +1086,9 @@ public class DBOFileHandleDaoImplTest {
 		
 		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
 		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
 		
 		Instant inRange = modifiedBefore.minus(1, ChronoUnit.HOURS);
 		Instant afterRange = modifiedBefore.plus(1, ChronoUnit.HOURS);
-		Instant beforeRange = modifiedAfter.minus(1, ChronoUnit.HOURS);
 				
 		// After the range
 		DBOFileHandle file1 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
@@ -1127,17 +1125,11 @@ public class DBOFileHandleDaoImplTest {
 		file4.setStatus(FileHandleStatus.AVAILABLE.name());
 		file4.setKey("key4");
 		
-		// Before the range
-		DBOFileHandle file5 = FileMetadataUtils.createDBOFromDTO(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
-		file5.setBucketName(bucket);
-		file5.setUpdatedOn(Timestamp.from(beforeRange));
-		file5.setStatus(FileHandleStatus.UNLINKED.name());
-		file5.setKey("key5");
 		
-		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file2Dup, file3, file4, file5));
+		fileHandleDao.createBatchDbo(Arrays.asList(file1, file2, file2Dup, file3, file4));
 		
 		// Call under test		
-		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 10);
+		List<String> keys = fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, 10);
 		
 		assertEquals(Arrays.asList("key2"), keys);
 	}
@@ -1150,11 +1142,10 @@ public class DBOFileHandleDaoImplTest {
 		
 		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
 		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, 1);
 		});
 		
 		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
@@ -1168,50 +1159,13 @@ public class DBOFileHandleDaoImplTest {
 		
 		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
 		Instant modifiedBefore = null;
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, 1);
 		});
 		
 		assertEquals("The modifiedBefore is required.", ex.getMessage());
-	}
-	
-	@Test
-	public void testGetUnlinkedKeysForBucketWithNoModifiedAfter() {
-		String bucket = "bucket";
-		
-		int days = 5;
-		
-		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
-		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);;
-		Instant modifiedAfter = null;
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
-		});
-		
-		assertEquals("The modifiedAfter is required.", ex.getMessage());
-	}
-	
-	@Test
-	public void testGetUnlinkedKeysForBucketWithModifiedBeforeBeforeModifiedAfter() {
-		String bucket = "bucket";
-		
-		int days = 5;
-		
-		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
-		Instant modifiedBefore = now.minus(days + 1, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days, ChronoUnit.DAYS);
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, 1);
-		});
-		
-		assertEquals("modifiedAfter must be before modifiedBefore.", ex.getMessage());
 	}
 	
 	@Test
@@ -1222,11 +1176,10 @@ public class DBOFileHandleDaoImplTest {
 		
 		Instant now = Instant.parse("2021-02-03T10:00:00.00Z");
 		Instant modifiedBefore = now.minus(days, ChronoUnit.DAYS);
-		Instant modifiedAfter = now.minus(days + 1, ChronoUnit.DAYS);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test		
-			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, modifiedAfter, -1);
+			fileHandleDao.getUnlinkedKeysForBucket(bucket, modifiedBefore, -1);
 		});
 		
 		assertEquals("The limit must be greater than 0.", ex.getMessage());

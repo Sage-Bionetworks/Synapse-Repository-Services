@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.opentest4j.AssertionFailedError;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -83,88 +84,286 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		S3TestUtils.doDeleteAfter(s3Client);
 		fileHandleDao.truncateTable();
 	}
-
+	
 	@Test
-	public void testArchivalRequest() throws Exception {
+	public void testArchivalRequestWithAfterTimeWindow() throws Exception {
 		
-		Instant now = Instant.now();
+		Instant modifiedOn = Instant.now();
 		
-		Instant inRange = now.minus(31, ChronoUnit.DAYS);
-		Instant beforeRange = now.minus(60, ChronoUnit.DAYS);
+		String availableFileKey = uploadFile("key_0", true);
 		
-		String key0 = uploadFile("key_0", true);
-		String key1 = uploadFile("key_1", true);
-		String key1Preview = uploadFile("key_1_preview", true);
-		String key2 = uploadFile("key_2", true);
-		String key2Preview = uploadFile("key_2_preview", true);
-		String key3 = uploadFile("key_3", true);
-		String key4 = uploadFile("key_4", true);
-		String key5 = uploadFile("key_5", true);
-		String key6 = uploadFile("key_6", true);
-		String key7 = uploadFile("key_7", false);
-		String key8 = uploadFile("key_8", true);
+		// Available file modified after the time window
+		Long availableFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, availableFileKey).getId();
 		
-		// After range
-		Long key0File1 = createDBOFile(bucket, now, FileHandleStatus.UNLINKED, key0).getId(); // -> untouched
-		// After range but available
-		Long key0File2 = createDBOFile(bucket, now, FileHandleStatus.AVAILABLE, key0).getId(); // -> untouched
-		// After range but available and copy of one in range
-		Long key3File1 = createDBOFile(bucket, now, FileHandleStatus.AVAILABLE, key3).getId(); // -> untouched
+		// Unlinked file modified after the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_1", true)).getId();
 		
-		Long key1PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key1Preview, 123L, true, null).getId();
-		// In range
-		Long key1File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
-		// In range and a copy
-		Long key1File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key1, S3_TAG_SIZE_THRESHOLD, false, key1PreviewId).getId(); // -> archive and tag and delete the preview
-		
-		Long key2PreviewId = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key2Preview, 123L, true, null).getId();
-		// In range
-		Long key2File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key2, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> archive and tag, but does not delete the preview as it is used
-		// In range
-		Long key3File2 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key3).getId(); // -> archive but not tagged
-		// In range but available
-		Long key4File1 = createDBOFile(bucket, inRange, FileHandleStatus.AVAILABLE, key4).getId(); // -> untouched
-		// In range
-		Long key5File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key5).getId(); // -> archived but not tagged
-		// In range
-		Long key7File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key7).getId(); // -> deleted
-		// In range
-		Long key8File1 = createDBOFile(bucket, inRange, FileHandleStatus.UNLINKED, key8, S3_TAG_SIZE_THRESHOLD - 1, false, null).getId(); // -> archived but not tagged as under the threshold
-		
-		// Before range, but copy of a key in range
-		Long key2File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.UNLINKED, key2).getId(); // -> archive and tag
-		// Before range, but AVAILABLE
-		Long key6File1 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key6, S3_TAG_SIZE_THRESHOLD, false, key2PreviewId).getId(); // -> untouched
-		// Before range, but AVAILABLE and copy of a key in range
-		Long key5File2 = createDBOFile(bucket, beforeRange, FileHandleStatus.AVAILABLE, key5).getId(); // -> untouched
+		// Unlinked file modified after the time window, copy of the available
+		Long unlinkedFileCopy = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, availableFileKey).getId();
 		
 		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
 		
-		// First wait for the dispatcher job
 		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
-			assertEquals(6L, response.getCount());
+			assertEquals(0L, response.getCount());
 		}, MAX_WAIT_MS);
-
-		// Now wait to verify the results
-		TimeUtils.waitFor(MAX_WAIT_MS, 2000, () -> {
-			
+		
+		verifyAsynch(() -> {
+			verify(availableFile, FileHandleStatus.AVAILABLE, null, false);
+			verify(unlinkedFile, FileHandleStatus.UNLINKED, null, false);
+			verify(unlinkedFileCopy, FileHandleStatus.UNLINKED, null, false);
+		});
+		
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinked() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true)).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, true);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedInExternalBucket() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile("anotherBucket", modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", false)).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(0L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.UNLINKED, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithAvailable() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		// Available file modified before the time window
+		Long availableFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_0", true)).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(0L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(availableFile, FileHandleStatus.AVAILABLE, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedWithCopy() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		String fileKey = uploadFile("key_0", true);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		// Unlinked file modified before the time window, copy of the previous one
+		Long unlinkedFileCopy = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, true);
+			verify(unlinkedFileCopy, FileHandleStatus.ARCHIVED, null, true);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedWithAvailableCopy() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		String fileKey = uploadFile("key_0", true);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		// Available file modified before the time window, copy of the previous one
+		Long availableFileCopy = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, fileKey).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, false); // The s3 object is not tagged as a copy is still available
+			verify(availableFileCopy, FileHandleStatus.AVAILABLE, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedWithAvailableCopyAfterTimeWindow() throws Exception {
+		
+		Instant now = Instant.now();
+		Instant modifiedOn = now.minus(31, ChronoUnit.DAYS);
+		
+		String fileKey = uploadFile("key_0", true);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		// Available file modified after the time window, copy of the previous one
+		Long availableFileCopy = createDBOFile(bucket, now, FileHandleStatus.AVAILABLE, fileKey).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, false); // The s3 object is not tagged as a copy is still available
+			verify(availableFileCopy, FileHandleStatus.AVAILABLE, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedWithUnlinkedCopyAfterTimeWindow() throws Exception {
+		
+		Instant now = Instant.now();
+		Instant modifiedOn = now.minus(31, ChronoUnit.DAYS);
+		
+		String fileKey = uploadFile("key_0", true);
+		
+		// Unlinked file modified before the time window
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		// Unlinked file modified after the time window, copy of the previous one
+		Long unlinkedFileCopy = createDBOFile(bucket, now, FileHandleStatus.UNLINKED, fileKey).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, false); // The s3 object is not tagged as a copy is unlinked but now within the time window
+			verify(unlinkedFileCopy, FileHandleStatus.UNLINKED, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedUnderSizeThreshold() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		// Unlinked file modified before the time window under the size threshold for tagging
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD - 1, false, null).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, false);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedNotExisting() throws Exception {
+		
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		// Unlinked file modified before the time window under the size threshold for tagging
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", false)).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			assertFalse(fileHandleDao.doesExist(unlinkedFile.toString()));
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedAndPreview() throws Exception {
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		Long preview = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_0_preview", true), 123L, true, null).getId();
+		
+		// Unlinked file modified before the time window with a preview
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			// The preview was deleted as unused
+			assertFalse(fileHandleDao.doesExist(preview.toString()));
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, true);
+		});
+	}
+	
+	@Test
+	public void testArchivalRequestWithUnlinkedAndLinkedPreview() throws Exception {
+		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
+		
+		Long preview = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("preview", true), 123L, true, null).getId();
+		
+		// Unlinked file modified before the time window with a preview
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		
+		// Available file modified before the time window with same preview
+		Long availableFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_1", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		
+		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, request, (FileHandleArchivalResponse response) -> {
+			assertEquals(1L, response.getCount());
+		}, MAX_WAIT_MS);
+		
+		verifyAsynch(() -> {
+			// The preview is still available as it is used by another file handle
+			verify(preview, FileHandleStatus.AVAILABLE, null, false);
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, true);
+			verify(availableFile, FileHandleStatus.AVAILABLE, preview, false);
+		});
+	}
+	
+	private void verifyAsynch(Runnable runnable) throws Exception {
+		TimeUtils.waitFor(MAX_WAIT_MS, 500, () -> {
 			try {
-				verify(key0File1, FileHandleStatus.UNLINKED, null, false);
-				verify(key0File2, FileHandleStatus.AVAILABLE, null, false);
-				verify(key3File1, FileHandleStatus.AVAILABLE, null, false);
-				verify(key1File1, FileHandleStatus.ARCHIVED, null, true);
-				verify(key1File2, FileHandleStatus.ARCHIVED, null, true);
-				assertFalse(fileHandleDao.doesExist(key1PreviewId.toString()));
-				verify(key2File1, FileHandleStatus.ARCHIVED, null, true);
-				verify(key2PreviewId, FileHandleStatus.AVAILABLE, null, false);
-				verify(key3File2, FileHandleStatus.ARCHIVED, null, false);
-				verify(key4File1, FileHandleStatus.AVAILABLE, null, false);
-				verify(key5File1, FileHandleStatus.ARCHIVED, null, false);
-				assertFalse(fileHandleDao.doesExist(key7File1.toString()));
-				verify(key8File1, FileHandleStatus.ARCHIVED, null, false);
-				verify(key2File2, FileHandleStatus.ARCHIVED, null, true);
-				verify(key6File1, FileHandleStatus.AVAILABLE, key2PreviewId, false);
-				verify(key5File2, FileHandleStatus.AVAILABLE, null, false);
+				runnable.run();
 			} catch (AssertionFailedError assertion) {
 				assertion.printStackTrace();
 				return new Pair<Boolean, Void>(false, null);
@@ -180,7 +379,17 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		assertEquals(status, handle.getStatus());
 		assertEquals(handle.getPreviewId(), previewId == null ? null : previewId.toString());
 		
-		List<Tag> tags = s3Client.getObjectTags(bucket, handle.getKey());
+		
+		List<Tag> tags;
+		
+		try {
+			tags = s3Client.getObjectTags(handle.getBucketName(), handle.getKey());
+		} catch (CannotDetermineBucketLocationException ex) {
+			if (!tagged) { // If the bucket does not exists and the object wasn't supposed to be tagged then it's fine
+				return;
+			}
+			throw ex;
+		}
 		
 		if (tagged && !tags.stream().filter(t->t.equals(S3_TAG_ARCHIVED)).findFirst().isPresent()) {
 			fail("The file handle with key " + handle.getKey() + " was not tagged");
