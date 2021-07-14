@@ -4,7 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * This matches &ltgrouping column reference list&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * This matches &ltgrouping column reference list&gt in:
+ * <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class GroupingColumnReferenceList extends SQLElement {
 
@@ -14,12 +15,12 @@ public class GroupingColumnReferenceList extends SQLElement {
 		super();
 		this.groupingColumnReferences = new LinkedList<GroupingColumnReference>();
 	}
-	
+
 	public GroupingColumnReferenceList(List<GroupingColumnReference> list) {
 		this.groupingColumnReferences = list;
 	}
 
-	public void addGroupingColumnReference(GroupingColumnReference groupingColumnReference){
+	public void addGroupingColumnReference(GroupingColumnReference groupingColumnReference) {
 		this.groupingColumnReferences.add(groupingColumnReference);
 	}
 
@@ -30,8 +31,8 @@ public class GroupingColumnReferenceList extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean first = true;
-		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
-			if(!first){
+		for (GroupingColumnReference groupingColumnReference : groupingColumnReferences) {
+			if (!first) {
 				builder.append(", ");
 			}
 			groupingColumnReference.toSql(builder, parameters);
@@ -41,8 +42,14 @@ public class GroupingColumnReferenceList extends SQLElement {
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
+		for (GroupingColumnReference groupingColumnReference : groupingColumnReferences) {
 			checkElement(elements, type, groupingColumnReference);
 		}
 	}
+
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(groupingColumnReferences);
+	}
+
 }

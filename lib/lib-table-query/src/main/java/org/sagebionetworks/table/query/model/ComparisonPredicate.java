@@ -44,6 +44,11 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, rowValueConstructorRHS);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columnReferenceLHS, rowValueConstructorRHS);
+	}
 
 	@Override
 	public ColumnReference getLeftHandSide() {

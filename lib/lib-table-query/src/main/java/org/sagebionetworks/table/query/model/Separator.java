@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,4 +31,8 @@ public class Separator extends SQLElement {
 		checkElement(elements, type, separatorValue);
 	}
 
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(separatorValue);
+	}
 }

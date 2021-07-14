@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,5 +32,10 @@ public class Factor extends SQLElement {
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, numericPrimary);
+	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(numericPrimary);
 	}
 }

@@ -540,7 +540,7 @@ public class SQLTranslatorUtils {
 
 		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
 				.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName) );
-
+		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 		if(rightHandSide != null){

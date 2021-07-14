@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -42,4 +43,10 @@ public class ColumnReference extends SQLElement {
 		checkElement(elements, type, nameLHS);
 		checkElement(elements, type, nameRHS);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(nameLHS, nameRHS);
+	}
+	
 }

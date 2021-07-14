@@ -48,6 +48,11 @@ public class ArrayFunctionSpecification extends SQLElement implements HasFunctio
 	}
 
 	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columnReference);
+	}
+
+	@Override
 	public FunctionReturnType getFunctionReturnType() {
 		return this.listFunctionType.getFunctionReturnType();
 	}

@@ -27,4 +27,8 @@ public class CharacterFactor extends SQLElement {
 		checkElement(elements, type, characterPrimary);
 	}
 	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(characterPrimary);
+	}
 }

@@ -54,4 +54,10 @@ public class BooleanTest extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, booleanPrimary);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(booleanPrimary);
+	}
+	
 }

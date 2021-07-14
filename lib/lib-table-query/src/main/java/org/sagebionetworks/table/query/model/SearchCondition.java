@@ -45,4 +45,10 @@ public class SearchCondition extends SQLElement {
 			checkElement(elements, type, booleanTerm);
 		}
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(orBooleanTerms);
+	}
+	
 }

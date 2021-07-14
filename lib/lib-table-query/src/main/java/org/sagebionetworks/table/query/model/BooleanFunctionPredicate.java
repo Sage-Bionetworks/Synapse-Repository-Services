@@ -34,6 +34,11 @@ public class BooleanFunctionPredicate extends SQLElement implements HasPredicate
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, columnReference);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columnReference);
+	}
 
 	@Override
 	public ColumnReference getLeftHandSide() {

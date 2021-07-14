@@ -1,13 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Unlike most SQLElements, pagination is not defined in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a> *
  */
-public class Pagination extends SQLElement {
+public class Pagination extends LeafElement {
 
 	String limit;
 	String offset;
@@ -72,10 +70,5 @@ public class Pagination extends SQLElement {
 			builder.append(" OFFSET ");
 			builder.append(offset.toString());
 		}
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this element does not contain any SQLElements
 	}
 }

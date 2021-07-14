@@ -34,4 +34,9 @@ public class SortSpecification extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, sortKey);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(sortKey);
+	}
 }

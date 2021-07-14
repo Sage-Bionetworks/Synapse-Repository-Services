@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 /**
  * This matches &ltselect list&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
@@ -50,5 +52,10 @@ public class SelectList extends SQLElement {
 				checkElement(elements, type, dc);
 			}
 		}
+	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columns);
 	}
 }

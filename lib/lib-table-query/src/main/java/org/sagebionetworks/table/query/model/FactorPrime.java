@@ -35,5 +35,10 @@ public class FactorPrime extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, factor);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(factor);
+	}
 
 }

@@ -44,4 +44,9 @@ public class BooleanTerm extends SQLElement {
 			checkElement(elements, type, booleanFactor);
 		}
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(andBooleanFactors);
+	}
 }

@@ -82,6 +82,11 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 		checkElement(elements, type, orderByClause);
 		checkElement(elements, type, separator);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(valueExpression, orderByClause, separator);
+	}
 
 	@Override
 	public boolean isElementAggregate() {

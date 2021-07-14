@@ -47,4 +47,9 @@ public abstract class SimpleBranch extends SQLElement implements HasReplaceableC
 		checkElement(elements, type, child);
 	}
 
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(child);
+	}
+
 }

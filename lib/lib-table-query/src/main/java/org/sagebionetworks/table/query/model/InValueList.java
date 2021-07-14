@@ -4,13 +4,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * This matches &ltin value list&gt  in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * This matches &ltin value list&gt in:
+ * <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class InValueList extends SQLElement {
 
 	List<ValueExpression> valueExpressions;
 
-	
 	public InValueList() {
 		this.valueExpressions = new LinkedList<ValueExpression>();
 	}
@@ -19,10 +19,10 @@ public class InValueList extends SQLElement {
 		this.valueExpressions = list;
 	}
 
-	public void addValueExpression(ValueExpression valueExpression){
+	public void addValueExpression(ValueExpression valueExpression) {
 		this.valueExpressions.add(valueExpression);
 	}
-	
+
 	public List<ValueExpression> getValueExpressions() {
 		return valueExpressions;
 	}
@@ -30,8 +30,8 @@ public class InValueList extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean first = true;
-		for(ValueExpression valueExpression: valueExpressions){
-			if(!first){
+		for (ValueExpression valueExpression : valueExpressions) {
+			if (!first) {
 				builder.append(", ");
 			}
 			valueExpression.toSql(builder, parameters);
@@ -41,8 +41,13 @@ public class InValueList extends SQLElement {
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for(ValueExpression valueExpression: valueExpressions){
+		for (ValueExpression valueExpression : valueExpressions) {
 			checkElement(elements, type, valueExpression);
 		}
+	}
+
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(valueExpressions);
 	}
 }

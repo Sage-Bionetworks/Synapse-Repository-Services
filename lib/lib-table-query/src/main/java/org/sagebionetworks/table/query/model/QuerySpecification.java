@@ -57,6 +57,11 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 		checkElement(elements, type, selectList);
 		checkElement(elements, type, tableExpression);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(selectList, tableExpression);
+	}
 
 	@Override
 	public boolean isElementAggregate() {

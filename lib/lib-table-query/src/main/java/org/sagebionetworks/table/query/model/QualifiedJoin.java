@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.lang.reflect.Constructor;
 import java.util.List;
 
 /**
@@ -46,6 +45,11 @@ public class QualifiedJoin extends SQLElement{
 		checkElement(elements, type, tableReferenceLHS);
 		checkElement(elements, type, tableReferenceRHS);
 		checkElement(elements, type, joinCondition);
+	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(tableReferenceLHS,tableReferenceRHS, joinCondition);
 	}
 
 }

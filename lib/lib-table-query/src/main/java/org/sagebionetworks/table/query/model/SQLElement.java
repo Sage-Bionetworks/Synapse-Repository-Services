@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,10 +53,28 @@ public abstract class SQLElement implements Element {
 	/**
 	 * Create an iterator to iterate over all elements of the given type.
 	 */
-	public <T extends Element> Iterable<T> createIterable(Class<T> type){
+	public <T extends Element> Iterable<T> createIterable(Class<T> type) {
 		LinkedList<T> list = new LinkedList<T>();
-		checkElement(list, type, this);
+		SQLElement.addRecurisve(list, type, this);
 		return list;
+	}
+	
+	/**
+	 * Helper to recursively add all elements from this tree that are of the given
+	 * type to the provided list.
+	 * 
+	 * @param <T>
+	 * @param list
+	 * @param type
+	 * @param element
+	 */
+	static <T extends Element> void addRecurisve(List<T> list, Class<T> type, Element element) {
+		if (type.isInstance(element)) {
+			list.add(type.cast(element));
+		}
+		for (Element child : element.children()) {
+			addRecurisve(list, type, child);
+		}
 	}
 	
 	/**
@@ -168,6 +187,40 @@ public abstract class SQLElement implements Element {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Helper to build a children Iterable
+	 * @param children
+	 * @return
+	 */
+	static Iterable<Element> buildChildren(Element...children){
+		if(children == null || children.length < 1) {
+			return Collections.emptyList();
+		}else if(children.length == 1 && children[0] != null) {
+			return Collections.singleton(children[0]);
+		}else {
+			List<Element> list = new LinkedList<>();
+			for(Element child: children) {
+				if(child != null) {
+					list.add(child);
+				}
+			}
+			return list;
+		}
+	}
+	
+	/**
+	 * Helper to build a children Iterable.
+	 * @param children
+	 * @return
+	 */
+	static <T extends Element> Iterable<Element> buildChildren(List<T> children){
+		if(children == null || children.isEmpty()) {
+			return Collections.emptyList();
+		}else {
+			return new LinkedList<>(children);
+		}
 	}
 	
 }

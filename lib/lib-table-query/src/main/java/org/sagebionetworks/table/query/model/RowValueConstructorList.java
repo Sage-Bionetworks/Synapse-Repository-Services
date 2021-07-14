@@ -44,4 +44,9 @@ public class RowValueConstructorList extends SQLElement {
 			checkElement(elements, type, element);
 		}
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(rowValueConstructorElements);
+	}
 }

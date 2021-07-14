@@ -28,4 +28,8 @@ public class Identifier extends SQLElement {
 		checkElement(elements, type, actualIdentifier);
 	}
 	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(actualIdentifier);
+	}
 }

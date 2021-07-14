@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -29,4 +30,10 @@ public class GroupByClause extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, groupingColumnReferenceList);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(groupingColumnReferenceList);
+	}
+	
 }

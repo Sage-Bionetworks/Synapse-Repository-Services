@@ -28,4 +28,9 @@ public class WhereClause extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, searchCondition);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(searchCondition);
+	}
 }

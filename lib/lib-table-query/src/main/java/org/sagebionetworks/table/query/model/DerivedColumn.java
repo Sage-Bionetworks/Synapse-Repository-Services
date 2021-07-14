@@ -39,6 +39,11 @@ public class DerivedColumn extends SQLElement {
 		checkElement(elements, type, valueExpression);
 	}
 
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(asClause, valueExpression);
+	}
+	
 	/**
 	 * This is the name that should be shown for this column in a query
 	 * results.  For example, if an alias is given to a column in the select

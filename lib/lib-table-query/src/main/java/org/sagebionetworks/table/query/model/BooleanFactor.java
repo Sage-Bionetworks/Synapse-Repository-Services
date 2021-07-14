@@ -34,4 +34,10 @@ public class BooleanFactor extends SQLElement {
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, booleanTest);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(booleanTest);
+	}
+	
 }

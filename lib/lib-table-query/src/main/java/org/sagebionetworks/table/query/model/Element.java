@@ -45,4 +45,11 @@ public interface Element {
 	 * @return
 	 */
 	public <T extends Element> T getFirstElementOfType(Class<T> type);
+	
+	/**
+	 * Iterate over the direct (non-recursive) children of this element.
+	 * @return
+	 */
+	public Iterable<Element> children();
+	
 }

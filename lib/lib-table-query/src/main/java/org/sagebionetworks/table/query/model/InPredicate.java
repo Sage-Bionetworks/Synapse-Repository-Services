@@ -48,6 +48,11 @@ public class InPredicate extends SQLElement implements HasPredicate {
 		checkElement(elements, type, columnReferenceLHS);
 		checkElement(elements, type, inPredicateValue);
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columnReferenceLHS, inPredicateValue);
+	}
 
 	@Override
 	public ColumnReference getLeftHandSide() {

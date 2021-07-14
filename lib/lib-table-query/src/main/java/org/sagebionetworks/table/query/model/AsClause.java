@@ -29,4 +29,8 @@ public class AsClause extends SQLElement {
 		checkElement(elements, type, columnName);
 	}
 	
+	@Override
+	public Iterable<Element> children() {
+		return SQLElement.buildChildren(columnName);
+	}
 }

@@ -49,4 +49,12 @@ public class Term extends SQLElement {
 			checkElement(elements, type, prime);
 		}
 	}
+	
+	@Override
+	public Iterable<Element> children() {
+		LinkedList<Element> list = new LinkedList<Element>();
+		list.add(factor);
+		list.addAll(primeList);
+		return list;
+	}
 }
