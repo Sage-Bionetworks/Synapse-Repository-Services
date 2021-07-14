@@ -42,15 +42,6 @@ public abstract class SQLElement implements Element {
 	}
 	
 	/**
-	 * Used to build element Iterators.
-	 * Each element should recursively add all SQLElements of the given type
-	 * to the passed set.
-	 * @param elements
-	 * @param type
-	 */
-	abstract <T extends Element> void addElements(List<T> elements, Class<T> type);
-	
-	/**
 	 * Create an iterator to iterate over all elements of the given type.
 	 */
 	public <T extends Element> Iterable<T> createIterable(Class<T> type) {
@@ -100,21 +91,6 @@ public abstract class SQLElement implements Element {
 		}
 	}
 	
-	/**
-	 * Test a SQLElement to determine if it should be added to the elements.
-	 * @param elements
-	 * @param type
-	 * @param element
-	 */
-	public <T extends Element> void checkElement(List<T> elements, Class<T> type, SQLElement element){
-		if(element != null){
-			if(type.isInstance(element)){
-				elements.add(type.cast(element));
-			}
-			element.addElements(elements, type);
-		}
-	}
-
 	/**
 	 * Does this tree have any aggregate elements? This method will do a
 	 * recursive walk of the tree and return true if any element in the tree is

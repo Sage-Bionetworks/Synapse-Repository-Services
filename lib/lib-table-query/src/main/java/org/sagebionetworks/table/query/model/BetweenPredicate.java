@@ -52,13 +52,6 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReferenceLHS);
-		checkElement(elements, type, betweenRowValueConstructor);
-		checkElement(elements, type, andRowValueConstructorRHS);
-	}
-
-	@Override
 	public Iterable<Element> children() {
 		return SQLElement.buildChildren(columnReferenceLHS, betweenRowValueConstructor, andRowValueConstructorRHS);
 	}

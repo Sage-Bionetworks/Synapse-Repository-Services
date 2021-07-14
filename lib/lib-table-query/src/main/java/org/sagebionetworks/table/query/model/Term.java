@@ -43,14 +43,6 @@ public class Term extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, factor);
-		for(FactorPrime prime: primeList){
-			checkElement(elements, type, prime);
-		}
-	}
-	
-	@Override
 	public Iterable<Element> children() {
 		LinkedList<Element> list = new LinkedList<Element>();
 		list.add(factor);

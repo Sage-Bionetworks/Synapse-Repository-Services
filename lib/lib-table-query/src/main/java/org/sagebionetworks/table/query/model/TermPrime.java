@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * TermPrime ::= {@link ArithmeticOperator} {@link Term}
  * <p>
@@ -30,11 +28,6 @@ public class TermPrime extends SQLElement {
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(operator.toSQL());
 		term.toSql(builder, parameters);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, term);
 	}
 
 	@Override

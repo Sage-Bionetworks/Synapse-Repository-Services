@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * Custom "HAS" predicate for searching multi-value columns.
  *
@@ -53,12 +51,6 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 		builder.append(" ( ");
 		inPredicateValue.toSql(builder, parameters);
 		builder.append(" )");
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReferenceLHS);
-		checkElement(elements, type, inPredicateValue);
 	}
 	
 	@Override

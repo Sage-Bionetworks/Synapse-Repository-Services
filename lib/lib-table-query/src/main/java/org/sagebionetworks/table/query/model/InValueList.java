@@ -40,13 +40,6 @@ public class InValueList extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for (ValueExpression valueExpression : valueExpressions) {
-			checkElement(elements, type, valueExpression);
-		}
-	}
-
-	@Override
 	public Iterable<Element> children() {
 		return SQLElement.buildChildren(valueExpressions);
 	}

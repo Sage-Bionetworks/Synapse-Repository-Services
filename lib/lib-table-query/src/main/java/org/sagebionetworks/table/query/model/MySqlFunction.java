@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,14 +35,6 @@ public class MySqlFunction extends SQLElement implements HasFunctionReturnType {
 		}
 	}
 
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		if(parameterValues != null){
-			for(ValueExpression param: parameterValues){
-				checkElement(elements, type, param);
-			}
-		}
-	}
 	
 	@Override
 	public Iterable<Element> children() {

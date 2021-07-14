@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * Custom functions that operate on multi-value columns.
  * Does not match anything in the SQL-92 specification.
@@ -40,11 +38,6 @@ public class ArrayFunctionSpecification extends SQLElement implements HasFunctio
 				.append("(");
 		columnReference.toSql(builder, parameters);
 		builder.append(")");
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReference);
 	}
 
 	@Override

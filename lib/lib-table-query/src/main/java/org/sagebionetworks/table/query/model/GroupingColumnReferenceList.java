@@ -41,13 +41,6 @@ public class GroupingColumnReferenceList extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for (GroupingColumnReference groupingColumnReference : groupingColumnReferences) {
-			checkElement(elements, type, groupingColumnReference);
-		}
-	}
-
-	@Override
 	public Iterable<Element> children() {
 		return SQLElement.buildChildren(groupingColumnReferences);
 	}

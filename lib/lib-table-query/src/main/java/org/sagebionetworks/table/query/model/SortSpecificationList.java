@@ -38,13 +38,6 @@ public class SortSpecificationList extends SQLElement {
 			first = false;
 		}
 	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for(SortSpecification sortSpecification: sortSpecifications){
-			checkElement(elements, type, sortSpecification);
-		}
-	}
 	
 	@Override
 	public Iterable<Element> children() {

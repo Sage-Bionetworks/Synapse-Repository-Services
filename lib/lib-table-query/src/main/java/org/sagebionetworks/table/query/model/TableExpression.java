@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * This matches &lttable expression&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -60,15 +58,6 @@ public class TableExpression extends SQLElement implements HasAggregate {
 			builder.append(" ");
 			pagination.toSql(builder, parameters);
 		}
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, fromClause);
-		checkElement(elements, type, whereClause);
-		checkElement(elements, type, groupByClause);
-		checkElement(elements, type, orderByClause);
-		checkElement(elements, type, pagination);
 	}
 	
 	@Override

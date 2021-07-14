@@ -39,13 +39,6 @@ public class RowValueConstructorList extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for(RowValueConstructorElement element: rowValueConstructorElements){
-			checkElement(elements, type, element);
-		}
-	}
-	
-	@Override
 	public Iterable<Element> children() {
 		return SQLElement.buildChildren(rowValueConstructorElements);
 	}
