@@ -65,7 +65,7 @@ public abstract class SQLElement implements Element {
 		if (type.isInstance(element)) {
 			list.add(type.cast(element));
 		}
-		for (Element child : element.children()) {
+		for (Element child : element.getChildren()) {
 			addRecurisve(list, type, child);
 		}
 	}
@@ -218,7 +218,7 @@ public abstract class SQLElement implements Element {
 	 * Recursively set the parent element for all elements in this tree.
 	 */
 	public void recursiveSetParent() {
-		for(Element child: children()) {
+		for(Element child: getChildren()) {
 			SQLElement sqlChild = (SQLElement) child;
 			sqlChild.setParent(this);
 			sqlChild.recursiveSetParent();

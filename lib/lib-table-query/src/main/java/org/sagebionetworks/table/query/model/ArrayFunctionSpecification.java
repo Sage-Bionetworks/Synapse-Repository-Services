@@ -41,7 +41,7 @@ public class ArrayFunctionSpecification extends SQLElement implements HasFunctio
 	}
 
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(columnReference);
 	}
 

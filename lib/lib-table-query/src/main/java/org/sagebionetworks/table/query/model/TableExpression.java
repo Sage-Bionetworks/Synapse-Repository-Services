@@ -61,7 +61,7 @@ public class TableExpression extends SQLElement implements HasAggregate {
 	}
 	
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(fromClause, whereClause, groupByClause, orderByClause, pagination);
 	}
 

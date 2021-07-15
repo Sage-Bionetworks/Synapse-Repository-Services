@@ -42,7 +42,7 @@ public class NumericValueExpression extends SQLElement {
 	}
 	
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		LinkedList<Element> list = new LinkedList<Element>();
 		list.add(term);
 		list.addAll(primeList);

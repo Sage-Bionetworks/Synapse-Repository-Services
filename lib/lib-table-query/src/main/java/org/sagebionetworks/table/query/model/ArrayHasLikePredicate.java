@@ -49,7 +49,7 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 	}
 		
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(columnReferenceLHS, inPredicateValue, escapeCharacter);
 	}
 	

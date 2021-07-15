@@ -37,7 +37,7 @@ public class MySqlFunction extends SQLElement implements HasFunctionReturnType {
 
 	
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(parameterValues);
 	}
 

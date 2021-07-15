@@ -36,7 +36,7 @@ public class ColumnReference extends SQLElement {
 	}
 	
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(nameLHS, nameRHS);
 	}
 	

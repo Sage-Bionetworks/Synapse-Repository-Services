@@ -39,8 +39,12 @@ public class BooleanPrimary extends SQLElement {
 	}
 
 	@Override
-	public Iterable<Element> children() {
-		return SQLElement.buildChildren(predicate, searchCondition);
+	public Iterable<Element> getChildren() {
+		if(predicate != null) {
+			return SQLElement.buildChildren(predicate);
+		}else {
+			return SQLElement.buildChildren(searchCondition);
+		}
 	}
 
 	/**

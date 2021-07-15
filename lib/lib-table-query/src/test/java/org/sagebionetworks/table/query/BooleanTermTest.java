@@ -1,10 +1,10 @@
 package org.sagebionetworks.table.query;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.junit.Assert.assertEquals;
-
+import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -37,5 +37,11 @@ public class BooleanTermTest {
 		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=1", "bar=2");
 		BooleanTerm element = new BooleanTerm(list);
 		assertEquals("foo = 1 AND bar = 2", element.toString());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		BooleanTerm element = new TableQueryParser("foo=1 and bar=2").booleanTerm();
+		assertEquals(new LinkedList<>(element.getAndBooleanFactors()), element.getChildren());
 	}
 }

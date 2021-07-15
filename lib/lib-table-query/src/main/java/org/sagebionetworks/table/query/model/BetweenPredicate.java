@@ -52,7 +52,7 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(columnReferenceLHS, betweenRowValueConstructor, andRowValueConstructorRHS);
 	}
 

@@ -43,7 +43,7 @@ public class Term extends SQLElement {
 	}
 
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		LinkedList<Element> list = new LinkedList<Element>();
 		list.add(factor);
 		list.addAll(primeList);

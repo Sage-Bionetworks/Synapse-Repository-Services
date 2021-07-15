@@ -5,7 +5,7 @@ import java.util.Collections;
 public abstract class LeafElement extends SQLElement {
 
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return Collections.emptyList();
 	}
 }

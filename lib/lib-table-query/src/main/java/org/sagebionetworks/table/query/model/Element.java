@@ -54,7 +54,7 @@ public interface Element {
 	 * 
 	 * @return
 	 */
-	public Iterable<Element> children();
+	public Iterable<Element> getChildren();
 
 	/**
 	 * Get the parent of this element.

@@ -39,7 +39,7 @@ public class QualifiedJoin extends SQLElement{
 	}
 	
 	@Override
-	public Iterable<Element> children() {
+	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(tableReferenceLHS,tableReferenceRHS, joinCondition);
 	}
 
