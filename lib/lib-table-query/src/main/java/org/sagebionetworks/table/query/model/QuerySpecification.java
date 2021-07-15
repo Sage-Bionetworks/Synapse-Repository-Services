@@ -14,6 +14,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 		this.setQuantifier = setQuantifier;
 		this.selectList = selectList;
 		this.tableExpression = tableExpression;
+		this.recursiveSetParent();
 	}
 
 	public SetQuantifier getSetQuantifier() {

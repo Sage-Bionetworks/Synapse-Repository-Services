@@ -10,6 +10,8 @@ import java.util.List;
  *
  */
 public abstract class SQLElement implements Element {
+	
+	Element parent;
 		
 	/**
 	 * Each element should override to build the SQL string.
@@ -42,7 +44,7 @@ public abstract class SQLElement implements Element {
 	}
 	
 	/**
-	 * Create an iterator to iterate over all elements of the given type.
+	 * Create an iterator to recursively iterate over all elements of the given type.
 	 */
 	public <T extends Element> Iterable<T> createIterable(Class<T> type) {
 		LinkedList<T> list = new LinkedList<T>();
@@ -198,5 +200,42 @@ public abstract class SQLElement implements Element {
 			return new LinkedList<>(children);
 		}
 	}
+	
+	@Override
+	public Element getParent() {
+		return this.parent;
+	}
+	
+	/**
+	 * Set the parent of this element.
+	 * @param parent
+	 */
+	void setParent(Element parent) {
+		this.parent = parent;
+	}
+	
+	/**
+	 * Recursively set the parent element for all elements in this tree.
+	 */
+	public void recursiveSetParent() {
+		for(Element child: children()) {
+			SQLElement sqlChild = (SQLElement) child;
+			sqlChild.setParent(this);
+			sqlChild.recursiveSetParent();
+		}
+	}
+
+	@Override
+	public <T extends Element> boolean isInContext(Class<T> type) {
+		if(this.parent == null) {
+			return false;
+		}
+		if(type.isInstance(this.parent)) {
+			return true;
+		}
+		return this.parent.isInContext(type);
+	}
+	
+	
 	
 }

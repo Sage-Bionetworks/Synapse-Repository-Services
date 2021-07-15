@@ -901,16 +901,12 @@ public class SQLQueryTest {
 
 		String sql = "select createdOn, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000 from syn123 where createdOn > UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000";
 
-		QuerySpecification root = TableQueryParser.parserQuery(sql);
-		ElementNode tree = ElementNode.build(root);
-		
 		SqlQuery query = new SqlQueryBuilder(sql, userId).tableSchema(schema).tableType(EntityType.table).build();
 		assertEquals(
-				"SELECT _C1_, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ > UNIX_TIMESTAMP(:b0)*:b1",
+				"SELECT _C1_, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ > UNIX_TIMESTAMP('2021-06-20 00:00:00')*:b0",
 				query.getOutputSQL());
 		Map<String, Object> expectedParams = new HashMap<>(4);
-		expectedParams.put("b0", "2021-06-20 00:00:00");
-		expectedParams.put("b1", 1000L);
+		expectedParams.put("b0", 1000L);
 		assertEquals(expectedParams, query.getParameters());
 	}
 

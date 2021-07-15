@@ -62,6 +62,7 @@ import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
@@ -601,6 +602,10 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(parameters, "parameters");
 		if(element.getFirstElementOfType(IntervalLiteral.class) != null){
 			// intervals should not be replaced.
+			return;
+		}
+		if(element.isInContext(MySqlFunction.class)) {
+			// mysql parameters should not be replaced.
 			return;
 		}
 		
