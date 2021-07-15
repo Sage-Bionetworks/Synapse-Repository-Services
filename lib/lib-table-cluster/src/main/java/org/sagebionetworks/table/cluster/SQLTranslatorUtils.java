@@ -604,6 +604,7 @@ public class SQLTranslatorUtils {
 			// intervals should not be replaced.
 			return;
 		}
+		// Fix for PLFM-6819. 
 		if(element.isInContext(MySqlFunction.class)) {
 			// mysql parameters should not be replaced.
 			return;
