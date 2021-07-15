@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -10,7 +8,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * an UnsignedNumericLiteral
  *
  */
-public class StringOverride extends SQLElement {
+public class StringOverride extends LeafElement {
 	
 	String stringValue;
 	
@@ -26,11 +24,6 @@ public class StringOverride extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(stringValue);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf element.
 	}
 
 }

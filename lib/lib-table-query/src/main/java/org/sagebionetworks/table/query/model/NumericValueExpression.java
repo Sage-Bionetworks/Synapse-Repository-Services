@@ -40,12 +40,13 @@ public class NumericValueExpression extends SQLElement {
 			prime.toSql(builder, parameters);
 		}
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, term);
-		for(TermPrime prime: primeList){
-			checkElement(elements, type, prime);
-		}
+	public Iterable<Element> getChildren() {
+		LinkedList<Element> list = new LinkedList<Element>();
+		list.add(term);
+		list.addAll(primeList);
+		return list;
 	}
+	
 }

@@ -62,6 +62,7 @@ import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
@@ -540,7 +541,7 @@ public class SQLTranslatorUtils {
 
 		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
 				.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName) );
-
+		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 		if(rightHandSide != null){
@@ -601,6 +602,11 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(parameters, "parameters");
 		if(element.getFirstElementOfType(IntervalLiteral.class) != null){
 			// intervals should not be replaced.
+			return;
+		}
+		// Fix for PLFM-6819. 
+		if(element.isInContext(MySqlFunction.class)) {
+			// mysql parameters should not be replaced.
 			return;
 		}
 		

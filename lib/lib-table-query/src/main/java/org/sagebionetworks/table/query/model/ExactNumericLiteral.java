@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * ExactNumericLiteral can be a Java Long or Double
  *
  */
-public class ExactNumericLiteral extends SQLElement {
+public class ExactNumericLiteral extends LeafElement {
 	
 	Long longValue;
 	Double doubleValue;
@@ -30,9 +28,5 @@ public class ExactNumericLiteral extends SQLElement {
 		}
 	}
 
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// no sub-elements.
-	}
 
 }

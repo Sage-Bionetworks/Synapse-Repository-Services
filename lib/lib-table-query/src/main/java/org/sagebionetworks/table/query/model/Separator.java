@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * SQLElement representing: 'SEPARATOR &ltcharacter_string_literal&gt'
  *
@@ -26,8 +24,7 @@ public class Separator extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, separatorValue);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(separatorValue);
 	}
-
 }

@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-public class RegularIdentifier extends SQLElement {
+public class RegularIdentifier extends LeafElement {
 
 	private String regularIdentifier;
 	
@@ -14,11 +12,6 @@ public class RegularIdentifier extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(regularIdentifier);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf element.
 	}
 
 }

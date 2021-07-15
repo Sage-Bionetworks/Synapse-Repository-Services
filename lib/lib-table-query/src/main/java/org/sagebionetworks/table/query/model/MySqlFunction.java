@@ -35,13 +35,10 @@ public class MySqlFunction extends SQLElement implements HasFunctionReturnType {
 		}
 	}
 
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		if(parameterValues != null){
-			for(ValueExpression param: parameterValues){
-				checkElement(elements, type, param);
-			}
-		}
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(parameterValues);
 	}
 
 	/**

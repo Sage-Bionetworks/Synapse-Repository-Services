@@ -1,13 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * 
  * IntervalLiteral ::= INTERVAL {@link UnsignedInteger} {@link DatetimeField}
  *
  */
-public class IntervalLiteral extends SQLElement {
+public class IntervalLiteral extends LeafElement {
 
 	UnsignedInteger unsignedInteger;
 	DatetimeField datetimeField;
@@ -25,11 +23,6 @@ public class IntervalLiteral extends SQLElement {
 		unsignedInteger.toSql(builder, parameters);
 		builder.append(" ");
 		builder.append(datetimeField.toString());
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf
 	}
 
 }

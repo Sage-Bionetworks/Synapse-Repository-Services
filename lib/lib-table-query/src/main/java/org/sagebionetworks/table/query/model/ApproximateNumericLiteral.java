@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-public class ApproximateNumericLiteral extends SQLElement {
+public class ApproximateNumericLiteral extends LeafElement {
 	
 	Double doubleValue;
 
@@ -14,11 +12,6 @@ public class ApproximateNumericLiteral extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(doubleValue);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// no sub-elements
 	}
 
 }

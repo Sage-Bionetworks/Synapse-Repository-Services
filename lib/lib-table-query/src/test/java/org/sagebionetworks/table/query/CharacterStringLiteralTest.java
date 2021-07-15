@@ -1,13 +1,17 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.base.Strings;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
+
+import com.google.common.base.Strings;
 
 public class CharacterStringLiteralTest {
 
@@ -45,6 +49,12 @@ public class CharacterStringLiteralTest {
 	public void testCharacterStringLiteralEmptyString() throws ParseException{
 		CharacterStringLiteral element = new TableQueryParser("''").characterStringLiteral();
 		assertEquals("", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		CharacterStringLiteral element = new TableQueryParser("'A string ''within a'' string.'").characterStringLiteral();
+		assertEquals(Collections.emptyList(), element.getChildren());
 	}
 
 }

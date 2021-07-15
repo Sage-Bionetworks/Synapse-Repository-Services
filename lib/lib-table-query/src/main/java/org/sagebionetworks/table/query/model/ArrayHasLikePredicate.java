@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
 import java.util.Collections;
-import java.util.List;
 
 import com.google.common.collect.Iterables;
 
@@ -48,11 +47,10 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 			escapeCharacter.toSql(builder, parameters);
 		}
 	}
-	
+		
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		super.addElements(elements, type);
-		checkElement(elements, type, escapeCharacter);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(columnReferenceLHS, inPredicateValue, escapeCharacter);
 	}
 	
 	@Override

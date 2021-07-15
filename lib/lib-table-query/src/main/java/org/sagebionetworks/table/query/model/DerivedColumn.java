@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-
 /**
  * This matches &ltderived column&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -34,11 +31,10 @@ public class DerivedColumn extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, asClause);
-		checkElement(elements, type, valueExpression);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(asClause, valueExpression);
 	}
-
+	
 	/**
 	 * This is the name that should be shown for this column in a query
 	 * results.  For example, if an alias is given to a column in the select

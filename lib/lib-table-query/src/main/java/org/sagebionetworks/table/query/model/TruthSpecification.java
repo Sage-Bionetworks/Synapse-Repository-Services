@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-public class TruthSpecification extends SQLElement {
+public class TruthSpecification extends LeafElement {
 	
 	private TruthValue truthValue;
 	
@@ -13,12 +11,6 @@ public class TruthSpecification extends SQLElement {
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(truthValue.name());
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

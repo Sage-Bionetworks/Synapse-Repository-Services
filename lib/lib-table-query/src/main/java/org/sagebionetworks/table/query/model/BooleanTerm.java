@@ -37,11 +37,9 @@ public class BooleanTerm extends SQLElement {
 			isFirst = false;
 		}
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for(BooleanFactor booleanFactor: andBooleanFactors){
-			checkElement(elements, type, booleanFactor);
-		}
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(andBooleanFactors);
 	}
 }

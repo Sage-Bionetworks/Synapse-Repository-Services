@@ -1,10 +1,13 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 
 public class ActualIdentifierTest {
@@ -42,5 +45,11 @@ public class ActualIdentifierTest {
 		ActualIdentifier element = new TableQueryParser("_foo_").actualIdentifier();
 		assertEquals("_foo_", element.toSqlWithoutQuotes());
 		assertFalse(element.hasQuotesRecursive());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		ActualIdentifier element = new TableQueryParser("_foo_").actualIdentifier();
+		assertEquals(Collections.singleton(element.getChild()), element.getChildren());
 	}
 }

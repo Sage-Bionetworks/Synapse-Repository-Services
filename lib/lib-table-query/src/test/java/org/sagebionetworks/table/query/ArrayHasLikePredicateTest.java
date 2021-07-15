@@ -1,14 +1,14 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ArrayHasLikePredicate;
@@ -75,5 +75,14 @@ public class ArrayHasLikePredicateTest {
 				.collect(Collectors.toList());
 		
 		assertEquals(expectedValues, values);
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3) escape '_'").predicate();
+		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
+		assertEquals(
+				Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue(), element.getEscapeCharacter()),
+				element.getChildren());
 	}
 }

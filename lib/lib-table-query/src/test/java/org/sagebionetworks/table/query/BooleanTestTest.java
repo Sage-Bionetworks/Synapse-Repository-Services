@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.TruthValue;
@@ -41,5 +43,11 @@ public class BooleanTestTest {
 		
 		BooleanTest element = new BooleanTest(booleanPrimary, is, not, truthValue);
 		assertEquals("foo > 1 IS NOT UNKNOWN", element.toString());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		BooleanTest element = new TableQueryParser("foo=1 is not true").booleanTest();
+		assertEquals(Collections.singleton(element.getBooleanPrimary()), element.getChildren());
 	}
 }
