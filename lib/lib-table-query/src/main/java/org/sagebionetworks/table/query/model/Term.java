@@ -27,6 +27,13 @@ public class Term extends SQLElement {
 	}
 	
 	/**
+	 * @return the primeList
+	 */
+	public List<FactorPrime> getPrimeList() {
+		return primeList;
+	}
+
+	/**
 	 * Add a new factor prime to this term.
 	 * @param prime
 	 */

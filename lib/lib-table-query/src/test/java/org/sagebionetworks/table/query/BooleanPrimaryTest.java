@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
@@ -30,12 +30,12 @@ public class BooleanPrimaryTest {
 	@Test
 	public void testGetChidrenWithPredicate() throws ParseException {
 		BooleanPrimary element = new TableQueryParser(" foo = 12").booleanPrimary();
-		assertEquals(Collections.singleton(element.getPredicate()), element.getChildren());
+		assertEquals(Arrays.asList(element.getPredicate()), element.getChildren());
 	}
 	
 	@Test
 	public void testGetChidrenWithSearchCondition() throws ParseException {
 		BooleanPrimary element = new TableQueryParser("( bar = 1)").booleanPrimary();
-		assertEquals(Collections.singleton(element.getSearchCondition()), element.getChildren());
+		assertEquals(Arrays.asList(element.getSearchCondition()), element.getChildren());
 	}
 }

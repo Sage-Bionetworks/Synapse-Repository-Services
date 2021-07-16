@@ -36,6 +36,20 @@ public class MySqlFunction extends SQLElement implements HasFunctionReturnType {
 	}
 
 	
+	/**
+	 * @return the parameterValues
+	 */
+	public List<ValueExpression> getParameterValues() {
+		return parameterValues;
+	}
+
+	/**
+	 * @param parameterValues the parameterValues to set
+	 */
+	public void setParameterValues(List<ValueExpression> parameterValues) {
+		this.parameterValues = parameterValues;
+	}
+
 	@Override
 	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(parameterValues);

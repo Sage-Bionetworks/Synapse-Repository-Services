@@ -8,7 +8,7 @@ import java.util.List;
  * <p>
  * The 'numeric value expression' element in the BNF is defined with
  * left-recursion. The left-recursion was eliminated by transforming the
- * right-hand-side to an optional list of TermFactor products.
+ * right-hand-side to an optional list of TermPrim products.
  *
  */
 public class NumericValueExpression extends SQLElement {
@@ -25,6 +25,13 @@ public class NumericValueExpression extends SQLElement {
 		return term;
 	}
 	
+	/**
+	 * @return the primeList
+	 */
+	public List<TermPrime> getPrimeList() {
+		return primeList;
+	}
+
 	/**
 	 * Add a new term prime to the list.
 	 * @param prime
