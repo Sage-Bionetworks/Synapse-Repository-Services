@@ -236,6 +236,4 @@ public abstract class SQLElement implements Element {
 		return this.parent.isInContext(type);
 	}
 	
-	
-	
 }
