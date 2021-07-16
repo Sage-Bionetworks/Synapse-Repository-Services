@@ -48,7 +48,7 @@ public abstract class SQLElement implements Element {
 	 */
 	public <T extends Element> Iterable<T> createIterable(Class<T> type) {
 		LinkedList<T> list = new LinkedList<T>();
-		SQLElement.addRecurisve(list, type, this);
+		SQLElement.addRecursive(list, type, this);
 		return list;
 	}
 	
@@ -61,12 +61,12 @@ public abstract class SQLElement implements Element {
 	 * @param type
 	 * @param element
 	 */
-	static <T extends Element> void addRecurisve(List<T> list, Class<T> type, Element element) {
+	static <T extends Element> void addRecursive(List<T> list, Class<T> type, Element element) {
 		if (type.isInstance(element)) {
 			list.add(type.cast(element));
 		}
 		for (Element child : element.getChildren()) {
-			addRecurisve(list, type, child);
+			addRecursive(list, type, child);
 		}
 	}
 	
@@ -193,11 +193,11 @@ public abstract class SQLElement implements Element {
 	 * @param children
 	 * @return
 	 */
-	static <T extends Element> Iterable<Element> buildChildren(List<T> children){
-		if(children == null || children.isEmpty()) {
+	static Iterable<Element> buildChildren(List<? extends Element> children){
+		if(children == null) {
 			return Collections.emptyList();
 		}else {
-			return new LinkedList<>(children);
+			return buildChildren(children.toArray(new Element[children.size()]));
 		}
 	}
 	
