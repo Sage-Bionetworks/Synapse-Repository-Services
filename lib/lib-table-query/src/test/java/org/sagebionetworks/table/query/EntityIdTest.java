@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.EntityId;
 
 public class EntityIdTest {
@@ -25,9 +28,11 @@ public class EntityIdTest {
 		assertEquals("syn123", value.toSql());
 	}
 
-	@Test(expected = ParseException.class)
+	@Test
 	public void testEntityIdNoDigits() throws ParseException {
-		new TableQueryParser("syn").entityId();
+		assertThrows(ParseException.class, ()->{
+			new TableQueryParser("syn").entityId();
+		});
 	}
 
 	@Test
@@ -42,8 +47,16 @@ public class EntityIdTest {
 		assertEquals("syn123", value.toSql());
 	}
 
-	@Test(expected = ParseException.class)
+	@Test
 	public void testIdAndVersionNoSyn() throws ParseException {
-		new TableQueryParser("123.456").entityId();
+		assertThrows(ParseException.class, ()->{
+			new TableQueryParser("123.456").entityId();
+		});
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException {
+		EntityId element = new TableQueryParser("syn123.").entityId();
+		assertEquals(Collections.emptyList(), element.getChildren());
 	}
 }

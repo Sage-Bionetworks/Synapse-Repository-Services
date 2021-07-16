@@ -475,4 +475,5 @@ public class SqlElementUntilsTest {
 		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + searchConditionString + ")", stringBuilder.toString());
 	}
 
+
 }

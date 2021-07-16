@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 
 public class RowValueConstructorElementTest {
@@ -35,5 +38,11 @@ public class RowValueConstructorElementTest {
 	public void testRowValueConstructorElementFalse() throws ParseException{
 		RowValueConstructorElement element = new TableQueryParser("false").rowValueConstructorElement();
 		assertEquals("FALSE", element.toString());
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException {
+		RowValueConstructorElement element = new TableQueryParser("false").rowValueConstructorElement();
+		assertEquals(Collections.singleton(element.getChild()), element.getChildren());
 	}
 }

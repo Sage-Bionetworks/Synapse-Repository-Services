@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.Factor;
 
 public class FactorTest {
@@ -25,4 +27,10 @@ public class FactorTest {
 		assertEquals("+123", element.toSql());
 	}
 
+	@Test
+	public void testGetChildren() throws ParseException{
+		Factor element = new TableQueryParser("+123").factor();
+		assertEquals(Collections.singleton(element.getNumericPrimary()), element.getChildren());
+	}
+	
 }

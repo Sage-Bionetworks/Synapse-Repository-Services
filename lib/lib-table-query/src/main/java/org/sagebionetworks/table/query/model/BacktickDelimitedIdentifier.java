@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * BacktickDelimitedIdentifier ::= ` identifier `
  *
  */
-public class BacktickDelimitedIdentifier extends SQLElement {
+public class BacktickDelimitedIdentifier extends LeafElement {
 	
 	private static final String DOUBLE_BACKTICK = "``";
 	private static final String BACKTICK = "`";
@@ -29,11 +27,6 @@ public class BacktickDelimitedIdentifier extends SQLElement {
 		}else{
 			builder.append(identifier);
 		}
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf element.
 	}
 	
 	@Override

@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-
 /**
  * This matches &ltboolean test&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -49,9 +46,10 @@ public class BooleanTest extends SQLElement {
 			builder.append(this.truthValue.name());
 		}
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, booleanPrimary);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(booleanPrimary);
 	}
+	
 }

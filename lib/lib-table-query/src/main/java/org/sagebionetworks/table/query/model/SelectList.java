@@ -42,13 +42,9 @@ public class SelectList extends SQLElement {
 			}
 		}
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		if(columns != null){
-			for(DerivedColumn dc: columns){
-				checkElement(elements, type, dc);
-			}
-		}
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(columns);
 	}
 }

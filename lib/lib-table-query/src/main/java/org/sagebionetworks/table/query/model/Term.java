@@ -27,6 +27,13 @@ public class Term extends SQLElement {
 	}
 	
 	/**
+	 * @return the primeList
+	 */
+	public List<FactorPrime> getPrimeList() {
+		return primeList;
+	}
+
+	/**
 	 * Add a new factor prime to this term.
 	 * @param prime
 	 */
@@ -43,10 +50,10 @@ public class Term extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, factor);
-		for(FactorPrime prime: primeList){
-			checkElement(elements, type, prime);
-		}
+	public Iterable<Element> getChildren() {
+		LinkedList<Element> list = new LinkedList<Element>();
+		list.add(factor);
+		list.addAll(primeList);
+		return list;
 	}
 }

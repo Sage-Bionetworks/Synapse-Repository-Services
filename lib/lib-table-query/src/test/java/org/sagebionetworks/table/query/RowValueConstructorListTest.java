@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.RowValueConstructorList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -24,5 +25,11 @@ public class RowValueConstructorListTest {
 		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one", "two");
 		RowValueConstructorList element = new RowValueConstructorList(list);
 		assertEquals("one, two", element.toString());
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException {
+		RowValueConstructorList element = new TableQueryParser("one, two").rowValueConstructorList();
+		assertEquals(new LinkedList<>(element.getRowValueConstructorElements()), element.getChildren());
 	}
 }

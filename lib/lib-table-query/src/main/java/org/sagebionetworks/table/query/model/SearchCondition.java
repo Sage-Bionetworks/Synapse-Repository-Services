@@ -40,9 +40,8 @@ public class SearchCondition extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		for (BooleanTerm booleanTerm : orBooleanTerms) {
-			checkElement(elements, type, booleanTerm);
-		}
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(orBooleanTerms);
 	}
+	
 }

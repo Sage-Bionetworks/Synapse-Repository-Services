@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -176,5 +178,11 @@ public class ValueExpressionTest {
 	public void testGetDisplayNameEmptySingleValue() throws ParseException {
 		ValueExpression element = SqlElementUntils.createValueExpression("\'\'");
 		assertEquals("", element.getDisplayName());
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException {
+		ValueExpression element = SqlElementUntils.createValueExpression("'Some String Literal'");
+		assertEquals(Collections.singleton(element.getChild()), element.getChildren());
 	}
 }

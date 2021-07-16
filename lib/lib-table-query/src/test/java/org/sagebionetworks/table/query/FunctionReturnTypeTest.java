@@ -4,8 +4,11 @@ package org.sagebionetworks.table.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.model.Factor;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 
 public class FunctionReturnTypeTest {
@@ -60,4 +63,5 @@ public class FunctionReturnTypeTest {
 		ColumnType parameterType = null;
 		assertThrows(IllegalArgumentException.class, ()-> FunctionReturnType.UNNEST_PARAMETER.getColumnType(parameterType));
 	}
+
 }

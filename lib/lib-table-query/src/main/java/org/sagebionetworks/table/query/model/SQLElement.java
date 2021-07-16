@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,6 +10,8 @@ import java.util.List;
  *
  */
 public abstract class SQLElement implements Element {
+	
+	Element parent;
 		
 	/**
 	 * Each element should override to build the SQL string.
@@ -41,21 +44,30 @@ public abstract class SQLElement implements Element {
 	}
 	
 	/**
-	 * Used to build element Iterators.
-	 * Each element should recursively add all SQLElements of the given type
-	 * to the passed set.
-	 * @param elements
-	 * @param type
+	 * Create an iterator to recursively iterate over all elements of the given type.
 	 */
-	abstract <T extends Element> void addElements(List<T> elements, Class<T> type);
+	public <T extends Element> Iterable<T> createIterable(Class<T> type) {
+		LinkedList<T> list = new LinkedList<T>();
+		SQLElement.addRecurisve(list, type, this);
+		return list;
+	}
 	
 	/**
-	 * Create an iterator to iterate over all elements of the given type.
+	 * Helper to recursively add all elements from this tree that are of the given
+	 * type to the provided list.
+	 * 
+	 * @param <T>
+	 * @param list
+	 * @param type
+	 * @param element
 	 */
-	public <T extends Element> Iterable<T> createIterable(Class<T> type){
-		LinkedList<T> list = new LinkedList<T>();
-		checkElement(list, type, this);
-		return list;
+	static <T extends Element> void addRecurisve(List<T> list, Class<T> type, Element element) {
+		if (type.isInstance(element)) {
+			list.add(type.cast(element));
+		}
+		for (Element child : element.getChildren()) {
+			addRecurisve(list, type, child);
+		}
 	}
 	
 	/**
@@ -81,21 +93,6 @@ public abstract class SQLElement implements Element {
 		}
 	}
 	
-	/**
-	 * Test a SQLElement to determine if it should be added to the elements.
-	 * @param elements
-	 * @param type
-	 * @param element
-	 */
-	public <T extends Element> void checkElement(List<T> elements, Class<T> type, SQLElement element){
-		if(element != null){
-			if(type.isInstance(element)){
-				elements.add(type.cast(element));
-			}
-			element.addElements(elements, type);
-		}
-	}
-
 	/**
 	 * Does this tree have any aggregate elements? This method will do a
 	 * recursive walk of the tree and return true if any element in the tree is
@@ -168,6 +165,75 @@ public abstract class SQLElement implements Element {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Helper to build a children Iterable
+	 * @param children
+	 * @return
+	 */
+	static Iterable<Element> buildChildren(Element...children){
+		if(children == null || children.length < 1) {
+			return Collections.emptyList();
+		}else if(children.length == 1 && children[0] != null) {
+			return Collections.singleton(children[0]);
+		}else {
+			List<Element> list = new LinkedList<>();
+			for(Element child: children) {
+				if(child != null) {
+					list.add(child);
+				}
+			}
+			return list;
+		}
+	}
+	
+	/**
+	 * Helper to build a children Iterable.
+	 * @param children
+	 * @return
+	 */
+	static <T extends Element> Iterable<Element> buildChildren(List<T> children){
+		if(children == null || children.isEmpty()) {
+			return Collections.emptyList();
+		}else {
+			return new LinkedList<>(children);
+		}
+	}
+	
+	@Override
+	public Element getParent() {
+		return this.parent;
+	}
+	
+	/**
+	 * Set the parent of this element.
+	 * @param parent
+	 */
+	void setParent(Element parent) {
+		this.parent = parent;
+	}
+	
+	/**
+	 * Recursively set the parent element for all elements in this tree.
+	 */
+	public void recursiveSetParent() {
+		for(Element child: getChildren()) {
+			SQLElement sqlChild = (SQLElement) child;
+			sqlChild.setParent(this);
+			sqlChild.recursiveSetParent();
+		}
+	}
+
+	@Override
+	public <T extends Element> boolean isInContext(Class<T> type) {
+		if(this.parent == null) {
+			return false;
+		}
+		if(type.isInstance(this.parent)) {
+			return true;
+		}
+		return this.parent.isInContext(type);
 	}
 	
 }

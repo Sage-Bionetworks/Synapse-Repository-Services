@@ -1,8 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.lang.reflect.Constructor;
-import java.util.List;
-
 /**
  * Modified subset of &ltqualified join&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  * Omits the optional [ NATURAL ] and [ <join type> ]
@@ -40,12 +37,10 @@ public class QualifiedJoin extends SQLElement{
 		builder.append(" ");
 		joinCondition.toSql(builder, parameters);
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, tableReferenceLHS);
-		checkElement(elements, type, tableReferenceRHS);
-		checkElement(elements, type, joinCondition);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(tableReferenceLHS,tableReferenceRHS, joinCondition);
 	}
 
 }

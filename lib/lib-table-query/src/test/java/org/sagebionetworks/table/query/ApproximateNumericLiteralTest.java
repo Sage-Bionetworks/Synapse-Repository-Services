@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ApproximateNumericLiteral;
 
 public class ApproximateNumericLiteralTest {
@@ -29,6 +32,12 @@ public class ApproximateNumericLiteralTest {
 	public void testInteger() throws ParseException{
 		ApproximateNumericLiteral element = new TableQueryParser("1234e-15").approximateNumericLiteral();
 		assertEquals("1.234E-12", element.toSql());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		ApproximateNumericLiteral element = new TableQueryParser("1234e-15").approximateNumericLiteral();
+		assertEquals(Collections.emptyList(), element.getChildren());
 	}
 
 }
