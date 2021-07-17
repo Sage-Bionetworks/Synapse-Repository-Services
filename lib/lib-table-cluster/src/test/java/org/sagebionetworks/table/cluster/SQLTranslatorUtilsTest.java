@@ -60,6 +60,7 @@ import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -1323,6 +1324,16 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DATE, parameters);
 		assertEquals("INTERVAL 3 MONTH", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideIntervalPredicate() throws ParseException{
+		HasPredicate predicate = (HasPredicate) new TableQueryParser("aDate > NOW() + INTERVAL 1 MONTH)").predicate().getChild();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		for(UnsignedLiteral us: predicate.getRightHandSideValues()) {
+			SQLTranslatorUtils.translateRightHandeSide(us, ColumnType.DATE, parameters);
+		}
+		assertEquals("aDate > NOW()+INTERVAL 1 MONTH", predicate.toSqlWithoutQuotes());
 	}
 	
 	@Test

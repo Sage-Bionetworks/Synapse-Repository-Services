@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ArrayHasLikePredicate;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -81,8 +82,19 @@ public class ArrayHasLikePredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3) escape '_'").predicate();
 		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
+		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+				.collect(Collectors.toList());
 		assertEquals(
 				Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue(), element.getEscapeCharacter()),
-				element.getChildren());
+				children);
+	}
+	
+	@Test
+	public void testGetChidrenWithoutEscape() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3)").predicate();
+		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
+		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+				.collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
 	}
 }

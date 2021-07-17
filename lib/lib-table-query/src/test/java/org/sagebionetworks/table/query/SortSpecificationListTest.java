@@ -35,7 +35,7 @@ public class SortSpecificationListTest {
 
 	@Test
 	public void testGetChildren() throws ParseException {
-		SortSpecificationList element = new TableQueryParser("count(*) as c, bar des").sortSpecificationList();
+		SortSpecificationList element = new TableQueryParser("foo asc, bar des").sortSpecificationList();
 		assertEquals(new LinkedList<>(element.getSortSpecifications()), element.getChildren());
 	}
 }

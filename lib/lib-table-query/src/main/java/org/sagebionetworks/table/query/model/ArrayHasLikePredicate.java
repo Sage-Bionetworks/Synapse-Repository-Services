@@ -50,7 +50,8 @@ public class ArrayHasLikePredicate extends ArrayHasPredicate {
 		
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(columnReferenceLHS, inPredicateValue, escapeCharacter);
+		Iterable<Element> it = super.getChildren();
+		return Iterables.concat(it, SQLElement.buildChildren(escapeCharacter));
 	}
 	
 	@Override
