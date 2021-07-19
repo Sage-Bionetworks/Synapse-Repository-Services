@@ -503,6 +503,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset);
 
 		List<DownloadListItem> toDelete = new ArrayList<>(page.size());
+		List<DownloadListItemResult> includedFiles = new ArrayList<>(page.size());
 		List<FileHandleAssociation> associations = new ArrayList<>(page.size());
 		Set<String> addedFileHandleIds = new HashSet<>(page.size());
 		long size = 0L;
@@ -515,6 +516,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				associations.add(createAssociationForItem(item));
 			}
 			toDelete.add(item);
+			includedFiles.add(item);
+		}
+		if (Boolean.TRUE.equals(requestBody.getIncludeManifest())) {
+			String manifestFileHandleId = buildManifest(userInfo, requestBody.getCsvTableDescriptor(),
+					includedFiles.iterator());
+			associations.add(new FileHandleAssociation().setFileHandleId(manifestFileHandleId)
+					.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("0"));
 		}
 
 		if (associations.isEmpty()) {
