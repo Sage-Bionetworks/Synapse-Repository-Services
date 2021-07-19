@@ -3159,5 +3159,26 @@ public class SQLUtilsTest {
 			SQLUtils.generateSqlToRefreshViewBenefactors(null);
 		});
 	}
+	
+	@Test
+	public void testCreateAlterToListColumnTypeSql() {
+		// PLFM-6247
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+
+		boolean alterTemp = false;
+		String[] results = SQLUtils.createAlterToListColumnTypeSql(change, tableId, alterTemp);
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results[0]);
+		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results[1]);
+		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results[2]);
+	}
 
 }

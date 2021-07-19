@@ -895,7 +895,7 @@ public class ColumnModelManagerTest {
 			// Call under test
 			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+		assertEquals("Cannot perform schema change from different _LIST to _LIST column types", errMessage);
 	}
 	@Test
 	public void testValidateColumnChangeListColumnToNonListColumn() {
@@ -907,20 +907,7 @@ public class ColumnModelManagerTest {
 				// Call under test
 				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
-	}
-
-	@Test
-	public void testValidateColumnChangeNonListColumnToListColumn() {
-		ColumnModel oldColumn = new ColumnModel();
-		oldColumn.setColumnType(ColumnType.INTEGER);
-		ColumnModel newColumn = new ColumnModel();
-		newColumn.setColumnType(ColumnType.INTEGER_LIST);
-		String errMessage = assertThrows(IllegalArgumentException.class, () ->
-				// Call under test
-				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
-		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+		assertEquals("Cannot perform schema change from _LIST type to non-_LIST type", errMessage);
 	}
 
 	@Test

@@ -306,6 +306,287 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testSchemaChangeWithStringToStringList() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(stringColumn, tableId);
+	
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(stringColumn, changeResponse.getSchema().get(0));
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, stringColumn.getId(), "foo");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// for consistency
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// new column model for list
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setName("aStringList");
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn.setMaximumSize(100L);
+		stringListColumn.setMaximumListLength(100L);
+		stringListColumn = columnManager.createColumnModel(adminUserInfo, stringListColumn);
+		
+		ColumnChange updateToList = new ColumnChange();
+		updateToList.setOldColumnId(stringColumn.getId());
+		updateToList.setNewColumnId(stringListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(updateToList);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(tableId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(stringListColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(tableId);
+		transaction.setChanges(updates);
+		
+		final ColumnModel expectedModel = stringListColumn;
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(expectedModel, changeResponse.getSchema().get(0));
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, stringListColumn.getId(), "[\"bar\", \"baz\", \"barFoo\"]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		queryRequest = createQueryRequest("SELECT UNNEST(aStringList) FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testSchemaChangeWithBooleanToBooleanList() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		ColumnModel newBooleanColumn = new ColumnModel();
+		newBooleanColumn.setName("aBoolean");
+		newBooleanColumn.setColumnType(ColumnType.BOOLEAN);
+		final ColumnModel booleanColumn = columnManager.createColumnModel(adminUserInfo, newBooleanColumn);
+		
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(booleanColumn, tableId);
+	
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(booleanColumn, changeResponse.getSchema().get(0));
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, booleanColumn.getId(), "true");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// for consistency
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// new column model for list
+		ColumnModel booleanListColumn = new ColumnModel();
+		booleanListColumn.setName("aBooleanList");
+		booleanListColumn.setColumnType(ColumnType.BOOLEAN_LIST);
+		booleanListColumn.setMaximumSize(100L);
+		booleanListColumn.setMaximumListLength(100L);
+		booleanListColumn = columnManager.createColumnModel(adminUserInfo, booleanListColumn);
+		
+		ColumnChange updateToList = new ColumnChange();
+		updateToList.setOldColumnId(booleanColumn.getId());
+		updateToList.setNewColumnId(booleanListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(updateToList);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(tableId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(booleanListColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(tableId);
+		transaction.setChanges(updates);
+		
+		final ColumnModel expectedModel = booleanListColumn;
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(expectedModel, changeResponse.getSchema().get(0));
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, booleanListColumn.getId(), "[true, false, true]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		queryRequest = createQueryRequest("SELECT UNNEST(aBooleanList) FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testSchemaChangeWithIntegerToIntegerList() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(intColumn, tableId);
+	
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(intColumn, changeResponse.getSchema().get(0));
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "12");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// for consistency
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());	
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// new column model for list
+		ColumnModel intListColumn = new ColumnModel();
+		intListColumn.setName("anIntList");
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setMaximumSize(100L);
+		intListColumn.setMaximumListLength(100L);
+		intListColumn = columnManager.createColumnModel(adminUserInfo, intListColumn);
+		
+		ColumnChange updateToList = new ColumnChange();
+		updateToList.setOldColumnId(intColumn.getId());
+		updateToList.setNewColumnId(intListColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(updateToList);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(tableId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(intListColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(tableId);
+		transaction.setChanges(updates);
+		
+		final ColumnModel expectedModel = intListColumn;
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResults());
+			assertEquals(1, response.getResults().size());
+			TableUpdateResponse updateResponse = response.getResults().get(0);
+			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
+			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
+			assertNotNull(changeResponse.getSchema());
+			assertEquals(1, changeResponse.getSchema().size());
+			assertEquals(expectedModel, changeResponse.getSchema().get(0));
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, intListColumn.getId(), "[1, 2, 100]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		queryRequest = createQueryRequest("SELECT UNNEST(anIntList) FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
 	public void testTableVersion() throws Exception {
 		// create a table with more than one version
 		TableEntity table = new TableEntity();

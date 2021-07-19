@@ -721,6 +721,7 @@ public class SQLUtils {
 
 	/**
 	 * Create an alter table SQL statement for the given set of column changes.
+	 * Does not support conversion from single to multi-value column type.
 	 * 
 	 * @param changes
 	 * @return
@@ -737,6 +738,13 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
+			// ignore conversion from single to list column types, another method handles this
+			// if the old column is null, we don't ignore, because that is adding a list column
+			if (change.getOldColumn() != null && change.getNewColumn() != null 
+					&& !ColumnTypeListMappings.isList(change.getOldColumn().getColumnType()) 
+					&& ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
+				continue;
+			}
 			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
 			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 			if(hasChange){
@@ -901,6 +909,63 @@ public class SQLUtils {
 		}
 	}
 	
+	public static String[] createAlterToListColumnTypeSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		
+		String[] batchSql = new String[] {createAppendListColumnSql(change, tableId, alterTemp),
+				createSetListColumnFromNonListColumnSql(change, tableId, alterTemp),
+				createDeleteColumnThatWasReplacedWithAListColumnSql(change, tableId, alterTemp)};
+		
+		if (batchSql[0] == null || batchSql[1] == null || batchSql[2] == null) {
+			return null;
+		}
+		
+		return batchSql;
+	}
+	
+	private static String createAppendListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" ");
+		boolean isFirst = true;
+		boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
+		appendAddColumn(builder, change.getNewColumn(), isFirst, useDepricatedUtf8ThreeBytes);
+		return builder.toString();
+	}
+	
+	private static String createSetListColumnFromNonListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("UPDATE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" SET ");
+		appendColumnNameForId(change.getNewColumn().getId(), builder);
+		builder.append(" = JSON_ARRAY(");
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	private static String createDeleteColumnThatWasReplacedWithAListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" ");
+		boolean isFirst = true;
+		appendDeleteColumn(builder, change.getOldColumn(), isFirst);
+		return builder.toString();
+	}
 	
 	/**
 	 * Append a column type definition to the passed builder.
@@ -1997,6 +2062,7 @@ public class SQLUtils {
 			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAM_NAME+")";
 		}
 
+		
 		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
 				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM "+ tableName + ", JSON_TABLE(" +

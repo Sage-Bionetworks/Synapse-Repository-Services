@@ -467,13 +467,24 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
 		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
-		if(sql == null){
-			// no change are needed.
+		boolean atLeastOneColumnTypeChangedToList = false;
+		for (ColumnChangeDetails change : changes) {
+			if (change.getOldColumn() != null && change.getNewColumn() != null 
+					&& !ColumnTypeListMappings.isList(change.getOldColumn().getColumnType()) 
+					&& ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
+				String[] sqlBatch = SQLUtils.createAlterToListColumnTypeSql(change, tableId, alterTemp);
+				atLeastOneColumnTypeChangedToList = true;
+				// apply the individual "single value to list" column type updates
+				template.batchUpdate(sqlBatch);
+			}
+		}
+		if (sql != null) {
+			template.update(sql);
+		}
+		if(sql == null && !atLeastOneColumnTypeChangedToList){
+			// no changes were made
 			return false;
 		}
-		// apply the update
-		template.update(sql);
-
 		return true;
 	}
 
