@@ -1108,6 +1108,7 @@ public class TableIndexDAOImplTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setId("123");
 		stringColumn.setName("aString");
+		stringColumn.setMaximumSize(10L);
 		ColumnChangeDetails change = new ColumnChangeDetails(nullColumn, stringColumn);
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
