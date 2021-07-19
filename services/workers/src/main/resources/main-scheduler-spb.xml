@@ -136,6 +136,7 @@
 		<ref bean="recurrentAthenaQueryWorkerTrigger" />
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
+		<ref bean="fileHandleRestoreRequestWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"

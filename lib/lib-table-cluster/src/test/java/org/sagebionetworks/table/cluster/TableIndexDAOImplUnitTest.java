@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -33,6 +37,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -208,4 +213,123 @@ public class TableIndexDAOImplUnitTest {
 		verify(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames, objectIdFilter);
 	}
 	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithZeroMaxStringSize() {
+		// string type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foo");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(1L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		ColumnModel cm = results.get(0);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		// gives default string size rather than 0
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithStringDoubleTypeAndZeroMaxStringSize() {
+		// string and double type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("bar");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(1L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		// first column model will be string with default string size as max string size
+		ColumnModel cm = results.get(0);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+		// second column model will be double with null max string size
+		cm = results.get(1);
+		assertEquals("bar", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithStringListTypeAndZeroMaxStringSize() {
+		// string list with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foobar");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(3L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		ColumnModel cm = results.get(0);
+		assertEquals("foobar", cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(3L, cm.getMaximumListLength());
+		// gives default string size for max string size, rather than 0
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithDoubleStringListTypeAndZeroMaxStringSize() {
+		// string list + double type with 0 max string size
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("barbaz");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
+		columnAggregation.setMaxStringElementSize(0L);
+		columnAggregation.setMaxListSize(3L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		// first column type becomes a string list
+		ColumnModel cm = results.get(0);
+		assertEquals("barbaz", cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(3L, cm.getMaximumListLength());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+		// second column type is double
+		cm = results.get(1);
+		assertEquals("barbaz", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testExpandFromAggregationWithNullMaxStringSize() {
+		// string type with max string size of 0
+		ColumnAggregation columnAggregation = new ColumnAggregation();
+		columnAggregation.setColumnName("foo");
+		columnAggregation.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		columnAggregation.setMaxStringElementSize(null);
+		columnAggregation.setMaxListSize(1L);
+		// call under test
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(columnAggregation));
+		ColumnModel cm = results.get(0);
+		assertEquals("foo", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(null, cm.getMaximumListLength());
+		// gives default string size when null is in column aggregation
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+	}
+	
+	/**
+	 * Helper to create a concatenated list of column types delimited with dot ('.')
+	 * @param types
+	 * @return
+	 */
+	public static String concatTypes(AnnotationType...types) {
+		StringJoiner joiner = new StringJoiner(",");
+		for(AnnotationType type: types) {
+			joiner.add(type.name());
+		}
+		return joiner.toString();
+	}
 }

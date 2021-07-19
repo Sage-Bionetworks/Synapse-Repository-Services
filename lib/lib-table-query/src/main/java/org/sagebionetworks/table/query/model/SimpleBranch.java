@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * An abstract SQLElement that acts as a branch for a single child element.
  * For example, if element c =: a | b then element c can be represented as a 
@@ -43,8 +41,8 @@ public abstract class SimpleBranch extends SQLElement implements HasReplaceableC
 	}
 
 	@Override
-	final <T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, child);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(child);
 	}
 
 }

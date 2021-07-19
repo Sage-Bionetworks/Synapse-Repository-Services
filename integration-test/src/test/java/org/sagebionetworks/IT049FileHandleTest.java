@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -51,6 +52,11 @@ import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResult;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreStatus;
+import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -655,6 +661,27 @@ public class IT049FileHandleTest {
 
 		// Verify that all parts have been deleted
 		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
+	}
+	
+	@Test
+	public void testRestoreFileHandle() throws FileNotFoundException, SynapseException, IOException {
+		CloudProviderFileHandleInterface file = synapse.multipartUpload(this.imageFile, null, false, null);
+		
+		assertEquals(FileHandleStatus.AVAILABLE, file.getStatus());
+		
+		FileHandleRestoreRequest request = new FileHandleRestoreRequest()
+				.setFileHandleIds(Arrays.asList(file.getId()));
+		
+		FileHandleRestoreResponse expectedResponse = new FileHandleRestoreResponse()
+			.setRestoreResults(Arrays.asList(
+					new FileHandleRestoreResult().setFileHandleId(file.getId()).setStatus(FileHandleRestoreStatus.NO_ACTION).setStatusMessage("The file handle is already AVAILABLE. For files in the synapse bucket it might take a few hours before the file can be downloaded.")
+			)
+		);
+		
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.FileHandleRestore, request, (FileHandleRestoreResponse response) -> {
+			assertEquals(expectedResponse, response);
+		}, MAX_WAIT_MS);
+		
 	}
 
 	public void testCreateExternalGoogleCloudFileHandleFromExistingFile() throws Exception {

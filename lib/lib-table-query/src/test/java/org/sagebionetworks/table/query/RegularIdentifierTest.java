@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 
 public class RegularIdentifierTest {
@@ -20,9 +23,12 @@ public class RegularIdentifierTest {
 		assertEquals("e123", element.toSql());
 	}
 	
-	@Test (expected=ParseException.class)
+	@Test
 	public void testRegularIdentifierNumericStart() throws ParseException{
-		new TableQueryParser("1bay").regularIdentifier();
+		assertThrows(ParseException.class, ()->{
+			new TableQueryParser("1bay").regularIdentifier();
+		});
+		
 	}
 	
 	@Test
@@ -31,4 +37,9 @@ public class RegularIdentifierTest {
 		assertEquals("_abcd", element.toSql());
 	}
 
+	@Test
+	public void testGetChildren() throws ParseException {
+		RegularIdentifier element = new TableQueryParser("_abcd").regularIdentifier();
+		assertEquals(Collections.emptyList(), element.getChildren());
+	}
 }

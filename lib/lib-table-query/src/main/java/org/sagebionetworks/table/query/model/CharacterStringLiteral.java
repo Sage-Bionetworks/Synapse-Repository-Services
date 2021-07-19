@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -9,7 +10,7 @@ import org.sagebionetworks.repo.model.table.ColumnConstants;
  *  A CharacterStringLiteral is a string surrounded with single quotes.
  *
  */
-public class CharacterStringLiteral extends SQLElement {
+public class CharacterStringLiteral extends LeafElement {
 
 	String characterStringLiteral;
 
@@ -34,12 +35,7 @@ public class CharacterStringLiteral extends SQLElement {
 			builder.append(this.characterStringLiteral);
 		}
 	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf element
-	}
-
+	
 	@Override
 	public boolean hasQuotes() {
 		return true;

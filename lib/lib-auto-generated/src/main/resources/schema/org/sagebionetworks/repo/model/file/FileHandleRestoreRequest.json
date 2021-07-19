@@ -1,0 +1,17 @@
+{
+	"description": "Request used to restore a batch of file handles that might be UNLINKED or ARCHIVED. Note that only the owner of the file handle can initiate its restore.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"fileHandleIds": {
+			"description": "The list of file handle ids to restore.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -4,6 +4,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
 import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
 import static org.sagebionetworks.client.SynapseClientImpl.DOI;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_ADD;
+import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_MANIFEST;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_PACKAGE;
 import static org.sagebionetworks.client.SynapseClientImpl.DOWNLOAD_LIST_QUERY;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
@@ -17,17 +18,19 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_QUERY_NEXTPAGE;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_TRANSACTION;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREVIEW;
-import static org.sagebionetworks.client.SynapseClientImpl.*;
+import static org.sagebionetworks.client.SynapseClientImpl.VIEW_COLUMNS;
+import static org.sagebionetworks.client.SynapseClientImpl.FILE_HANDLE_RESTORE;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
-import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
+import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
@@ -41,6 +44,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
+
 
 public enum AsynchJobType {
 
@@ -61,7 +65,8 @@ public enum AsynchJobType {
 	QueryDownloadList(DOWNLOAD_LIST_QUERY, DownloadListQueryResponse.class, RestEndpointType.repo),
 	AddToDownloadList(DOWNLOAD_LIST_ADD, AddToDownloadListResponse.class, RestEndpointType.repo),
 	DownloadPackageList(DOWNLOAD_LIST_PACKAGE, DownloadListPackageResponse.class, RestEndpointType.repo),
-	DownloadListManifest(DOWNLOAD_LIST_MANIFEST, DownloadListManifestResponse.class, RestEndpointType.repo);
+	DownloadListManifest(DOWNLOAD_LIST_MANIFEST, DownloadListManifestResponse.class, RestEndpointType.repo),
+	FileHandleRestore(FILE_HANDLE_RESTORE, FileHandleRestoreResponse.class, RestEndpointType.file);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
@@ -71,6 +76,7 @@ public enum AsynchJobType {
 		this.prefix = prefix;
 		this.responseClass = responseClass;
 		this.restEndpointType = endpoint;
+		
 	}
 
 	/**

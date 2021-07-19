@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * This matches &ltcolumn reference&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -36,10 +34,10 @@ public class ColumnReference extends SQLElement {
 		}
 		nameRHS.toSql(builder, parameters);
 	}
-
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, nameLHS);
-		checkElement(elements, type, nameRHS);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(nameLHS, nameRHS);
 	}
+	
 }

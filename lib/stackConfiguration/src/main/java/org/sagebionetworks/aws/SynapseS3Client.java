@@ -29,6 +29,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.RestoreObjectRequest;
+import com.amazonaws.services.s3.model.RestoreObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.Tag;
 
@@ -130,6 +132,8 @@ public interface SynapseS3Client {
 	 * @param tags The set of tags for the object (will replace the existing ones)
 	 */
 	void setObjectTags(String bucketName, String key, List<Tag> tags);
+
+	RestoreObjectResult restoreObject(RestoreObjectRequest request);
 
 
 }

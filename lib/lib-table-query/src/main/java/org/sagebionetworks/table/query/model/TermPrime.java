@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * TermPrime ::= {@link ArithmeticOperator} {@link Term}
  * <p>
- * Term prime is used to support arithmetic operations of terms while
- * avoiding left-recursion.
+ * Term prime is used to support arithmetic operations of terms while avoiding
+ * left-recursion.
  *
  */
 public class TermPrime extends SQLElement {
@@ -33,8 +31,8 @@ public class TermPrime extends SQLElement {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, term);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(term);
 	}
 
 }

@@ -249,18 +249,18 @@ public class UrlHelpers {
 	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
 	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
 	public static final String DOWNLOAD_LIST_PACKAGE = DOWNLOAD_LIST+"/package";
 	public static final String DOWNLOAD_LIST_PACKAGE_START_ASYNCH = DOWNLOAD_LIST_PACKAGE+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_PACKAGE_ASYNCH = DOWNLOAD_LIST_PACKAGE+ASYNC_GET_REQUEST;
 	
 	public static final String DOWNLOAD_LIST_MANIFEST = DOWNLOAD_LIST+"/manifest";
 	public static final String DOWNLOAD_LIST_MANIFEST_START_ASYNCH = DOWNLOAD_LIST_MANIFEST+ASYNC_START_REQUEST;
-	public static final String DOWNLOAD_LIST_MANIFEST_ASYNCH = DOWNLOAD_LIST_MANIFEST+ASYNC_GET_REQUEST;
+	public static final String DOWNLOAD_LIST_MANIFEST_GET_ASYNCH = DOWNLOAD_LIST_MANIFEST+ASYNC_GET_REQUEST;
 	
 	public static final String DOWNLOAD_LIST_QUERY = DOWNLOAD_LIST+"/query";
 	public static final String DOWNLOAD_LIST_QUERY_START_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_START_REQUEST;
 	public static final String DOWNLOAD_LIST_QUERY_GET_ASYNCH = DOWNLOAD_LIST_QUERY+ASYNC_GET_REQUEST;
-	
 	
 	public static final String DOWNLOAD_ORDER = "/download/order";
 	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
@@ -573,6 +573,10 @@ public class UrlHelpers {
 	public static final String EXTERNAL_FILE_HANDLE_S3 = EXTERNAL_FILE_HANDLE + "/s3";
 	public static final String EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD = EXTERNAL_FILE_HANDLE + "/googleCloud";
 	public static final String EXTERNAL_FILE_HANDLE_PROXY = EXTERNAL_FILE_HANDLE + "/proxy";
+	
+	public static final String FILE_HANDLE_RESTORE = FILE_HANDLE + "/restore";
+	public static final String FILE_HANDLE_RESTORE_START_ASYNCH = FILE_HANDLE_RESTORE + ASYNC_START_REQUEST;
+	public static final String FILE_HANDLE_RESTORE_GET_ASYNCH = FILE_HANDLE_RESTORE + ASYNC_GET_REQUEST;
 
 
 	/**

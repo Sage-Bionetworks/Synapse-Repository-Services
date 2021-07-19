@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * FactorPrime ::= {@link ArithmeticOperator} {@link Factor}
  * <p>
@@ -31,9 +29,10 @@ public class FactorPrime extends SQLElement {
 		builder.append(operator.toSQL());
 		factor.toSql(builder, parameters);
 	}
+	
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, factor);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(factor);
 	}
 
 }

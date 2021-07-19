@@ -40,6 +40,8 @@ import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.RestoreObjectRequest;
+import com.amazonaws.services.s3.model.RestoreObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
@@ -245,5 +247,10 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		SetObjectTaggingRequest request = new SetObjectTaggingRequest(bucketName, key, new ObjectTagging(tags));
 		
 		getS3ClientForBucket(bucketName).setObjectTagging(request);
+	}
+	
+	@Override
+	public RestoreObjectResult restoreObject(RestoreObjectRequest request) {
+		return getS3ClientForBucket(request.getBucketName()).restoreObjectV2(request);
 	}
 }

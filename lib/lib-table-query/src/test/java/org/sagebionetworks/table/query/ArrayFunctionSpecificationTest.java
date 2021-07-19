@@ -2,9 +2,11 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Collections;
+
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
+import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 
 public class ArrayFunctionSpecificationTest {
@@ -22,5 +24,12 @@ public class ArrayFunctionSpecificationTest {
 		QuerySpecification element =
 				new TableQueryParser("SELECT UNNEST(foo), count(*) from syn123 Group by UNNEST(foo)").querySpecification();
 		assertEquals("SELECT UNNEST(foo), COUNT(*) FROM syn123 GROUP BY UNNEST(foo)", element.toSql());
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		ArrayFunctionSpecification element =
+				new TableQueryParser("unnest(foo)").arrayFunctionSpecification();
+		assertEquals(Collections.singleton(element.getColumnReference()), element.getChildren());
 	}
 }

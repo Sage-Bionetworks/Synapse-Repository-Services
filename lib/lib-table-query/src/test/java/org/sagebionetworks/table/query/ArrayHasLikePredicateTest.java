@@ -1,19 +1,20 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ArrayHasLikePredicate;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -75,5 +76,25 @@ public class ArrayHasLikePredicateTest {
 				.collect(Collectors.toList());
 		
 		assertEquals(expectedValues, values);
+	}
+	
+	@Test
+	public void testGetChidren() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3) escape '_'").predicate();
+		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
+		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+				.collect(Collectors.toList());
+		assertEquals(
+				Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue(), element.getEscapeCharacter()),
+				children);
+	}
+	
+	@Test
+	public void testGetChidrenWithoutEscape() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3)").predicate();
+		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
+		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+				.collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
 	}
 }

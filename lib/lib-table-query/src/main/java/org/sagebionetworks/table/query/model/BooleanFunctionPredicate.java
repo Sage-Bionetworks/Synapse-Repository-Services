@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
 import java.util.Collections;
-import java.util.List;
 
 
 public class BooleanFunctionPredicate extends SQLElement implements HasPredicate{
@@ -31,8 +30,8 @@ public class BooleanFunctionPredicate extends SQLElement implements HasPredicate
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReference);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(columnReference);
 	}
 
 	@Override

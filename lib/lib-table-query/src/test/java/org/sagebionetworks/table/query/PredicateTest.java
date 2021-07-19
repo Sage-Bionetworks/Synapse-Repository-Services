@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
@@ -106,5 +108,11 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanEqualsFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo <> fAlse");
 		assertEquals("foo <> FALSE", booleanPrimary.toString());
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException {
+		Predicate element = new TableQueryParser("isInfinity(col5)").predicate();
+		assertEquals(Collections.singleton(element.getChild()), element.getChildren());
 	}
 }

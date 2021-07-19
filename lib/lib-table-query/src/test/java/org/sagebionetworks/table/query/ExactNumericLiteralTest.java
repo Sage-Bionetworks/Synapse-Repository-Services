@@ -1,8 +1,12 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 
 public class ExactNumericLiteralTest {
@@ -35,5 +39,11 @@ public class ExactNumericLiteralTest {
 	public void testStartPeriod() throws ParseException{
 		ExactNumericLiteral element = new TableQueryParser(".123").exactNumericLiteral();
 		assertEquals("0.123", element.toSql());
+	}
+	
+	@Test
+	public void testGetChildren() throws ParseException{
+		ExactNumericLiteral element = new TableQueryParser(".123").exactNumericLiteral();
+		assertEquals(Collections.emptyList(), element.getChildren());
 	}
 }

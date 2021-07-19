@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER;
@@ -14,10 +14,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CUR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -309,7 +314,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			String sql = String.format(DOWNLOAD_LIST_RESULT_TEMPLATE, tempTableName);
 			List<DownloadListItemResult> unorderedResults = namedJdbcTemplate.query(sql, params, RESULT_MAPPER);
 
@@ -354,7 +359,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
 			params.addValue("limit", limit);
 			params.addValue("offset", offset);
-			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGEING);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.query(sqlBuilder.toString(), params, RESULT_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
@@ -370,17 +375,17 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		if (filter == null) {
 			return "";
 		}
-		String typeOpperator, conditionOpperator, sizeOpperator;
+		String typeOperator, conditionOperator, sizeOperator;
 		switch (filter) {
 		case eligibleForPackaging:
-			typeOpperator = "=";
-			conditionOpperator = "AND";
-			sizeOpperator = "<=";
+			typeOperator = "=";
+			conditionOperator = "AND";
+			sizeOperator = "<=";
 			break;
 		case ineligibleForPackaging:
-			typeOpperator = "<>";
-			conditionOpperator = "OR";
-			sizeOpperator = ">";
+			typeOperator = "<>";
+			conditionOperator = "OR";
+			sizeOperator = ">";
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown type: " + filter.name());
@@ -388,7 +393,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return String.format(
 				" WHERE F." + COL_FILES_METADATA_TYPE + " %s '%s' %s F." + COL_FILES_CONTENT_SIZE
 						+ " %s :maxEligibleSize",
-				typeOpperator, FileHandleMetadataType.S3, conditionOpperator, sizeOpperator);
+				typeOperator, FileHandleMetadataType.S3, conditionOperator, sizeOperator);
 	}
 
 	/**

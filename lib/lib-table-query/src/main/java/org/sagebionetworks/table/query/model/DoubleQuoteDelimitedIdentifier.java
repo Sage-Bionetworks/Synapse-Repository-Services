@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * DoubleQuoteDelimitedIdentifier ::= " identifier "
  *
  */
-public class DoubleQuoteDelimitedIdentifier extends SQLElement {
+public class DoubleQuoteDelimitedIdentifier extends LeafElement {
 	
 	private static final String DOUBLE_DOUBLE_QUOTES = "\"\"";
 	private static final String DOUBLE_QUOTES = "\"";
@@ -29,11 +27,6 @@ public class DoubleQuoteDelimitedIdentifier extends SQLElement {
 		}else{
 			builder.append(identifer);
 		}
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a leaf element.
 	}
 	
 	@Override

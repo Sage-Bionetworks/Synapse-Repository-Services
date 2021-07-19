@@ -39,7 +39,6 @@ public enum MySqlFunctionName {
 	TRIM(FunctionReturnType.STRING),
 	// numeric
 	ROUND(FunctionReturnType.DOUBLE);
-	;
 	
 	FunctionReturnType returnType;
 	

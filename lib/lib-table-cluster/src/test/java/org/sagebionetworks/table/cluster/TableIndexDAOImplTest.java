@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -2633,6 +2634,66 @@ public class TableIndexDAOImplTest {
 		assertEquals("key10", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(2, cm.getMaximumSize());
+	}
+	
+	// relevant to PLFM-6344
+	@Test
+	public void testGetPossibleAnnotationsForContainersWithEmptyStringAnnotation(){
+		// delete all data
+		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		
+		// setup file1 with no annotations
+		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 0);
+		file1.setParentId(333L);
+		String testKey1 = "testKey1";
+		// add empty string annotation to file1
+		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO();
+		annotationDTO1.setKey(testKey1);
+		annotationDTO1.setType(AnnotationType.STRING);
+		annotationDTO1.setObjectId(2L);
+		annotationDTO1.setValue(Arrays.asList(""));
+		file1.setAnnotations(Collections.singletonList(annotationDTO1));
+		
+		// setup file2 with no annotations
+		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 0);
+		file2.setParentId(222L);
+		String testKey2 = "testKey2";
+		// add empty string list annotation to file2
+		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO();
+		annotationDTO2.setKey(testKey2);
+		annotationDTO2.setType(AnnotationType.STRING);
+		annotationDTO2.setObjectId(3L);
+		annotationDTO2.setValue(Arrays.asList("", ""));
+		file2.setAnnotations(Collections.singletonList(annotationDTO2));
+		
+		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = false;
+		
+		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		List<String> excludeKeys = null;
+		
+		// call under test
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		assertNotNull(columns);
+		assertEquals(2, columns.size());
+		
+		// both column models should have ColumnConstants.DEFAULT_STRING_SIZE as 
+		// max size due to empty string(s)
+		ColumnModel cm = columns.get(0);
+		assertEquals(testKey1, cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
+		
+		cm = columns.get(1);
+		assertEquals(testKey2, cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 	}
 	
 	@Test

@@ -50,10 +50,8 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReferenceLHS);
-		checkElement(elements, type, pattern);
-		checkElement(elements, type, escapeCharacter);
+	public Iterable<Element> getChildren() {
+		return SQLElement.buildChildren(columnReferenceLHS, pattern, escapeCharacter);
 	}
 
 	@Override

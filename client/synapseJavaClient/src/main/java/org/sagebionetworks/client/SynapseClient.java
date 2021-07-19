@@ -160,6 +160,8 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
+import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -3982,5 +3984,25 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	String startDownloadListManifest(DownloadListManifestRequest request) throws SynapseException;
+	
+	/**
+	 * Starts a restore operation for a batch of file handles that have been ARCHIVED or UNLINKED.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startFileHandleRestoreRequest(FileHandleRestoreRequest request) throws SynapseException;
+	
+	/**
+	 * Get the results of an asynchronous job to restore a batch of file handles
+	 * 
+	 * @param asynchJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	FileHandleRestoreResponse getFileHandleRestoreResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
 
 }

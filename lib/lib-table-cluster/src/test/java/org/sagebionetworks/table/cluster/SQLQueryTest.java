@@ -19,6 +19,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -883,6 +884,29 @@ public class SQLQueryTest {
 				.additionalFilters(Arrays.asList(filter))
 				.build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C333_ = :b0 ) AND ( ( _C111_ LIKE :b1 ) )", query.getOutputSQL());
+	}
+	
+	/**
+	 * Test added for PLFM-6819.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testQueryUnixTimestamp() throws ParseException {
+		ColumnModel createdOn = new ColumnModel();
+		createdOn.setColumnType(ColumnType.DATE);
+		createdOn.setName("createdOn");
+		createdOn.setId("1");
+		schema = Arrays.asList(createdOn);
+
+		String sql = "select createdOn, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000 from syn123 where createdOn > UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000";
+
+		SqlQuery query = new SqlQueryBuilder(sql, userId).tableSchema(schema).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _C1_, UNIX_TIMESTAMP('2021-06-20 00:00:00')*1000, ROW_ID, ROW_VERSION FROM T123 WHERE _C1_ > UNIX_TIMESTAMP('2021-06-20 00:00:00')*:b0",
+				query.getOutputSQL());
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 1000L);
+		assertEquals(expectedParams, query.getParameters());
 	}
 
 }

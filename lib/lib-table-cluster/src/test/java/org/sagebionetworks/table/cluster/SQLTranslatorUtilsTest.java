@@ -58,7 +58,9 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -67,6 +69,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.ImmutableMap;
@@ -1321,6 +1324,43 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DATE, parameters);
 		assertEquals("INTERVAL 3 MONTH", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideIntervalPredicate() throws ParseException{
+		HasPredicate predicate = (HasPredicate) new TableQueryParser("aDate > NOW() + INTERVAL 1 MONTH)").predicate().getChild();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		for(UnsignedLiteral us: predicate.getRightHandSideValues()) {
+			SQLTranslatorUtils.translateRightHandeSide(us, ColumnType.DATE, parameters);
+		}
+		assertEquals("aDate > NOW()+INTERVAL 1 MONTH", predicate.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideWithLiteralInContextOfMySqlFunction() throws ParseException{
+		Predicate predicate = new TableQueryParser("foo = LOWER('sOme StinG')").predicate();
+		predicate.recursiveSetParent();
+		UnsignedLiteral literal = predicate.getFirstElementOfType(UnsignedLiteral.class);
+		String sqlBefore = literal.toSql();
+		assertEquals("'sOme StinG'", sqlBefore);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translateRightHandeSide(literal, ColumnType.STRING, parameters);
+		assertEquals("sOme StinG", literal.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testTranslateRightHandeSideWithLiteralNotInContextOfMysqlFunction() throws ParseException{
+		Predicate predicate = new TableQueryParser("foo = 'sOme StinG'").predicate();
+		predicate.recursiveSetParent();
+		UnsignedLiteral literal = predicate.getFirstElementOfType(UnsignedLiteral.class);
+		String sqlBefore = literal.toSql();
+		assertEquals("'sOme StinG'", sqlBefore);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translateRightHandeSide(literal, ColumnType.STRING, parameters);
+		assertEquals(":b0", literal.toSqlWithoutQuotes());
+		assertEquals("sOme StinG", parameters.get("b0"));
 	}
 	
 	@Test

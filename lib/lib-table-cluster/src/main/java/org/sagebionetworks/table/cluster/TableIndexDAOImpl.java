@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
@@ -151,7 +152,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private JdbcTemplate template;
 	private NamedParameterJdbcTemplate namedTemplate;
 	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
-	
 	
 	@Autowired
 	public TableIndexDAOImpl(ObjectFieldModelResolverFactory objectFieldModelResolverFactory) {
@@ -1194,8 +1194,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}
 
 				model.setColumnType(type);
-				if(ColumnType.STRING == type || ColumnType.STRING_LIST==type) {
-					model.setMaximumSize(aggregation.getMaxStringElementSize());
+				if (ColumnType.STRING == type || ColumnType.STRING_LIST == type) {
+					if (aggregation.getMaxStringElementSize() == null || 
+							aggregation.getMaxStringElementSize() == 0L) {
+						model.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
+					} else {
+						model.setMaximumSize(aggregation.getMaxStringElementSize());
+					}
 				}
 				results.add(model);
 			}
