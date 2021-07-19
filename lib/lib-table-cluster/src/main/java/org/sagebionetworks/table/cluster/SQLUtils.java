@@ -911,15 +911,9 @@ public class SQLUtils {
 	
 	public static String[] createAlterToListColumnTypeSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
 		
-		String[] batchSql = new String[] {createAppendListColumnSql(change, tableId, alterTemp),
+		return new String[] {createAppendListColumnSql(change, tableId, alterTemp),
 				createSetListColumnFromNonListColumnSql(change, tableId, alterTemp),
 				createDeleteColumnThatWasReplacedWithAListColumnSql(change, tableId, alterTemp)};
-		
-		if (batchSql[0] == null || batchSql[1] == null || batchSql[2] == null) {
-			return null;
-		}
-		
-		return batchSql;
 	}
 	
 	private static String createAppendListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
