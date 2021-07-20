@@ -101,6 +101,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 public class DownloadListManagerImpl implements DownloadListManager {
 
 
+	public static final String ZERO_FILE_ID = "0";
 	public static final String NO_FILES_AVAILABLE_FOR_DOWNLOAD = "No files available for download.";
 	public static final String NO_FILES_ARE_ELIGIBLE_FOR_PACKAGING = "No files are eligible for packaging.";
 	public static final String YOUR_DOWNLOAD_LIST_ALREADY_HAS_THE_MAXIMUM_NUMBER_OF_FILES = "Your download list already has the maximum number of '%s' files.";
@@ -522,7 +523,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			String manifestFileHandleId = buildManifest(userInfo, requestBody.getCsvTableDescriptor(),
 					includedFiles.iterator());
 			associations.add(new FileHandleAssociation().setFileHandleId(manifestFileHandleId)
-					.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("0"));
+					.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId(ZERO_FILE_ID));
 		}
 
 		if (associations.isEmpty()) {
@@ -531,11 +532,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		// build the package zip file.
 		// @formatter:off
+		boolean fileSizesChecked = true;
 		String zipFileHandleId = fileHandlePackageManager.buildZip(userInfo,
 						new BulkFileDownloadRequest()
 						.setRequestedFiles(associations)
 						.setZipFileName(requestBody.getZipFileName())
-						.setZipFileFormat(ZipFileFormat.Flat))
+						.setZipFileFormat(ZipFileFormat.Flat), fileSizesChecked)
 				.getResultZipFileHandleId();
 		// @formatter:on
 

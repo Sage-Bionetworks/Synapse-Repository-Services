@@ -132,9 +132,16 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 			zipOut.closeEntry();
 		}
 	}
+	
+	@Override
+	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request)
+			throws IOException {
+		boolean fileSizesChecked = false;
+		return buildZip(user, request, fileSizesChecked);
+	}
 
 	@Override
-	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request) throws IOException {
+	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request, boolean fileSizesChecked) throws IOException {
 		// fix for PLFM-6626
 		if (request.getZipFileName() != null) {
 			NameValidation.validateName(request.getZipFileName());
@@ -142,7 +149,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 		// The generated zip will be written to this temp file.
 		File tempResultFile = createTempFile("Job", ".zip");
 		try {
-			List<FileDownloadSummary> results = addFilesToZip(user, request, tempResultFile);
+			List<FileDownloadSummary> results = addFilesToZip(user, request, tempResultFile, fileSizesChecked);
 			String resultFileHandleId = null;
 			// must have at least one file.
 			if (results.stream().filter(f-> FileDownloadStatus.SUCCESS.equals(f.getStatus())).findFirst().isPresent()) {
@@ -177,7 +184,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	 * @param zipOut
 	 * @throws IOException
 	 */
-	List<FileDownloadSummary> addFilesToZip(UserInfo user, BulkFileDownloadRequest request, File tempResultFile) throws IOException {
+	List<FileDownloadSummary> addFilesToZip(UserInfo user, BulkFileDownloadRequest request, File tempResultFile, boolean fileSizesChecked) throws IOException {
 
 		try (ZipOutputStream zipOut = createZipOutputStream(tempResultFile)) {
 			List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager
@@ -196,7 +203,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 				fileSummaries.add(summary);
 				try {
 					String zipEntryName = writeOneFileToZip(zipOut, tempResultFile.length(), fhas, fileIdsInZip,
-							zipEntryNameProvider);
+							zipEntryNameProvider, fileSizesChecked);
 					// download this file from S3
 					fileIdsInZip.add(fileHandleId);
 					summary.setStatus(FileDownloadStatus.SUCCESS);
@@ -235,7 +242,7 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 	 * @return The zip entry name used for this file.
 	 */
 	String writeOneFileToZip(ZipOutputStream zipOut, long zipFileSize, FileHandleAssociationAuthorizationStatus fhas,
-			Set<String> fileIdsInZip, ZipEntryNameProvider zipEntryNameProvider) throws IOException {
+			Set<String> fileIdsInZip, ZipEntryNameProvider zipEntryNameProvider, boolean fileSizesChecked) throws IOException {
 		String fileHandleId = fhas.getAssociation().getFileHandleId();
 		// Is the user authorized to download this file?
 		if (!fhas.getStatus().isAuthorized()) {
@@ -246,13 +253,13 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 			throw new BulkFileException(FILE_ALREADY_ADDED, FileDownloadCode.DUPLICATE);
 		}
 		// Each file must be less than the max.
-		if (zipFileSize > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
+		if (!fileSizesChecked && zipFileSize > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(RESULT_FILE_HAS_REACHED_THE_MAXIMUM_SIZE, FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// Get this filehandle.
 		S3FileHandle s3Handle = getS3FileHandle(fileHandleId);
 		// Each file must be under the max.s
-		if (s3Handle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
+		if (!fileSizesChecked && s3Handle.getContentSize() > FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES) {
 			throw new BulkFileException(FILE_EXCEEDS_THE_MAXIMUM_SIZE_LIMIT, FileDownloadCode.EXCEEDS_SIZE_LIMIT);
 		}
 		// This file will be downloaded to this temp.
