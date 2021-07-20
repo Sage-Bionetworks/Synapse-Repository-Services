@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.util;
 
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 public class StringUtil {
 	
 	public static final int LEADING_CHARS = 3;
 	public static final int TRAILING_CHARS = 1;
 	public static final String OBFUSCATION_STRING = "...";
+	public static final String EOL_PATTERN = "\\r?\\n|\\r";
 	
 	/**
 	 * Obfuscate e-mail address by replacing the middle characters of the local
@@ -43,6 +47,17 @@ public class StringUtil {
 			sb.append(address.substring(atDelim, address.length()));
 		}		
 		return sb.toString();
+	}
+	
+	/**
+	 * @param input
+	 * @return A stream of lines extracted from this string, separated by line terminators. 
+	 */
+	public static Stream<String> lines(String input) {
+		if (input == null) {
+			return Stream.empty();
+		}
+		return Arrays.stream(input.split(EOL_PATTERN));
 	}
 
 }
