@@ -909,6 +909,19 @@ public class ColumnModelManagerTest {
 		).getMessage();
 		assertEquals("Cannot perform schema change from _LIST type to non-_LIST type", errMessage);
 	}
+	
+	@Test
+	public void testValidateColumnChangeNonListToListColumnTypeMismatch() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+				// Call under test
+				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Cannot convert to a TYPE_LIST that does not match the original TYPE", errMessage);
+	}
 
 	@Test
 	public void testValidateColumnChangeListColumnToSameListColumn() {

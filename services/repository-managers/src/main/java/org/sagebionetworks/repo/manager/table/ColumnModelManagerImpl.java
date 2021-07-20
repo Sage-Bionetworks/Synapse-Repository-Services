@@ -360,6 +360,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				if (ColumnTypeListMappings.isList(oldColumn.getColumnType()) && !ColumnTypeListMappings.isList(newColumn.getColumnType())) {
 					throw new IllegalArgumentException("Cannot perform schema change from _LIST type to non-_LIST type");
 				}
+				if (!ColumnTypeListMappings.isList(oldColumn.getColumnType()) && ColumnTypeListMappings.isList(newColumn.getColumnType())
+						&& !ColumnTypeListMappings.listType(oldColumn.getColumnType()).equals(newColumn.getColumnType())) {
+					throw new IllegalArgumentException("Cannot convert to a TYPE_LIST that does not match the original TYPE");
+				}
 				if (ColumnTypeListMappings.isList(oldColumn.getColumnType()) && ColumnTypeListMappings.isList(newColumn.getColumnType()) 
 						&& !oldColumn.getColumnType().equals(newColumn.getColumnType())) {
 					throw new IllegalArgumentException("Cannot perform schema change from different _LIST to _LIST column types");
