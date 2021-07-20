@@ -4,55 +4,55 @@
     "enum": [
         {
             "name": "FileEntity",
-            "description": "TODO: Auto-generated description"
+            "description": "A file in a folder or project."
         },
         {
             "name": "TableEntity",
-            "description": "TODO: Auto-generated description"
+            "description": "A file in a table row."
         },
         {
             "name": "WikiAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file attached to a wiki page."
         },
         {
             "name": "WikiMarkdown",
-            "description": "TODO: Auto-generated description"
+            "description": "The file containing the markdown of a wiki page."
         },
         {
             "name": "UserProfileAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file containing the user profile picture."
         },
         {
             "name": "MessageAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "The file containing the content of a message."
         },
         {
             "name": "TeamAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file containing the team icon."
         },
         {
             "name": "SubmissionAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file attached to an evaluation submission."
         },
         {
             "name": "VerificationSubmission",
-            "description": "TODO: Auto-generated description"
+            "description": "A file attached to a user verification submission."
         },
         {
             "name": "AccessRequirementAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file included in an access requirement."
         },
         {
             "name": "DataAccessRequestAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file attached to a data access request."
         },
         {
             "name": "DataAccessSubmissionAttachment",
-            "description": "TODO: Auto-generated description"
+            "description": "A file attached to a data access submission."
         },
         {
             "name": "FormData",
-            "description": "Used to access data assocaited with a FormData object."
+            "description": "A file containing the data of a form."
         }
     ]
 }

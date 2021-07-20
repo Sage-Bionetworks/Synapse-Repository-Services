@@ -6,6 +6,10 @@
 		}
 	],
 	"properties": {
+		"partSizeBytes": {
+			"type": "integer",
+			"description": "In order to upload a file, the client must split the process into 'parts' and upload each part separately. This indicates the clients intended part size in bytes. Part size must be at least 5,242,880 bytes (5MB) with a max of 5,368,709,120 bytes (5GB). Also the maximum number of parts for a single file is 10K. The recommended part size for a single file upload should be: MAX(5242880, (fileSizeBytes/10000))."
+		},
 		"contentMD5Hex": {
 			"type": "string",
 			"description": "The MD5 of the entire file to be uploaded represented as a HEX string."
