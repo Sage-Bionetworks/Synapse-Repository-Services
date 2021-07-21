@@ -75,13 +75,13 @@ public interface FileHandlePackageManager {
 	 * 
 	 * @param user
 	 * @param request
-	 * @param fileSizesChecked Set to true if the files sizes have already been
+	 * @param skipFileSizeCheck Set to true if the files sizes have already been
 	 *                         checked. When set to false, this method will check
 	 *                         the files sizes to ensure they will fit in the zip.
 	 * @return
 	 * @throws IOException
 	 */
-	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request, boolean fileSizesChecked)
+	public BulkFileDownloadResponse buildZip(UserInfo user, BulkFileDownloadRequest request, boolean skipFileSizeCheck)
 			throws IOException;
 
 }

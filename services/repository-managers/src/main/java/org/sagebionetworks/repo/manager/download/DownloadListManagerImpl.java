@@ -530,12 +530,12 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		// build the package zip file.
 		// @formatter:off
-		boolean fileSizesChecked = true;
+		boolean skipFileSizeCheck = true;
 		String zipFileHandleId = fileHandlePackageManager.buildZip(userInfo,
 						new BulkFileDownloadRequest()
 						.setRequestedFiles(associations)
 						.setZipFileName(requestBody.getZipFileName())
-						.setZipFileFormat(ZipFileFormat.Flat), fileSizesChecked)
+						.setZipFileFormat(ZipFileFormat.Flat), skipFileSizeCheck)
 				.getResultZipFileHandleId();
 		// @formatter:on
 
