@@ -9,6 +9,14 @@
 		"zipFileName": {
 			"description": "Optional parameter to set the name of the resulting zip file.",
 			"type": "string"
+		},
+		"includeManifest": {
+			"description": "When set to true, a metadata manifest files will be include in the package.  The manifest will include all metadata for each file in the package.",
+			"type": "boolean"
+		},
+		"csvTableDescriptor": {
+			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor",
+			"description": "Optional. Only used if includeManifest=true.  Describes how the CSV should be constructed."
 		}
 	}
 }
