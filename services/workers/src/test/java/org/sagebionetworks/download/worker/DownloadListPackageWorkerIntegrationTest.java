@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.download.DownloadListPackageResponse;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -171,6 +172,73 @@ public class DownloadListPackageWorkerIntegrationTest {
 		}
 
 	}
+	
+	@Test
+	public void testPackageWithManifest() throws Exception {
+		Node project = nodeDaoHelper.create((n) -> {
+			n.setNodeType(EntityType.project);
+			n.setName("project");
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			a.getResourceAccess().add(createResourceAccess(user.getId(), ACCESS_TYPE.DOWNLOAD));
+			a.getResourceAccess().add(createResourceAccess(user.getId(), ACCESS_TYPE.READ));
+		});
+
+		S3FileHandle fh1 = uploadFileToS3(user, "one.txt", "contents of one");
+		fileHandleIdsToDelete.add(fh1.getId());
+		Node file1 = nodeDaoHelper.create((n) -> {
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setName("one.txt");
+			n.setFileHandleId(fh1.getId());
+		});
+
+		S3FileHandle fh2 = uploadFileToS3(user, "two.txt", "contents of two is bigger");
+		fileHandleIdsToDelete.add(fh2.getId());
+		Node file2 = nodeDaoHelper.create((n) -> {
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setName("two.txt");
+			n.setFileHandleId(fh2.getId());
+		});
+
+		long addedCount = downloadListDao.addBatchOfFilesToDownloadList(user.getId(),
+				Arrays.asList(new DownloadListItem().setFileEntityId(file1.getId()),
+						new DownloadListItem().setFileEntityId(file2.getId())));
+		assertEquals(2L, addedCount);
+		assertEquals(2L, downloadListDao.getTotalNumberOfFilesOnDownloadList(user.getId()));
+
+		DownloadListPackageRequest request = new DownloadListPackageRequest();
+		request.setIncludeManifest(true);
+		request.setCsvTableDescriptor(new CsvTableDescriptor().setSeparator("\t"));
+		// call under test
+		DownloadListPackageResponse respone = asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListPackageResponse response) -> {
+			assertNotNull(response.getResultFileHandleId());
+			fileHandleIdsToDelete.add(response.getResultFileHandleId());
+		}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+		
+		assertEquals(0L, downloadListDao.getTotalNumberOfFilesOnDownloadList(user.getId()));
+		
+		S3FileHandle zipHandle = (S3FileHandle)fileUploadManager.getRawFileHandle(user, respone.getResultFileHandleId());
+		
+		File temp = File.createTempFile("package", ".zip");
+		try {
+			s3Client.getObject(new GetObjectRequest(zipHandle.getBucketName(), zipHandle.getKey()), temp);
+			try(ZipInputStream in = new ZipInputStream(new FileInputStream(temp))){
+				ZipEntry entry = in.getNextEntry();
+				assertEquals("one.txt", entry.getName());
+				entry = in.getNextEntry();
+				assertEquals("two.txt", entry.getName());
+				entry = in.getNextEntry();
+				assertEquals("manifest.tsv", entry.getName());
+			}
+		}finally {
+			temp.delete();
+		}
+
+	}
+
 
 	/**
 	 * Upload an actual file to S3.

@@ -187,7 +187,7 @@ public class DownloadListManagerImplTest {
 	private BulkFileDownloadResponse bulkFileDownloadResponse;
 	private CsvTableDescriptor csvTableDescriptor;
 	private DownloadListManifestRequest downloadListManifestRequest;
-	private DownloadListManifestResponse downloadListManifestResponse;
+	private boolean fileSizesChecked;
 
 	@BeforeEach
 	public void before() {
@@ -228,7 +228,7 @@ public class DownloadListManagerImplTest {
 		
 		csvTableDescriptor = new CsvTableDescriptor().setSeparator(",");
 		downloadListManifestRequest = new DownloadListManifestRequest().setCsvTableDescriptor(csvTableDescriptor);
-		downloadListManifestResponse = new DownloadListManifestResponse().setResultFileHandleId("999");
+		fileSizesChecked = true;
 	}
 
 	@Test
@@ -1477,7 +1477,7 @@ public class DownloadListManagerImplTest {
 		DownloadListPackageRequest request = new DownloadListPackageRequest();
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1493,9 +1493,109 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
-		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
+	}
+	
+	@Test
+	public void testPackageFilesWithNullIncludeManifest() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		DownloadListPackageRequest request = new DownloadListPackageRequest();
+		request.setIncludeManifest(null);
+		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
+				.thenReturn(downloadListItems);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
+
+		// call under test
+		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
+
+		DownloadListPackageResponse expected = new DownloadListPackageResponse()
+				.setResultFileHandleId(bulkFileDownloadResponse.getResultZipFileHandleId());
+		assertEquals(expected, response);
+		verify(managerSpy).createAccessCallback(userOne);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(AvailableFilter.eligibleForPackaging),
+				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
+				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
+		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
+				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
+						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
+		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
+		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
+	}
+	
+	@Test
+	public void testPackageFilesWithIncludeManifestFalse() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		DownloadListPackageRequest request = new DownloadListPackageRequest();
+		request.setIncludeManifest(false);
+		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
+				.thenReturn(downloadListItems);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
+
+		// call under test
+		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
+
+		DownloadListPackageResponse expected = new DownloadListPackageResponse()
+				.setResultFileHandleId(bulkFileDownloadResponse.getResultZipFileHandleId());
+		assertEquals(expected, response);
+		verify(managerSpy).createAccessCallback(userOne);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(AvailableFilter.eligibleForPackaging),
+				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
+				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
+		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
+				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
+						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
+		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
+		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
+	}
+	
+	@Test
+	public void testPackageFilesWithIncludeManifest() throws IOException {
+		DownloadListManagerImpl managerSpy = Mockito.spy(manager);
+		DownloadListPackageRequest request = new DownloadListPackageRequest();
+		request.setIncludeManifest(true);
+		request.setCsvTableDescriptor(csvTableDescriptor);
+		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
+				.thenReturn(downloadListItems);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
+		String manifestFileHandleId = "999";
+		doReturn(manifestFileHandleId).when(managerSpy).buildManifest(any(), any(), any());
+		FileHandleAssociation expectedManifestAssociation = new FileHandleAssociation()
+				.setFileHandleId(manifestFileHandleId).setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setAssociateObjectId(DownloadListManagerImpl.ZERO_FILE_ID);
+
+		// call under test
+		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
+
+		DownloadListPackageResponse expected = new DownloadListPackageResponse()
+				.setResultFileHandleId(bulkFileDownloadResponse.getResultZipFileHandleId());
+		assertEquals(expected, response);
+		verify(managerSpy).createAccessCallback(userOne);
+		verify(mockDownloadListDao).getFilesAvailableToDownloadFromDownloadList(any(), eq(userOne.getId()),
+				eq(AvailableFilter.eligibleForPackaging),
+				eq(Arrays.asList(new Sort().setField(SortField.fileSize).setDirection(SortDirection.ASC))),
+				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
+		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
+				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
+						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult),
+								expectedManifestAssociation));
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
+		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
+		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+				
+		verify(managerSpy).buildManifest(eq(userOne), eq(csvTableDescriptor), iteratorCaptor.capture());
+		Iterator<DownloadListItemResult> iterator = iteratorCaptor.getValue();
+		assertTrue(iterator.hasNext());
+		assertEquals(downloadListItemResult, iterator.next());
+		assertFalse(iterator.hasNext());
 	}
 	
 	@Test
@@ -1505,7 +1605,7 @@ public class DownloadListManagerImplTest {
 		DownloadListPackageRequest request = new DownloadListPackageRequest();
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1521,9 +1621,10 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(downloadListItemResult)));
-		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(downloadListItemResult);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
 	}
 	
 	@Test
@@ -1548,6 +1649,7 @@ public class DownloadListManagerImplTest {
 				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
 		
 		verifyNoMoreInteractions(mockFileHandlePackageManager);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
 	}
 	
 	@Test
@@ -1572,6 +1674,7 @@ public class DownloadListManagerImplTest {
 				eq(DownloadListManagerImpl.MAX_QUERY_PAGE_SIZE), eq(0L));
 		
 		verifyNoMoreInteractions(mockFileHandlePackageManager);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
 	}
 	
 	@Test
@@ -1587,6 +1690,7 @@ public class DownloadListManagerImplTest {
 		assertEquals(DownloadListManagerImpl.YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST, message);
 		verifyNoMoreInteractions(mockDownloadListDao);
 		verifyNoMoreInteractions(mockFileHandlePackageManager);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
 	}
 	
 	@Test
@@ -1604,7 +1708,7 @@ public class DownloadListManagerImplTest {
 		
 		when(mockDownloadListDao.getFilesAvailableToDownloadFromDownloadList(any(), any(), any(), any(), any(), any()))
 				.thenReturn(downloadListItems);
-		when(mockFileHandlePackageManager.buildZip(any(), any())).thenReturn(bulkFileDownloadResponse);
+		when(mockFileHandlePackageManager.buildZip(any(), any(), anyBoolean())).thenReturn(bulkFileDownloadResponse);
 
 		// call under test
 		DownloadListPackageResponse response = managerSpy.packageFiles(mockProgressCallback, userOne, request);
@@ -1620,10 +1724,11 @@ public class DownloadListManagerImplTest {
 		BulkFileDownloadRequest expectedBulkFileDownloadRequest = new BulkFileDownloadRequest()
 				.setZipFileFormat(ZipFileFormat.Flat).setZipFileName(request.getZipFileName()).setRequestedFiles(
 						Arrays.asList(DownloadListManagerImpl.createAssociationForItem(one)));
-		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest);
+		verify(mockFileHandlePackageManager).buildZip(userOne, expectedBulkFileDownloadRequest, fileSizesChecked);
 		// both files should get deleted
 		List<DownloadListItem> expectedRemoveItems = Arrays.asList(one, two);
 		verify(mockDownloadListDao).removeBatchOfFilesFromDownloadList(userOne.getId(), expectedRemoveItems);
+		verify(managerSpy, never()).buildManifest(any(), any(), any());
 	}
 
 	@Test
