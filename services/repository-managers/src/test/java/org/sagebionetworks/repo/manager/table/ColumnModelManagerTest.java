@@ -936,7 +936,7 @@ public class ColumnModelManagerTest {
 				// Call under test
 				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Cannot convert to a _LIST column with a smaller maximum size string length than original", errMessage);
+		assertEquals("Cannot convert to a STRING_LIST column with a smaller maximum size string length than original", errMessage);
 	}
 
 	@Test
