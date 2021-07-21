@@ -6,6 +6,10 @@
 		}
 	],
 	"properties": {
+		"partSizeBytes": {
+			"type": "integer",
+			"description": "In order to copy a file, the client must split the process into 'parts' and copy each part separately. This indicates the clients intended part size in bytes. Part size must be at least 5,242,880 bytes (5MB) with a max of 5,368,709,120 bytes (5GB). Also the maximum number of parts for a single file is 10K. The recommended part size for a single file copy should be: MAX(104857600, (originalFileSizeBytes/10000))."
+		},
 		"sourceFileHandleAssociation": {
 			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation",
 			"description": "The description of the source file handle association to copy from. The user initiating the copy must have read and download access to the provided association."

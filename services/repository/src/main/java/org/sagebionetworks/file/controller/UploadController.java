@@ -134,7 +134,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * The part size allows to parallelize the copy in multiple sub-parts, the same limits of the upload applies to the copy (e.g. it is possible to copy 
- * a file in a single part up to 5 GB).
+ * a file in a single part up to 5 GB). When initiating a copy we recommend to choose the part size as follows:
+ * </p>
+ * <p>
+ * partSize = max(104857600, (fileSize/10000))
  * </p>
  * <p>
  * Once the multipart copy is initiated the process is the same as the multipart upload:
@@ -175,10 +178,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <b>Associating FileHandles with Synapse objects</b>
  * </p>
  * <p>
- * Currently, FileHandles can be associated with a <a
- * href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> and a <a
- * href="${org.sagebionetworks.repo.model.wiki.WikiPage}">WikiPage</a>. For more
- * information see the following:
+ * FileHandles can be associated with various type of objects such as a <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> and  <a
+ * href="${org.sagebionetworks.repo.model.wiki.WikiPage}">WikiPage</a>. The full list of association types can be found in the <a href="${org.sagebionetworks.repo.model.file.FileHandleAssociateType}">FileHandleAssociateType</a> enumeration.
+ * <p>
+ * Note that a file handle MUST always be associated with an object, if a file handle is not associated with an objects for more than 30 days Synapse will mark it as <a href="${org.sagebionetworks.repo.model.file.FileHandleStatus}">UNLINKED</a> and eventually archive or delete it from the system.
+ * </p>
+ * <p>
+ * For more information see the following:
+ * </p>
  * <ul>
  * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
  * <li><a href="${POST.entity}">POST /entity</a>
@@ -189,6 +196,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${GET.entity.id.filehandles}">GET /entity/{id}/filehandles</a>
  * <li><a href="${GET.entity.id.version.versionNumber.filehandles}">GET
  * /entity/{id}/version/{versionNumber}/filehandles</a>
+ * <li><a href="${POST.fileHandle.batch}">POST /fileHandle/batch</a>
  * </ul>
  * <b>Service Limits</b>
  * <table border="1">
@@ -204,7 +212,22 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </tr>
  * <tr>
  * <td>Maximum file size</td>
- * <td>5 terabytes</td>
+ * <td>5 TB (5,497,558,100,000 bytes)</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <tr>
+ * <td>Maximum number of parts</td>
+ * <td>10,000</td>
+ * <td></td>
+ * </tr>
+ * <td>Minimum file part size</td>
+ * <td>5 MB (5,242,880 bytes)</td>
+ * <td>The recommended part size for an upload is max(5242880, (fileSize/10000)). For a copy max(104857600, (fileSize/10000)).</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum file part size</td>
+ * <td>5 GB (5,368,709,120 bytes)</td>
  * <td></td>
  * </tr>
  * </table>
