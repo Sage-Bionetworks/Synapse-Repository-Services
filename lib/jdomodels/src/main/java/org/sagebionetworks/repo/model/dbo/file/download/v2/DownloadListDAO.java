@@ -36,7 +36,7 @@ public interface DownloadListDAO {
 	 * @param batchToRemove The batch of files to remove.
 	 * @return The number of files that were actually removed.
 	 */
-	long removeBatchOfFilesFromDownloadList(Long userId, List<DownloadListItem> batchToRemove);
+	long removeBatchOfFilesFromDownloadList(Long userId, List<? extends DownloadListItem> batchToRemove);
 
 	/**
 	 * Clear all files from the user's download list.

@@ -225,7 +225,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	@WriteTransaction
 	@Override
-	public long removeBatchOfFilesFromDownloadList(Long userId, List<DownloadListItem> batchToRemove) {
+	public long removeBatchOfFilesFromDownloadList(Long userId, List<? extends DownloadListItem> batchToRemove) {
 		ValidateArgument.required(userId, "User Id");
 		if (batchToRemove == null || batchToRemove.isEmpty()) {
 			return 0;
