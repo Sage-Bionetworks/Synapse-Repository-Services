@@ -922,6 +922,22 @@ public class ColumnModelManagerTest {
 		).getMessage();
 		assertEquals("Cannot convert to a TYPE_LIST that does not match the original TYPE", errMessage);
 	}
+	
+	@Test
+	public void testValidateColumnChangeNonListToListColumnWithReducedStringLength() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(10L);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(9L);
+		newColumn.setMaximumListLength(8L);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+				// Call under test
+				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Cannot convert to a _LIST column with a smaller maximum size string length than original", errMessage);
+	}
 
 	@Test
 	public void testValidateColumnChangeListColumnToSameListColumn() {

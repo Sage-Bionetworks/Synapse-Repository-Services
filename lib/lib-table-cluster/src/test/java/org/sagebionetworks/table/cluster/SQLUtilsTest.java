@@ -900,11 +900,11 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
-		assertEquals("ALTER TABLE T999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
-				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
-				+ "DROP COLUMN _DBL_C111_", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", results[0]);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
+				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results[1]);
 	}
 
 	@Test
@@ -980,11 +980,11 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		boolean alterTemp = true;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
-		assertEquals("ALTER TABLE TEMPT999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
-				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
-				+ "DROP COLUMN _DBL_C111_", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE TEMPT999 CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", results[0]);
+		assertEquals("ALTER TABLE TEMPT999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
+				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results[1]);
 	}
 
 	@Test
@@ -1000,8 +1000,8 @@ public class SQLUtilsTest {
 		boolean alterTemp = false;
 
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
-		assertNull(results, "when there are no changes the sql should be null");
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp, 0L);
+		assertTrue(results.length == 0);
 	}
 
 	/**
@@ -1034,8 +1034,8 @@ public class SQLUtilsTest {
 
 		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
-		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C123_ _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C123_ _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results[0]);
 	}
 
 	/**
@@ -1068,8 +1068,8 @@ public class SQLUtilsTest {
 
 		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
-		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C444_ _C444_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C444_ _C444_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results[0]);
 	}
 
 	/**
@@ -1090,8 +1090,8 @@ public class SQLUtilsTest {
 
 		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp);
-		assertEquals("ALTER TABLE T999 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'", results[0]);
 	}
 
 	/**
@@ -1113,8 +1113,8 @@ public class SQLUtilsTest {
 
 		boolean alterTemp = false;
 		// call under test
-		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp);
-		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results);
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results[0]);
 	}
 
 	@Test
@@ -3161,7 +3161,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAlterToListColumnTypeSql() {
+	public void testCreateAlterToListColumnTypeSqlWithAlterTempTrue() {
 		// PLFM-6247
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
@@ -3173,12 +3173,114 @@ public class SQLUtilsTest {
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
-
 		boolean alterTemp = false;
-		String[] results = SQLUtils.createAlterToListColumnTypeSql(change, tableId, alterTemp);
-		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results[0]);
-		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results[1]);
-		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results[2]);
+		List<String> results = SQLUtils.createAlterToListColumnTypeSqlBatch(change, tableId, alterTemp);
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results.get(0));
+		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results.get(1));
+		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results.get(2));
+	}
+	
+	@Test
+	public void testCreateAlterToListColumnTypeSqlWithAlterTempFalse() {
+		// PLFM-6247
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		boolean alterTemp = true;
+		List<String> results = SQLUtils.createAlterToListColumnTypeSqlBatch(change, tableId, alterTemp);
+		assertEquals("ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results.get(0));
+		assertEquals("UPDATE TEMPT999 SET _C456_ = JSON_ARRAY(_C123_)", results.get(1));
+		assertEquals("ALTER TABLE TEMPT999 DROP COLUMN _C123_", results.get(2));
+	}
+	
+	@Test
+	public void testCreateAlterTableSqlWithListChangeAndAlterTempTrue(){
+		// change 1
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("111");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("222");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		newColumn.setDefaultValue("foo");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// change 2
+		oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		boolean alterTemp = true;
+		// call under test
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE TEMPT999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
+				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results[0]);
+		assertEquals("ALTER TABLE TEMPT999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results[1]);
+		assertEquals("UPDATE TEMPT999 SET _C456_ = JSON_ARRAY(_C123_)", results[2]);
+		assertEquals("ALTER TABLE TEMPT999 DROP COLUMN _C123_", results[3]);
 	}
 
+	@Test
+	public void testCreateAlterTableSqlWithListChangeAndAlterTempFalse(){
+		// change 1
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("111");
+		oldColumn.setColumnType(ColumnType.DOUBLE);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("222");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(15L);
+		newColumn.setDefaultValue("foo");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// change 2
+		oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN_LIST);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		boolean alterTemp = false;
+		// call under test
+		String[] results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp, 0L);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C111_ _C222_ VARCHAR(15) " 
+				+ "CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
+				+ "DROP COLUMN _DBL_C111_", results[0]);
+		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results[1]);
+		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results[2]);
+		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results[3]);
+	}
+	
+	@Test
+	public void testCreateCountNumberOfColumnsSqlWithAlterTempTrue() {
+		boolean alterTemp = true;
+		String sql = SQLUtils.createCountNumberOfColumnsSql(tableId, alterTemp);
+		assertEquals(sql, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'TEMPT999'");
+	}
+	
+	@Test
+	public void testCreateCountNumberOfColumnsSqlWithAlterTempFalse() {
+		boolean alterTemp = false;
+		String sql = SQLUtils.createCountNumberOfColumnsSql(tableId, alterTemp);
+		assertEquals(sql, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'T999'");
+	}
 }

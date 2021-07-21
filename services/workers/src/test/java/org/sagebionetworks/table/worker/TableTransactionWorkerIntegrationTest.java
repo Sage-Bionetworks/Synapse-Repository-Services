@@ -315,18 +315,9 @@ public class TableTransactionWorkerIntegrationTest {
 		toDelete.add(tableId);
 		
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(stringColumn, tableId);
-	
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(stringColumn, changeResponse.getSchema().get(0));
 		});
 		
 		// add data
@@ -337,49 +328,18 @@ public class TableTransactionWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		// for consistency
-		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
-		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
-			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
-		});
+		waitForConsistentQuery(table, adminUserInfo);
 		
 		// new column model for list
-		ColumnModel stringListColumn = new ColumnModel();
-		stringListColumn.setName("aStringList");
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setMaximumSize(100L);
-		stringListColumn.setMaximumListLength(100L);
-		stringListColumn = columnManager.createColumnModel(adminUserInfo, stringListColumn);
-		
-		ColumnChange updateToList = new ColumnChange();
-		updateToList.setOldColumnId(stringColumn.getId());
-		updateToList.setNewColumnId(stringListColumn.getId());
-		List<ColumnChange> changes = Lists.newArrayList(updateToList);
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setEntityId(tableId);
-		request.setChanges(changes);
-		List<String> orderedColumnIds = Arrays.asList(stringListColumn.getId());
-		request.setOrderedColumnIds(orderedColumnIds);
-		
-		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
-		updates.add(request);
-		transaction = new TableUpdateTransactionRequest();
-		transaction.setEntityId(tableId);
-		transaction.setChanges(updates);
-		
-		final ColumnModel expectedModel = stringListColumn;
+		Long maxListLength = 10L;
+		String name = "aStringList";
+		ColumnModel stringListColumn = createListColumnModel(ColumnType.STRING_LIST, maxListLength, name);
+		// create request
+		transaction = createColumnUpdateRequest(stringColumn, stringListColumn, tableId);
 		
 		// call under test
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(expectedModel, changeResponse.getSchema().get(0));
 		});
 		
 		// add another row
@@ -391,7 +351,7 @@ public class TableTransactionWorkerIntegrationTest {
 		});
 		
 		// test multi-value tables are built
-		queryRequest = createQueryRequest("SELECT UNNEST(aStringList) FROM " + table.getId(), table.getId());
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
 			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
 		});
@@ -412,18 +372,9 @@ public class TableTransactionWorkerIntegrationTest {
 		final ColumnModel booleanColumn = columnManager.createColumnModel(adminUserInfo, newBooleanColumn);
 		
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(booleanColumn, tableId);
-	
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(booleanColumn, changeResponse.getSchema().get(0));
 		});
 		
 		// add data
@@ -434,49 +385,18 @@ public class TableTransactionWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		// for consistency
-		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
-		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
-			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
-		});
+		waitForConsistentQuery(table, adminUserInfo);
 		
 		// new column model for list
-		ColumnModel booleanListColumn = new ColumnModel();
-		booleanListColumn.setName("aBooleanList");
-		booleanListColumn.setColumnType(ColumnType.BOOLEAN_LIST);
-		booleanListColumn.setMaximumSize(100L);
-		booleanListColumn.setMaximumListLength(100L);
-		booleanListColumn = columnManager.createColumnModel(adminUserInfo, booleanListColumn);
-		
-		ColumnChange updateToList = new ColumnChange();
-		updateToList.setOldColumnId(booleanColumn.getId());
-		updateToList.setNewColumnId(booleanListColumn.getId());
-		List<ColumnChange> changes = Lists.newArrayList(updateToList);
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setEntityId(tableId);
-		request.setChanges(changes);
-		List<String> orderedColumnIds = Arrays.asList(booleanListColumn.getId());
-		request.setOrderedColumnIds(orderedColumnIds);
-		
-		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
-		updates.add(request);
-		transaction = new TableUpdateTransactionRequest();
-		transaction.setEntityId(tableId);
-		transaction.setChanges(updates);
-		
-		final ColumnModel expectedModel = booleanListColumn;
+		Long maxListLength = 10L;
+		String name = "aBooleanList";
+		ColumnModel booleanListColumn = createListColumnModel(ColumnType.BOOLEAN_LIST, maxListLength, name);
+		// create request
+		transaction = createColumnUpdateRequest(booleanColumn, booleanListColumn, tableId);
 		
 		// call under test
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(expectedModel, changeResponse.getSchema().get(0));
 		});
 		
 		// add another row
@@ -488,7 +408,7 @@ public class TableTransactionWorkerIntegrationTest {
 		});
 		
 		// test multi-value tables are built
-		queryRequest = createQueryRequest("SELECT UNNEST(aBooleanList) FROM " + table.getId(), table.getId());
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
 			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
 		});
@@ -504,18 +424,9 @@ public class TableTransactionWorkerIntegrationTest {
 		toDelete.add(tableId);
 		
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(intColumn, tableId);
-	
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(intColumn, changeResponse.getSchema().get(0));
 		});
 		
 		// add data
@@ -526,49 +437,18 @@ public class TableTransactionWorkerIntegrationTest {
 			assertNotNull(response);
 		});
 		
-		// for consistency
-		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());	
-		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
-			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
-		});
+		waitForConsistentQuery(table, adminUserInfo);
 		
 		// new column model for list
-		ColumnModel intListColumn = new ColumnModel();
-		intListColumn.setName("anIntList");
-		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
-		intListColumn.setMaximumSize(100L);
-		intListColumn.setMaximumListLength(100L);
-		intListColumn = columnManager.createColumnModel(adminUserInfo, intListColumn);
-		
-		ColumnChange updateToList = new ColumnChange();
-		updateToList.setOldColumnId(intColumn.getId());
-		updateToList.setNewColumnId(intListColumn.getId());
-		List<ColumnChange> changes = Lists.newArrayList(updateToList);
-		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
-		request.setEntityId(tableId);
-		request.setChanges(changes);
-		List<String> orderedColumnIds = Arrays.asList(intListColumn.getId());
-		request.setOrderedColumnIds(orderedColumnIds);
-		
-		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
-		updates.add(request);
-		transaction = new TableUpdateTransactionRequest();
-		transaction.setEntityId(tableId);
-		transaction.setChanges(updates);
-		
-		final ColumnModel expectedModel = intListColumn;
+		Long maxListLength = 10L;
+		String name = "anIntList";
+		ColumnModel intListColumn = createListColumnModel(ColumnType.INTEGER_LIST, maxListLength, name);
+		// create request
+		transaction = createColumnUpdateRequest(intColumn, intListColumn, tableId);
 		
 		// call under test
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
 			assertNotNull(response);
-			assertNotNull(response.getResults());
-			assertEquals(1, response.getResults().size());
-			TableUpdateResponse updateResponse = response.getResults().get(0);
-			assertTrue(updateResponse instanceof TableSchemaChangeResponse);
-			TableSchemaChangeResponse changeResponse = (TableSchemaChangeResponse) updateResponse;
-			assertNotNull(changeResponse.getSchema());
-			assertEquals(1, changeResponse.getSchema().size());
-			assertEquals(expectedModel, changeResponse.getSchema().get(0));
 		});
 		
 		// add another row
@@ -580,7 +460,7 @@ public class TableTransactionWorkerIntegrationTest {
 		});
 		
 		// test multi-value tables are built
-		queryRequest = createQueryRequest("SELECT UNNEST(anIntList) FROM " + table.getId(), table.getId());
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
 			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
 		});
@@ -762,6 +642,32 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	/**
+	 * Helper to create a column type change request
+	 * 
+	 * @param oldColumn
+	 * @param newColumn
+	 * @param entityId
+	 */
+	public static TableUpdateTransactionRequest createColumnUpdateRequest(ColumnModel oldColumn, ColumnModel newColumn, String entityId) {
+		ColumnChange updateToList = new ColumnChange();
+		updateToList.setOldColumnId(oldColumn.getId());
+		updateToList.setNewColumnId(newColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(updateToList);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(newColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+		return transaction;
+	}
+	
+	/**
 	 * Helper to create a new version request.
 	 * @return
 	 */
@@ -806,4 +712,29 @@ public class TableTransactionWorkerIntegrationTest {
 		return asyncHelper.assertJobResponse(user, body, consumer, MAX_WAIT_MS).getResponse();
 	}
 	
+	private void waitForConsistentQuery(TableEntity table, UserInfo adminUserInfo) throws Exception {
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	/**
+	 * Helper to create a list type column model
+	 * @param columnType
+	 */
+	public ColumnModel createListColumnModel(ColumnType columnType, Long maxListLength, String name) {
+		ColumnModel cm = new ColumnModel();
+		if (columnType.equals(ColumnType.STRING_LIST)) {
+			cm.setColumnType(ColumnType.STRING_LIST);
+			cm.setMaximumSize(100L);
+		} else if (columnType.equals(ColumnType.BOOLEAN_LIST)) {
+			cm.setColumnType(ColumnType.BOOLEAN_LIST);
+		} else if (columnType.equals(ColumnType.INTEGER_LIST)) {
+			cm.setColumnType(ColumnType.INTEGER_LIST);
+		}
+		cm.setName(name);
+		cm.setMaximumListLength(maxListLength);
+		return columnManager.createColumnModel(adminUserInfo, cm);
+	}
 }

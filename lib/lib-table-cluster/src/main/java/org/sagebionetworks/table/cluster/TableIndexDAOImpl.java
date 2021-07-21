@@ -466,25 +466,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
-		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
-		boolean atLeastOneColumnTypeChangedToList = false;
-		for (ColumnChangeDetails change : changes) {
-			if (change.getOldColumn() != null && change.getNewColumn() != null 
-					&& !ColumnTypeListMappings.isList(change.getOldColumn().getColumnType()) 
-					&& ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
-				String[] sqlBatch = SQLUtils.createAlterToListColumnTypeSql(change, tableId, alterTemp);
-				atLeastOneColumnTypeChangedToList = true;
-				// apply the individual "single value to list" column type updates
-				template.batchUpdate(sqlBatch);
-			}
-		}
-		if (sql != null) {
-			template.update(sql);
-		}
-		if(sql == null && !atLeastOneColumnTypeChangedToList){
-			// no changes were made
+		// record the number of columns in the table first
+		String countColumnsSql = SQLUtils.createCountNumberOfColumnsSql(tableId, alterTemp);
+		Long numColumns = template.query(countColumnsSql, new SingleColumnRowMapper<Long>()).get(0);
+		// get SQL statements for altering table
+		String[] sqlStatements = SQLUtils.createAlterTableSql(changes, tableId, alterTemp, numColumns);
+		if (sqlStatements.length == 0) {
+			// no changes made
 			return false;
 		}
+		template.batchUpdate(sqlStatements);
 		return true;
 	}
 
