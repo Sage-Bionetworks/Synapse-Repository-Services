@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.message.dataaccess;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.StringJoiner;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.markdown.MarkdownClientException;
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
+import org.sagebionetworks.repo.util.StringUtil;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -30,10 +33,11 @@ public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessage
 
 	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
 	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
-			+ ">%1$s\n"
+			+ "%1$s\n"
 			+ "[Please view and complete all requirements](https://www.synapse.org/#!AccessRequirements:ID=%3$s&TYPE=%4$s) to access the resource of interest \n%2$s \n\n";
 	public static final String ENTITY_PAGE_LINK = "https://www.synapse.org/#!Synapse:%1$s";
 	public static final String TEAM_PAGE_LINK = "https://www.synapse.org/#!Team:%1$s";
+	public static final String MARKDOWN_INDENT_CHAR = ">";
 
 	private String subject;
 	private String emailTemplate;
@@ -98,13 +102,21 @@ public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessage
 		String recipientName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		sb.append(String.format(GREETING, recipientName));
 		if (isRejected) {
-			sb.append(String.format(emailTemplate, rejectedReason, resourceLink, resourceId, resourceType.name()));
+			sb.append(String.format(emailTemplate, getIndentedRejectReason(), resourceLink, resourceId, resourceType.name()));
 		} else {
 			sb.append(String.format(emailTemplate, resourceLink, resourceId, resourceType.name()));
 		}
 		return sb.toString();
 	}
 
+	String getIndentedRejectReason() {
+		StringJoiner joiner = new StringJoiner("\n" + MARKDOWN_INDENT_CHAR, MARKDOWN_INDENT_CHAR, "");
+		
+		StringUtil.lines(rejectedReason).forEach(joiner::add);
+		
+		return joiner.toString();
+	}
+	
 	@Override
 	public SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user)
 			throws ClientProtocolException, JSONException, IOException, MarkdownClientException {

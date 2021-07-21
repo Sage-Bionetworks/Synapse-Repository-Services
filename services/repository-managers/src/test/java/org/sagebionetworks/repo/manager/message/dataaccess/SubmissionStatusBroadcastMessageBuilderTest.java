@@ -4,16 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SubmissionStatusBroadcastMessageBuilderTest {
 	@Mock
 	MarkdownDao mockMarkdownDao;
@@ -36,7 +36,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 	
 	SubmissionStatusBroadcastMessageBuilder builder;
 
-	@Before
+	@BeforeEach
 	public void before(){
 		requirementId = "1";
 
@@ -78,11 +78,14 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=TEAM"));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testBuildRawBodyForEvaluation(){
-		builder = new SubmissionStatusBroadcastMessageBuilder(
-				objectId, null, requirementId, resourceId,
-				RestrictableObjectType.EVALUATION, mockMarkdownDao, false);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			builder = new SubmissionStatusBroadcastMessageBuilder(
+					objectId, null, requirementId, resourceId,
+					RestrictableObjectType.EVALUATION, mockMarkdownDao, false);
+		});
 	}
 
 	@Test
@@ -95,15 +98,76 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:"));
-		assertTrue(body.contains(rejectedReason));
+		assertTrue(body.contains("\n>" + rejectedReason + "\n"));
 		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
 		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
 	}
 	
-	@Test (expected = MarkdownClientException.class)
+	@Test
+	public void testBuildRawBodyForRejectedMessageMultiLine(){
+		rejectedReason = "some reason\nsome other reason";
+		builder = new SubmissionStatusBroadcastMessageBuilder(
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
+		String body = builder.buildRawBody(subscriber);
+		assertNotNull(body);
+		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
+		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:"));
+		assertTrue(body.contains("\n>some reason\n>some other reason\n"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
+		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
+	}
+	
+	@Test
+	public void testGetIndentedRejectReason(){
+		rejectedReason = "Some reason.";
+		builder = new SubmissionStatusBroadcastMessageBuilder(
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
+		String result = builder.getIndentedRejectReason();
+		assertEquals(">Some reason.", result);
+	}
+	
+	@Test
+	public void testGetIndentedRejectReasonMultiLine(){
+		rejectedReason = "Some reason.\nSome other reason.\n   Another reason.";
+		builder = new SubmissionStatusBroadcastMessageBuilder(
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
+		String result = builder.getIndentedRejectReason();
+		assertEquals(">Some reason.\n>Some other reason.\n>   Another reason.", result);
+	}
+	
+	@Test
+	public void testGetIndentedRejectReasonEmptyLine(){
+		rejectedReason = "";
+		builder = new SubmissionStatusBroadcastMessageBuilder(
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
+		String result = builder.getIndentedRejectReason();
+		assertEquals(">", result);
+	}
+	
+	@Test
+	public void testGetIndentedRejectReasonNullLine(){
+		rejectedReason = null;
+		builder = new SubmissionStatusBroadcastMessageBuilder(
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
+		String result = builder.getIndentedRejectReason();
+		assertEquals(">", result);
+	}
+	
+	@Test
 	public void testBuildEmailFailure() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenThrow(new MarkdownClientException(500, ""));
-		builder.buildEmailForSubscriber(subscriber);
+		MarkdownClientException ex = new MarkdownClientException(500, "");
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenThrow(ex);
+		
+		MarkdownClientException result = assertThrows(MarkdownClientException.class, () -> {			
+			builder.buildEmailForSubscriber(subscriber);
+		});
+		
+		assertEquals(ex, result);
 	}
 	
 	@Test
