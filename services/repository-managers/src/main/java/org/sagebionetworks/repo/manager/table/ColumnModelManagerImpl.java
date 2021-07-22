@@ -355,13 +355,31 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			if(isFileHandleColumn(newColumn) && !isFileHandleColumn(oldColumn)){
 				throw new IllegalArgumentException(String.format(COLUMN_TYPE_ERROR_TEMPLATE, oldColumn.getColumnType(), ColumnType.FILEHANDLEID));
 			}
-
-			//table can not support changing schema to or from list types
-			if(entityType == EntityType.table){
-				if( (ColumnTypeListMappings.isList(oldColumn.getColumnType()) || ColumnTypeListMappings.isList(newColumn.getColumnType()))
-					&& !oldColumn.getColumnType().equals(newColumn.getColumnType())//keeping the same type for operations such as rename are allowed
-				){
-					throw new IllegalArgumentException("Can not perform schema change on _LIST type columns for Table Entities");
+			
+			if (entityType == EntityType.table) {
+				if (oldColumn.getColumnType().equals(ColumnType.STRING) 
+						&& newColumn.getColumnType().equals(ColumnType.STRING_LIST) 
+						&& oldColumn.getMaximumSize() != null && newColumn.getMaximumSize() != null
+						&& oldColumn.getMaximumSize() > newColumn.getMaximumSize()) {
+					throw new IllegalArgumentException("Cannot convert to a STRING_LIST column " 
+						+ "with a smaller maximum size string length than original");
+				}
+				if (ColumnTypeListMappings.isList(oldColumn.getColumnType()) 
+						&& !ColumnTypeListMappings.isList(newColumn.getColumnType())) {
+					throw new IllegalArgumentException("Cannot perform schema change " + 
+						"from _LIST type to non-_LIST type");
+				}
+				if (!ColumnTypeListMappings.isList(oldColumn.getColumnType()) 
+						&& ColumnTypeListMappings.isList(newColumn.getColumnType())
+						&& !ColumnTypeListMappings.listType(oldColumn.getColumnType()).equals(newColumn.getColumnType())) {
+					throw new IllegalArgumentException("Cannot convert to a TYPE_LIST " 
+						+ "that does not match the original TYPE");
+				}
+				if (ColumnTypeListMappings.isList(oldColumn.getColumnType()) 
+						&& ColumnTypeListMappings.isList(newColumn.getColumnType()) 
+						&& !oldColumn.getColumnType().equals(newColumn.getColumnType())) {
+					throw new IllegalArgumentException("Cannot perform schema change from " 
+						+ "different _LIST to _LIST column types");
 				}
 			}
 		}

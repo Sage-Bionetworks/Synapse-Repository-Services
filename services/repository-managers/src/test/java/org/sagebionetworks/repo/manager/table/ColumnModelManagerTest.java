@@ -886,7 +886,7 @@ public class ColumnModelManagerTest {
 	}
 
 	@Test
-	public void testValidateColumnChangeListColumnToDifferntListColumn() {
+	public void testValidateColumnChangeListColumnToDifferentListColumn() {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setColumnType(ColumnType.STRING_LIST);
 		ColumnModel newColumn = new ColumnModel();
@@ -895,7 +895,7 @@ public class ColumnModelManagerTest {
 			// Call under test
 			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+		assertEquals("Cannot perform schema change from different _LIST to _LIST column types", errMessage);
 	}
 	@Test
 	public void testValidateColumnChangeListColumnToNonListColumn() {
@@ -904,23 +904,52 @@ public class ColumnModelManagerTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setColumnType(ColumnType.STRING);
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->
-				// Call under test
-				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+			// Call under test
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+		assertEquals("Cannot perform schema change from _LIST type to non-_LIST type", errMessage);
 	}
-
+	
 	@Test
-	public void testValidateColumnChangeNonListColumnToListColumn() {
+	public void testValidateColumnChangeNonListToListColumnTypeMismatch() {
 		ColumnModel oldColumn = new ColumnModel();
-		oldColumn.setColumnType(ColumnType.INTEGER);
+		oldColumn.setColumnType(ColumnType.STRING);
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setColumnType(ColumnType.INTEGER_LIST);
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->
-				// Call under test
-				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+			// Call under test
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+		assertEquals("Cannot convert to a TYPE_LIST that does not match the original TYPE", errMessage);
+	}
+	
+	@Test
+	public void testValidateColumnChangeNonListToListColumnWithReducedStringLength() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(10L);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(9L);
+		newColumn.setMaximumListLength(8L);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+			// Call under test
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Cannot convert to a STRING_LIST column with a smaller maximum size string length than original", errMessage);
+	}
+	
+	@Test
+	public void testValidateColumnChangeNonListToListColumnWithSameStringLength() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(9L);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(9L);
+		newColumn.setMaximumListLength(8L);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 	}
 
 	@Test

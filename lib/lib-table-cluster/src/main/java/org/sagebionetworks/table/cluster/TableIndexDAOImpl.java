@@ -466,14 +466,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
-		String sql = SQLUtils.createAlterTableSql(changes, tableId, alterTemp);
-		if(sql == null){
-			// no change are needed.
+		// record the number of columns in the table first
+		String countColumnsSql = SQLUtils.createCountNumberOfColumnsSql(tableId, alterTemp);
+		Long numColumns = template.query(countColumnsSql, new SingleColumnRowMapper<Long>()).get(0);
+		// get SQL statements for altering table
+		String[] sqlStatements = SQLUtils.createAlterTableSql(changes, tableId, alterTemp, numColumns);
+		if (sqlStatements.length == 0) {
+			// no changes made
 			return false;
 		}
-		// apply the update
-		template.update(sql);
-
+		template.batchUpdate(sqlStatements);
 		return true;
 	}
 

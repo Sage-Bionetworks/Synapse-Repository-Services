@@ -83,6 +83,7 @@ public class TableTransactionWorkerIntegrationTest {
 	UserInfo adminUserInfo;	
 	ColumnModel intColumn;
 	ColumnModel stringColumn;
+	ColumnModel booleanColumn;
 	
 	List<String> toDelete;
 	
@@ -101,6 +102,11 @@ public class TableTransactionWorkerIntegrationTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(100L);
 		stringColumn = columnManager.createColumnModel(adminUserInfo, stringColumn);
+		// boolean column
+		booleanColumn = new ColumnModel();
+		booleanColumn.setName("aBoolean");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		booleanColumn = columnManager.createColumnModel(adminUserInfo, booleanColumn);
 		
 		toDelete = new LinkedList<>();
 	}
@@ -306,6 +312,166 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testSchemaChangeWithStringToStringListColumnType() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		// add string column
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(stringColumn, tableId);
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, stringColumn.getId(), "foo");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		waitForConsistentQuery(table, adminUserInfo);
+		
+		// new column model for list
+		Long maxListLength = 10L;
+		String name = "aStringList";
+		Long maxStringLength = 100L;
+		ColumnModel stringListColumn = createListColumnModel(ColumnType.STRING_LIST, maxListLength, maxStringLength, name);
+		// create request
+		transaction = createColumnUpdateRequest(stringColumn, stringListColumn, tableId);
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, stringListColumn.getId(), "[\"bar\", \"baz\", \"barFoo\"]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testSchemaChangeWithBooleanToBooleanListColumnType() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		// add boolean column
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(booleanColumn, tableId);
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, booleanColumn.getId(), "true");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		waitForConsistentQuery(table, adminUserInfo);
+		
+		// new column model for list
+		Long maxListLength = 10L;
+		String name = "aBooleanList";
+		ColumnModel booleanListColumn = createListColumnModel(ColumnType.BOOLEAN_LIST, maxListLength, null, name);
+		// create request
+		transaction = createColumnUpdateRequest(booleanColumn, booleanListColumn, tableId);
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, booleanListColumn.getId(), "[true, false, true]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testSchemaChangeWithIntegerToIntegerListColumnType() throws Exception {
+		// PLFM-6247
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		
+		// add int column
+		TableUpdateTransactionRequest transaction = createAddColumnRequest(intColumn, tableId);
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		// add data
+		PartialRow row = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "12");
+		PartialRowSet rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+		});
+		
+		waitForConsistentQuery(table, adminUserInfo);
+		
+		// new column model for list
+		Long maxListLength = 10L;
+		String name = "anIntList";
+		ColumnModel intListColumn = createListColumnModel(ColumnType.INTEGER_LIST, maxListLength, null, name);
+		// create request
+		transaction = createColumnUpdateRequest(intColumn, intListColumn, tableId);
+		
+		// call under test
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// add another row
+		row = TableModelTestUtils.createPartialRow(null, intListColumn.getId(), "[1, 2, 100]");
+		rowSet = createRowSet(tableId, row);
+		transaction = createAddDataRequest(tableId, rowSet);
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// test multi-value tables are built
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT UNNEST(" + name + ") FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(4, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
 	public void testTableVersion() throws Exception {
 		// create a table with more than one version
 		TableEntity table = new TableEntity();
@@ -481,6 +647,32 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	/**
+	 * Helper to create a column type change request
+	 * 
+	 * @param oldColumn
+	 * @param newColumn
+	 * @param entityId
+	 */
+	public static TableUpdateTransactionRequest createColumnUpdateRequest(ColumnModel oldColumn, ColumnModel newColumn, String entityId) {
+		ColumnChange updateToList = new ColumnChange();
+		updateToList.setOldColumnId(oldColumn.getId());
+		updateToList.setNewColumnId(newColumn.getId());
+		List<ColumnChange> changes = Lists.newArrayList(updateToList);
+		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(newColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
+		
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+		return transaction;
+	}
+	
+	/**
 	 * Helper to create a new version request.
 	 * @return
 	 */
@@ -525,4 +717,29 @@ public class TableTransactionWorkerIntegrationTest {
 		return asyncHelper.assertJobResponse(user, body, consumer, MAX_WAIT_MS).getResponse();
 	}
 	
+	private void waitForConsistentQuery(TableEntity table, UserInfo adminUserInfo) throws Exception {
+		QueryBundleRequest queryRequest = createQueryRequest("SELECT * FROM " + table.getId(), table.getId());
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {
+			assertEquals(1, response.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	/**
+	 * Helper to create a list type column model
+	 * @param columnType
+	 */
+	public ColumnModel createListColumnModel(ColumnType columnType, Long maxListLength, Long maxStringLength, String name) {
+		ColumnModel cm = new ColumnModel();
+		if (columnType.equals(ColumnType.STRING_LIST)) {
+			cm.setColumnType(ColumnType.STRING_LIST);
+			cm.setMaximumSize(maxStringLength);
+		} else if (columnType.equals(ColumnType.BOOLEAN_LIST)) {
+			cm.setColumnType(ColumnType.BOOLEAN_LIST);
+		} else if (columnType.equals(ColumnType.INTEGER_LIST)) {
+			cm.setColumnType(ColumnType.INTEGER_LIST);
+		}
+		cm.setName(name);
+		cm.setMaximumListLength(maxListLength);
+		return columnManager.createColumnModel(adminUserInfo, cm);
+	}
 }

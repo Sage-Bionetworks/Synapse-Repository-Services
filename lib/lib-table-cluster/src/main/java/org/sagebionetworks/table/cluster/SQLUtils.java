@@ -37,6 +37,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
@@ -720,35 +722,51 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Create an alter table SQL statement for the given set of column changes.
+	 * Create alter table SQL statements for the given set of column changes.
 	 * 
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp){
-		StringBuilder builder = new StringBuilder();
-		builder.append("ALTER TABLE ");
-		if(alterTemp){
-			builder.append(getTemporaryTableName(tableId));
-		}else{
-			builder.append(getTableNameForId(tableId, TableType.INDEX));
-		}
-		builder.append(" ");
-		boolean isFirst = true;
+	public static String[] createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp, Long numColumns){
+		List<String> result = new LinkedList<>();
 		boolean hasChanges = false;
-		for(ColumnChangeDetails change: changes){
-			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
-			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-			if(hasChange){
+		boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
+		String tableName = null;
+		if (alterTemp) {
+			tableName = getTemporaryTableName(tableId);
+		} else {
+			tableName = getTableNameForId(tableId, TableType.INDEX);
+		}
+		for (ColumnChangeDetails change : changes) {
+			StringBuilder builder = new StringBuilder();
+			// if changing to a _LIST type from a non-_LIST type
+			if (change.getOldColumn() != null && change.getNewColumn() != null
+					&& !ColumnTypeListMappings.isList(change.getOldColumn().getColumnType())
+					&& ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
+				// we do not allow altering the table if it has max number of columns because altering from a non-list to a list type
+				// involves having an additional column present temporarily
+				if (numColumns >= ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE) {
+					throw new IllegalArgumentException("Cannot change column type to _LIST type when the table contains the maximum number of columns");
+				}
+				result.addAll(createAlterToListColumnTypeSqlBatch(change, tableId, alterTemp));
 				hasChanges = true;
-				isFirst = false;
+			} else { // handles all other alter table cases
+				builder.append("ALTER TABLE ");
+				builder.append(tableName);
+				builder.append(" ");
+				boolean isFirst = true;
+				boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
+				if (hasChange) {
+					result.add(builder.toString());
+					hasChanges = true;
+				}
 			}
 		}
-		// return null if there is nothing to do.
-		if(!hasChanges){
-			return null;
+		// return empty array if there is nothing to do.
+		if (!hasChanges) {
+			return new String[0];
 		}
-		return builder.toString();
+		return result.toArray(new String[result.size()]);
 	}
 
 	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
@@ -814,7 +832,6 @@ public class SQLUtils {
 		appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		// change was added.
 		return true;
-
 	}
 	
 	/**
@@ -901,6 +918,76 @@ public class SQLUtils {
 		}
 	}
 	
+	/**
+	 * Creates alter table and update statements for altering to a JSON column for _LIST types.
+	 * @param change
+	 * @param tableId
+	 * @param alterTemp
+	 * @return
+	 */
+	public static List<String> createAlterToListColumnTypeSqlBatch(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		
+		return Arrays.asList(createAppendListColumnSql(change, tableId, alterTemp),
+				createSetListColumnFromNonListColumnSql(change, tableId, alterTemp),
+				createDeleteColumnThatWasReplacedWithAListColumnSql(change, tableId, alterTemp));
+	}
+	
+	private static String createAppendListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" ");
+		boolean isFirst = true;
+		boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
+		appendAddColumn(builder, change.getNewColumn(), isFirst, useDepricatedUtf8ThreeBytes);
+		return builder.toString();
+	}
+	
+	private static String createSetListColumnFromNonListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("UPDATE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" SET ");
+		appendColumnNameForId(change.getNewColumn().getId(), builder);
+		builder.append(" = JSON_ARRAY(");
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	private static String createDeleteColumnThatWasReplacedWithAListColumnSql(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ALTER TABLE ");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append(" ");
+		boolean isFirst = true;
+		appendDeleteColumn(builder, change.getOldColumn(), isFirst);
+		return builder.toString();
+	}
+	
+	public static String createCountNumberOfColumnsSql(IdAndVersion tableId, boolean alterTemp) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '");
+		if (alterTemp){
+			builder.append(getTemporaryTableName(tableId));
+		}else{
+			builder.append(getTableNameForId(tableId, TableType.INDEX));
+		}
+		builder.append("'");
+		return builder.toString();
+	}
 	
 	/**
 	 * Append a column type definition to the passed builder.
@@ -1997,6 +2084,7 @@ public class SQLUtils {
 			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAM_NAME+")";
 		}
 
+		
 		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
 				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM "+ tableName + ", JSON_TABLE(" +
