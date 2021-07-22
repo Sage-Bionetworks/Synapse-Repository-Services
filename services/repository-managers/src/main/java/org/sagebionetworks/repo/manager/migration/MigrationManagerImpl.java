@@ -18,6 +18,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -58,6 +60,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -71,6 +74,7 @@ import com.google.common.collect.Iterables;
  * @author John
  *
  */
+@Service
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
@@ -79,43 +83,43 @@ public class MigrationManagerImpl implements MigrationManager {
 	public static String stack = StackConfigurationSingleton.singleton().getStack();
 	public static String instance = StackConfigurationSingleton.singleton().getStackInstance();
 	
-	@Autowired
 	private MigratableTableDAO migratableTableDao;
-	@Autowired
 	private StackStatusDao stackStatusDao;
-	@Autowired
 	private BackupFileStream backupFileStream;
-	@Autowired
 	private SynapseS3Client s3Client;
-	@Autowired
 	private FileProvider fileProvider;
 
 	/**
 	 * The list of migration listeners
 	 */
-	List<MigrationTypeListener<DatabaseObject<?>>> migrationListeners;
+	List<? extends MigrationTypeListener<? extends DatabaseObject<?>>> migrationListeners;
 	
 	/**
 	 * Migration types for principals.
 	 */
 	static Set<MigrationType> PRINCIPAL_TYPES;
-
-	/**
-	 * The maximum size of a backup batch.
-	 */
-	int backupBatchMax = 500;
 	
-	public MigrationManagerImpl(){
-		// Default the batch max 
-		this.backupBatchMax = 500;
+	@Autowired
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener<? extends DatabaseObject<?>>> migrationListeners) {
+		this.migratableTableDao = migratableTableDao;
+		this.stackStatusDao = stackStatusDao;
+		this.backupFileStream = backupFileStream;
+		this.s3Client = s3Client;
+		this.fileProvider = fileProvider;
+		this.migrationListeners = migrationListeners;
 	}
-
+	
 	/**
-	 * Injected via Spring
-	 * @param backupBatchMax
+	 * Called after Spring creates the manager.
 	 */
-	public void setBackupBatchMax(Integer backupBatchMax) {
-		this.backupBatchMax = backupBatchMax;
+	@PostConstruct
+	public void initialize() {
+		// validate all of the foreign keys.
+		validateForeignKeys();
+		
+		PRINCIPAL_TYPES = new HashSet<>();
+		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
+		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
 	}
 
 	@Override
@@ -147,7 +151,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
 	
-	private Stream<MigrationTypeListener<DatabaseObject<?>>> getListenersForType(MigrationType type) {
+	private Stream<? extends MigrationTypeListener<? extends DatabaseObject<?>>> getListenersForType(MigrationType type) {
 		if (this.migrationListeners == null) {
 			return Stream.empty();
 		}
@@ -403,17 +407,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		
 	}
 
-	/**
-	 * Called after Spring creates the manager.
-	 */
-	public void initialize() {
-		// validate all of the foreign keys.
-		validateForeignKeys();
-		
-		PRINCIPAL_TYPES = new HashSet<>();
-		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
-		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
-	}
 	
 	/*
 	 * (non-Javadoc)
@@ -645,7 +638,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param currentType
 	 * @param currentBatch
 	 */
-	void restoreBatch(MigrationType currentType, List<DatabaseObject<?>> currentBatch) {
+	public void restoreBatch(MigrationType currentType, List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
 			fireBeforeCreateOrUpdateEvent(currentType, currentBatch);
 			// push the data to the database
