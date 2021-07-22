@@ -503,8 +503,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		List<DownloadListItemResult> page = downloadListDao.getFilesAvailableToDownloadFromDownloadList(
 				createAccessCallback(userInfo), userInfo.getId(), filter, sort, limit, offset);
 
-		List<DownloadListItem> toDelete = new ArrayList<>(page.size());
-		List<DownloadListItemResult> includedFiles = new ArrayList<>(page.size());
+		List<DownloadListItemResult> packagedFiles = new ArrayList<>(page.size());
 		List<FileHandleAssociation> associations = new ArrayList<>(page.size());
 		Set<String> addedFileHandleIds = new HashSet<>(page.size());
 		long size = 0L;
@@ -516,12 +515,11 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				size += item.getFileSizeBytes();
 				associations.add(createAssociationForItem(item));
 			}
-			toDelete.add(item);
-			includedFiles.add(item);
+			packagedFiles.add(item);
 		}
 		if (Boolean.TRUE.equals(requestBody.getIncludeManifest())) {
 			String manifestFileHandleId = buildManifest(userInfo, requestBody.getCsvTableDescriptor(),
-					includedFiles.iterator());
+					packagedFiles.iterator());
 			associations.add(new FileHandleAssociation().setFileHandleId(manifestFileHandleId)
 					.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId(ZERO_FILE_ID));
 		}
@@ -532,17 +530,17 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 		// build the package zip file.
 		// @formatter:off
-		boolean fileSizesChecked = true;
+		boolean skipFileSizeCheck = true;
 		String zipFileHandleId = fileHandlePackageManager.buildZip(userInfo,
 						new BulkFileDownloadRequest()
 						.setRequestedFiles(associations)
 						.setZipFileName(requestBody.getZipFileName())
-						.setZipFileFormat(ZipFileFormat.Flat), fileSizesChecked)
+						.setZipFileFormat(ZipFileFormat.Flat), skipFileSizeCheck)
 				.getResultZipFileHandleId();
 		// @formatter:on
 
 		// remove these files from the download list
-		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), toDelete);
+		downloadListDao.removeBatchOfFilesFromDownloadList(userInfo.getId(), packagedFiles);
 		return new DownloadListPackageResponse().setResultFileHandleId(zipFileHandleId);
 	}
 

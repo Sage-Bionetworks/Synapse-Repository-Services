@@ -11,7 +11,7 @@
 			"type": "string"
 		},
 		"includeManifest": {
-			"description": "When set to true, a metadata manifest files will be include in the package.  The manifest will include all metadata for each file in the package.",
+			"description": "Optional with a default value of false.  When set to true, a metadata manifest file will be included in the package. The manifest will include all the metadata for each file in the package.",
 			"type": "boolean"
 		},
 		"csvTableDescriptor": {
