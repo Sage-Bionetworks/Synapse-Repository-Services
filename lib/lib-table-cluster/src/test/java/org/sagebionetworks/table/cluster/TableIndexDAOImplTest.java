@@ -994,165 +994,77 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testAlterTableAsNeededWithConvertToBooleanListColumnType() {
 		// PLFM-6247
-		ColumnModel nullColumn = null;
-		ColumnModel booleanColumn = new ColumnModel();
-		booleanColumn.setColumnType(ColumnType.BOOLEAN);
-		booleanColumn.setId("123");
-		booleanColumn.setName("aBoolean");
-		ColumnChangeDetails change = new ColumnChangeDetails(nullColumn, booleanColumn);
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.BOOLEAN);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId, isView);
+		// add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.BOOLEAN_LIST);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
-		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		// add data
-		List<ColumnModel> schema = Lists.newArrayList(booleanColumn);
-		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId.toString());
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		createOrUpdateOrDeleteRows(tableId, set, schema);
 		
-		// change column to boolean list
-		// call under test
-		ColumnModel booleanListColumn = new ColumnModel();
-		booleanListColumn.setColumnType(ColumnType.BOOLEAN_LIST);
-		booleanListColumn.setId("124");
-		booleanListColumn.setName("aBooleanList");
-		change = new ColumnChangeDetails(booleanColumn, booleanListColumn);
-		alterTemp = false;
-		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
-		assertTrue(wasAltered);
-		List<DatabaseColumnInfo> columnInfo =  getAllColumnInfo(tableId);
-		assertNotNull(columnInfo);
-		// column for row_id, row_version, and _C124_
-		assertEquals(3, columnInfo.size());
-		DatabaseColumnInfo cd = columnInfo.get(2);
-		assertEquals("_C124_", cd.getColumnName());
-		assertTrue(cd.getColumnType().equals(ColumnType.BOOLEAN_LIST));
-		
-		// another update of the same column should not alter the table
-		ColumnModel anotherColumn = booleanListColumn;
-		change = new ColumnChangeDetails(booleanListColumn, anotherColumn);
+		// another update should return false
+		ColumnModel anotherColumn = newColumn;
+		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 3 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 4);
+		// should be 4 rows
+		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 	
 	@Test
 	public void testAlterTableAsNeededWithConvertToIntegerListColumnType() {
 		// PLFM-6247
-		ColumnModel nullColumn = null;
-		ColumnModel integerColumn = new ColumnModel();
-		integerColumn.setColumnType(ColumnType.INTEGER);
-		integerColumn.setId("123");
-		integerColumn.setName("anInteger");
-		ColumnChangeDetails change = new ColumnChangeDetails(nullColumn, integerColumn);
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId, isView);
+		// add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.INTEGER_LIST);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
-		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		// add data
-		List<ColumnModel> schema = Lists.newArrayList(integerColumn);
-		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId.toString());
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		createOrUpdateOrDeleteRows(tableId, set, schema);
-		// change column to list
-		// call under test
-		ColumnModel integerListColumn = new ColumnModel();
-		integerListColumn.setColumnType(ColumnType.INTEGER_LIST);
-		integerListColumn.setId("124");
-		integerListColumn.setName("anIntegerList");
-		change = new ColumnChangeDetails(integerColumn, integerListColumn);
-		alterTemp = false;
-		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
-		assertTrue(wasAltered);
-		List<DatabaseColumnInfo> columnInfo =  getAllColumnInfo(tableId);
-		assertNotNull(columnInfo);
-		// column for row_id, row_version, and _C124_
-		assertEquals(3, columnInfo.size());
-		DatabaseColumnInfo cd = columnInfo.get(2);
-		assertEquals("_C124_", cd.getColumnName());
-		assertTrue(cd.getColumnType().equals(ColumnType.INTEGER_LIST));
 		
-		// another update of the same column should not alter the table
-		ColumnModel anotherColumn = integerListColumn;
-		change = new ColumnChangeDetails(integerListColumn, anotherColumn);
+		// another update should return false
+		ColumnModel anotherColumn = newColumn;
+		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 3 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 4);
+		// should be 4 rows
+		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 	
 	@Test
 	public void testAlterTableAsNeededWithConvertToStringListColumnType() {
 		// PLFM-6247
-		ColumnModel nullColumn = null;
-		ColumnModel stringColumn = new ColumnModel();
-		stringColumn.setColumnType(ColumnType.STRING);
-		stringColumn.setId("123");
-		stringColumn.setName("aString");
-		stringColumn.setMaximumSize(10L);
-		ColumnChangeDetails change = new ColumnChangeDetails(nullColumn, stringColumn);
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.STRING);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId, isView);
+		// add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
-		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		// add data
-		List<ColumnModel> schema = Lists.newArrayList(stringColumn);
-		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getSelectColumns(schema));
-		set.setTableId(tableId.toString());
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		createOrUpdateOrDeleteRows(tableId, set, schema);
-		// change column to list
-		// call under test
-		ColumnModel stringListColumn = new ColumnModel();
-		stringListColumn.setColumnType(ColumnType.STRING_LIST);
-		stringListColumn.setId("124");
-		stringListColumn.setName("aStringList");
-		change = new ColumnChangeDetails(stringColumn, stringListColumn);
-		alterTemp = false;
-		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
-		assertTrue(wasAltered);
-		List<DatabaseColumnInfo> columnInfo =  getAllColumnInfo(tableId);
-		assertNotNull(columnInfo);
-		// column for row_id, row_version, and _C124_
-		assertEquals(3, columnInfo.size());
-		DatabaseColumnInfo cd = columnInfo.get(2);
-		assertEquals("_C124_", cd.getColumnName());
-		assertTrue(cd.getColumnType().equals(ColumnType.STRING_LIST));
 		
-		// another update of the same column should not alter the table
-		ColumnModel anotherColumn = stringListColumn;
-		change = new ColumnChangeDetails(stringListColumn, anotherColumn);
+		// another update should return false
+		ColumnModel anotherColumn = newColumn;
+		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 3 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 4);
+		// should be 4 rows
+		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 
 	@Test
@@ -3011,23 +2923,6 @@ public class TableIndexDAOImplTest {
 		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
-	}
-	
-	@Test
-	public void testAlterTableAsNeededWithNonListToList() {
-		// PLFM-6247
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
-		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
-		createOrUpdateTable(schema, tableId, isView);
-		// add some data
-		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
-		// apply the rows
-		createOrUpdateOrDeleteRows(tableId, rows, schema);
-		ColumnModel newColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.INTEGER_LIST);
-		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
-		boolean alterTemp = false;
-		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
-		assertTrue(wasAltered);
 	}
 	
 	@Test

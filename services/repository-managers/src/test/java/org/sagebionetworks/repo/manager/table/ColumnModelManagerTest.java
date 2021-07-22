@@ -886,7 +886,7 @@ public class ColumnModelManagerTest {
 	}
 
 	@Test
-	public void testValidateColumnChangeListColumnToDifferntListColumn() {
+	public void testValidateColumnChangeListColumnToDifferentListColumn() {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setColumnType(ColumnType.STRING_LIST);
 		ColumnModel newColumn = new ColumnModel();
@@ -937,6 +937,19 @@ public class ColumnModelManagerTest {
 			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
 		assertEquals("Cannot convert to a STRING_LIST column with a smaller maximum size string length than original", errMessage);
+	}
+	
+	@Test
+	public void testValidateColumnChangeNonListToListColumnWithSameStringLength() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING);
+		oldColumn.setMaximumSize(9L);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(9L);
+		newColumn.setMaximumListLength(8L);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 	}
 
 	@Test
