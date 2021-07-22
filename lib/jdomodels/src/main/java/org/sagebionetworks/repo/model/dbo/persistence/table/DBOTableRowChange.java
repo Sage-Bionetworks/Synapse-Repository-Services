@@ -54,9 +54,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		public DBOTableRowChange mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOTableRowChange change = new DBOTableRowChange();
 			change.setId(rs.getLong(COL_TABLE_ROW_ID));
-			if (rs.wasNull()) {
-				change.setId(null);
-			}
 			change.setTableId(rs.getLong(COL_TABLE_ROW_TABLE_ID));
 			change.setRowVersion(rs.getLong(COL_TABLE_ROW_VERSION));
 			change.setEtag(rs.getString(COL_TABLE_ROW_TABLE_ETAG));
