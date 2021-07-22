@@ -83,6 +83,7 @@ public class TableTransactionWorkerIntegrationTest {
 	UserInfo adminUserInfo;	
 	ColumnModel intColumn;
 	ColumnModel stringColumn;
+	ColumnModel booleanColumn;
 	
 	List<String> toDelete;
 	
@@ -101,6 +102,11 @@ public class TableTransactionWorkerIntegrationTest {
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(100L);
 		stringColumn = columnManager.createColumnModel(adminUserInfo, stringColumn);
+		// boolean column
+		booleanColumn = new ColumnModel();
+		booleanColumn.setName("aBoolean");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		booleanColumn = columnManager.createColumnModel(adminUserInfo, booleanColumn);
 		
 		toDelete = new LinkedList<>();
 	}
@@ -306,7 +312,7 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testSchemaChangeWithStringToStringList() throws Exception {
+	public void testSchemaChangeWithStringToStringListColumnType() throws Exception {
 		// PLFM-6247
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
@@ -314,6 +320,7 @@ public class TableTransactionWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		
+		// add string column
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(stringColumn, tableId);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
@@ -333,7 +340,8 @@ public class TableTransactionWorkerIntegrationTest {
 		// new column model for list
 		Long maxListLength = 10L;
 		String name = "aStringList";
-		ColumnModel stringListColumn = createListColumnModel(ColumnType.STRING_LIST, maxListLength, name);
+		Long maxStringLength = 100L;
+		ColumnModel stringListColumn = createListColumnModel(ColumnType.STRING_LIST, maxListLength, maxStringLength, name);
 		// create request
 		transaction = createColumnUpdateRequest(stringColumn, stringListColumn, tableId);
 		
@@ -358,7 +366,7 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testSchemaChangeWithBooleanToBooleanList() throws Exception {
+	public void testSchemaChangeWithBooleanToBooleanListColumnType() throws Exception {
 		// PLFM-6247
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
@@ -366,11 +374,7 @@ public class TableTransactionWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		
-		ColumnModel newBooleanColumn = new ColumnModel();
-		newBooleanColumn.setName("aBoolean");
-		newBooleanColumn.setColumnType(ColumnType.BOOLEAN);
-		final ColumnModel booleanColumn = columnManager.createColumnModel(adminUserInfo, newBooleanColumn);
-		
+		// add boolean column
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(booleanColumn, tableId);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
@@ -390,7 +394,7 @@ public class TableTransactionWorkerIntegrationTest {
 		// new column model for list
 		Long maxListLength = 10L;
 		String name = "aBooleanList";
-		ColumnModel booleanListColumn = createListColumnModel(ColumnType.BOOLEAN_LIST, maxListLength, name);
+		ColumnModel booleanListColumn = createListColumnModel(ColumnType.BOOLEAN_LIST, maxListLength, null, name);
 		// create request
 		transaction = createColumnUpdateRequest(booleanColumn, booleanListColumn, tableId);
 		
@@ -415,7 +419,7 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testSchemaChangeWithIntegerToIntegerList() throws Exception {
+	public void testSchemaChangeWithIntegerToIntegerListColumnType() throws Exception {
 		// PLFM-6247
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
@@ -423,6 +427,7 @@ public class TableTransactionWorkerIntegrationTest {
 		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
 		toDelete.add(tableId);
 		
+		// add int column
 		TableUpdateTransactionRequest transaction = createAddColumnRequest(intColumn, tableId);
 		// wait for the change to complete
 		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
@@ -442,7 +447,7 @@ public class TableTransactionWorkerIntegrationTest {
 		// new column model for list
 		Long maxListLength = 10L;
 		String name = "anIntList";
-		ColumnModel intListColumn = createListColumnModel(ColumnType.INTEGER_LIST, maxListLength, name);
+		ColumnModel intListColumn = createListColumnModel(ColumnType.INTEGER_LIST, maxListLength, null, name);
 		// create request
 		transaction = createColumnUpdateRequest(intColumn, intListColumn, tableId);
 		
@@ -723,11 +728,11 @@ public class TableTransactionWorkerIntegrationTest {
 	 * Helper to create a list type column model
 	 * @param columnType
 	 */
-	public ColumnModel createListColumnModel(ColumnType columnType, Long maxListLength, String name) {
+	public ColumnModel createListColumnModel(ColumnType columnType, Long maxListLength, Long maxStringLength, String name) {
 		ColumnModel cm = new ColumnModel();
 		if (columnType.equals(ColumnType.STRING_LIST)) {
 			cm.setColumnType(ColumnType.STRING_LIST);
-			cm.setMaximumSize(100L);
+			cm.setMaximumSize(maxStringLength);
 		} else if (columnType.equals(ColumnType.BOOLEAN_LIST)) {
 			cm.setColumnType(ColumnType.BOOLEAN_LIST);
 		} else if (columnType.equals(ColumnType.INTEGER_LIST)) {

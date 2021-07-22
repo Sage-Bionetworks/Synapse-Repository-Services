@@ -722,7 +722,7 @@ public class SQLUtils {
 	}
 
 	/**
-	 * Create an alter table SQL statement for the given set of column changes.
+	 * Create alter table SQL statements for the given set of column changes.
 	 * 
 	 * @param changes
 	 * @return
@@ -730,6 +730,7 @@ public class SQLUtils {
 	public static String[] createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp, Long numColumns){
 		List<String> result = new LinkedList<>();
 		boolean hasChanges = false;
+		boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
 		String tableName = null;
 		if (alterTemp) {
 			tableName = getTemporaryTableName(tableId);
@@ -738,6 +739,7 @@ public class SQLUtils {
 		}
 		for (ColumnChangeDetails change : changes) {
 			StringBuilder builder = new StringBuilder();
+			// if changing to a _LIST type from a non-_LIST type
 			if (change.getOldColumn() != null && change.getNewColumn() != null
 					&& !ColumnTypeListMappings.isList(change.getOldColumn().getColumnType())
 					&& ColumnTypeListMappings.isList(change.getNewColumn().getColumnType())) {
@@ -748,11 +750,10 @@ public class SQLUtils {
 				}
 				result.addAll(createAlterToListColumnTypeSqlBatch(change, tableId, alterTemp));
 				hasChanges = true;
-			} else {
+			} else { // handles all other alter table cases
 				builder.append("ALTER TABLE ");
 				builder.append(tableName);
 				builder.append(" ");
-				boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
 				boolean isFirst = true;
 				boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 				if (hasChange) {
@@ -761,7 +762,7 @@ public class SQLUtils {
 				}
 			}
 		}
-		// return null if there is nothing to do.
+		// return empty array if there is nothing to do.
 		if (!hasChanges) {
 			return new String[0];
 		}
@@ -917,6 +918,13 @@ public class SQLUtils {
 		}
 	}
 	
+	/**
+	 * Creates alter table and update statements for altering to a JSON column for _LIST types.
+	 * @param change
+	 * @param tableId
+	 * @param alterTemp
+	 * @return
+	 */
 	public static List<String> createAlterToListColumnTypeSqlBatch(ColumnChangeDetails change, IdAndVersion tableId, boolean alterTemp) {
 		
 		return Arrays.asList(createAppendListColumnSql(change, tableId, alterTemp),
