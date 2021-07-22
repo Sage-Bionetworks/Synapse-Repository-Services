@@ -92,7 +92,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * The list of migration listeners
 	 */
-	List<? extends MigrationTypeListener<? extends DatabaseObject<?>>> migrationListeners;
+	List<? extends MigrationTypeListener> migrationListeners;
 	
 	/**
 	 * Migration types for principals.
@@ -100,7 +100,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	static Set<MigrationType> PRINCIPAL_TYPES;
 	
 	@Autowired
-	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener<? extends DatabaseObject<?>>> migrationListeners) {
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners) {
 		this.migratableTableDao = migratableTableDao;
 		this.stackStatusDao = stackStatusDao;
 		this.backupFileStream = backupFileStream;
@@ -151,7 +151,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
 	
-	private Stream<? extends MigrationTypeListener<? extends DatabaseObject<?>>> getListenersForType(MigrationType type) {
+	private Stream<? extends MigrationTypeListener> getListenersForType(MigrationType type) {
 		if (this.migrationListeners == null) {
 			return Stream.empty();
 		}
