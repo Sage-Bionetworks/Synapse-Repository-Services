@@ -3231,7 +3231,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAlterToListColumnTypeSqlWithAlterTempTrue() {
+	public void testCreateAlterToListColumnTypeSqlWithAlterTempFalse() {
 		// PLFM-6247
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
@@ -3251,7 +3251,7 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAlterToListColumnTypeSqlWithAlterTempFalse() {
+	public void testCreateAlterToListColumnTypeSqlWithAlterTempTrue() {
 		// PLFM-6247
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
