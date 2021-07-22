@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
@@ -122,6 +124,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private SynapseS3Client s3Client;
 	@Autowired
 	private FileProvider fileProvider;
+	@Autowired
+	private IdGenerator idGenerator;
 
 	private String s3Bucket;
 
@@ -187,6 +191,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		String key = saveToS3((OutputStream out) -> TableModelUtils.writeSparesChangeSetToGz(delta, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(versionNumber);
 		changeDBO.setEtag(etag);
@@ -211,6 +216,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		String key = saveToS3((OutputStream out) -> ColumnModelUtils.writeSchemaChangeToGz(changes, out));
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());

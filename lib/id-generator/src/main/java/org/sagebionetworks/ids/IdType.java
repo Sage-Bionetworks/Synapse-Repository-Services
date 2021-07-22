@@ -66,7 +66,8 @@ public enum IdType {
 	JSON_SCHEMA_BIND_OBJECT_ID(null),
 	DATA_ACCESS_NOTIFICATION_ID(null),
 	FEATURE_STATUS_ID(null),
-	FILES_SCANNER_STATUS_ID(null)
+	FILES_SCANNER_STATUS_ID(null),
+	TABLE_CHANGE_ID(null)
 	;
 	
 	Long startingId;
