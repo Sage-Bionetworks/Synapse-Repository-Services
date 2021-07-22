@@ -1,21 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -35,13 +34,13 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableRowTruthDAOImplTest {
 
@@ -63,7 +62,7 @@ public class TableRowTruthDAOImplTest {
 	List<String> fileHandleIds;
 	String tableId;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
@@ -71,7 +70,7 @@ public class TableRowTruthDAOImplTest {
 		tableId = "syn123";
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(tableRowTruthDao != null) tableRowTruthDao.truncateAllRowData();
 
@@ -242,7 +241,7 @@ public class TableRowTruthDAOImplTest {
 		TableRowChange one = results.get(1);
 		assertEquals(new Long(1), one.getRowVersion());
 		assertNotNull(one.getEtag());
-		assertFalse("Two changes cannot have the same Etag",zero.getEtag().equals(one.getEtag()));
+		assertFalse(zero.getEtag().equals(one.getEtag()), "Two changes cannot have the same Etag");
 		
 		// Listing all versions greater than zero should be the same as all
 		List<TableRowChange> greater = tableRowTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableId, -1l);
@@ -361,19 +360,24 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetLastTableRowChangeNullType() throws IOException{
 		TableChangeType changeType = null;
-		// call under test
-		tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetLastTableRowChangeNullId() throws IOException{
 		TableChangeType changeType = TableChangeType.COLUMN;
 		String tableId = null;
-		// call under test
-		tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableRowTruthDao.getLastTableRowChange(tableId, changeType);
+		});
 	}
 
 	@Test
@@ -461,18 +465,24 @@ public class TableRowTruthDAOImplTest {
 		assertTrue(tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.ROW));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testHasAtLeastOneChangeOfTypeNullTableId() {
 		String tableId = null;
-		// call under test
-		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, TableChangeType.COLUMN);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testHasAtLeastOneChangeOfTypeNullType() {
 		TableChangeType type = null;
-		// call under test
-		tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, type);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableRowTruthDao.hasAtLeastOneChangeOfType(tableId, type);
+		});
 	}
 	
 	@Test

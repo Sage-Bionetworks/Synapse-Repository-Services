@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -47,6 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -56,6 +58,7 @@ import com.amazonaws.services.s3.model.S3Object;
  * @author John
  * 
  */
+@Repository
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	private static final String SELECT_FIRST_ROW_VERSION_FOR_TABLE = "SELECT " + COL_TABLE_ROW_VERSION + " FROM "
@@ -116,22 +119,31 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_ID_SEQUENCE_TABLE_ID + " > 0";
 	private static final String SQL_SELECT_SEQUENCE_FOR_UPDATE = "SELECT * FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID + " = ? FOR UPDATE";
-	@Autowired
+	
 	private DBOBasicDao basicDao;
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
 	private SynapseS3Client s3Client;
-	@Autowired
 	private FileProvider fileProvider;
-	@Autowired
 	private IdGenerator idGenerator;
-
 	private String s3Bucket;
 
 	RowMapper<DBOTableIdSequence> sequenceRowMapper = new DBOTableIdSequence().getTableMapping();
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange().getTableMapping();
-
+	
+	@Autowired
+	public TableRowTruthDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, SynapseS3Client s3Client, FileProvider fileProvider, IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.s3Client = s3Client;
+		this.fileProvider = fileProvider;
+		this.idGenerator = idGenerator;
+	}
+	
+	@Autowired
+	public void configure(StackConfiguration config) {
+		this.s3Bucket = config.getTableRowChangeBucketName();
+	}
+	
 	@WriteTransaction
 	@Override
 	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {

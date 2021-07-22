@@ -236,12 +236,6 @@
 	<!-- Temp file provider -->
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" />
 	
-	<bean id="tableRowTruthDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
-		scope="singleton">
-		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
-	</bean>
-	
 	<bean id="tableStatusDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableStatusDAOImpl"
 		scope="singleton">
