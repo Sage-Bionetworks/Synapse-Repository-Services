@@ -104,7 +104,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private Long createdBy;
 	private Long createdOn;
 	private String bucket;
-	private String key;
 	private String keyNew;
 	private Long rowCount;
 	private String changeType;
@@ -195,14 +194,6 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		this.bucket = bucket;
 	}
 
-	public String getKey() {
-		return key;
-	}
-
-	public void setKey(String key) {
-		this.key = key;
-	}
-
 	public String getChangeType() {
 		return changeType;
 	}
@@ -256,7 +247,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, id, key, keyNew, rowCount, rowVersion, tableId,
+		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, id, keyNew, rowCount, rowVersion, tableId,
 				transactionId);
 	}
 
@@ -275,7 +266,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		return Objects.equals(bucket, other.bucket) && Objects.equals(changeType, other.changeType)
 				&& Objects.equals(columnIds, other.columnIds) && Objects.equals(createdBy, other.createdBy)
 				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(key, other.key) && Objects.equals(keyNew, other.keyNew) && Objects.equals(rowCount, other.rowCount)
+				&& Objects.equals(keyNew, other.keyNew) && Objects.equals(rowCount, other.rowCount)
 				&& Objects.equals(rowVersion, other.rowVersion) && Objects.equals(tableId, other.tableId)
 				&& Objects.equals(transactionId, other.transactionId);
 	}
@@ -283,7 +274,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	@Override
 	public String toString() {
 		return "DBOTableRowChange [id=" + id + ", tableId=" + tableId + ", etag=" + etag + ", rowVersion=" + rowVersion + ", columnIds="
-				+ columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket=" + bucket + ", key=" + key + ", keyNew="
+				+ columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket=" + bucket + ", keyNew="
 				+ keyNew + ", rowCount=" + rowCount + ", changeType=" + changeType + ", transactionId=" + transactionId + "]";
 	}
 
