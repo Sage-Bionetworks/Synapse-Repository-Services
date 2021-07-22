@@ -15,6 +15,8 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -113,7 +115,7 @@ public class MigrationManagerImplTest {
 	@Captor
 	ArgumentCaptor<Iterable<MigratableDatabaseObject<?, ?>>> iterableCator;
 	@Mock
-	MigrationTypeListener mockMigrationListener;
+	MigrationTypeListener<DatabaseObject<?>> mockMigrationListener;
 	@Captor
 	ArgumentCaptor<GetObjectRequest> getObjectRequestCaptor;
 	@InjectMocks
@@ -210,7 +212,7 @@ public class MigrationManagerImplTest {
 		sum = new RangeChecksum();
 		sum.setBinNumber(1L);
 		
-		List<MigrationTypeListener> listeners = Lists.newArrayList(mockMigrationListener);
+		List<MigrationTypeListener<DatabaseObject<?>>> listeners = Lists.newArrayList(mockMigrationListener);
 		manager.setMigrationListeners(listeners);
 		
 		when(mockDao.getObjectForType(MigrationType.PRINCIPAL)).thenReturn(new DBOUserGroup());
@@ -502,9 +504,11 @@ public class MigrationManagerImplTest {
 		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(nodeOne);
 		List<Long> idList = Lists.newArrayList(nodeOne.getId());
 		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verify(mockMigrationListener).afterCreateOrUpdate(currentType, currentBatch);
+		verify(mockMigrationListener).beforeCreateOrUpdate(currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(currentBatch);
 	}
 	
 	@Test
@@ -515,9 +519,23 @@ public class MigrationManagerImplTest {
 		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(revOne);
 		List<Long> idList = Lists.newArrayList(revOne.getOwner());
 		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verify(mockMigrationListener).afterCreateOrUpdate(MigrationType.NODE_REVISION, currentBatch);
+		verify(mockMigrationListener).beforeCreateOrUpdate(currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(currentBatch);
+	}
+	
+	@Test
+	public void testRestoreBatchWithUnsupportedListener() {
+		MigrationType currentType = MigrationType.NODE;
+		List<DatabaseObject<?>> currentBatch = Lists.newArrayList(nodeOne);
+		List<Long> idList = Lists.newArrayList(nodeOne.getId());
+		when(mockDao.createOrUpdate(currentType, currentBatch)).thenReturn(idList);
+		when(mockMigrationListener.supports(any())).thenReturn(false);
+		// call under test
+		manager.restoreBatch(currentType, currentBatch);
+		verifyNoMoreInteractions(mockMigrationListener);
 	}
 	
 	@Test
@@ -528,7 +546,7 @@ public class MigrationManagerImplTest {
 		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verify(mockMigrationListener, never()).afterCreateOrUpdate(any(MigrationType.class), anyList());
+		verifyZeroInteractions(mockMigrationListener);
 	}
 	
 	/**

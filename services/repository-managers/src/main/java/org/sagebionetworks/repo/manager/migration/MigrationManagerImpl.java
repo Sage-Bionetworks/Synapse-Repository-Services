@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -92,7 +93,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * The list of migration listeners
 	 */
-	List<MigrationTypeListener> migrationListeners;
+	List<MigrationTypeListener<DatabaseObject<?>>> migrationListeners;
 	
 	/**
 	 * Migration types for principals.
@@ -145,22 +146,28 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
-
 	
+	private Stream<MigrationTypeListener<DatabaseObject<?>>> getListenersForType(MigrationType type) {
+		if (this.migrationListeners == null) {
+			return Stream.empty();
+		}
+		
+		return this.migrationListeners.stream()
+			.filter( listener -> listener.supports(type));
+	}
+	
+	private void fireBeforeCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch) {
+		getListenersForType(type).forEach( listener -> listener.beforeCreateOrUpdate(batch));
+	}
+		
 	/**
 	 * Fire a create or update event for a given migration type.
 	 * @param type
 	 * @param databaseList - The Database objects that were created or updated.
 	 */
-	private void fireCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> databaseList){
-		if(this.migrationListeners != null){
-			// Let each listener handle the event
-			for(MigrationTypeListener listener: this.migrationListeners){
-				listener.afterCreateOrUpdate(type, databaseList);
-			}
-		}
+	private void fireAfterCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch){
+		getListenersForType(type).forEach( listener -> listener.afterCreateOrUpdate(batch));
 	}
-
 
 	@Override
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user) {
@@ -240,7 +247,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * Injected via Spring
 	 * @param migrationListeners
 	 */
-	public void setMigrationListeners(List<MigrationTypeListener> migrationListeners) {
+	public void setMigrationListeners(List<MigrationTypeListener<DatabaseObject<?>>> migrationListeners) {
 		this.migrationListeners = migrationListeners;
 	}
 
@@ -638,13 +645,13 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param currentType
 	 * @param currentBatch
 	 */
-	void restoreBatch(MigrationType currentType,
-			List<DatabaseObject<?>> currentBatch) {
+	void restoreBatch(MigrationType currentType, List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
+			fireBeforeCreateOrUpdateEvent(currentType, currentBatch);
 			// push the data to the database
 			this.migratableTableDao.createOrUpdate(currentType, currentBatch);
 			// Let listeners know about the change
-			fireCreateOrUpdateEvent(currentType, currentBatch);
+			fireAfterCreateOrUpdateEvent(currentType, currentBatch);
 		}
 	}
 
