@@ -1013,7 +1013,7 @@ public class TableIndexDAOImplTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 4 rows
+		// should be 2 rows
 		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 	
@@ -1038,7 +1038,7 @@ public class TableIndexDAOImplTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 4 rows
+		// should be 2 rows
 		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 	
@@ -1063,7 +1063,7 @@ public class TableIndexDAOImplTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-		// should be 4 rows
+		// should be 2 rows
 		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 
@@ -2923,35 +2923,6 @@ public class TableIndexDAOImplTest {
 		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
-	}
-	
-	@Test
-	public void testAlterTableAsNeededWithChangeToListAndMaxNumberOfColumns() {
-		// PLFM-6247
-		List<ColumnChangeDetails> changes = new LinkedList<>();
-		// add MY_SQL_MAX_COUMNS_PER_TABLE number of columns
-		ColumnModel cm = null;
-		for (int i = 0; i < ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE; i++) {
-			cm = TableModelTestUtils.createColumn((long) i, "c" + i, ColumnType.BOOLEAN);
-			changes.add(new ColumnChangeDetails(null, cm));
-		}
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
-		boolean alterTemp = false;
-		// add the columns
-		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
-		assertTrue(wasAltered);
-		// alter the last added column to be a BOOLEAN_LIST
-		ColumnModel cm2 = new ColumnModel();
-		cm2.setColumnType(ColumnType.BOOLEAN_LIST);
-		cm2.setId(cm.getId() + "12");
-		cm2.setName("aBooleanList");
-		ColumnChangeDetails change = new ColumnChangeDetails(cm, cm2);
-		String message = assertThrows(IllegalArgumentException.class, ()-> {
-			//method under test
-			alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
-		}).getMessage();
-		assertEquals("Cannot change column type to _LIST type when the table contains the maximum number of columns", message);
 	}
 	
 	@Test

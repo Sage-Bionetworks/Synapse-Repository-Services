@@ -895,7 +895,7 @@ public class ColumnModelManagerTest {
 			// Call under test
 			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
 		).getMessage();
-		assertEquals("Cannot perform schema change from different _LIST to _LIST column types", errMessage);
+		assertEquals("Cannot change a _LIST to a different type of _LIST", errMessage);
 	}
 	@Test
 	public void testValidateColumnChangeListColumnToNonListColumn() {
