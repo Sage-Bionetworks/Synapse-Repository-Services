@@ -46,12 +46,13 @@ public class TableRowChangeMigrationListenerTest {
 	public void before() {
 		tableId = 1L;
 		currentRowVersion = 1L;
-		dao.deleteAllRowDataForTable(tableId.toString());
+		dao.truncateAllRowData();
+		dao.reserveIdsInRange(tableId.toString(), 10);
 	}
 	
 	@AfterEach
 	public void after() {
-		dao.deleteAllRowDataForTable(tableId.toString());
+		dao.truncateAllRowData();
 	}
 	
 	@Test
