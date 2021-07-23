@@ -141,7 +141,7 @@ public class ITDownloadListControllerTest {
 			assertEquals(file.getId(), item.getFileEntityId());
 		}, MAX_WAIT_MS).getResponse();
 	}
-	
+
 	@Test
 	public void testQueryStatistics() throws SynapseException {
 		FileEntity file = setupFileEntity();
@@ -164,8 +164,8 @@ public class ITDownloadListControllerTest {
 			assertTrue(response.getResponseDetails() instanceof FilesStatisticsResponse);
 			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
 			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(1L)
-					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(fileSize)
-					.setTotalNumberOfFiles(1L);
+					.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(1L).setNumberOfFilesRequiringAction(0L)
+					.setSumOfFileSizesAvailableForDownload(fileSize).setTotalNumberOfFiles(1L);
 			assertEquals(expected, details);
 		}, MAX_WAIT_MS).getResponse();
 	}
@@ -182,7 +182,7 @@ public class ITDownloadListControllerTest {
 
 		// call under test
 		synapse.clearUsersDownloadList();
-		
+
 		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest()
 				.setRequestDetails(new FilesStatisticsRequest());
 		// call under test
@@ -192,12 +192,12 @@ public class ITDownloadListControllerTest {
 			assertTrue(response.getResponseDetails() instanceof FilesStatisticsResponse);
 			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
 			FilesStatisticsResponse expected = new FilesStatisticsResponse().setNumberOfFilesAvailableForDownload(0L)
-					.setNumberOfFilesRequiringAction(0L).setSumOfFileSizesAvailableForDownload(0L)
-					.setTotalNumberOfFiles(0L);
+					.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(0L).setNumberOfFilesRequiringAction(0L)
+					.setSumOfFileSizesAvailableForDownload(0L).setTotalNumberOfFiles(0L);
 			assertEquals(expected, details);
 		}, MAX_WAIT_MS).getResponse();
 	}
-	
+
 	@Test
 	public void testAddToDownloadListWithParent() throws SynapseException {
 		FileEntity file = setupFileEntity();
@@ -209,7 +209,7 @@ public class ITDownloadListControllerTest {
 			assertEquals(1L, response.getNumberOfFilesAdded());
 		}, MAX_WAIT_MS).getResponse();
 	}
-	
+
 	@Test
 	public void testAddToDownloadListWithViewQuery() throws SynapseException {
 		long viewTypeMask = 0x01L;
@@ -241,14 +241,14 @@ public class ITDownloadListControllerTest {
 			assertEquals(1L, response.getNumberOfFilesAdded());
 		}, MAX_WAIT_MS, MAX_RETIES).getResponse();
 	}
-	
+
 	@Test
 	public void testDownloadListPackage() throws Exception {
 		synapse.clearUsersDownloadList();
-		
+
 		DownloadListPackageRequest request = new DownloadListPackageRequest();
-		
-		String message = assertThrows(SynapseBadRequestException.class, ()->{
+
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
 			// call under test
 			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.DownloadPackageList, request, body -> {
 				assertTrue(body instanceof DownloadListPackageResponse);
@@ -258,14 +258,14 @@ public class ITDownloadListControllerTest {
 		}).getMessage();
 		assertEquals("No files are eligible for packaging.", message);
 	}
-	
+
 	@Test
 	public void testDownloadListManifest() throws Exception {
 		synapse.clearUsersDownloadList();
-		
+
 		DownloadListManifestRequest request = new DownloadListManifestRequest();
-		
-		String message = assertThrows(SynapseBadRequestException.class, ()->{
+
+		String message = assertThrows(SynapseBadRequestException.class, () -> {
 			// call under test
 			AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.DownloadListManifest, request, body -> {
 				assertTrue(body instanceof DownloadListManifestResponse);
