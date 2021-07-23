@@ -80,10 +80,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Projects can be further organized into hierarchical
  * <a href="${org.sagebionetworks.repo.model.Folder}">Folders</a>. Finally, the
  * data is then represented by
- * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> 
- * that reside within Folders or directly within Projects.
- * All these objects (Projects, Folders, FileEntities) are derived
- * from a common object called
+ * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> that
+ * reside within Folders or directly within Projects. All these objects
+ * (Projects, Folders, FileEntities) are derived from a common object called
  * <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>. The Entity
  * Services provide the means to create, read, update, and delete Synapse
  * Entities. There are also services for navigating the Entity hierarchies ,
@@ -162,9 +161,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> are
  * "versionable" meaning it is possible for it to have multiple versions of the
  * file. Whenever, a FileEntity is updated with a new
- * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> whose
- * MD5 differs from the MD5 of the current file hanlde a new version of the 
- * FileEntity is automatically created. The history of a FileEntity can be 
+ * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
+ * whose MD5 differs from the MD5 of the current file hanlde a new version of
+ * the FileEntity is automatically created. The history of a FileEntity can be
  * retrieved using <a href="${GET.entity.id.version}">GET
  * /entity/{id}/version</a> method. A specific version of a FileEntity can be
  * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
@@ -174,17 +173,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * /entity/{id}/version/{versionNumber}/annotations</a> method.
  * </p>
  * <p>
- * Despite being <a href="${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>,
- * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a> and 
- * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> are versioned using
- * snapshots: see <a href="${POST.entity.id.table.snapshot}">POST /entity/{id}/table/snapshot</a>
- * and <a href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>.
+ * Despite being <a href=
+ * "${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>,
+ * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a> and
+ * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> are
+ * versioned using snapshots: see
+ * <a href="${POST.entity.id.table.snapshot}">POST
+ * /entity/{id}/table/snapshot</a> and
+ * <a href="${POST.entity.id.table.transaction.async.start}">POST
+ * /entity/{id}/table/transaction/async/start</a>.
  * </p>
  * <p>
- * <b><i>Note: </b>Only the File and Annotations of an Entity are included in the
- * version. All other components of an Entity such as description, name, parent,
- * ACL, and WikiPage are <b>not</b> not part of the version, and will not vary
- * from version to version.</i>
+ * <b><i>Note: </b>Only the File and Annotations of an Entity are included in
+ * the version. All other components of an Entity such as description, name,
+ * parent, ACL, and WikiPage are <b>not</b> not part of the version, and will
+ * not vary from version to version.</i>
  * </p>
  * <h6>JSON Schemas</h6>
  * <p>
@@ -226,7 +229,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td>100</td>
  * </tr>
  * <tr>
- * <td>Maximum total character count for all values associated with a single key in Annotations when the AnnotationValueType is STRING</td>
+ * <td>Maximum total character count for all values associated with a single key
+ * in Annotations when the AnnotationValueType is STRING</td>
  * <td>500</td>
  * </tr>
  * <tr>
@@ -247,16 +251,16 @@ public class EntityController {
 	SchemaManager schemaManager;
 
 	/**
-	 * Create a new Entity. This method is used to create Projects, Folders,
-	 * File Entities, etc. The passed request body should
-	 * contain the following fields:
+	 * Create a new Entity. This method is used to create Projects, Folders, File
+	 * Entities, etc. The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>name - Give your new entity a Name. <b>Note:</b> A name must be unique
 	 * within the given parent, similar to a file in a folder.</li>
 	 * <li>parentId - The ID of the parent Entity, such as a Folder or Project. This
 	 * field should be excluded when creating a Project.</li>
-	 * <li>concreteType - Indicates the type of Entity to create. The value should be
-	 * the entity's fully qualified class name, e.g. org.sagebionetworks.repo.model.FileEntity.</li>
+	 * <li>concreteType - Indicates the type of Entity to create. The value should
+	 * be the entity's fully qualified class name, e.g.
+	 * org.sagebionetworks.repo.model.FileEntity.</li>
 	 * </ul>
 	 * <p>
 	 * Note: To create an Entity the caller must be granted the
@@ -344,11 +348,10 @@ public class EntityController {
 	 * Update an entity.
 	 * <p>
 	 * If the Entity is a FileEntity and the dataFileHandleId fields is set to a new
-	 * value, then a new version will automatically be created for this update if the 
-	 * MD5 of the new file handle does not match the MD5 of the existing file handle or if
-	 * the file handles do not have an MD5 set. You can also force the creation of a new 
-	 * version using the newVersion parameter
-	 * (see below).
+	 * value, then a new version will automatically be created for this update if
+	 * the MD5 of the new file handle does not match the MD5 of the existing file
+	 * handle or if the file handles do not have an MD5 set. You can also force the
+	 * creation of a new version using the newVersion parameter (see below).
 	 * </p>
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -383,13 +386,16 @@ public class EntityController {
 	 * 
 	 * @param id          The ID of the entity to update. This ID must match the ID
 	 *                    of the passed Entity in the request body.
-	 * @param newVersion  To force the creation of a new version for a 
-	 *                    <a href="${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a> 
-	 *                    entity such as a <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>, 
-	 *                    include this optional parameter with a value set to true (i.e. newVersion=true).
-	 *                    This parameter is ignored for entities of type 
-	 *                    <a href="${org.sagebionetworks.repo.model.table.Table}">Table</a>
-	 *                    (See <a href="${POST.entity.id.table.snapshot}">POST /entity/{id}/table/snapshot</a> instead)
+	 * @param newVersion  To force the creation of a new version for a <a href=
+	 *                    "${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>
+	 *                    entity such as a <a href=
+	 *                    "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>,
+	 *                    include this optional parameter with a value set to true
+	 *                    (i.e. newVersion=true). This parameter is ignored for
+	 *                    entities of type <a href=
+	 *                    "${org.sagebionetworks.repo.model.table.Table}">Table</a>
+	 *                    (See <a href="${POST.entity.id.table.snapshot}">POST
+	 *                    /entity/{id}/table/snapshot</a> instead)
 	 * @param generatedBy To track the Provenance of an Entity update, include the
 	 *                    ID of the <a href=
 	 *                    "${org.sagebionetworks.repo.model.provenance.Activity}"
@@ -427,27 +433,36 @@ public class EntityController {
 		}
 		return serviceProvider.getEntityService().updateEntity(userId, entity, newVersionBoolean, generatedBy);
 	}
-	
+
 	/**
-	 * Updates the <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> associated with the <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
-	 * with the provided entity id and version.
+	 * Updates the
+	 * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a>
+	 * associated with the
+	 * <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> with
+	 * the provided entity id and version.
 	 * 
-	 * @param id The id of the file entity
+	 * @param id            The id of the file entity
 	 * @param versionNumber The entity version
 	 * 
-	 * @throws NotFoundException If a <a href= "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> with the given id does not exist
-	 * @throws ConflictingUpdateException If the old file handle id specified in the request does not match the current id of the entity or if the MD5 of the file handles does not match
-	 * @throws UnauthorizedException If the user is not authorized to read and update the entity or if the new file handle id specified in the request is not owned by the user
+	 * @throws NotFoundException          If a <a href=
+	 *                                    "${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+	 *                                    with the given id does not exist
+	 * @throws ConflictingUpdateException If the old file handle id specified in the
+	 *                                    request does not match the current id of
+	 *                                    the entity or if the MD5 of the file
+	 *                                    handles does not match
+	 * @throws UnauthorizedException      If the user is not authorized to read and
+	 *                                    update the entity or if the new file
+	 *                                    handle id specified in the request is not
+	 *                                    owned by the user
 	 */
 	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_FILE_HANDLE }, method = RequestMethod.PUT)
-	public void updateEntityFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			@PathVariable Long versionNumber,
-			@RequestBody FileHandleUpdateRequest fileHandleUpdateRequest) 
-					throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
+	public void updateEntityFileHandle(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable Long versionNumber,
+			@RequestBody FileHandleUpdateRequest fileHandleUpdateRequest)
+			throws NotFoundException, ConflictingUpdateException, UnauthorizedException {
 		serviceProvider.getEntityService().updateEntityFileHandle(userId, id, versionNumber, fileHandleUpdateRequest);
 	}
 
@@ -1472,9 +1487,10 @@ public class EntityController {
 	}
 
 	/**
-	 * Gets at most 200 FileEntities matching the given MD5 string which the
-	 * user has read access to. NOTE: Another option is to create a file view that includes MD5 values.
-	 * See <a href="https://docs.synapse.org/articles/views.html">https://docs.synapse.org/articles/views.html</a>
+	 * Gets at most 200 FileEntities matching the given MD5 string which the user
+	 * has read access to. NOTE: Another option is to create a file view that
+	 * includes MD5 values. See <a href=
+	 * "https://docs.synapse.org/articles/views.html">https://docs.synapse.org/articles/views.html</a>
 	 *
 	 * 
 	 * @param md5
@@ -1547,7 +1563,12 @@ public class EntityController {
 	 * of the given entity. The entity's DataType controls how the entity can be
 	 * accessed. For example, an entity's DataType must be set to 'open_data' in
 	 * order for anonymous to be allowed to access its contents.
-	 * 
+	 * <p>
+	 * An entity's data type can be checked using:
+	 * <a href="${GET.entity.id.permissions}">GET /entity/{id}/permissions</a> to
+	 * get <a href=
+	 * "${org.sagebionetworks.repo.model.auth.UserEntityPermissions}">UserEntityPermissions.isEntityOpenData</a>
+	 * </p>
 	 * <p>
 	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
 	 * (id=464532) in order to change an Entity's type to 'OPEN_DATA'. The caller
@@ -1786,7 +1807,7 @@ public class EntityController {
 	 * schema is automatic and eventually consistent. The validation results include
 	 * the etag of the Entity at the time of the last validation. If the returned
 	 * etag does not match the current etag of the Entity then the results should be
-	 * considered out-of-date. 
+	 * considered out-of-date.
 	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>

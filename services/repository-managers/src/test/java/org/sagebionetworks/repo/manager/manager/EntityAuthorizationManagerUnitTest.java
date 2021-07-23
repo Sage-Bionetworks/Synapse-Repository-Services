@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
@@ -398,6 +399,63 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsCertifiedUser(true);
 		expected.setCanChangePermissions(true);
 		expected.setCanEnableInheritance(true);
+		assertEquals(expected, permissions);
+		
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+	}
+	
+	@Test
+	public void testGetUserPermissionsForEntityWithNullDateType() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		
+		permissionsState.withDataType(null);
+
+		// call under test
+		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
+		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
+		expected.setIsCertifiedUser(true);
+		expected.setCanUpload(true);
+		expected.setIsEntityOpenData(false);
+		assertEquals(expected, permissions);
+		
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+	}
+	
+	@Test
+	public void testGetUserPermissionsForEntityWithDateTypeOpenDate() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		
+		permissionsState.withDataType(DataType.OPEN_DATA);
+
+		// call under test
+		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
+		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
+		expected.setIsCertifiedUser(true);
+		expected.setCanUpload(true);
+		expected.setIsEntityOpenData(true);
+		assertEquals(expected, permissions);
+		
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+	}
+	
+	@Test
+	public void testGetUserPermissionsForEntityWithDateTypeSensitiveDate() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		
+		permissionsState.withDataType(DataType.SENSITIVE_DATA);
+
+		// call under test
+		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
+		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
+		expected.setIsCertifiedUser(true);
+		expected.setCanUpload(true);
+		expected.setIsEntityOpenData(false);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
