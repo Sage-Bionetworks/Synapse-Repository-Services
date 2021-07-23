@@ -175,7 +175,7 @@ public class TableRowTruthDAOImplTest {
 			TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 			Long transactionId = tableTransactionDao.startTransaction(tableId, Long.parseLong(userId));
 			tableRowTruthDao.appendRowSetToTable(userId, delta.getTableId(), range.getEtag(), range.getVersionNumber(),
-					columns, delta.writeToDto(), transactionId);
+					columns, delta.writeToDto(), transactionId, !delta.getFileHandleIdsInSparseChangeSet().isEmpty());
 			TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
 			if (linkToVersion != null) {
 				tableTransactionDao.linkTransactionToVersion(transactionId, linkToVersion);

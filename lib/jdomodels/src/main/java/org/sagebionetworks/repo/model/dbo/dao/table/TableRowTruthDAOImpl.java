@@ -198,7 +198,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@WriteTransaction
 	@Override
 	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber,
-			List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId) {
+			List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId, boolean hasFileRefs) {
 		// Write the delta to S3
 		String key = saveToS3((OutputStream out) -> TableModelUtils.writeSparesChangeSetToGz(delta, out));
 		// record the change
@@ -214,6 +214,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		changeDBO.setTransactionId(transactionId);
+		changeDBO.setHasFileRefs(hasFileRefs);
+		
 		basicDao.createNew(changeDBO);
 		return key;
 	}
@@ -240,6 +242,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setRowCount(0L);
 		changeDBO.setChangeType(TableChangeType.COLUMN.name());
 		changeDBO.setTransactionId(transactionId);
+		changeDBO.setHasFileRefs(false);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
 	}

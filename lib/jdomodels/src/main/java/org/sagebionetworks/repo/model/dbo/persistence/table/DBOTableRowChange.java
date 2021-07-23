@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_RO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_HAS_FILE_REFS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
@@ -45,7 +46,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			new FieldColumn("keyNew", COL_TABLE_ROW_KEY_NEW),
 			new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
 			new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
-			new FieldColumn("transactionId", COL_TABLE_ROW_TRX_ID)
+			new FieldColumn("transactionId", COL_TABLE_ROW_TRX_ID),
+			new FieldColumn("hasFileRefs", COL_TABLE_ROW_HAS_FILE_REFS)
 	};
 	
 	private static final TableMapping<DBOTableRowChange> TABLE_MAPPING = new TableMapping<DBOTableRowChange>() {
@@ -63,9 +65,13 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			change.setKeyNew(rs.getString(COL_TABLE_ROW_KEY_NEW));
 			change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 			change.setChangeType(rs.getString(COL_TABLE_ROW_TYPE));
-			long transactionId = rs.getLong(COL_TABLE_ROW_TRX_ID);
-			if(!rs.wasNull()) {
-				change.setTransactionId(transactionId);
+			change.setTransactionId(rs.getLong(COL_TABLE_ROW_TRX_ID));
+			if(rs.wasNull()) {
+				change.setTransactionId(null);
+			}
+			change.setHasFileRefs(rs.getBoolean(COL_TABLE_ROW_HAS_FILE_REFS));
+			if (rs.wasNull()) {
+				change.setHasFileRefs(null);
 			}
 			return change;
 		}
@@ -105,6 +111,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private Long rowCount;
 	private String changeType;
 	private Long transactionId;
+	private Boolean hasFileRefs;
 
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
@@ -217,6 +224,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		this.keyNew = keyNew;
 	}
 
+	public Boolean getHasFileRefs() {
+		return hasFileRefs;
+	}
+	
+	public void setHasFileRefs(Boolean hasFileRefs) {
+		this.hasFileRefs = hasFileRefs;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.TABLE_CHANGE;
@@ -244,8 +259,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, id, keyNew, rowCount, rowVersion, tableId,
-				transactionId);
+		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, id, hasFileRefs, keyNew, rowCount, rowVersion,
+				tableId, transactionId);
 	}
 
 	@Override
@@ -263,16 +278,17 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		return Objects.equals(bucket, other.bucket) && Objects.equals(changeType, other.changeType)
 				&& Objects.equals(columnIds, other.columnIds) && Objects.equals(createdBy, other.createdBy)
 				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(keyNew, other.keyNew) && Objects.equals(rowCount, other.rowCount)
-				&& Objects.equals(rowVersion, other.rowVersion) && Objects.equals(tableId, other.tableId)
-				&& Objects.equals(transactionId, other.transactionId);
+				&& Objects.equals(hasFileRefs, other.hasFileRefs) && Objects.equals(keyNew, other.keyNew)
+				&& Objects.equals(rowCount, other.rowCount) && Objects.equals(rowVersion, other.rowVersion)
+				&& Objects.equals(tableId, other.tableId) && Objects.equals(transactionId, other.transactionId);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOTableRowChange [id=" + id + ", tableId=" + tableId + ", etag=" + etag + ", rowVersion=" + rowVersion + ", columnIds="
-				+ columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket=" + bucket + ", keyNew="
-				+ keyNew + ", rowCount=" + rowCount + ", changeType=" + changeType + ", transactionId=" + transactionId + "]";
+				+ columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket=" + bucket + ", keyNew=" + keyNew
+				+ ", rowCount=" + rowCount + ", changeType=" + changeType + ", transactionId=" + transactionId + ", hasFileRefs="
+				+ hasFileRefs + "]";
 	}
 
 }
