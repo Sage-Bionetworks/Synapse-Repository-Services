@@ -202,25 +202,6 @@
 	
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
-	<bean
-		id="migrationManager"
-		class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
-		init-method="initialize"
-		scope="singleton" >
-		<property
-			name="backupBatchMax"
-			ref="stackConfiguration.migrationBackupBatchMax" />
-		<property name="migrationListeners" >
-			<list>
-			</list>
-		</property>
-	</bean>
-
-	<bean id="migrationExecutorService" class="java.util.concurrent.Executors"
-		scope="singleton" factory-method="newFixedThreadPool">
-		<constructor-arg value="10" />
-	</bean>
-
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />
 

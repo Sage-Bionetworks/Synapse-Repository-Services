@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -57,6 +60,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -70,6 +74,7 @@ import com.google.common.collect.Iterables;
  * @author John
  *
  */
+@Service
 public class MigrationManagerImpl implements MigrationManager {
 	
 	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
@@ -78,43 +83,43 @@ public class MigrationManagerImpl implements MigrationManager {
 	public static String stack = StackConfigurationSingleton.singleton().getStack();
 	public static String instance = StackConfigurationSingleton.singleton().getStackInstance();
 	
-	@Autowired
 	private MigratableTableDAO migratableTableDao;
-	@Autowired
 	private StackStatusDao stackStatusDao;
-	@Autowired
 	private BackupFileStream backupFileStream;
-	@Autowired
 	private SynapseS3Client s3Client;
-	@Autowired
 	private FileProvider fileProvider;
 
 	/**
 	 * The list of migration listeners
 	 */
-	List<MigrationTypeListener> migrationListeners;
+	List<? extends MigrationTypeListener> migrationListeners;
 	
 	/**
 	 * Migration types for principals.
 	 */
 	static Set<MigrationType> PRINCIPAL_TYPES;
-
-	/**
-	 * The maximum size of a backup batch.
-	 */
-	int backupBatchMax = 500;
 	
-	public MigrationManagerImpl(){
-		// Default the batch max 
-		this.backupBatchMax = 500;
+	@Autowired
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners) {
+		this.migratableTableDao = migratableTableDao;
+		this.stackStatusDao = stackStatusDao;
+		this.backupFileStream = backupFileStream;
+		this.s3Client = s3Client;
+		this.fileProvider = fileProvider;
+		this.migrationListeners = migrationListeners;
 	}
-
+	
 	/**
-	 * Injected via Spring
-	 * @param backupBatchMax
+	 * Called after Spring creates the manager.
 	 */
-	public void setBackupBatchMax(Integer backupBatchMax) {
-		this.backupBatchMax = backupBatchMax;
+	@PostConstruct
+	public void initialize() {
+		// validate all of the foreign keys.
+		validateForeignKeys();
+		
+		PRINCIPAL_TYPES = new HashSet<>();
+		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
+		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
 	}
 
 	@Override
@@ -145,22 +150,28 @@ public class MigrationManagerImpl implements MigrationManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 	}
-
 	
+	private Stream<? extends MigrationTypeListener> getListenersForType(MigrationType type) {
+		if (this.migrationListeners == null) {
+			return Stream.empty();
+		}
+		
+		return this.migrationListeners.stream()
+			.filter( listener -> listener.supports(type));
+	}
+	
+	private void fireBeforeCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch) {
+		getListenersForType(type).forEach( listener -> listener.beforeCreateOrUpdate(batch));
+	}
+		
 	/**
 	 * Fire a create or update event for a given migration type.
 	 * @param type
 	 * @param databaseList - The Database objects that were created or updated.
 	 */
-	private void fireCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> databaseList){
-		if(this.migrationListeners != null){
-			// Let each listener handle the event
-			for(MigrationTypeListener listener: this.migrationListeners){
-				listener.afterCreateOrUpdate(type, databaseList);
-			}
-		}
+	private void fireAfterCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch){
+		getListenersForType(type).forEach( listener -> listener.afterCreateOrUpdate(batch));
 	}
-
 
 	@Override
 	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user) {
@@ -240,7 +251,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * Injected via Spring
 	 * @param migrationListeners
 	 */
-	public void setMigrationListeners(List<MigrationTypeListener> migrationListeners) {
+	public void setMigrationListeners(List<MigrationTypeListener<DatabaseObject<?>>> migrationListeners) {
 		this.migrationListeners = migrationListeners;
 	}
 
@@ -396,17 +407,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		
 	}
 
-	/**
-	 * Called after Spring creates the manager.
-	 */
-	public void initialize() {
-		// validate all of the foreign keys.
-		validateForeignKeys();
-		
-		PRINCIPAL_TYPES = new HashSet<>();
-		PRINCIPAL_TYPES.add(MigrationType.PRINCIPAL);
-		PRINCIPAL_TYPES.addAll(getSecondaryTypes(MigrationType.PRINCIPAL));
-	}
 	
 	/*
 	 * (non-Javadoc)
@@ -638,13 +638,13 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param currentType
 	 * @param currentBatch
 	 */
-	void restoreBatch(MigrationType currentType,
-			List<DatabaseObject<?>> currentBatch) {
+	public void restoreBatch(MigrationType currentType, List<DatabaseObject<?>> currentBatch) {
 		if(!currentBatch.isEmpty()) {
+			fireBeforeCreateOrUpdateEvent(currentType, currentBatch);
 			// push the data to the database
 			this.migratableTableDao.createOrUpdate(currentType, currentBatch);
 			// Let listeners know about the change
-			fireCreateOrUpdateEvent(currentType, currentBatch);
+			fireAfterCreateOrUpdateEvent(currentType, currentBatch);
 		}
 	}
 

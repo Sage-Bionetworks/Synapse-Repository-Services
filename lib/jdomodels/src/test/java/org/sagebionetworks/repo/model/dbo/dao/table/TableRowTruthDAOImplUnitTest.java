@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,19 +14,20 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TableRowTruthDAOImplUnitTest {
 
 	@Mock
@@ -37,6 +38,10 @@ public class TableRowTruthDAOImplUnitTest {
 	SynapseS3Client mockS3Client;
 	@Mock
 	FileProvider mockFileProvider;
+	@Mock
+	IdGenerator mockIdGenerator;
+	@Mock
+	StackConfiguration mockConfig;
 	@Mock
 	File mockFile;
 	@Mock
@@ -49,16 +54,17 @@ public class TableRowTruthDAOImplUnitTest {
 	@InjectMocks
 	TableRowTruthDAOImpl dao;
 	
-	@Before
+	@BeforeEach
 	public void before() throws IOException {
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
 		s3Bucket = "a.bucket";
-		ReflectionTestUtils.setField(dao, "s3Bucket",s3Bucket);
+		when(mockConfig.getTableRowChangeBucketName()).thenReturn(s3Bucket);
+		dao.configure(mockConfig);
 	}
 	
 	@Test
 	public void testSaveToS3() throws IOException {
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
 		// Call under test
 		dao.saveToS3(mockCallback);
 		verify(mockCallback).write(mockOutputStream);
@@ -71,14 +77,16 @@ public class TableRowTruthDAOImplUnitTest {
 	@Test
 	public void testSaveToS3DeleteOnError() throws IOException {
 		FileNotFoundException exception = new FileNotFoundException();
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		when(mockFileProvider.createFileOutputStream(any(File.class))).thenThrow(exception);
-		try {
+		
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
 			dao.saveToS3(mockCallback);
-			fail();
-		} catch(RuntimeException e) {
-			assertEquals(e.getCause(), exception);
-		}
+		});
+
+		assertEquals(exception, result.getCause());
+		
 		// temp should still be deleted.
 		verify(mockFile).delete();
 	}

@@ -530,6 +530,7 @@ public class SqlConstants {
 	
 	// The table row changes
 	public static final String TABLE_ROW_CHANGE				= "TABLE_ROW_CHANGE";
+	public static final String COL_TABLE_ROW_ID				= "ID";
 	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
 	public static final String COL_TABLE_ROW_TABLE_ETAG		= "ETAG";
 	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";

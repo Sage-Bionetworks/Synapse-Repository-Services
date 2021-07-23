@@ -20,8 +20,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -31,8 +29,6 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
@@ -56,11 +52,7 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -83,23 +75,14 @@ public class MigrationManagerImplAutowireTest {
 	private EntityBootstrapper entityBootstrapper;
 
 	@Autowired
-	private TableEntityManager tableEntityManager;
-
-	@Autowired
 	private EntityManager entityManager;
-
-	@Autowired
-	private ColumnModelManager columnManager;
 	
 	@Autowired
 	private StackStatusDao stackStatusDao;
 
 	@Autowired
 	private IdGenerator idGenerator;
-	
-	@Autowired
-	private TableTransactionDao tableTransactionDao;
-	
+		
 	@Autowired
 	private UserGroupDoaObjectHelper userGroupHelper;
 	
@@ -166,27 +149,7 @@ public class MigrationManagerImplAutowireTest {
 			projectIdsLong.add(KeyFactory.stringToKey(id));
 		}
 
-		// create columns
-		LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
-		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
-			cm = columnManager.createColumnModel(adminUser, cm);
-			schema.add(cm);
-		}
-		List<String> headers = TableModelUtils.getIds(schema);
-		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		tableId = entityManager.createEntity(adminUser, table, null);
-		tableEntityManager.setTableSchema(adminUser, headers, tableId);
-
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-		rowSet.setTableId(tableId);
-		long transactionId = tableTransactionDao.startTransaction(tableId, adminUser.getId());
-		tableEntityManager.appendRows(adminUser, tableId, rowSet, mockProgressCallback, transactionId);
+		
 	}
 	
 	@AfterEach

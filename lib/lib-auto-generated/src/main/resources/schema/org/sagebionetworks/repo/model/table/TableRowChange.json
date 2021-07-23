@@ -26,10 +26,6 @@
             "type": "string",
             "description": "The name of the S3 bucket where this change is stored"
         },
-        "key": {
-            "type": "string",
-            "description": "The name of the S3 key where this change is stored"
-        },
         "keyNew": {
             "type": "string",
             "description": "The name of the S3 key where this change is stored."

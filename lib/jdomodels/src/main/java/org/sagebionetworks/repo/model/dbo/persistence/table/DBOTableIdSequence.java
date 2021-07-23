@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -130,9 +129,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBOTableRowChange());
-		return list;
+		return null;
 	}
 
 	@Override

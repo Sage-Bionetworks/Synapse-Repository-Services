@@ -24,7 +24,6 @@ public class TableRowChangeUtilsTest {
 		dto.setCreatedBy("456");
 		dto.setCreatedOn(new Date(101));
 		dto.setBucket("bucket");
-		dto.setKey("key");
 		dto.setKeyNew("newKey");
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);
@@ -48,7 +47,6 @@ public class TableRowChangeUtilsTest {
 		dto.setCreatedBy("456");
 		dto.setCreatedOn(new Date(101));
 		dto.setBucket("bucket");
-		dto.setKey(null);
 		dto.setKeyNew("newKey");
 		dto.setEtag("someEtag");
 		dto.setRowCount(999L);

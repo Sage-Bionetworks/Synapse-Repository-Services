@@ -1415,7 +1415,7 @@ public class TableEntityManagerTest {
 		Long etagVersion = 25L;
 		when(mockTruthDao.getVersionForEtag(tableId, etag)).thenReturn(25L);
 		TableRowChange change = new TableRowChange();
-		change.setKey("someKey");
+		change.setKeyNew("someKey");
 		change.setChangeType(TableChangeType.ROW);
 		when(mockTruthDao.listRowSetsKeysForTableGreaterThanVersion(tableId, etagVersion)).thenReturn(Lists.newArrayList(change));
 		SparseChangeSetDto conflictUpdate = new SparseChangeSetDto();
@@ -1536,7 +1536,6 @@ public class TableEntityManagerTest {
 		TableRowChange change = new TableRowChange();
 		change.setTableId(tableId);
 		change.setRowVersion(versionNumber);
-		change.setKey("oldKey");
 		// when the new key is null the change set needs to be upgraded.
 		change.setKeyNew(null);
 		assertThrows(IllegalArgumentException.class, ()->{
