@@ -14,6 +14,10 @@
 			"description": "The number of files that are currently available for download.",
 			"type": "integer"
 		},
+		"numberOfFilesAvailableForDownloadAndEligibleForPackaging": {
+			"description": "The number of files that are currently available for download and eligible for packaging.",
+			"type": "integer"
+		},
 		"numberOfFilesRequiringAction": {
 			"description": "The number of files that are currently unavailable for download.  These are files that require some action on the user's part in order gain download access.",
 			"type": "integer"

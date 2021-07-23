@@ -1440,6 +1440,7 @@ public class DownloadListDaoImplTest {
 				
 		FilesStatisticsResponse expected = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(12L)
+				.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(12L)
 				.setNumberOfFilesRequiringAction(0L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(fileIds)*2L)
 				.setTotalNumberOfFiles(12L);
@@ -1473,6 +1474,7 @@ public class DownloadListDaoImplTest {
 		
 		FilesStatisticsResponse expected = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(4L)
+				.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(4L)
 				.setNumberOfFilesRequiringAction(8L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(subSet)*2L)
 				.setTotalNumberOfFiles(12L);
@@ -1505,6 +1507,7 @@ public class DownloadListDaoImplTest {
 		
 		FilesStatisticsResponse expectedOne = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(2L)
+				.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(2L)
 				.setNumberOfFilesRequiringAction(1L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToOne))
 				.setTotalNumberOfFiles(3L);
@@ -1515,6 +1518,7 @@ public class DownloadListDaoImplTest {
 		
 		FilesStatisticsResponse expectedTwo = new FilesStatisticsResponse()
 				.setNumberOfFilesAvailableForDownload(3L)
+				.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(3L)
 				.setNumberOfFilesRequiringAction(2L)
 				.setSumOfFileSizesAvailableForDownload(getSumFileSize(accessibleToTwo))
 				.setTotalNumberOfFiles(5L);
@@ -1522,6 +1526,57 @@ public class DownloadListDaoImplTest {
 		// call under test
 		stats = downloadListDao.getListStatistics(l->accessibleToTwo, userTwoIdLong);
 		assertEquals(expectedTwo, stats);
+	}
+	
+	@Test
+	public void testGetListStatisticsWithFilesIneligibleForPackaging() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 0));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+
+		// S3 under max (eligible)
+		String fileName = "s3UnderSize";
+		FileHandle fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
+		}, S3FileHandle.class);
+		Node fileS3UnderSize = createFile(project.getId(), fileName, fileHandle);
+
+		// S3 over max (ineligible)
+		fileName = "s3OverSize";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize(FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING+1);
+		}, S3FileHandle.class);
+		Node fileS3OverSize = createFile(project.getId(), fileName, fileHandle);
+
+		// External (ineligible)
+		fileName = "external";
+		fileHandle = fileHandleObjectHelper.createFileHandle(f->{
+			f.setContentSize( 101L);
+		}, ExternalFileHandle.class);
+		Node fileExternal = createFile(project.getId(), fileName, fileHandle);
+		
+		List<Long> fileIds = Arrays.asList(fileS3UnderSize, fileS3OverSize, fileExternal).stream()
+				.map(n -> KeyFactory.stringToKey(n.getId())).collect((Collectors.toList()));
+
+		List<DownloadListItem> toAdd = Arrays.asList(
+				new DownloadListItem().setFileEntityId(fileS3UnderSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileS3OverSize.getId()).setVersionNumber(1L),
+				new DownloadListItem().setFileEntityId(fileExternal.getId()).setVersionNumber(1L));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, toAdd);
+		
+		FilesStatisticsResponse expected = new FilesStatisticsResponse()
+				.setNumberOfFilesAvailableForDownload(3L)
+				.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(1L)
+				.setNumberOfFilesRequiringAction(0L)
+				.setSumOfFileSizesAvailableForDownload(getSumFileSize(fileIds))
+				.setTotalNumberOfFiles(3L);
+		
+		// call under test
+		FilesStatisticsResponse stats = downloadListDao.getListStatistics(l->l, userOneIdLong);
+		assertEquals(expected, stats);
 	}
 	
 	/**

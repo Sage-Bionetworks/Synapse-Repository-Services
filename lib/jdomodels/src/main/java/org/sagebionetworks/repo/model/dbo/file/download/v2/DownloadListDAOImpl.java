@@ -130,6 +130,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		FilesStatisticsResponse stats = new FilesStatisticsResponse();
 		stats.setTotalNumberOfFiles(rs.getLong("TOTAL_FILE_COUNT"));
 		stats.setNumberOfFilesAvailableForDownload(rs.getLong("AVAILABLE_COUNT"));
+		stats.setNumberOfFilesAvailableForDownloadAndEligibleForPackaging(rs.getLong("ELIGIBLE_FOR_PACKAGING_COUNT"));
 		stats.setSumOfFileSizesAvailableForDownload(rs.getLong("SUM_AVAIABLE_SIZE"));
 		stats.setNumberOfFilesRequiringAction(
 				stats.getTotalNumberOfFiles() - stats.getNumberOfFilesAvailableForDownload());
@@ -581,6 +582,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			String sql = String.format(DOWNLOAD_LIST_STATISTICS_TEMPLATE, tempTableName);
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("principalId", userId);
+			params.addValue("maxEligibleSize", FileConstants.MAX_FILE_SIZE_ELIGIBLE_FOR_PACKAGING);
 			return namedJdbcTemplate.queryForObject(sql, params,STATS_MAPPER);
 		} finally {
 			dropTemporaryTable(tempTableName);
