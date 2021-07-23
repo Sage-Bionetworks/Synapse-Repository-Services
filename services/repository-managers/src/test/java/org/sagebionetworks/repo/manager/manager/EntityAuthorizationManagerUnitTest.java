@@ -581,6 +581,7 @@ public class EntityAuthorizationManagerUnitTest {
 		up.setIsCertifiedUser(false);
 		up.setCanEnableInheritance(false);
 		up.setIsCertificationRequired(true);
+		up.setIsEntityOpenData(false);
 		return up;
 	}
 
