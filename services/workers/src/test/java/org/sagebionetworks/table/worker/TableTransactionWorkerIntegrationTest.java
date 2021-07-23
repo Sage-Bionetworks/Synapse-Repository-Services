@@ -733,10 +733,8 @@ public class TableTransactionWorkerIntegrationTest {
 		if (columnType.equals(ColumnType.STRING_LIST)) {
 			cm.setColumnType(ColumnType.STRING_LIST);
 			cm.setMaximumSize(maxStringLength);
-		} else if (columnType.equals(ColumnType.BOOLEAN_LIST)) {
-			cm.setColumnType(ColumnType.BOOLEAN_LIST);
-		} else if (columnType.equals(ColumnType.INTEGER_LIST)) {
-			cm.setColumnType(ColumnType.INTEGER_LIST);
+		} else {
+			cm.setColumnType(columnType);
 		}
 		cm.setName(name);
 		cm.setMaximumListLength(maxListLength);
