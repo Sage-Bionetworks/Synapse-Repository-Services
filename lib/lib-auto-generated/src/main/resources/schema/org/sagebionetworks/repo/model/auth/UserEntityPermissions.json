@@ -23,7 +23,8 @@
 			"description": "Can the user add a child entity to this entity once they become a Certified User?"
 		},
 		"isCertifiedUser": {
-			"type": "boolean"
+			"type": "boolean",
+			"description": "True, if the user has passed the user certification quiz."
 		},
 		"canChangePermissions": {
 			"type": "boolean",
@@ -64,6 +65,10 @@
 		"isCertificationRequired": {
 			"type": "boolean",
 			"description": "Is the certification requirement enabled for the project of the entity?"
+		},
+		"isEntityOpenData": {
+			"type": "boolean",
+			"description": "Returns true if the Entity's DateType equals 'OPEN_DATA', indicating that the data is safe to be released to the public. "
 		}
 	}
 }

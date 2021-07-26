@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.manager.entity.decider.AccessDecider;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -142,6 +143,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		permissions.setCanEnableInheritance(
 				determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(entityIdLong))
 						.getAuthorizationStatus().isAuthorized());
+		permissions.setIsEntityOpenData(DataType.OPEN_DATA.equals(permissionsState.getDataType()));
 		return permissions;
 
 	}

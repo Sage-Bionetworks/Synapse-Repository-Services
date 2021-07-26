@@ -516,6 +516,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanView());
 		assertEquals(true, uep.getCanDownload());
 		assertEquals(false, uep.getCanUpload());
+		assertEquals(true, uep.getIsEntityOpenData());
 	}
 
 	@Test
