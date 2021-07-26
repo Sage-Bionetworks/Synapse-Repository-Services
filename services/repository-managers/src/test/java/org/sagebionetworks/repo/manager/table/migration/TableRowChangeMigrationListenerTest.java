@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
@@ -94,6 +95,26 @@ public class TableRowChangeMigrationListenerTest {
  		assertEquals(expectedChanges, changes);
 	}
 	
+	@Test
+	public void testRestoreTableChangesWithoutHasFileRefs() {
+		
+		DBOTableRowChange change = generateTableChange(true);
+		
+		change.setHasFileRefs(null);
+		
+		List<DatabaseObject<?>> batch = Arrays.asList(change);
+		
+		// Call under test
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		// Since the bucket does not exist this will have to be set to false
+		assertFalse(change.getHasFileRefs());
+				
+		List<TableRowChange> expectedChanges = Arrays.asList(TableRowChangeUtils.ceateDTOFromDBO(change));
+ 		List<TableRowChange> changes = dao.getTableChangePage(tableId.toString(), 10, 0);
+ 		
+ 		assertEquals(expectedChanges, changes);
+	}
 
 	DBOTableRowChange generateTableChange(boolean withId) {
 		DBOTableRowChange change = new DBOTableRowChange();
@@ -108,6 +129,7 @@ public class TableRowChangeMigrationListenerTest {
 		change.setRowCount(10L);
 		change.setTransactionId(1L);
 		change.setEtag(UUID.randomUUID().toString());
+		change.setHasFileRefs(false);
 		if (withId) {
 			change.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
 		}
