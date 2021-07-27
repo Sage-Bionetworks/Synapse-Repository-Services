@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,7 +111,7 @@ public class TableRowChangeMigrationListenerTest {
 		
 		// Call under test
 		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
-		
+
 		assertFalse(change.getHasFileRefs());
 				
 		List<TableRowChange> expectedChanges = Arrays.asList(TableRowChangeUtils.ceateDTOFromDBO(change));
@@ -137,6 +139,36 @@ public class TableRowChangeMigrationListenerTest {
  		List<TableRowChange> changes = dao.getTableChangePage(tableId.toString(), 10, 0);
  		
  		assertEquals(expectedChanges, changes);
+	}
+
+	@Test
+	public void testRestoreTableChangesBatch() {
+		
+		List<DatabaseObject<?>> batch = IntStream.range(0, 100).boxed().map( i -> generateTableChange(false)).collect(Collectors.toList());
+
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		List<Long> ids = batch.stream().map( c -> ((DBOTableRowChange) c).getId()).collect(Collectors.toList());
+		
+		// the whole batch should have an id
+		assertEquals(batch.size(), ids.size());
+		
+		Long lastBatchId = ids.get(ids.size() - 1);
+		
+		assertEquals(ids.get(0) + ids.size() - 1, lastBatchId);
+		
+		// Create another batch to check that there are no id collisions
+		batch = IntStream.range(0, 50).boxed().map( i -> generateTableChange(false)).collect(Collectors.toList());
+		
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		ids = batch.stream().map( c -> ((DBOTableRowChange) c).getId()).collect(Collectors.toList());
+		
+		// the whole batch should have an id
+		assertEquals(batch.size(), ids.size());
+		
+		assertEquals(lastBatchId + 1, ids.get(0));
+		
 	}
 
 	DBOTableRowChange generateTableChange(boolean withId) {
