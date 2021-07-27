@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,11 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManagerImpl;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowChangeUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -95,7 +95,37 @@ public class TableRowChangeMigrationListenerTest {
  		
  		assertEquals(expectedChanges, changes);
 	}
-	
+
+	@Test
+	public void testRestoreTableChangesBatch() {
+		
+		List<DatabaseObject<?>> batch = IntStream.range(0, 100).boxed().map( i -> generateTableChange(false)).collect(Collectors.toList());
+		
+		// Call under test
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		List<Long> ids = batch.stream().map( c -> ((DBOTableRowChange) c).getId()).collect(Collectors.toList());
+		
+		// the whole batch should have an id
+		assertEquals(batch.size(), ids.size());
+		
+		Long lastBatchId = ids.get(ids.size() - 1);
+		
+		assertEquals(ids.get(0) + ids.size() - 1, lastBatchId);
+		
+		// Create another batch to check that there are no id collisions
+		batch = IntStream.range(0, 50).boxed().map( i -> generateTableChange(false)).collect(Collectors.toList());
+		
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		ids = batch.stream().map( c -> ((DBOTableRowChange) c).getId()).collect(Collectors.toList());
+		
+		// the whole batch should have an id
+		assertEquals(batch.size(), ids.size());
+		
+		assertEquals(lastBatchId + 1, ids.get(0));
+		
+	}	
 
 	DBOTableRowChange generateTableChange(boolean withId) {
 		DBOTableRowChange change = new DBOTableRowChange();

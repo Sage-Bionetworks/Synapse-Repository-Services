@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.manager.table.migration;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.migration.MigrationTypeListener;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class TableRowChangeMigrationListener implements MigrationTypeListener<DBOTableRowChange> {
 
 	private IdGenerator idGenerator;
-	
+		
 	@Autowired
 	public TableRowChangeMigrationListener(IdGenerator idGenerator) {
 		this.idGenerator = idGenerator;
@@ -26,14 +28,25 @@ public class TableRowChangeMigrationListener implements MigrationTypeListener<DB
 	public boolean supports(MigrationType type) {
 		return MigrationType.TABLE_CHANGE == type;
 	}
-
+	
 	@Override
+	@WriteTransaction
 	public void beforeCreateOrUpdate(List<DBOTableRowChange> batch) {
-		batch.forEach(change -> {
-			if (change.getId() == null) {
-				change.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
+		
+		// We first collect the changes that come in with a null id
+		List<DBOTableRowChange> nullIdChanges = batch.stream().filter( change -> change.getId() == null).collect(Collectors.toList());
+
+		if (!nullIdChanges.isEmpty()) {
+			Long nextId = idGenerator.generateNewId(IdType.TABLE_CHANGE_ID);
+			// Reserve the id range for the batch and assign the id in memory to avoid slowing down due to id generation
+			idGenerator.reserveId(nextId + nullIdChanges.size() - 1, IdType.TABLE_CHANGE_ID);
+			
+			for (DBOTableRowChange change : nullIdChanges) {
+				change.setId(nextId++);
 			}
-		});
+			
+		}
+		
 		
 	}
 
