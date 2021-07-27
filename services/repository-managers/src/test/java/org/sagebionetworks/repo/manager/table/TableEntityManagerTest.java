@@ -399,7 +399,7 @@ public class TableEntityManagerTest {
 		// row level conflict test
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
-		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId);
+		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId, /* hasFileRefs */ true);
 		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 	}
 	
@@ -641,7 +641,7 @@ public class TableEntityManagerTest {
 		assertNotNull(deleteRows);
 
 		// verify the correct row set was generated
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(false));
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
@@ -763,11 +763,41 @@ public class TableEntityManagerTest {
 		// call under test
 		manager.appendRows(user, tableId, replace, mockProgressCallback, transactionId);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(true));
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
+	}
+	
+	@Test
+	public void testAppendRowsWithoutFileHandles() throws DatastoreException, NotFoundException, IOException {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
+		when(mockTruthDao.reserveIdsInRange(eq(tableId), anyLong())).thenReturn(range, range2, range3);
+		when(mockTruthDao.hasAtLeastOneChangeOfType(anyString(), any(TableChangeType.class))).thenReturn(true);
+		
+		RowSet replace = new RowSet();
+		replace.setTableId(tableId);
+		replace.setHeaders(TableModelUtils.getSelectColumns(models));
+		replace.setEtag("etag");
+
+		List<Row> replaceRows = TableModelTestUtils.createRows(models, 1);
+		
+		replaceRows.get(0).setRowId(0L);
+		replaceRows.get(0).setVersionNumber(0L);
+		replaceRows.get(0).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
+		replace.setRows(replaceRows);
+		
+		// call under test
+		manager.appendRows(user, tableId, replace, mockProgressCallback, transactionId);
+		
+
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(false));
+
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockStatisticsCollector, never()).collectEvents(any(List.class));
 	}
 
 	@Test
@@ -795,7 +825,7 @@ public class TableEntityManagerTest {
 
 		manager.appendRows(user, tableId, replace, mockProgressCallback, transactionId);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong());
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(true));
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}

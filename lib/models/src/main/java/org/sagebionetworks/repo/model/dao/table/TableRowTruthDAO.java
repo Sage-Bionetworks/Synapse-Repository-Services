@@ -75,10 +75,11 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @param columns
 	 * @param delta
+	 * @param hasFileRefs If the change set includes references to file handles
 	 * @return
 	 * @throws IOException
 	 */
-	String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId);
+	String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId, boolean hasFileRefs);
 	
 	/**
 	 * Append a schema change to the table's changes.

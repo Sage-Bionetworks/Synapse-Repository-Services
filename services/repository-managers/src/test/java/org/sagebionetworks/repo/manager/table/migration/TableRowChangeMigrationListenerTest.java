@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.table.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,14 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManagerImpl;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowChangeUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -96,6 +97,47 @@ public class TableRowChangeMigrationListenerTest {
  		assertEquals(expectedChanges, changes);
 	}
 	
+	@Test
+	public void testRestoreTableChangesWithoutHasFileRefsAndColumnChange() {
+		
+		DBOTableRowChange change = generateTableChange(true);
+		
+		change.setChangeType(TableChangeType.COLUMN.name());
+		change.setHasFileRefs(null);
+		
+		List<DatabaseObject<?>> batch = Arrays.asList(change);
+		
+		// Call under test
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		assertFalse(change.getHasFileRefs());
+				
+		List<TableRowChange> expectedChanges = Arrays.asList(TableRowChangeUtils.ceateDTOFromDBO(change));
+ 		List<TableRowChange> changes = dao.getTableChangePage(tableId.toString(), 10, 0);
+ 		
+ 		assertEquals(expectedChanges, changes);
+	}
+	
+	@Test
+	public void testRestoreTableChangesWithoutHasFileRefsAndRowChange() {
+		
+		DBOTableRowChange change = generateTableChange(true);
+		
+		change.setChangeType(TableChangeType.ROW.name());
+		change.setHasFileRefs(null);
+		
+		List<DatabaseObject<?>> batch = Arrays.asList(change);
+		
+		// Call under test
+		migrationManager.restoreBatch(MigrationType.TABLE_CHANGE, batch);
+		
+		assertNull(change.getHasFileRefs());
+				
+		List<TableRowChange> expectedChanges = Arrays.asList(TableRowChangeUtils.ceateDTOFromDBO(change));
+ 		List<TableRowChange> changes = dao.getTableChangePage(tableId.toString(), 10, 0);
+ 		
+ 		assertEquals(expectedChanges, changes);
+	}
 
 	DBOTableRowChange generateTableChange(boolean withId) {
 		DBOTableRowChange change = new DBOTableRowChange();
@@ -110,6 +152,7 @@ public class TableRowChangeMigrationListenerTest {
 		change.setRowCount(10L);
 		change.setTransactionId(1L);
 		change.setEtag(UUID.randomUUID().toString());
+		change.setHasFileRefs(false);
 		if (withId) {
 			change.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
 		}

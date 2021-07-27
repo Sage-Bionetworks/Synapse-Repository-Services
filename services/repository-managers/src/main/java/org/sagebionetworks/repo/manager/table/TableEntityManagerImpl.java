@@ -327,12 +327,15 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			SparseChangeSet delta, long transactionId) throws IOException {
 		// See PLFM-3041
 		checkStackWiteStatus();
-		validateFileHandles(user, delta.getTableId(), delta);
+
+		final String tableId = delta.getTableId();
+		
+		validateFileHandles(user, tableId, delta);
 				
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
-		IdRange range = tableRowTruthDao.reserveIdsInRange(delta.getTableId(), coutToReserver);
+		IdRange range = tableRowTruthDao.reserveIdsInRange(tableId, coutToReserver);
 		
 		// validate the table would be within the size limit.
 		if(range.getVersionNumber() > MAXIMUM_VERSIONS_PER_TABLE) {
@@ -342,20 +345,33 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRowCount()) {
 			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(delta.getTableId(), delta);
+			checkForRowLevelConflict(tableId, delta);
 		}
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		
-		// Send the file uploads events (after commit)
-		sendFileUploadEvents(user.getId(), delta);
+		final Set<Long> fileIdsInSet = delta.getFileHandleIdsInSparseChangeSet();
 		
-		tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), transactionId);
+ 		final Set<Long> newFileIds = getFileHandleIdsNotAssociatedWithTable(tableId, fileIdsInSet);
+ 		
+ 		final Long userId = user.getId();
+ 		
+ 		List<StatisticsFileEvent> uploadEvents = getFileHandleIdsNotAssociatedWithTable(tableId, newFileIds).stream().map(fileHandleId -> 
+			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
+		).collect(Collectors.toList());
+		
+		if (!uploadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(uploadEvents);
+		}
+		
+		final boolean hasFileRefs = !newFileIds.isEmpty();
+		
+		tableRowTruthDao.appendRowSetToTable(userId.toString(), tableId, range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), transactionId, hasFileRefs);
 		
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
 		results.setHeaders(TableModelUtils.getSelectColumns(columns));
-		results.setTableId(delta.getTableId());
+		results.setTableId(tableId);
 		results.setEtag(range.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
@@ -369,22 +385,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		return results;
 	}
-	
-	private void sendFileUploadEvents(Long userId, SparseChangeSet delta) {
-		String tableId = delta.getTableId();
 		
-		Set<Long> fileHandleIds = delta.getFileHandleIdsInSparseChangeSet();
-
-		List<StatisticsFileEvent> downloadEvents = getFileHandleIdsNotAssociatedWithTable(tableId, fileHandleIds).stream().map(fileHandleId -> 
-			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
-		).collect(Collectors.toList());
-		
-		if (!downloadEvents.isEmpty()) {
-			statisticsCollector.collectEvents(downloadEvents);
-		}
-		
-	}
-	
 	/**
 	 * From the given set of file handle ids computes the subset of ids that are NOT associated with the given table
 	 * 
