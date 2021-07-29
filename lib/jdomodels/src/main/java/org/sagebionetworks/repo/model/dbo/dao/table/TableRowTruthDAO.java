@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dao.table;
+package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.IOException;
 import java.util.List;
