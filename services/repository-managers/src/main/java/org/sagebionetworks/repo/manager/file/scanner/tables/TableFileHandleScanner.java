@@ -1,42 +1,37 @@
 package org.sagebionetworks.repo.manager.file.scanner.tables;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_HAS_FILE_REFS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
 
-import java.util.Map;
-
-import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
+import org.apache.commons.collections4.iterators.TransformIterator;
+import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
-import org.sagebionetworks.repo.model.dbo.DMLUtils;
-import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.file.IdRange;
-import org.sagebionetworks.repo.model.table.TableChangeType;
-import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.google.common.collect.ImmutableMap;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
+	private static final Logger LOG = LogManager.getLogger(TableFileHandleScanner.class);
+	
 	private static final long MAX_SCAN_ID_RANGE = 10_000;
-	private static final long MAX_FETCH_LIMIT = 1000;
+			
+	private TableEntityManager tableManager;
 	
-	private static final String SQL_SELECT_MIN_MAX = "SELECT MIN(" + COL_TABLE_ROW_ID + "), MAX(" + COL_TABLE_ROW_ID+") FROM " + TABLE_ROW_CHANGE;
-	
-	private static final String SQL_SELECT_BATCH = "SELECT * FROM " + TABLE_ROW_CHANGE 
-			+ " WHERE " + COL_TABLE_ROW_ID + " BETWEEN :" + DMLUtils.BIND_MIN_ID + " AND :" + DMLUtils.BIND_MAX_ID
-			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE)"
-			+ " ORDER BY " + COL_TABLE_ROW_ID; 
-		
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	private TableFileHandleAssociationMapper mapper;
-	
-	public TableFileHandleScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableFileHandleAssociationMapper mapper) {
-		this.namedJdbcTemplate = namedJdbcTemplate;
-		this.mapper = mapper;
+	public TableFileHandleScanner(TableEntityManager tableManager) {
+		this.tableManager = tableManager;
 	}
 	
 	@Override
@@ -46,17 +41,48 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
 	@Override
 	public IdRange getIdRange() {
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(SQL_SELECT_MIN_MAX, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
+		return tableManager.getTableRowChangeIdRange();
 	}
 
 	@Override
 	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range) {
-		ValidateArgument.required(range, "The range");
-		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(), "Invalid range, the minId must be lesser or equal than the maxId");
+		final Iterator<TableRowChange> changeIterator = tableManager.newTableRowChangeWithFileRefsIterator(range);
 		
-		final Map<String, Object> params = ImmutableMap.of(DMLUtils.BIND_MIN_ID, range.getMinId(), DMLUtils.BIND_MAX_ID, range.getMaxId());
-		
-		return new QueryStreamIterable<>(namedJdbcTemplate, mapper, SQL_SELECT_BATCH, params, MAX_FETCH_LIMIT);
+		// An iterable has only one method that returns the iterator
+		return () ->  new TransformIterator<>(changeIterator, this::mapTableRowChange);
 	}
+	
+	ScannedFileHandleAssociation mapTableRowChange(TableRowChange changeMetadata) {
+		final Long tableId = KeyFactory.stringToKey(changeMetadata.getTableId());
 		
+		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId);
+		
+		try {
+			SparseChangeSet changeSet = tableManager.getSparseChangeSet(changeMetadata);
+			
+			Set<Long> fileHandleSet = changeSet.getFileHandleIdsInSparseChangeSet();
+			
+			association.withFileHandleIds(fileHandleSet);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		} catch (NotFoundException e) {
+			LOG.warn("Could not load change data for table " + tableId + " (Row Version: " + changeMetadata.getRowVersion() + "): " + e.getMessage(), e);
+			return association;
+		} catch (AmazonServiceException e) {
+			// If the key wasn't found for the change data we cannot do anything about it, see PLFM-6651
+			if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				LOG.warn("Change data for table " + tableId + " not found (Row Version: " + changeMetadata.getRowVersion() + "): " + e.getMessage(), e);
+				return association;
+			}
+			// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
+			// The caller can try iterating again from scratch
+			if (ErrorType.Service.equals(e.getErrorType())) {
+				throw new RecoverableMessageException(e);
+			}
+			throw e;
+		}
+		
+		return association;
+	}
+			
 }

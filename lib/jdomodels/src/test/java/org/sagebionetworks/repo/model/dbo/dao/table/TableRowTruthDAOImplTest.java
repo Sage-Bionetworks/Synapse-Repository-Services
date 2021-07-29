@@ -63,6 +63,7 @@ public class TableRowTruthDAOImplTest {
 
 	@BeforeEach
 	public void before() throws Exception {
+		tableRowTruthDao.truncateAllRowData();
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 		fileHandleIds = new LinkedList<String>();	
@@ -601,5 +602,72 @@ public class TableRowTruthDAOImplTest {
 			// call under test
 			tableRowTruthDao.isEtagInTablesChangeHistory(tableId, etag);
 		});
+	}
+	
+	@Test
+	public void testGetTableChangeIdRange() throws IOException {
+		
+		// Create some test column models
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		// Append two change sets
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		
+		// Call under test
+		org.sagebionetworks.repo.model.file.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
+		
+		assertEquals(new org.sagebionetworks.repo.model.file.IdRange(result.getMinId(), result.getMinId() + 1), result);
+	}
+	
+	@Test
+	public void testGetTableChangeIdRangeWithEmpty() throws IOException{
+		
+		// Call under test
+		org.sagebionetworks.repo.model.file.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
+		
+		assertEquals(new org.sagebionetworks.repo.model.file.IdRange(-1, -1), result);
+	}
+	
+	@Test
+	public void testGetTableRowChangeWithFileRefsPage() throws IOException {
+		long limit = 10L;
+		long offset = 0L;
+		// Before we start there should be no changes
+		List<TableRowChange> results = tableRowTruthDao.getTableRowChangeWithFileRefsPage(tableRowTruthDao.getTableRowChangeIdRange(), limit, offset);
+		assertTrue(results.isEmpty());
+		
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		// Add some more rows
+		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(columns, 2));
+		
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		
+		results = tableRowTruthDao.getTableRowChangeWithFileRefsPage(tableRowTruthDao.getTableRowChangeIdRange(), limit, offset);
+		
+		assertEquals(2, results.size());
+		
+		// Add a row without file handles
+		List<Row> rowWithoutFiles = TableModelTestUtils.createRows(columns, 1);
+		
+		rowWithoutFiles.get(0).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
+		
+		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), rowWithoutFiles);
+		
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+
+		results = tableRowTruthDao.getTableRowChangeWithFileRefsPage(tableRowTruthDao.getTableRowChangeIdRange(), limit, offset);
+		
+		assertEquals(2, results.size());
+		
 	}
 }

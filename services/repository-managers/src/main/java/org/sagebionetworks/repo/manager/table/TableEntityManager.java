@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -307,4 +309,16 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request);
+	
+	/**
+	 * @return The range of ids for the table changes
+	 */
+	IdRange getTableRowChangeIdRange();
+	
+	/**
+	 * @param minId
+	 * @param maxId
+	 * @return An iterator over the table row changes within the given range of ids that have file references (includes the changes for which the file references are unknown)
+	 */
+	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
 }

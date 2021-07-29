@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationS
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
-import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleAssociationMapper;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
@@ -80,10 +79,10 @@ public class RepositoryConfiguration {
 	}
 	
 	@Bean
-	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(NamedParameterJdbcTemplate jdbcTemplate, TableFileHandleAssociationMapper tableFileMapper) {
+	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(NamedParameterJdbcTemplate jdbcTemplate, TableEntityManager tableManager) {
 		Map<FileHandleAssociateType, FileHandleAssociationScanner> scannerMap = new HashMap<>();
 		
-		scannerMap.put(FileHandleAssociateType.TableEntity, tableEntityFileScanner(jdbcTemplate, tableFileMapper));
+		scannerMap.put(FileHandleAssociateType.TableEntity, tableEntityFileScanner(tableManager));
 		
 		scannerMap.put(FileHandleAssociateType.FileEntity, fileEntityFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.SubmissionAttachment, evaluationSubmissionFileScanner(jdbcTemplate));
@@ -103,10 +102,10 @@ public class RepositoryConfiguration {
 	}
 	
 	@Bean
-	public FileHandleAssociationScanner tableEntityFileScanner(NamedParameterJdbcTemplate jdbcTemplate, TableFileHandleAssociationMapper tableFileMapper) {
+	public FileHandleAssociationScanner tableEntityFileScanner(TableEntityManager tableManager) {
 		// Note: for configuration consistency this bean is not annotated with the @Service annotation (e.g. will not be auto-scanned) but we
 		// configure it here as a public bean
-		return new TableFileHandleScanner(jdbcTemplate, tableFileMapper);
+		return new TableFileHandleScanner(tableManager);
 	}
 	
 	@Bean

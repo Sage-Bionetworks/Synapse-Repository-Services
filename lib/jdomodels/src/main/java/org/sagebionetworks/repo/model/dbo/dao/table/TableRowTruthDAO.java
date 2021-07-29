@@ -211,4 +211,17 @@ public interface TableRowTruthDAO {
 	 */
 	boolean isEtagInTablesChangeHistory(String tableId, String etag);
 	
+	/**
+	 * @return The range of ids for the table row change table
+	 */
+	org.sagebionetworks.repo.model.file.IdRange getTableRowChangeIdRange();
+	
+	/**
+	 * @param idRange
+	 * @param limit
+	 * @param offset
+	 * @return A page of row changes that have file references
+	 */
+	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.file.IdRange idRange, long limit, long offset);
+	
 }

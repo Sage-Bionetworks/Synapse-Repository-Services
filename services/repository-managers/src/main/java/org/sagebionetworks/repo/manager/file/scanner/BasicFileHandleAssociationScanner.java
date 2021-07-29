@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
 import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.repo.model.file.IdRangeMapper;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -32,22 +33,6 @@ import com.google.common.collect.ImmutableMap;
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
 	
 	public static final long DEFAULT_BATCH_SIZE = 10000;
-	
-	public static final RowMapper<IdRange> ID_RANGE_MAPPER = (ResultSet rs, int rowNumber) -> {
-		long minId = rs.getLong(1);
-
-		if (rs.wasNull()) {
-			minId = -1;
-		}
-
-		long maxId = rs.getLong(2);
-
-		if (rs.wasNull()) {
-			maxId = -1;
-		}
-
-		return new IdRange(minId, maxId);
-	};
 	
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private long batchSize;
@@ -114,8 +99,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 
 	@Override
 	public IdRange getIdRange() {
-		// Using a null as the mid parameter allows to create a prepared statement
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, ID_RANGE_MAPPER);
+		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, new IdRangeMapper());
 	}
 
 	@Override

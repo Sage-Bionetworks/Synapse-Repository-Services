@@ -1019,5 +1019,17 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		response.setSnapshotVersionNumber(snapshotVersion);
 		return response;
 	}
+	
+	@Override
+	public org.sagebionetworks.repo.model.file.IdRange getTableRowChangeIdRange() {
+		return tableRowTruthDao.getTableRowChangeIdRange();
+	}
+
+	@Override
+	public Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(org.sagebionetworks.repo.model.file.IdRange idRange) {
+		ValidateArgument.required(idRange, "The idRange");
+		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
+		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
+	}
 
 }

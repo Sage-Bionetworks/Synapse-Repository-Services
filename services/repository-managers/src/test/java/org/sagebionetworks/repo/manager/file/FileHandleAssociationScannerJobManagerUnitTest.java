@@ -562,6 +562,34 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 	}
 	
 	@Test
+	public void testStartScanJobWithOne() {
+		
+		long maxIdRange = 5;
+		IdRange idRange = new IdRange(2, 2);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		// Call under test
+		manager.startScanJob();
+		
+		verify(mockStatusDao).create();
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			verify(mockAssociationManager).getIdRange(type);
+		}
+		
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6))), anyInt());
+		verify(mockStatusDao).setStartedJobsCount(jobId, 1);
+		
+	}
+	
+	@Test
 	public void testStartScanJobWithFitRange() {
 		
 		long maxIdRange = 3;
