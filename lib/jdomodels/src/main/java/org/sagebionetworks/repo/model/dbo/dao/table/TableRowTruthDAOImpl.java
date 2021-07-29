@@ -126,7 +126,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	private static final String SQL_SELECT_WITH_FILE_REFS_PAGE = "SELECT * FROM " + TABLE_ROW_CHANGE 
 			+ " WHERE " + COL_TABLE_ROW_ID + " BETWEEN ? AND ?"
-			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE)"
+			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL)"
 			+ " ORDER BY " + COL_TABLE_ROW_ID 
 			+ " LIMIT ? OFFSET ?";
 	
