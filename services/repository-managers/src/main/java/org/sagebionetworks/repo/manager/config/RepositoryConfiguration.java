@@ -79,10 +79,10 @@ public class RepositoryConfiguration {
 	}
 	
 	@Bean
-	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(NamedParameterJdbcTemplate jdbcTemplate, TableEntityManager tableEntityManager) {
+	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(NamedParameterJdbcTemplate jdbcTemplate, TableEntityManager tableManager) {
 		Map<FileHandleAssociateType, FileHandleAssociationScanner> scannerMap = new HashMap<>();
 		
-		scannerMap.put(FileHandleAssociateType.TableEntity, tableEntityFileScanner(tableEntityManager, jdbcTemplate));
+		scannerMap.put(FileHandleAssociateType.TableEntity, tableEntityFileScanner(tableManager));
 		
 		scannerMap.put(FileHandleAssociateType.FileEntity, fileEntityFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.SubmissionAttachment, evaluationSubmissionFileScanner(jdbcTemplate));
@@ -102,10 +102,10 @@ public class RepositoryConfiguration {
 	}
 	
 	@Bean
-	public FileHandleAssociationScanner tableEntityFileScanner(TableEntityManager tableEntityManager, NamedParameterJdbcTemplate jdbcTemplate) {
+	public FileHandleAssociationScanner tableEntityFileScanner(TableEntityManager tableManager) {
 		// Note: for configuration consistency this bean is not annotated with the @Service annotation (e.g. will not be auto-scanned) but we
 		// configure it here as a public bean
-		return new TableFileHandleScanner(tableEntityManager, jdbcTemplate);
+		return new TableFileHandleScanner(tableManager);
 	}
 	
 	@Bean

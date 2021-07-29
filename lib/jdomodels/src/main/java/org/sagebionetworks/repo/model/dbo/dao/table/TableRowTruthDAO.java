@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dao.table;
+package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.IOException;
 import java.util.List;
@@ -210,5 +210,18 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	boolean isEtagInTablesChangeHistory(String tableId, String etag);
+	
+	/**
+	 * @return The range of ids for the table row change table
+	 */
+	org.sagebionetworks.repo.model.IdRange getTableRowChangeIdRange();
+	
+	/**
+	 * @param idRange
+	 * @param limit
+	 * @param offset
+	 * @return A page of row changes that have file references (includes the changes for which the file references are unknown)
+	 */
+	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
 	
 }

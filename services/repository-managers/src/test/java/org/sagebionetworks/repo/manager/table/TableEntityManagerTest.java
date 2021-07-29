@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +32,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,9 +59,9 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -1914,6 +1917,80 @@ public class TableEntityManagerTest {
 		});
 	}
 	
+	@Test
+	public void testGetTableChangeIdRange() {
+		
+		org.sagebionetworks.repo.model.IdRange expeceted = new org.sagebionetworks.repo.model.IdRange(0, 10);
+		
+		when(mockTruthDao.getTableRowChangeIdRange()).thenReturn(expeceted);
+		
+		// Call under test
+		org.sagebionetworks.repo.model.IdRange result = manager.getTableRowChangeIdRange();
+		
+		assertEquals(expeceted, result);
+		
+		verify(mockTruthDao).getTableRowChangeIdRange();
+	}
+	
+	@Test
+	public void testNewTableRowChangeWithFileRefsIterator() {
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(0, 10);
+		
+		List<TableRowChange> page = createChange(tableId, 10);
+		
+		when(mockTruthDao.getTableRowChangeWithFileRefsPage(any(), anyLong(), anyLong())).thenReturn(page, Collections.emptyList());
+		
+		// Call under test
+		List<TableRowChange> result = IteratorUtils.toList(manager.newTableRowChangeWithFileRefsIterator(idRange));
+		
+		assertEquals(page, result);
+		
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 1000);
+		
+	}
+	
+	@Test
+	public void testNewTableRowChangeWithFileRefsIteratorWithMultiplePages() {
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(0, 10);
+		
+		List<TableRowChange> page = createChange(tableId, 1000);
+		
+		when(mockTruthDao.getTableRowChangeWithFileRefsPage(any(), anyLong(), anyLong())).thenReturn(page, page, Collections.emptyList());
+		
+		// Call under test
+		List<TableRowChange> result = IteratorUtils.toList(manager.newTableRowChangeWithFileRefsIterator(idRange));
+		
+		assertEquals(ListUtils.union(page, page), result);
+		
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 1000);
+		verify(mockTruthDao).getTableRowChangeWithFileRefsPage(idRange, 1000, 2000);
+	}
+	
+	@Test
+	public void testNewTableRowChangeWithFileRefsIteratorWithNoIdRange() {
+		org.sagebionetworks.repo.model.IdRange idRange = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.newTableRowChangeWithFileRefsIterator(idRange);
+		}).getMessage();
+		
+		assertEquals("The idRange is required.", message);
+	}
+	
+	@Test
+	public void testNewTableRowChangeWithFileRefsIteratorWithNoInvalidIdRange() {
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(10, 0);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.newTableRowChangeWithFileRefsIterator(idRange);
+		}).getMessage();
+		
+		assertEquals("Invalid idRange, the minId must be lesser or equal than the maxId", message);
+	}
 	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.

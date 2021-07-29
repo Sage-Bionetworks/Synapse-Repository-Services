@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -1018,6 +1018,18 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		SnapshotResponse response = new SnapshotResponse();
 		response.setSnapshotVersionNumber(snapshotVersion);
 		return response;
+	}
+	
+	@Override
+	public org.sagebionetworks.repo.model.IdRange getTableRowChangeIdRange() {
+		return tableRowTruthDao.getTableRowChangeIdRange();
+	}
+
+	@Override
+	public Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(org.sagebionetworks.repo.model.IdRange idRange) {
+		ValidateArgument.required(idRange, "The idRange");
+		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
+		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
 	}
 
 }

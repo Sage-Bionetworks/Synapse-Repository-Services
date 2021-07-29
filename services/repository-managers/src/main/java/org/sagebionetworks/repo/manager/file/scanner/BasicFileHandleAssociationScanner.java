@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.IdRange;
+import org.sagebionetworks.repo.model.IdRangeMapper;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
-import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -32,22 +33,6 @@ import com.google.common.collect.ImmutableMap;
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
 	
 	public static final long DEFAULT_BATCH_SIZE = 10000;
-	
-	public static final RowMapper<IdRange> ID_RANGE_MAPPER = (ResultSet rs, int rowNumber) -> {
-		long minId = rs.getLong(1);
-
-		if (rs.wasNull()) {
-			minId = -1;
-		}
-
-		long maxId = rs.getLong(2);
-
-		if (rs.wasNull()) {
-			maxId = -1;
-		}
-
-		return new IdRange(minId, maxId);
-	};
 	
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private long batchSize;
@@ -114,8 +99,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 
 	@Override
 	public IdRange getIdRange() {
-		// Using a null as the mid parameter allows to create a prepared statement
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, null, ID_RANGE_MAPPER);
+		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, new IdRangeMapper());
 	}
 
 	@Override
@@ -160,7 +144,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * </p>
 	 * <code>SELECT MIN(ID), MAX(ID) FROM TABLE</code>
 	 */
-	private static String generateMinMaxStatement(TableMapping<?> mapping) {
+	protected String generateMinMaxStatement(TableMapping<?> mapping) {
 		return DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
 	}
 
@@ -170,7 +154,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * </p>
 	 * <code>SELECT DISTINCT ID, FILE_HANLDE_ID FROM TABLE WHERE ID BETWEEN :MIN AND :MAX AND FILE_HANDLE_ID IS NOT NULL ORDER BY ID, OTHER_PK_ID</code>
 	 */
-	private static String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
+	protected String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
 		DMLUtils.validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT `");

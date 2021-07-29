@@ -1,47 +1,49 @@
 package org.sagebionetworks.repo.manager.file.scanner.tables;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
-
-import java.sql.ResultSet;
+import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Set;
 
-import org.apache.commons.collections4.IteratorUtils;
-import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
+import org.apache.commons.collections4.iterators.TransformIterator;
+import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.model.dbo.DMLUtils;
-import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
-import org.sagebionetworks.repo.model.file.IdRange;
-import org.sagebionetworks.util.NestedMappingIterator;
-import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.sagebionetworks.repo.model.IdRange;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.google.common.collect.ImmutableMap;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 
+/**
+ * Special file handle scanner for tables:
+ * <p>
+ * The truth of the data is stored in S3 and the table_row_change table contains the metadata of the changes including the pointer to the object in S3.
+ * </p>
+ * <p>
+ * The scanner will iterate over the changes in a given range of ids and lazily load the actual data (SparseChangeSet) while iterating in order to fetch the file handle ids.
+ * </p>
+ * <p>
+ * Additionally the scanner will skip changes that do not contain any file handle (the information is stored in the DB)
+ * </p>
+ */
 public class TableFileHandleScanner implements FileHandleAssociationScanner {
-
-	private static final long MAX_SCAN_ID_RANGE = 10000;
-	private static final long MAX_TABLES_LIMIT = 10000;
 	
-	private static final String SQL_SELECT_MIN_MAX = "SELECT MIN(" + COL_TABLE_ROW_TABLE_ID + "), MAX(" + COL_TABLE_ROW_TABLE_ID+") FROM " + TABLE_ROW_CHANGE;
+	private static final Logger LOG = LogManager.getLogger(TableFileHandleScanner.class);
 	
-	private static final String SQL_SELECT_BATCH = "SELECT DISTINCT " + COL_TABLE_ROW_TABLE_ID + " FROM " + TABLE_ROW_CHANGE 
-			+ " WHERE " + COL_TABLE_ROW_TABLE_ID + " BETWEEN :" + DMLUtils.BIND_MIN_ID + " AND :" + DMLUtils.BIND_MAX_ID
-			+ " ORDER BY " + COL_TABLE_ROW_TABLE_ID; 
-	
-	private static final RowMapper<Long> TABLE_ID_MAPPER = (ResultSet rs, int rowNumber) -> rs.getLong(COL_TABLE_ROW_TABLE_ID);
-	
+	private static final long MAX_SCAN_ID_RANGE = 10_000;
+			
 	private TableEntityManager tableManager;
 	
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	public TableFileHandleScanner(TableEntityManager tableManager, NamedParameterJdbcTemplate namedJdbcTemplate) {
+	public TableFileHandleScanner(TableEntityManager tableManager) {
 		this.tableManager = tableManager;
-		this.namedJdbcTemplate = namedJdbcTemplate;
 	}
 	
 	@Override
@@ -51,27 +53,48 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
 	@Override
 	public IdRange getIdRange() {
-		return namedJdbcTemplate.getJdbcTemplate().queryForObject(SQL_SELECT_MIN_MAX, null, BasicFileHandleAssociationScanner.ID_RANGE_MAPPER);
+		return tableManager.getTableRowChangeIdRange();
 	}
 
 	@Override
 	public Iterable<ScannedFileHandleAssociation> scanRange(IdRange range) {
-		ValidateArgument.required(range, "The range");
-		ValidateArgument.requirement(range.getMinId() <= range.getMaxId(), "Invalid range, the minId must be lesser or equal than the maxId");
+		final Iterator<TableRowChange> changeIterator = tableManager.newTableRowChangeWithFileRefsIterator(range);
 		
-		final Map<String, Object> params = ImmutableMap.of(DMLUtils.BIND_MIN_ID, range.getMinId(), DMLUtils.BIND_MAX_ID, range.getMaxId());
-		
-		// The iterator is used to stream over the tables in the range
-		final Iterator<Long> tablesIterator = new QueryStreamIterable<>(namedJdbcTemplate, TABLE_ID_MAPPER, SQL_SELECT_BATCH, params, MAX_TABLES_LIMIT);
-		
-		// The iterator is wrapped into another iterator that for each table will extract the file handles
-		final Iterator<ScannedFileHandleAssociation> tableRangeFilesIterator = new NestedMappingIterator<>(tablesIterator, this::getTableFileHandleIterator);
-		
-		return IteratorUtils.asIterable(tableRangeFilesIterator);
+		// An iterable has only one method that returns the iterator
+		return () ->  new TransformIterator<>(changeIterator, this::mapTableRowChange);
 	}
 	
-	private Iterator<ScannedFileHandleAssociation> getTableFileHandleIterator(Long tableId) {
-		return new TableFileHandleIterator(tableManager, tableId);
+	public ScannedFileHandleAssociation mapTableRowChange(TableRowChange changeMetadata) {
+		final Long tableId = KeyFactory.stringToKey(changeMetadata.getTableId());
+		
+		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId);
+		
+		try {
+			SparseChangeSet changeSet = tableManager.getSparseChangeSet(changeMetadata);
+			
+			Set<Long> fileHandleSet = changeSet.getFileHandleIdsInSparseChangeSet();
+			
+			association.withFileHandleIds(fileHandleSet);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		} catch (NotFoundException e) {
+			LOG.warn("Could not load change data for table " + tableId + " (Row Version: " + changeMetadata.getRowVersion() + "): " + e.getMessage(), e);
+			return association;
+		} catch (AmazonServiceException e) {
+			// If the key wasn't found for the change data we cannot do anything about it, see PLFM-6651
+			if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				LOG.warn("Change data for table " + tableId + " not found (Row Version: " + changeMetadata.getRowVersion() + "): " + e.getMessage(), e);
+				return association;
+			}
+			// According to the docs the service type error are for requests received by AWS that cannot be fulfilled at the moment
+			// The caller can try iterating again from scratch
+			if (ErrorType.Service.equals(e.getErrorType())) {
+				throw new RecoverableMessageException(e);
+			}
+			throw e;
+		}
+		
+		return association;
 	}
-	
+			
 }

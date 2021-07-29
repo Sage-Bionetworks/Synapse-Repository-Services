@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_HAS_FILE_REFS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY_NEW;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
@@ -27,7 +29,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.IdRangeMapper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
@@ -119,6 +121,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_ID_SEQUENCE_TABLE_ID + " > 0";
 	private static final String SQL_SELECT_SEQUENCE_FOR_UPDATE = "SELECT * FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID + " = ? FOR UPDATE";
+	
+	private static final String SQL_SELECT_MIN_MAX = "SELECT MIN(" + COL_TABLE_ROW_ID + "), MAX(" + COL_TABLE_ROW_ID+") FROM " + TABLE_ROW_CHANGE;
+	
+	private static final String SQL_SELECT_WITH_FILE_REFS_PAGE = "SELECT * FROM " + TABLE_ROW_CHANGE 
+			+ " WHERE " + COL_TABLE_ROW_ID + " BETWEEN ? AND ?"
+			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL)"
+			+ " ORDER BY " + COL_TABLE_ROW_ID 
+			+ " LIMIT ? OFFSET ?";
 	
 	private DBOBasicDao basicDao;
 	private JdbcTemplate jdbcTemplate;
@@ -540,6 +550,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		} catch (EmptyResultDataAccessException e) {
 			return false;
 		}
+	}
+	
+	@Override
+	public org.sagebionetworks.repo.model.IdRange getTableRowChangeIdRange() {
+		return jdbcTemplate.queryForObject(SQL_SELECT_MIN_MAX, new IdRangeMapper());
+	}
+	
+	@Override
+	public List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset) {
+		List<DBOTableRowChange> dbos = jdbcTemplate.query(SQL_SELECT_WITH_FILE_REFS_PAGE, rowChangeMapper, idRange.getMinId(), idRange.getMaxId(), limit, offset);
+		return TableRowChangeUtils.ceateDTOFromDBO(dbos);
 	}
 
 }

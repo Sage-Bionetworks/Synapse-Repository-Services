@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,12 +22,12 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -80,8 +79,6 @@ public class TableFileHandleScannerAutowireTest {
 	
 	private List<String> fileHandlesIds;
 	
-	private IdRange idRange;
-	
 	@BeforeEach
 	public void before() throws Exception {
 		
@@ -108,10 +105,6 @@ public class TableFileHandleScannerAutowireTest {
 		String[] remainingIds = fileHandlesIds.subList(1, fileHandlesIds.size()).toArray(new String[fileHandlesIds.size() - 1]);		
 
 		addTableData(tableWithFiles.toString(), remainingIds.length, remainingIds);
-		
-		// No transaction for the first table (e.g. no schema)
-		idRange = new IdRange(tableWithNoFiles, tableWithFiles);
-		
 	}
 	
 	@AfterEach
@@ -133,18 +126,8 @@ public class TableFileHandleScannerAutowireTest {
 	@Test
 	public void testScanner() {
 		
-		// Call under test
-		assertEquals(idRange, scanner.getIdRange());
-		
 		List<ScannedFileHandleAssociation> expected = new ArrayList<>();
-
-		// No file in the schema, but the first change is the column change (schema)
-		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles));
-		// No file in the schema for this change (row change but no file handles)
-		expected.add(new ScannedFileHandleAssociation(tableWithNoFiles).withFileHandleIds(Collections.emptySet()));
 		
-		// File in the schema, but the first change is the column change (schema)
-		expected.add(new ScannedFileHandleAssociation(tableWithFiles));
 		// The first change has the first file handle
 		expected.add(new ScannedFileHandleAssociation(tableWithFiles, Long.valueOf(fileHandlesIds.get(0))));
 		// The second change has the remaining file handles
@@ -153,8 +136,10 @@ public class TableFileHandleScannerAutowireTest {
 		);
 		
 		// Call under test, consume the whole iterable
-		List<ScannedFileHandleAssociation> result = StreamSupport.stream(scanner.scanRange(idRange).spliterator(), false).collect(Collectors.toList());
+		IdRange idRange = scanner.getIdRange();
 		
+		List<ScannedFileHandleAssociation> result = StreamSupport.stream(scanner.scanRange(idRange).spliterator(), false).collect(Collectors.toList());
+				
 		assertEquals(expected, result);
 	}
 	

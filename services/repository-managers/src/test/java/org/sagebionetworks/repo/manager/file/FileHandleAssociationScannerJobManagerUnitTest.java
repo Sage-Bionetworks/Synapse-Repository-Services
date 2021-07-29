@@ -41,6 +41,7 @@ import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationRecord;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleScannerUtils;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
+import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus;
 import org.sagebionetworks.repo.model.dbo.dao.files.FilesScannerStatusDao;
@@ -48,7 +49,6 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
-import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -558,6 +558,34 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6))), anyInt());
 		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(7, 11))), anyInt());
 		verify(mockStatusDao).setStartedJobsCount(jobId, 2);
+		
+	}
+	
+	@Test
+	public void testStartScanJobWithOne() {
+		
+		long maxIdRange = 5;
+		IdRange idRange = new IdRange(2, 2);
+		
+		when(mockStatusDao.create()).thenReturn(mockStatus);
+		when(mockStatus.getId()).thenReturn(jobId);
+		when(mockAssociationManager.getIdRange(any())).thenReturn(new IdRange(-1, -1));
+		when(mockAssociationManager.getIdRange(FileHandleAssociateType.FileEntity)).thenReturn(idRange);
+		when(mockAssociationManager.getMaxIdRangeSize(FileHandleAssociateType.FileEntity)).thenReturn(maxIdRange);
+		
+		// Call under test
+		manager.startScanJob();
+		
+		verify(mockStatusDao).create();
+		
+		for (FileHandleAssociateType type : FileHandleAssociateType.values()) {
+			verify(mockAssociationManager).getIdRange(type);
+		}
+		
+		verify(mockAssociationManager).getMaxIdRangeSize(FileHandleAssociateType.FileEntity);
+		
+		verify(mockNotifier).sendScanRequest(eq(new FileHandleAssociationScanRangeRequest().withJobId(jobId).withAssociationType(FileHandleAssociateType.FileEntity).withIdRange(new IdRange(2, 6))), anyInt());
+		verify(mockStatusDao).setStartedJobsCount(jobId, 1);
 		
 	}
 	
