@@ -563,4 +563,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return TableRowChangeUtils.ceateDTOFromDBO(dbos);
 	}
 
+	@Override
+	public List<TableRowChange> getTableRowChangeWithNullFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit,
+			long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	@WriteTransaction
+	public void updateRowChangeHasFileRefsBatch(List<Long> ids, boolean hasFileRefs) {
+		// TODO Auto-generated method stub
+	}
+
 }

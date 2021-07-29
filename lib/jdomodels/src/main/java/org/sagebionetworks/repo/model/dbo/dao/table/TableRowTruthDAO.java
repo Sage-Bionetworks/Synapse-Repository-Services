@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -223,5 +224,11 @@ public interface TableRowTruthDAO {
 	 * @return A page of row changes that have file references (includes the changes for which the file references are unknown)
 	 */
 	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
+
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
+	List<TableRowChange> getTableRowChangeWithNullFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
+	
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
+	void updateRowChangeHasFileRefsBatch(List<Long> ids, boolean hasFileRefs);
 	
 }

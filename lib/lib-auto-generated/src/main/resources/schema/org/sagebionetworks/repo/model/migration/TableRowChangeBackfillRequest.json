@@ -1,0 +1,9 @@
+{
+	"description": "Request to backfill the has_file_refs column of the table row changes table.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {}
+}

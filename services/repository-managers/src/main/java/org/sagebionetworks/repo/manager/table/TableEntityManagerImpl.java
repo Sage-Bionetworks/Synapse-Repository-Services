@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.migration.TableRowChangeBackfillResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -1030,6 +1031,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(idRange, "The idRange");
 		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
 		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
+	}
+	
+	@Override
+	public TableRowChangeBackfillResponse backFillTableRowChanges() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
