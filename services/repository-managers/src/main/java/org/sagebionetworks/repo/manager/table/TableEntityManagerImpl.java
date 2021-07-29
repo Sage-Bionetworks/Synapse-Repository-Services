@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import org.apache.http.HttpStatus;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -69,6 +74,7 @@ import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -1035,8 +1041,73 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	
 	@Override
 	public TableRowChangeBackfillResponse backFillTableRowChanges() {
-		// TODO Auto-generated method stub
-		return null;
+		// Iterator over all the changes that have the null hasFileRefs
+		PaginationIterator<TableRowChange> it = new PaginationIterator<>((limit, offset) -> tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset), PAGE_SIZE_LIMIT);
+		
+		Long count = 0L;
+		
+		int batchSize = 10_000;
+		
+		List<Long> trueBatch = new ArrayList<>(batchSize);
+		List<Long> falseBatch = new ArrayList<>(batchSize);
+		
+		while (it.hasNext()) {
+			TableRowChange changeMetadata = it.next();
+			
+			boolean hasFileRefs = false;
+			
+			try {
+				SparseChangeSet changeSet = getSparseChangeSet(changeMetadata);
+				
+				final Set<Long> fileIdsInSet = changeSet.getFileHandleIdsInSparseChangeSet();
+				
+		 		final Set<Long> newFileIds = getFileHandleIdsNotAssociatedWithTable(changeSet.getTableId(), fileIdsInSet);
+		 		
+		 		hasFileRefs = !newFileIds.isEmpty();
+			 
+			} catch (IOException e) {
+				throw new IllegalStateException(e);
+			} catch (NotFoundException e) {
+				hasFileRefs = false;
+			} catch (AmazonServiceException e) {
+				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+					hasFileRefs = false;
+				}
+				if (ErrorType.Service.equals(e.getErrorType())) {
+					throw new RecoverableMessageException(e);
+				}
+				throw e;
+			}
+			
+			if (hasFileRefs) {
+				trueBatch.add(changeMetadata.getId());
+			} else {
+				falseBatch.add(changeMetadata.getId());
+			}
+			
+			if (trueBatch.size() + falseBatch.size() >= batchSize) {
+				if (!trueBatch.isEmpty()) {
+					tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
+					trueBatch.clear();
+				}
+				if (!falseBatch.isEmpty()) {
+					tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
+					falseBatch.clear();
+				}
+			}
+			
+			count++;
+		}
+		
+		if (!trueBatch.isEmpty()) {
+			tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
+		}
+		
+		if (!falseBatch.isEmpty()) {
+			tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
+		}
+
+		return new TableRowChangeBackfillResponse().setUpdatedCount(count);
 	}
 
 }

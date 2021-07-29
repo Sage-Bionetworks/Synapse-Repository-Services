@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -155,6 +157,10 @@ public class TableRowTruthDAOImplTest {
 		return appendRowSetToTable(userId, tableId, columns, delta, linkToVersion);
 	}
 	
+	private long appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, SparseChangeSet delta, Long linkToVersion) throws IOException{
+		return appendRowSetToTable(userId, tableId, columns, delta, linkToVersion, !delta.getFileHandleIdsInSparseChangeSet().isEmpty());
+	}
+	
 	/**
 	 * Helper to append SparseChangeSetDto to a table.
 	 * @param userId
@@ -165,7 +171,7 @@ public class TableRowTruthDAOImplTest {
 	 * @throws IOException
 	 */
 	private long appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, SparseChangeSet delta,
-			Long linkToVersion) throws IOException {
+			Long linkToVersion, Boolean hasFileRefs) throws IOException {
 		return readCommitedTransactionTemplate.execute((TransactionStatus status) -> {
 			// Now set the row version numbers and ID.
 			int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
@@ -175,7 +181,7 @@ public class TableRowTruthDAOImplTest {
 			TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 			Long transactionId = tableTransactionDao.startTransaction(tableId, Long.parseLong(userId));
 			tableRowTruthDao.appendRowSetToTable(userId, delta.getTableId(), range.getEtag(), range.getVersionNumber(),
-					columns, delta.writeToDto(), transactionId, !delta.getFileHandleIdsInSparseChangeSet().isEmpty());
+					columns, delta.writeToDto(), transactionId, hasFileRefs);
 			TableRowChange change = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
 			if (linkToVersion != null) {
 				tableTransactionDao.linkTransactionToVersion(transactionId, linkToVersion);
@@ -669,5 +675,83 @@ public class TableRowTruthDAOImplTest {
 		
 		assertEquals(2, results.size());
 		
+	}
+	
+	@Test
+	public void testGetTableRowChangeWithNullFileRefsPage() throws IOException {
+		long limit = 10L;
+		long offset = 0L;
+		// Before we start there should be no changes
+		List<TableRowChange> results = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset);
+		assertTrue(results.isEmpty());
+		
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		
+		// Result still empty as all of them has the file ref boolean
+		results = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset);
+		
+		assertTrue(results.isEmpty());
+		
+		// Now add some rows with the null hasFileRefs
+		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(columns, 2));
+		
+		SparseChangeSet spars = TableModelUtils.createSparseChangeSet(set, columns);
+		
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, spars, null, null);
+		
+		results = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset);
+		
+		assertEquals(1, results.size());
+	}
+	
+	@Test
+	public void testUpdateRowChangeHasFileRefsBatch() throws IOException {
+		long limit = 10L;
+		long offset = 0L;
+		
+		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
+		
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(columns, 5);
+		
+		RawRowSet set = new RawRowSet(TableModelUtils.getIds(columns), null, tableId, rows);
+		
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
+		
+		// Now add some rows with the null hasFileRefs
+		set = new RawRowSet(set.getIds(), set.getEtag(), set.getTableId(), TableModelTestUtils.createRows(columns, 2));
+		
+		SparseChangeSet spars = TableModelUtils.createSparseChangeSet(set, columns);
+		
+		// Append this change set
+		appendRowSetToTable(creatorUserGroupId, tableId, columns, spars, null, null);
+		
+		List<TableRowChange> results = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset);
+		
+		assertEquals(1, results.size());
+		
+		List<Long> ids = results.stream().map(TableRowChange::getId).collect(Collectors.toList());
+
+		String etag = results.get(0).getEtag();
+		
+		// Call under test
+		tableRowTruthDao.updateRowChangeHasFileRefsBatch(ids, false);
+		
+		// Now no row should have the null flag
+		assertTrue(tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset).isEmpty());
+		
+		// And the first changeset should still be true
+		assertEquals(1, tableRowTruthDao.getTableRowChangeWithFileRefsPage(tableRowTruthDao.getTableRowChangeIdRange(), limit, offset).size());
+		
+		assertNotEquals(etag, tableRowTruthDao.getTableRowChange(results.get(0).getTableId(), results.get(0).getRowVersion()).getEtag());
 	}
 }
