@@ -617,18 +617,18 @@ public class TableRowTruthDAOImplTest {
 		appendRowSetToTable(creatorUserGroupId, tableId, columns, set);
 		
 		// Call under test
-		org.sagebionetworks.repo.model.file.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
+		org.sagebionetworks.repo.model.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
 		
-		assertEquals(new org.sagebionetworks.repo.model.file.IdRange(result.getMinId(), result.getMinId() + 1), result);
+		assertEquals(new org.sagebionetworks.repo.model.IdRange(result.getMinId(), result.getMinId() + 1), result);
 	}
 	
 	@Test
 	public void testGetTableChangeIdRangeWithEmpty() throws IOException{
 		
 		// Call under test
-		org.sagebionetworks.repo.model.file.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
+		org.sagebionetworks.repo.model.IdRange result = tableRowTruthDao.getTableRowChangeIdRange();
 		
-		assertEquals(new org.sagebionetworks.repo.model.file.IdRange(-1, -1), result);
+		assertEquals(new org.sagebionetworks.repo.model.IdRange(-1, -1), result);
 	}
 	
 	@Test

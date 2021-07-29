@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.file;
+package org.sagebionetworks.repo.model;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

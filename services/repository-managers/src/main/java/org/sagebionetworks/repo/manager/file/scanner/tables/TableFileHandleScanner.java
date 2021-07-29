@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanner;
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.model.file.IdRange;
+import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,7 +52,7 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 		return () ->  new TransformIterator<>(changeIterator, this::mapTableRowChange);
 	}
 	
-	ScannedFileHandleAssociation mapTableRowChange(TableRowChange changeMetadata) {
+	public ScannedFileHandleAssociation mapTableRowChange(TableRowChange changeMetadata) {
 		final Long tableId = KeyFactory.stringToKey(changeMetadata.getTableId());
 		
 		ScannedFileHandleAssociation association = new ScannedFileHandleAssociation(tableId);

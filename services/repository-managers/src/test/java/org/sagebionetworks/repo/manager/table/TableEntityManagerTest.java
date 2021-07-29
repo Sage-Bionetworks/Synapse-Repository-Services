@@ -1920,12 +1920,12 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetTableChangeIdRange() {
 		
-		org.sagebionetworks.repo.model.file.IdRange expeceted = new org.sagebionetworks.repo.model.file.IdRange(0, 10);
+		org.sagebionetworks.repo.model.IdRange expeceted = new org.sagebionetworks.repo.model.IdRange(0, 10);
 		
 		when(mockTruthDao.getTableRowChangeIdRange()).thenReturn(expeceted);
 		
 		// Call under test
-		org.sagebionetworks.repo.model.file.IdRange result = manager.getTableRowChangeIdRange();
+		org.sagebionetworks.repo.model.IdRange result = manager.getTableRowChangeIdRange();
 		
 		assertEquals(expeceted, result);
 		
@@ -1934,7 +1934,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testNewTableRowChangeWithFileRefsIterator() {
-		org.sagebionetworks.repo.model.file.IdRange idRange = new org.sagebionetworks.repo.model.file.IdRange(0, 10);
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(0, 10);
 		
 		List<TableRowChange> page = createChange(tableId, 10);
 		
@@ -1952,7 +1952,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testNewTableRowChangeWithFileRefsIteratorWithMultiplePages() {
-		org.sagebionetworks.repo.model.file.IdRange idRange = new org.sagebionetworks.repo.model.file.IdRange(0, 10);
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(0, 10);
 		
 		List<TableRowChange> page = createChange(tableId, 1000);
 		
@@ -1970,7 +1970,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testNewTableRowChangeWithFileRefsIteratorWithNoIdRange() {
-		org.sagebionetworks.repo.model.file.IdRange idRange = null;
+		org.sagebionetworks.repo.model.IdRange idRange = null;
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
@@ -1982,7 +1982,7 @@ public class TableEntityManagerTest {
 	
 	@Test
 	public void testNewTableRowChangeWithFileRefsIteratorWithNoInvalidIdRange() {
-		org.sagebionetworks.repo.model.file.IdRange idRange = new org.sagebionetworks.repo.model.file.IdRange(10, 0);
+		org.sagebionetworks.repo.model.IdRange idRange = new org.sagebionetworks.repo.model.IdRange(10, 0);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test

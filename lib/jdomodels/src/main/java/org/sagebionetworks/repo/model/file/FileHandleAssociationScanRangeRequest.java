@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.file;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.IdRange;
+
 /**
  * DTO used to start scanning a range of ids for a given association type
  */

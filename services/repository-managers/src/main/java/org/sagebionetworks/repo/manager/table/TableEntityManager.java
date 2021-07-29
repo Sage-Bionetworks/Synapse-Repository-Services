@@ -9,9 +9,9 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -311,7 +311,7 @@ public interface TableEntityManager {
 	SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request);
 	
 	/**
-	 * @return The range of ids for the table changes
+	 * @return The range of ids for the table row changes
 	 */
 	IdRange getTableRowChangeIdRange();
 	

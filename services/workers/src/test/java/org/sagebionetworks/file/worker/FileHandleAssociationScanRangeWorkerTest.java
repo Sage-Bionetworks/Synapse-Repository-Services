@@ -24,9 +24,9 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
+import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
-import org.sagebionetworks.repo.model.file.IdRange;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.model.Message;

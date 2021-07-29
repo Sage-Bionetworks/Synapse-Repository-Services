@@ -29,11 +29,11 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.IdRangeMapper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
-import org.sagebionetworks.repo.model.file.IdRangeMapper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -553,12 +553,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 	
 	@Override
-	public org.sagebionetworks.repo.model.file.IdRange getTableRowChangeIdRange() {
+	public org.sagebionetworks.repo.model.IdRange getTableRowChangeIdRange() {
 		return jdbcTemplate.queryForObject(SQL_SELECT_MIN_MAX, new IdRangeMapper());
 	}
 	
 	@Override
-	public List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.file.IdRange idRange, long limit, long offset) {
+	public List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset) {
 		List<DBOTableRowChange> dbos = jdbcTemplate.query(SQL_SELECT_WITH_FILE_REFS_PAGE, rowChangeMapper, idRange.getMinId(), idRange.getMaxId(), limit, offset);
 		return TableRowChangeUtils.ceateDTOFromDBO(dbos);
 	}

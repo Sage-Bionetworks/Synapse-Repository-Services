@@ -214,14 +214,14 @@ public interface TableRowTruthDAO {
 	/**
 	 * @return The range of ids for the table row change table
 	 */
-	org.sagebionetworks.repo.model.file.IdRange getTableRowChangeIdRange();
+	org.sagebionetworks.repo.model.IdRange getTableRowChangeIdRange();
 	
 	/**
 	 * @param idRange
 	 * @param limit
 	 * @param offset
-	 * @return A page of row changes that have file references
+	 * @return A page of row changes that have file references (includes the changes for which the file references are unknown)
 	 */
-	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.file.IdRange idRange, long limit, long offset);
+	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
 	
 }

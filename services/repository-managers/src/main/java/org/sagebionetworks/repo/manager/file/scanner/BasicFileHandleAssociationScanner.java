@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.IdRange;
+import org.sagebionetworks.repo.model.IdRangeMapper;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.QueryStreamIterable;
-import org.sagebionetworks.repo.model.file.IdRange;
-import org.sagebionetworks.repo.model.file.IdRangeMapper;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -144,7 +144,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * </p>
 	 * <code>SELECT MIN(ID), MAX(ID) FROM TABLE</code>
 	 */
-	private static String generateMinMaxStatement(TableMapping<?> mapping) {
+	protected String generateMinMaxStatement(TableMapping<?> mapping) {
 		return DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
 	}
 
@@ -154,7 +154,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * </p>
 	 * <code>SELECT DISTINCT ID, FILE_HANLDE_ID FROM TABLE WHERE ID BETWEEN :MIN AND :MAX AND FILE_HANDLE_ID IS NOT NULL ORDER BY ID, OTHER_PK_ID</code>
 	 */
-	private static String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
+	protected String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
 		DMLUtils.validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT `");
