@@ -1,6 +1,10 @@
 {
     "description": "Metadata about Table row change set.",
     "properties": {
+    	"id": {
+    		"type": "integer",
+    		"description": "Unique id assigned to the change"
+    	},
         "tableId": {
             "type": "string",
             "description": "The ID of the table that this change is for."
@@ -52,6 +56,10 @@
         "transactionId": {
             "type": "integer",
             "description": "The ID of the transaction that this change belongs to."
+        },
+        "hasFileRefs": {
+        	"type": "boolean",
+        	"description": "Indicates if the change contains references to file handles. Always false for a COLUMN change."
         }
     }
 }

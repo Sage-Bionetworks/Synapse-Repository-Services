@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Date;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -16,9 +17,11 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
  *
  */
 public class TableRowChangeUtilsTest {
+
 	@Test
 	public void testDTOandDBORoundTrip(){
 		TableRowChange dto = new TableRowChange();
+		dto.setId(123L);
 		dto.setTableId("syn123");
 		dto.setRowVersion(12l);
 		dto.setCreatedBy("456");
@@ -29,6 +32,7 @@ public class TableRowChangeUtilsTest {
 		dto.setRowCount(999L);
 		dto.setChangeType(TableChangeType.ROW);
 		dto.setTransactionId(222L);
+		dto.setHasFileRefs(false);
 		
 		// To DBO
 		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
@@ -42,6 +46,7 @@ public class TableRowChangeUtilsTest {
 	@Test
 	public void testDTOandDBORoundTripOptionalFields(){
 		TableRowChange dto = new TableRowChange();
+		dto.setId(123L);
 		dto.setTableId("syn123");
 		dto.setRowVersion(12l);
 		dto.setCreatedBy("456");
@@ -52,6 +57,7 @@ public class TableRowChangeUtilsTest {
 		dto.setRowCount(999L);
 		dto.setChangeType(TableChangeType.ROW);
 		dto.setTransactionId(null);
+		dto.setHasFileRefs(false);
 		// To DBO
 		DBOTableRowChange dbo = TableRowChangeUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);
