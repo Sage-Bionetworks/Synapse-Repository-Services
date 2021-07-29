@@ -22,6 +22,18 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 
+/**
+ * Special file handle scanner for tables:
+ * <p>
+ * The truth of the data is stored in S3 and the table_row_change table contains the metadata of the changes including the pointer to the object in S3.
+ * </p>
+ * <p>
+ * The scanner will iterate over the changes in a given range of ids and lazily load the actual data (SparseChangeSet) while iterating in order to fetch the file handle ids.
+ * </p>
+ * <p>
+ * Additionally the scanner will skip changes that do not contain any file handle (the information is stored in the DB)
+ * </p>
+ */
 public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
 	private static final Logger LOG = LogManager.getLogger(TableFileHandleScanner.class);

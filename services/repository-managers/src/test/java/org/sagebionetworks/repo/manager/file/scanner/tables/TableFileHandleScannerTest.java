@@ -162,7 +162,7 @@ public class TableFileHandleScannerTest {
 	}
 	
 	@Test
-	public void testMapRowChangeWithAmazonServiceExceptionAndS3NotFound() throws Exception {
+	public void testMapRowChangeWithAmazonS3ExceptionAndNotFound() throws Exception {
 		
 		AmazonS3Exception ex = new AmazonS3Exception("failed");
 		ex.setStatusCode(HttpStatus.SC_NOT_FOUND);
@@ -176,6 +176,24 @@ public class TableFileHandleScannerTest {
 		ScannedFileHandleAssociation association = scanner.mapTableRowChange(mockRowChange);
 		
 		assertEquals(expected, association);
+		
+		verify(mockTableManager).getSparseChangeSet(mockRowChange);
+	}
+	
+	@Test
+	public void testMapRowChangeWithOtherAmazonS3Exception() throws Exception {
+		
+		AmazonS3Exception ex = new AmazonS3Exception("failed");
+		
+		when(mockRowChange.getTableId()).thenReturn(tableId.toString());
+		when(mockTableManager.getSparseChangeSet(any())).thenThrow(ex);
+		
+		AmazonS3Exception result = assertThrows(AmazonS3Exception.class, () -> {			
+			// Call under test
+			scanner.mapTableRowChange(mockRowChange);
+		});
+		
+		assertEquals(ex, result);
 		
 		verify(mockTableManager).getSparseChangeSet(mockRowChange);
 	}
