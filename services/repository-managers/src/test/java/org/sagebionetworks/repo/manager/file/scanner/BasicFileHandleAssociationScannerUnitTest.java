@@ -199,7 +199,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		IdRange expectedRange = new IdRange(1, 2);
 		
 		when(mockParamaterizedJdbcTemplate.getJdbcTemplate()).thenReturn(mockJdbcTemplate);
-		when(mockJdbcTemplate.queryForObject(anyString(), any(), any(RowMapper.class))).thenReturn(expectedRange);
+		when(mockJdbcTemplate.queryForObject(anyString(), any(RowMapper.class))).thenReturn(expectedRange);
 		
 		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
 		
@@ -208,7 +208,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		assertEquals(expectedRange, result);
 		
-		verify(mockJdbcTemplate).queryForObject(eq("SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE"), eq(null), any(RowMapper.class));
+		verify(mockJdbcTemplate).queryForObject(eq("SELECT MIN(`ID`), MAX(`ID`) FROM SOME_TABLE"), any(RowMapper.class));
 	}
 	
 	@Test
