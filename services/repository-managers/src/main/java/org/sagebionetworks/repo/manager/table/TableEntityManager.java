@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.migration.TableRowChangeBackfillResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * Abstraction for Table Row management.
@@ -321,4 +323,7 @@ public interface TableEntityManager {
 	 * @return An iterator over the table row changes within the given range of ids that have file references (includes the changes for which the file references are unknown)
 	 */
 	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
+
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Used for backfilling the table row change")
+	TableRowChangeBackfillResponse backFillTableRowChanges();
 }

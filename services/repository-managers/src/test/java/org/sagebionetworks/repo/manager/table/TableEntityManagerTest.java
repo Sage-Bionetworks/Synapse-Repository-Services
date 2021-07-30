@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,6 +32,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -1992,6 +1996,100 @@ public class TableEntityManagerTest {
 		assertEquals("Invalid idRange, the minId must be lesser or equal than the maxId", message);
 	}
 	
+	@Test
+	public void testBackFillTableRowChanges() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
+		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
+		
+		// Call under test
+		manager.backFillTableRowChanges();
+		
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
+		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
+		verify(mockTableConnectionFactory, times(pageSize)).getConnection(any());
+		verify(mockTableIndexDAO, times(pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithFileRefs() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		SparseRowDto row = new SparseRowDto();
+		row.setValues(Collections.singletonMap(String.valueOf(ColumnType.FILEHANDLEID.ordinal()), "123"));
+		
+		rowDto.setRows(Arrays.asList(row));
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
+		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
+		
+		// Call under test
+		manager.backFillTableRowChanges();
+		
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
+		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
+		verify(mockTableConnectionFactory, times(pageSize)).getConnection(any());
+		verify(mockTableIndexDAO, times(pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), true);
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesAndMultiplePages() throws IOException {
+		
+		int totalPages = 11;
+		int pageSize = 1000;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		// Creates another 10 pages (e.g. leads to two batches, one with 10K and one with 1K)
+		List<List<TableRowChange>> otherPages = new ArrayList<>();
+		
+		for (int i=0; i<totalPages - 1; i++) {
+			otherPages.add(createChange(tableId, pageSize));
+		}
+		
+		// Final empty list to avoid infinite loop
+		otherPages.add(Collections.emptyList());
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, (List<TableRowChange>[]) otherPages.toArray(new List[otherPages.size()]));
+		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
+		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
+		
+		// Call under test
+		manager.backFillTableRowChanges();
+		
+		for (int i=0; i < totalPages + 1; i++) {
+			verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, i * 1000);
+			List<Long> ids = IntStream.range(0, pageSize).boxed().map(Long::new).collect(Collectors.toList());
+		}
+		
+		verify(mockTruthDao, times(totalPages * pageSize)).getRowSet(any());
+		verify(mockColumModelManager, times(totalPages * pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
+		verify(mockTableConnectionFactory, times(totalPages * pageSize)).getConnection(any());
+		verify(mockTableIndexDAO, times(totalPages * pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
+		verify(mockTruthDao, times((int)Math.ceil((totalPages * pageSize)/10_000D))).updateRowChangeHasFileRefsBatch(anyList(), eq(false));
+	}
+	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId
@@ -2003,6 +2101,7 @@ public class TableEntityManagerTest {
 		int enumLenght = TableChangeType.values().length;
 		for(int i=0; i<count; i++) {
 			TableRowChange change = new TableRowChange();
+			change.setId(new Long(i));
 			change.setTableId(tableId);
 			change.setRowVersion(new Long(i));
 			change.setChangeType(TableChangeType.values()[i%enumLenght]);

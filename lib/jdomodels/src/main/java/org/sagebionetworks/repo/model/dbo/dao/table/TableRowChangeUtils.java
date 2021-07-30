@@ -20,6 +20,7 @@ public class TableRowChangeUtils {
 	public static TableRowChange ceateDTOFromDBO(DBOTableRowChange dbo) {
 		ValidateArgument.required(dbo, "dbo");
 		TableRowChange dto = new TableRowChange();
+		dto.setId(dbo.getId());
 		dto.setTableId(KeyFactory.keyToString(dbo.getTableId()));
 		dto.setRowVersion(dbo.getRowVersion());
 		dto.setEtag(dbo.getEtag());
@@ -30,11 +31,12 @@ public class TableRowChangeUtils {
 		dto.setRowCount(dbo.getRowCount());
 		dto.setChangeType(TableChangeType.valueOf(dbo.getChangeType()));
 		dto.setTransactionId(dbo.getTransactionId());
+		dto.setHasFileRefs(dbo.getHasFileRefs());
 		return dto;
 	}
 
 	/**
-	 * Create a DBO from the DTO
+	 * Create a DBO from the DTO, used for testing only
 	 * 
 	 * @param dto
 	 * @return
@@ -42,6 +44,7 @@ public class TableRowChangeUtils {
 	public static DBOTableRowChange createDBOFromDTO(TableRowChange dto) {
 		ValidateArgument.required(dto, "dto");
 		DBOTableRowChange dbo = new DBOTableRowChange();
+		dbo.setId(dto.getId());
 		dbo.setTableId(KeyFactory.stringToKey(dto.getTableId()));
 		dbo.setRowVersion(dto.getRowVersion());
 		dbo.setEtag(dto.getEtag());
@@ -52,6 +55,7 @@ public class TableRowChangeUtils {
 		dbo.setRowCount(dto.getRowCount());
 		dbo.setChangeType(dto.getChangeType().name());
 		dbo.setTransactionId(dto.getTransactionId());
+		dbo.setHasFileRefs(dto.getHasFileRefs());
 		return dbo;
 	}
 
