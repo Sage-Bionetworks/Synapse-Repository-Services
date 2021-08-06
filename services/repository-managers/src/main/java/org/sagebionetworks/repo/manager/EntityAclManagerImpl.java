@@ -78,16 +78,19 @@ public class EntityAclManagerImpl implements EntityAclManager {
 	@WriteTransaction
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		String rId = acl.getId();
-		String benefactor = nodeDao.getBenefactor(rId);
-		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
+		String entityId = acl.getId();
+		String benefactor = nodeDao.getBenefactor(entityId);
+		if (!benefactor.equals(entityId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
-		entityAuthorizationManager.hasAccess(userInfo, rId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
+		entityAuthorizationManager.hasAccess(userInfo, entityId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		// validate content
-		Long ownerId = nodeDao.getCreatedBy(acl.getId());
+		Long ownerId = nodeDao.getCreatedBy(entityId);
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		
-		AccessControlList oldAcl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		// Before we can update the ACL we must grab the lock on the node.
+		nodeDao.touch(userInfo.getId(), entityId);
+				
+		AccessControlList oldAcl = aclDAO.get(entityId, ObjectType.ENTITY);
 		
 		aclDAO.update(acl, ObjectType.ENTITY);
 		
@@ -107,11 +110,18 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		Date now = new Date();
 		for (Long principal : addedPrincipals) {
 			// update the stats for each new principal
-			projectStatsManager.updateProjectStats(principal, rId, ObjectType.ENTITY, now);
+			projectStatsManager.updateProjectStats(principal, entityId, ObjectType.ENTITY, now);
 		}
 		
-		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
-		return acl;
+		EntityType entityType = nodeDao.getNodeTypeById(entityId);
+		
+		// Send a container message for projects or folders.
+		if(NodeUtils.isProjectOrFolder(entityType)){
+			// Notify listeners of the hierarchy change to this container.
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		}
+		
+		return aclDAO.get(entityId, ObjectType.ENTITY);
 	}
 
 

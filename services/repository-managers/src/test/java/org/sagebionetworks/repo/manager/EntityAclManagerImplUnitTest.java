@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -226,11 +227,78 @@ public class EntityAclManagerImplUnitTest {
 		
 		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
 		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
+		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.file);
 		
 		// call under test
 		entityAclManager.updateACL(updatedAcl, mockUser);
 		// project stats should be called for all new users
 		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
+		verifyZeroInteractions(mockTransactionalMessenger);
+	}
+	
+	@Test
+	public void testUpdateAclProject(){
+		// Mock dependencies.
+		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
+
+		when(mockUser.getId()).thenReturn(userId);
+		when(mockUser.isAdmin()).thenReturn(false);
+		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+
+		Long addedPrincipalId = 444L;
+		AccessControlList oldAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		AccessControlList updatedAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		// add access to another User
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(addedPrincipalId);
+		updatedAcl.getResourceAccess().add(access);
+		
+		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
+		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
+		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.project);
+		
+		// call under test
+		entityAclManager.updateACL(updatedAcl, mockUser);
+		// project stats should be called for all new users
+		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+	}
+	
+	@Test
+	public void testUpdateAclFolder(){
+		// Mock dependencies.
+		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
+
+		when(mockUser.getId()).thenReturn(userId);
+		when(mockUser.isAdmin()).thenReturn(false);
+		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+
+		Long addedPrincipalId = 444L;
+		AccessControlList oldAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		AccessControlList updatedAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		// add access to another User
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(addedPrincipalId);
+		updatedAcl.getResourceAccess().add(access);
+		
+		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
+		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
+		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.folder);
+		
+		// call under test
+		entityAclManager.updateACL(updatedAcl, mockUser);
+		// project stats should be called for all new users
+		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 	
 	@Test
