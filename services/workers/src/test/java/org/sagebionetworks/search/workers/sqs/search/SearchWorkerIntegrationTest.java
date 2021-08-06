@@ -1,44 +1,54 @@
 package org.sagebionetworks.search.workers.sqs.search;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.search.SearchManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.google.common.base.Predicate;
 
 /**
@@ -48,14 +58,18 @@ import com.google.common.base.Predicate;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchWorkerIntegrationTest {
 	
-	private static final long MAX_WAIT = 10 * 60*1000; // 10 minutes
+	private static final long MAX_WAIT = 5 * 60*1000; // 5 minutes
+	private static final long CHECK_TIME = 2000;
 	
 	@Autowired
 	private EntityManager entityManager;
+	
+	@Autowired
+	private EntityAclManager entityAclManager;
 	
 	@Autowired
 	private UserManager userManager;
@@ -82,17 +96,18 @@ public class SearchWorkerIntegrationTest {
 	private SearchManager searchManager;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo anotherUser;
 	private Project project;
 	private WikiPageKey rootKey;
 	
 	private S3FileHandle markdownOne;
 	private String uuid;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Only run this test if search is enabled
-		Assume.assumeTrue(searchProvider.isSearchEnabled());
+		Assumptions.assumeTrue(searchProvider.isSearchEnabled());
 		
 		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
 			@Override
@@ -137,6 +152,10 @@ public class SearchWorkerIntegrationTest {
 		// Zip up the markdown into a file with UUID
 		String markdown = "markdown contents \u000c\f\u0019with control characters " + uuid;
 		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
+		
+		String userName = UUID.randomUUID().toString();
+		
+		anotherUser = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), true);
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){
@@ -152,7 +171,7 @@ public class SearchWorkerIntegrationTest {
 		return page;
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
 		if(rootKey != null){
 			wikiPageDao.delete(rootKey);
@@ -169,6 +188,10 @@ public class SearchWorkerIntegrationTest {
 		if (project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
+		
+		if (anotherUser != null) {
+			userManager.deletePrincipal(adminUserInfo, anotherUser.getId());
+		}
 	}	
 	
 	@Test
@@ -182,27 +205,60 @@ public class SearchWorkerIntegrationTest {
 		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);
-		waitForQuery(new SearchRequest().withQuery(uuid));
-		System.out.println("done");
+		
+		waitForQuery(adminUserInfo, uuid);
+		
+	}
+	
+	// Test for PLFM-6868
+	@Test
+	public void testProjectAclUpdate() throws Exception {
+		// Wait for the project to appear.
+		waitForPojectToAppearInSearch();
+		
+		// We search by project name
+		String searchTerm = project.getName();
+		
+		// The admin should find the project
+		waitForQuery(adminUserInfo, searchTerm);
+		
+		// No results for the user since the project is not shared
+		waitForQuery(anotherUser, searchTerm, 0L);
+		
+		// Now share the project with the user
+		AccessControlList acl = entityAclManager.getACL(project.getId(), adminUserInfo);
+		
+		acl.getResourceAccess().add(new ResourceAccess().setPrincipalId(anotherUser.getId()).setAccessType(Collections.singleton(ACCESS_TYPE.READ)));
+		
+		// Update the ACL, this should propagate the change so that the document is visible to the user
+		entityAclManager.updateACL(acl, adminUserInfo);
+		
+		// The user should eventually find the project
+		waitForQuery(anotherUser, searchTerm);
+		
+		
 	}
 
 	public void waitForPojectToAppearInSearch() throws Exception {
-		long start = System.currentTimeMillis();
-		while(!searchManager.doesDocumentExist(project.getId(), project.getEtag())){
+		TimeUtils.waitFor(MAX_WAIT, CHECK_TIME, () -> {
 			System.out.println("Waiting for entity "+project.getId()+" to appear in the search index...");
-			Thread.sleep(5000);		
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Failed to a new Entity in the search index within the timeout period.",elapse < MAX_WAIT);
-		}
+			return Pair.create(searchManager.doesDocumentExist(project.getId(), project.getEtag()), null);
+		});
 	}
 	
-	public void waitForQuery(SearchRequest request) throws Exception {
-		long start = System.currentTimeMillis();
-		while (searchManager.rawSearch(request).getHits().getFound() < 1) {
-			System.out.println("Waiting for search query: "+request);
-			Thread.sleep(5000);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue(	"Failed to a new Entity in the search index within the timeout period.",elapse < MAX_WAIT);
-		}
+	public void waitForQuery(UserInfo user, String term) throws Exception {
+		waitForQuery(user, term, 1L);
+	}
+	
+	public void waitForQuery(UserInfo user, String term, Long expectedResultCount) throws Exception {
+		SearchQuery searchQuery = searchQuerybyTerm(term);
+		TimeUtils.waitFor(MAX_WAIT, CHECK_TIME, () -> {
+			System.out.println("Waiting for search query: "+searchQuery);
+			return Pair.create(searchManager.proxySearch(user, searchQuery).getFound() == expectedResultCount, null);
+		});
+	}
+	
+	private static SearchQuery searchQuerybyTerm(String term) {
+		return new SearchQuery().setQueryTerm(Arrays.asList(term));
 	}
 }
