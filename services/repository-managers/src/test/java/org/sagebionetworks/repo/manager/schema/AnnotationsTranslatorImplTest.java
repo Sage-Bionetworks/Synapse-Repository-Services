@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -907,5 +908,24 @@ public class AnnotationsTranslatorImplTest {
 		// call under test
 		translator.writeAnnotationsToJSONObjectWithSchema(toWrite, json, schema);
 		assertEquals(true, json.getBoolean("hasBoolean"));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaWithNullTypeInSchema() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(null);
+		properties.put("property", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Collections.singletonList("foo"));
+		map.put("property", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		// will still have the annotation despite no type in the schema
+		translator.writeAnnotationsToJSONObjectWithSchema(toWrite, json, schema);
+		assertTrue(json.has("property"));
 	}
 }

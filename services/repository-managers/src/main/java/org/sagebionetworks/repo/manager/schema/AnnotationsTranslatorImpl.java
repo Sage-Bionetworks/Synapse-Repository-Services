@@ -399,6 +399,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		writeAnnotationsToJSONObject(toWrite, jsonObject);
 	}
 	
+	/* only writes annotations that appear in the schema and are defined as arrays */
 	void writeAnnotationValueWithSchema(Map<String, AnnotationsValue> annotationsMap, 
 			JSONObject jsonObject, JsonSchema schema) {
 		// write the top-level schema first because the SubSchemaIterable does not look at it
@@ -417,7 +418,11 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			for (String key : properties.keySet()) {
 				// only look at the property keys that are also in the annotations
 				// and if the prop is of type array in the schema
-				if (annotationsMap.containsKey(key) && properties.get(key).getType().equals(Type.array)) {
+				JsonSchema typeSchema = properties.get(key);
+				if (annotationsMap.containsKey(key) 
+						&& typeSchema != null 
+						&& typeSchema.getType() != null
+						&& typeSchema.getType().equals(Type.array)) {
 					AnnotationsValue value = annotationsMap.get(key);
 					if (value == null || value.getValue() == null || value.getType() == null) {
 						continue;
