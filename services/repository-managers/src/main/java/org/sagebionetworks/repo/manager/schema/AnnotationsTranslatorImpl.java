@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.json.JSONArray;
@@ -19,6 +20,9 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -41,6 +45,23 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		ValidateArgument.required(annotations, "annotations");
 		JSONObject jsonObject = new JSONObject();
 		writeAnnotationsToJSONObject(annotations, jsonObject);
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(jsonObject);
+		try {
+			// write the entity second to override any conflicts.
+			entity.writeToJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
+		}
+		return jsonObject;
+	}
+	
+	@Override
+	public JSONObject writeToJsonObjectWithSchema(Entity entity, Annotations annotations, JsonSchema schema) {
+		ValidateArgument.required(entity, "entity");
+		ValidateArgument.required(annotations, "annotations");
+		ValidateArgument.required(schema, "schema");
+		JSONObject jsonObject = new JSONObject();
+		writeAnnotationsToJSONObjectWithSchema(annotations, jsonObject, schema);
 		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(jsonObject);
 		try {
 			// write the entity second to override any conflicts.
@@ -354,7 +375,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 
 	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject) {
-		if (value == null || value.getValue() == null || value.getType() == null) {
+		if (value == null || value.getValue() == null || value.getType() == null
+				|| jsonObject.has(key)) {
 			return;
 		}
 		if (value.getValue().isEmpty()) {
@@ -365,6 +387,49 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
 		} else {
 			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
+		}
+	}
+	
+	/* handle with schema */
+	void writeAnnotationsToJSONObjectWithSchema(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
+		Map<String, AnnotationsValue> annotationsMap = toWrite.getAnnotations();
+		// first write with the schema (only writes annotations that appear in the schema as arrays)
+		writeAnnotationValueWithSchema(annotationsMap, jsonObject, schema);
+		// write everything else
+		writeAnnotationsToJSONObject(toWrite, jsonObject);
+	}
+	
+	void writeAnnotationValueWithSchema(Map<String, AnnotationsValue> annotationsMap, 
+			JSONObject jsonObject, JsonSchema schema) {
+		// write the top-level schema first because the SubSchemaIterable does not look at it
+		writeAnnotationsValueWithSchemaHelper(schema, annotationsMap, jsonObject);
+		// look at the subschemas
+		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
+			writeAnnotationsValueWithSchemaHelper(subSchema, annotationsMap, jsonObject);
+		}
+	}
+	
+	void writeAnnotationsValueWithSchemaHelper(JsonSchema schema, Map<String, AnnotationsValue> annotationsMap, 
+			JSONObject jsonObject) {
+		Map<String, JsonSchema> properties = schema.getProperties();
+		// only look at the properties schema if it is not null
+		if (properties != null) {
+			for (String key : properties.keySet()) {
+				// only look at the property keys that are also in the annotations
+				// and if the prop is of type array in the schema
+				if (annotationsMap.containsKey(key) && properties.get(key).getType().equals(Type.array)) {
+					AnnotationsValue value = annotationsMap.get(key);
+					if (value == null || value.getValue() == null || value.getType() == null) {
+						continue;
+					} else if (value.getValue().isEmpty()) {
+						jsonObject.put(key, "");
+					} else {
+						JSONArray array = new JSONArray();
+						value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
+						jsonObject.put(key, array);
+					}
+				}
+			}
 		}
 	}
 

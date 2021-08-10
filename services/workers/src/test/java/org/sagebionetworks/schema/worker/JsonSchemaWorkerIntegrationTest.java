@@ -10,6 +10,10 @@ import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
@@ -32,6 +36,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -42,11 +49,16 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -467,7 +479,78 @@ public class JsonSchemaWorkerIntegrationTest {
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
+	
+	@Test
+	public void testCreateSchemaWithArrayOfOneItem() throws Exception {
+		// PLFM-6811
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		// build properties with fooKey array
+		Map<String, JsonSchema> properties = new HashMap<>();
+		JsonSchema typeSchema = new JsonSchema();
+		JsonSchema itemsSchema = new JsonSchema();
+		itemsSchema.setType(Type.string);
+		typeSchema.setType(Type.array);
+		typeSchema.setItems(itemsSchema);
+		properties.put("fooKey", typeSchema);
+		basicSchema.setProperties(properties);
+		// build a subschema in an allOf with barKey array
+		List<JsonSchema> allOfSchemas = new LinkedList<>();
+		Map<String, JsonSchema> properties2 = new HashMap<>();
+		JsonSchema subSchema = new JsonSchema();
+		JsonSchema typeSchema2 = new JsonSchema();
+		JsonSchema itemsSchema2 = new JsonSchema();
+		itemsSchema2.setType(Type.number);
+		typeSchema2.setType(Type.array);
+		typeSchema2.setItems(itemsSchema2);
+		properties2.put("barKey", typeSchema2);
+		subSchema.setProperties(properties2);
+		allOfSchemas.add(subSchema);
+		basicSchema.setAllOf(allOfSchemas);
+		/* 
+		 * this is the basicSchema
+		 * {
+		 * 	"properties": { "fooKey": { "type": "array", "items": { "type": "string" } } },
+		 * 	"allOf": [ { "properties": { "barKey": { "type": "array", "items": { "type": "number" } } } } ]
+		 * }
+		 */
 
+		// create the schema
+		CreateSchemaResponse createResponse = registerSchema(basicSchema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		
+		// Add 2 single element array annotations to the folder
+		folderJson.put("fooKey", Arrays.asList("foo"));
+		folderJson.put("barKey", Arrays.asList("2"));
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+		
+		// call under test, will throw an org.json.JSONException if
+		// it is not a JSONArray
+		folderJson = entityManager.getEntityJson(folderId);
+		assertEquals(folderJson.getJSONArray("fooKey").getString(0), "foo");
+		assertEquals(folderJson.getJSONArray("barKey").getInt(0), 2);
+		
+		// clean up
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
 	/**
 	 * Wait for the validation results
 	 * 
