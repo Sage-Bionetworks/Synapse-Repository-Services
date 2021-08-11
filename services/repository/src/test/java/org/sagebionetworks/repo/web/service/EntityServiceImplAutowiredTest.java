@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -474,5 +475,30 @@ public class EntityServiceImplAutowiredTest  {
 		// call under test
 		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class, EventType.GET);
 		assertEquals(secondSchema, table.getColumnIds());
+	}
+	
+	@Test
+	public void testDatasetCRUD() {
+		boolean newVersion = false;
+		String activityId = null;
+		Dataset dataset = new Dataset();
+		dataset.setName("first-dataset");
+		dataset.setParentId(project.getId());
+		// call under test (create and get)
+		dataset = entityService.createEntity(adminUserId, dataset, activityId);
+		assertNotNull(dataset.getId());
+		final String datsetId = dataset.getId();
+		
+		dataset.setName("new-dataset-name");
+		// call under test (update)
+		dataset = entityService.updateEntity(adminUserId, dataset, newVersion, activityId);
+		
+		// call under test (delete)
+		entityService.deleteEntity(adminUserId, datsetId);
+		
+		assertThrows(NotFoundException.class, ()->{
+			entityService.getEntity(adminUserId, datsetId);
+		});
+		
 	}
 }

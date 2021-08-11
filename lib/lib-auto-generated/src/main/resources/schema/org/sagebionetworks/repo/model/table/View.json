@@ -5,14 +5,5 @@
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.Table"
 		}
-	],
-	"properties": {
-		"scopeIds": {
-			"description": "The list of container ids that define the scope of this view.",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		}
-	}
+	]
 }

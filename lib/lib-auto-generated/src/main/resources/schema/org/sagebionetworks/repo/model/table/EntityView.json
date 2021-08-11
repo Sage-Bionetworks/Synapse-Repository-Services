@@ -28,6 +28,13 @@
 					"description": "Deprecated. For files and tables use: 'viewTypeMask'=0x05'"
 				}
 			]
+		},
+		"scopeIds": {
+			"description": "The list of container ids that define the scope of this view.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
 		}
 	}
 }
