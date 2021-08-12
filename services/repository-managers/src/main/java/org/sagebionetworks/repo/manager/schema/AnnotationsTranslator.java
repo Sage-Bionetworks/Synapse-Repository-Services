@@ -13,6 +13,7 @@ public interface AnnotationsTranslator {
 	 * 
 	 * @param entity
 	 * @param annotations
+	 * @param schema
 	 * @return
 	 */
 	JSONObject writeToJsonObject(Entity entity, Annotations annotations, JsonSchema schema);
