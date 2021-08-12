@@ -557,61 +557,6 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 	
-	@Test
-	public void testGetEntityJsonWithIgnoringJsonSchemaWhenAnnotationsIsArray() throws Exception {
-		// PLFM-6811
-		// this shows the case in which the JSON schema defines a key as a single value,
-		// but the annotations contain a list, in which case we follow the lead of the annotations
-		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
-		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
-		// build properties with fooKey single
-		Map<String, JsonSchema> properties = new HashMap<>();
-		JsonSchema fooType = new JsonSchema();
-		fooType.setType(Type.string);
-		properties.put("fooKey", fooType);
-		basicSchema.setProperties(properties);
-		/* 
-		 * this is the basicSchema
-		 * {
-		 * 	"properties": { "fooKey": { "type": "string" } }
-		 * }
-		 */
-
-		// create the schema
-		CreateSchemaResponse createResponse = registerSchema(basicSchema);
-		String schema$id = createResponse.getNewVersionInfo().get$id();
-		// bind the schema to the project
-		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
-		bindRequest.setEntityId(projectId);
-		bindRequest.setSchema$id(schema$id);
-		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
-		
-		// add a folder to the project
-		Folder folder = new Folder();
-		folder.setParentId(project.getId());
-		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
-		
-		// Add 3 single element array annotations to the folder
-		folderJson.put("fooKey", Arrays.asList("foo", "bar"));
-		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
-		
-		// should be invalid against the schema
-		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
-			assertNotNull(t);
-			assertTrue(!t.getIsValid());
-		});
-		
-		// call under test, will throw an org.json.JSONException if
-		// it is not a JSONArray
-		folderJson = entityManager.getEntityJson(folderId);
-		assertEquals(folderJson.getJSONArray("fooKey").getString(0), "foo");
-		
-		// clean up
-		entityManager.clearBoundSchema(adminUserInfo, projectId);
-		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
-	}
-	
 	/**
 	 * Wait for the validation results
 	 * 
