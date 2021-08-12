@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 
@@ -43,6 +47,9 @@ public class AnnotationsTranslatorImplTest {
 	Annotations annotations;
 
 	AnnotationsTranslatorImpl translator;
+	
+	Map<String, JsonSchema> properties;
+	JsonSchema schema;
 
 	@BeforeEach
 	public void before() {
@@ -74,6 +81,10 @@ public class AnnotationsTranslatorImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annotations, "aString", "some string!", AnnotationsValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfLongs", Lists.newArrayList("222", "333"),
 				AnnotationsValueType.LONG);
+		
+		properties = new HashMap<>();
+		schema = new JsonSchema();
+		schema.setProperties(properties);
 	}
 
 	@Test
@@ -389,7 +400,8 @@ public class AnnotationsTranslatorImplTest {
 	@Test
 	public void testWriteToJsonObject() {
 		// call under test
-		JSONObject json = translator.writeToJsonObject(project, annotations);
+		schema = null;
+		JSONObject json = translator.writeToJsonObject(project, annotations, schema);
 		assertNotNull(json);
 		assertEquals(project.getName(), json.getString("name"));
 		assertEquals(project.getId(), json.getString("id"));
@@ -403,7 +415,7 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getString("aString"));
+		assertEquals("some string!", json.getJSONArray("aString").getString(0));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -424,7 +436,7 @@ public class AnnotationsTranslatorImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedBy", "ignore me!", AnnotationsValueType.STRING);
 		
 		// call under test
-		JSONObject json = translator.writeToJsonObject(project, annotations);
+		JSONObject json = translator.writeToJsonObject(project, annotations, null);
 		assertNotNull(json);
 		assertEquals(project.getName(), json.getString("name"));
 		assertEquals(project.getId(), json.getString("id"));
@@ -438,7 +450,7 @@ public class AnnotationsTranslatorImplTest {
 				json.getString("modifiedOn"));
 		assertEquals(Project.class.getName(), json.getString("concreteType"));
 		// annotations
-		assertEquals("some string!", json.getString("aString"));
+		assertEquals("some string!", json.getJSONArray("aString").getString(0));
 		JSONArray array = json.getJSONArray("listOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -449,35 +461,116 @@ public class AnnotationsTranslatorImplTest {
 	@Test
 	public void testWriteToJsonObjectWithNullEntity() {
 		project = null;
+		schema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			translator.writeToJsonObject(project, annotations);
+			translator.writeToJsonObject(project, annotations, schema);
 		});
 	}
 	
 	@Test
 	public void testWriteToJsonObjectWithNullAnnotations() {
 		annotations = null;
+		schema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			translator.writeToJsonObject(project, annotations);
+			translator.writeToJsonObject(project, annotations, schema);
 		});
 	}
 	
 	@Test
+	public void testWriteToJsonObjectWithSchema() {
+		// we put the annotations not as a list, but as a single value of 333
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", "333",
+				AnnotationsValueType.DOUBLE);
+		JsonSchema doublesListTypeSchema = new JsonSchema();
+		doublesListTypeSchema.setType(Type.array);
+		properties.put("listOfDoubles", doublesListTypeSchema);
+		// call under test
+		JSONObject json = translator.writeToJsonObject(project, annotations, schema);
+		assertNotNull(json);
+		assertEquals(project.getName(), json.getString("name"));
+		assertEquals(project.getId(), json.getString("id"));
+		assertEquals(project.getEtag(), json.getString("etag"));
+		assertEquals(project.getParentId(), json.getString("parentId"));
+		assertEquals(project.getCreatedBy(), json.getString("createdBy"));
+		assertEquals(project.getModifiedBy(), json.getString("modifiedBy"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()),
+				json.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()),
+				json.getString("modifiedOn"));
+		assertEquals(Project.class.getName(), json.getString("concreteType"));
+		// annotations
+		assertEquals("some string!", json.getJSONArray("aString").get(0));
+		JSONArray array = json.getJSONArray("listOfLongs");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Long(222),array.getLong(0));
+		assertEquals(new Long(333),array.getLong(1));
+		// should be a list of doubles as defined by the schema
+		array = json.getJSONArray("listOfDoubles");
+		assertNotNull(array);
+		assertEquals(1, array.length());
+		assertEquals(new Double(333),array.getLong(0));
+	}
+	
+	@Test
+	public void testWriteToJsonObjectWithSchemaWithAnnotationConflictWithEntity() {
+		
+		// All keys that conflict with entity field names should be ignored.
+		AnnotationsV2TestUtils.putAnnotations(annotations, "id", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "name", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "parentId", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "createdBy", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "createdOn", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedOn", "ignore me!", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedBy", "ignore me!", AnnotationsValueType.STRING);
+		
+		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedBy", "list of modified by me",
+				AnnotationsValueType.STRING);
+		JsonSchema modifiedByListTypeSchema = new JsonSchema();
+		modifiedByListTypeSchema.setType(Type.array);
+		properties.put("modifiedBy", modifiedByListTypeSchema);
+		
+		// call under test
+		JSONObject json = translator.writeToJsonObject(project, annotations, schema);
+		assertNotNull(json);
+		assertEquals(project.getName(), json.getString("name"));
+		assertEquals(project.getId(), json.getString("id"));
+		assertEquals(project.getEtag(), json.getString("etag"));
+		assertEquals(project.getParentId(), json.getString("parentId"));
+		assertEquals(project.getCreatedBy(), json.getString("createdBy"));
+		assertEquals(project.getModifiedBy(), json.getString("modifiedBy"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()),
+				json.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()),
+				json.getString("modifiedOn"));
+		assertEquals(Project.class.getName(), json.getString("concreteType"));
+		// annotations
+		assertEquals("some string!", json.getJSONArray("aString").getString(0));
+		JSONArray array = json.getJSONArray("listOfLongs");
+		assertNotNull(array);
+		assertEquals(2, array.length());
+		assertEquals(new Long(222),array.getLong(0));
+		assertEquals(new Long(333),array.getLong(1));
+	}
+	
+	@Test
 	public void testWriteAnnotationsToJSONObjectWithNullValue() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		map.put("nullValue", null);
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		assertFalse(json.has("nullValue"));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithNullWithEmptyListValue() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		AnnotationsValue annoValue = new AnnotationsValue();
@@ -487,12 +580,13 @@ public class AnnotationsTranslatorImplTest {
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		assertEquals("", json.get("emptyList"));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithNullWithNullType() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		AnnotationsValue annoValue = new AnnotationsValue();
@@ -502,67 +596,73 @@ public class AnnotationsTranslatorImplTest {
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		assertFalse(json.has("nullType"));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithString() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aString", "someString", AnnotationsValueType.STRING);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
-		assertEquals("someString", json.getString("aString"));
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals("someString", json.getJSONArray("aString").getString(0));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithLong() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aLong", "123", AnnotationsValueType.LONG);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
-		assertEquals(new Long(123), json.getLong("aLong"));
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(new Long(123), json.getJSONArray("aLong").get(0));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithTimeStamp() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aTimestamp", "12345", AnnotationsValueType.TIMESTAMP_MS);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
-		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(12345)), json.getString("aTimestamp"));
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(12345)), json.getJSONArray("aTimestamp").getString(0));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithDouble() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aDouble", "3.14", AnnotationsValueType.DOUBLE);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
-		assertEquals(new Double(3.14), json.getDouble("aDouble"));
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(new Double(3.14), json.getJSONArray("aDouble").getDouble(0));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithBoolean() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "hasBoolean", "true", AnnotationsValueType.BOOLEAN);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
-		assertEquals(true, json.getBoolean("hasBoolean"));
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(true, json.getJSONArray("hasBoolean").getBoolean(0));
 	}
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithListOfStrings() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfStrings", Lists.newArrayList("one","two"), AnnotationsValueType.STRING);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		JSONArray array = json.getJSONArray("aListOfStrings");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -572,11 +672,12 @@ public class AnnotationsTranslatorImplTest {
 
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithListOfLongs() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfLongs", Lists.newArrayList("222","333"), AnnotationsValueType.LONG);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		JSONArray array = json.getJSONArray("aListOfLongs");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -586,11 +687,12 @@ public class AnnotationsTranslatorImplTest {
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithListOfDoubles() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","2.33"), AnnotationsValueType.DOUBLE);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		JSONArray array = json.getJSONArray("aListOfDoubles");
 		assertNotNull(array);
 		assertEquals(2, array.length());
@@ -600,15 +702,197 @@ public class AnnotationsTranslatorImplTest {
 	
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithListOfTimeStamps() {
+		schema = null;
 		Annotations toWrite = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("222","333"), AnnotationsValueType.TIMESTAMP_MS);
 		JSONObject json = new JSONObject();
 		// call under test
-		translator.writeAnnotationsToJSONObject(toWrite, json);
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		JSONArray array = json.getJSONArray("aListOfDoubles");
 		assertNotNull(array);
 		assertEquals(2, array.length());
 		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(222)), array.getString(0));
 		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, new Date(333)), array.getString(1));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaArrayAndAnnotationArray() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(Type.array);
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo", "bar"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals(json.getJSONArray("key").getString(1), "bar");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaSingleAndAnnotationArray() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(Type.string);
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo", "bar"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals(json.getJSONArray("key").getString(1), "bar");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaSingleAndAnnotationSingle() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(Type.string);
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaArrayAndAnnotationSingle() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(Type.array);
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaConstAndAnnotationSingle() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.set_const("some value");
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaConstAndAnnotationArray() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.set_const("some value");
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo", "bar"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals(json.getJSONArray("key").getString(1), "bar");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaEnumAndAnnotationSingle() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.set_enum(Arrays.asList("enum1", "enum2"));
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithSchemaEnumAndAnnotationArray() {
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.set_enum(Arrays.asList("enum1", "enum2"));
+		properties.put("key", typeSchema);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo", "bar"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals(json.getJSONArray("key").getString(1), "bar");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithAllNullSchemaTypeAndAnnotationSingle() {
+		// this is where type, enum, and const are all null
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithAllNullSchemaTypeAndAnnotationArray() {
+		// this is where type, enum, and const are all null
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo", "bar"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+		assertEquals(json.getJSONArray("key").getString(1), "bar");
 	}
 }

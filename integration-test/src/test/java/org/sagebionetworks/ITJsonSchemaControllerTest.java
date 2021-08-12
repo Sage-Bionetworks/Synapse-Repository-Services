@@ -470,7 +470,7 @@ public class ITJsonSchemaControllerTest {
 		projectJSON.put("sample", "some value");
 		// call under test
 		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
-		assertEquals("some value", updatedJson.getString("sample"));
+		assertEquals("some value", updatedJson.getJSONArray("sample").getString(0));
 		Annotations annos = synapse.getAnnotationsV2(project.getId());
 		assertNotNull(annos);
 		assertNotNull(annos.getAnnotations());

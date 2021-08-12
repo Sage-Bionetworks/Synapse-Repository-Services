@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
@@ -661,7 +662,14 @@ public class EntityManagerImpl implements EntityManager {
 		Class<? extends Entity> entityClass = null;
 		Entity entity = getEntity(entityId, entityClass);
 		Annotations annotations = nodeManager.getUserAnnotations(entityId);
-		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations);
+		JSONObject json = null;
+		try {
+			String schemaId = getBoundSchema(entityId).getJsonSchemaVersionInfo().get$id();
+			JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
+			json = annotationsTranslator.writeToJsonObject(entity, annotations, schema);
+		} catch (NotFoundException e) {
+			json = annotationsTranslator.writeToJsonObject(entity, annotations, null);
+		}
 		return new EntityJsonSubject(entity, json);
 	}
 

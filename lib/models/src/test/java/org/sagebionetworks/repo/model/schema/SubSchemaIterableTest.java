@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -19,12 +20,13 @@ public class SubSchemaIterableTest {
 	public void testIteratorWithItems() {
 		JsonSchema schema = new JsonSchema();
 		schema.setItems(createWithId("items"));
+		schema.set$id("schema");
 		List<String> subSchemaIds = new LinkedList<String>();
 		// call under test
 		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
 			subSchemaIds.add(sub.get$id());
 		}
-		List<String> expected = Lists.newArrayList("items");
+		List<String> expected = Lists.newArrayList("items", "schema");
 		assertEquals(expected, subSchemaIds);
 	}
 
@@ -32,12 +34,13 @@ public class SubSchemaIterableTest {
 	public void testIteratorWithItemsHierarchy() {
 		JsonSchema schema = new JsonSchema();
 		schema.setItems(createHierarchy("parent", "child"));
+		schema.set$id("grandparent");
 		List<String> subSchemaIds = new LinkedList<String>();
 		// call under test
 		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
 			subSchemaIds.add(sub.get$id());
 		}
-		List<String> expected = Lists.newArrayList("child", "parent");
+		List<String> expected = Lists.newArrayList("child", "parent", "grandparent");
 		assertEquals(expected, subSchemaIds);
 	}
 	
@@ -45,12 +48,13 @@ public class SubSchemaIterableTest {
 	public void testIteratorWithListsOfStrings() {
 		JsonSchema schema = new JsonSchema();
 		schema.set_enum(Lists.newArrayList("one","two"));
+		schema.set$id("schema");
 		List<String> subSchemaIds = new LinkedList<String>();
 		// call under test
 		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
 			subSchemaIds.add(sub.get$id());
 		}
-		List<String> expected = Collections.emptyList();
+		List<String> expected = Lists.newArrayList("schema");
 		assertEquals(expected, subSchemaIds);
 	}
 
@@ -60,13 +64,14 @@ public class SubSchemaIterableTest {
 		schema.setAllOf(Lists.newArrayList(createWithId("allOfOne"), createWithId("allOfTwo"), null));
 		schema.setAnyOf(Lists.newArrayList(createWithId("anyOfOne"), createWithId("anyOfTwo"),
 				createHierarchy("anyOfParent", "anyOfChild")));
+		schema.set$id("schema");
 		List<String> subSchemaIds = new LinkedList<String>();
 		// call under test
 		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
 			subSchemaIds.add(sub.get$id());
 		}
 		List<String> expected = Lists.newArrayList("anyOfChild", "allOfOne", "allOfTwo", "anyOfOne", "anyOfTwo",
-				"anyOfParent");
+				"anyOfParent", "schema");
 		assertEquals(expected, subSchemaIds);
 	}
 
@@ -80,13 +85,14 @@ public class SubSchemaIterableTest {
 		props.put("withHierarchy", createHierarchy("hierarchyParentOne", "hierarchyChildOne"));
 		props.put("withHierarchyTwo", createHierarchy("hierarchyParentTwo", "hierarchyChildTwo"));
 		schema.setProperties(props);
+		schema.set$id("schema");
 		List<String> subSchemaIds = new LinkedList<String>();
 		// call under test
 		for (JsonSchema sub : SubSchemaIterable.depthFirstIterable(schema)) {
 			subSchemaIds.add(sub.get$id());
 		}
 		List<String> expected = Lists.newArrayList("hierarchyChildOne", "hierarchyChildTwo", "mapOne", "mapTwo",
-				"hierarchyParentOne", "hierarchyParentTwo");
+				"hierarchyParentOne", "hierarchyParentTwo", "schema");
 		assertEquals(expected, subSchemaIds);
 	}
 
