@@ -136,7 +136,7 @@
         },
         {
             "name": "DATASET",
-            "description": ""
+            "description": "A dataset is a view of a list of entities."
         }
     ]
 }
