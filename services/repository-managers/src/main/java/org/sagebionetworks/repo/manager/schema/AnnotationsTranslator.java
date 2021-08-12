@@ -15,17 +15,7 @@ public interface AnnotationsTranslator {
 	 * @param annotations
 	 * @return
 	 */
-	JSONObject writeToJsonObject(Entity entity, Annotations annotations);
-	
-	/**
-	 * Create a new JSONObject containing all of the data from the given Entity and
-	 * its annotations guided by the JSON schema for determining arrays
-	 * 
-	 * @param entity
-	 * @param annotations
-	 * @return
-	 */
-	JSONObject writeToJsonObjectWithSchema(Entity entity, Annotations annotations, JsonSchema schema);
+	JSONObject writeToJsonObject(Entity entity, Annotations annotations, JsonSchema schema);
 
 	/**
 	 * Given a JSONObject containing all data from an Entity, extract only the Annotations.

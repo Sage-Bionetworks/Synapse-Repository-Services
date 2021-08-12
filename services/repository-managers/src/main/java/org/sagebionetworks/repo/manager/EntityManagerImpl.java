@@ -666,9 +666,9 @@ public class EntityManagerImpl implements EntityManager {
 		try {
 			String schemaId = getBoundSchema(entityId).getJsonSchemaVersionInfo().get$id();
 			JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
-			json = annotationsTranslator.writeToJsonObjectWithSchema(entity, annotations, schema);
+			json = annotationsTranslator.writeToJsonObject(entity, annotations, schema);
 		} catch (NotFoundException e) {
-			json = annotationsTranslator.writeToJsonObject(entity, annotations);
+			json = annotationsTranslator.writeToJsonObject(entity, annotations, null);
 		}
 		return new EntityJsonSubject(entity, json);
 	}

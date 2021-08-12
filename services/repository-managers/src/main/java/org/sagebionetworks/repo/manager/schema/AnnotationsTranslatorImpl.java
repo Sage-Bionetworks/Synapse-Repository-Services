@@ -5,6 +5,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,28 +41,11 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	public static final String CONCRETE_TYPE = "concreteType";
 
 	@Override
-	public JSONObject writeToJsonObject(Entity entity, Annotations annotations) {
+	public JSONObject writeToJsonObject(Entity entity, Annotations annotations, JsonSchema schema) {
 		ValidateArgument.required(entity, "entity");
 		ValidateArgument.required(annotations, "annotations");
 		JSONObject jsonObject = new JSONObject();
-		writeAnnotationsToJSONObject(annotations, jsonObject);
-		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(jsonObject);
-		try {
-			// write the entity second to override any conflicts.
-			entity.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalStateException(e);
-		}
-		return jsonObject;
-	}
-	
-	@Override
-	public JSONObject writeToJsonObjectWithSchema(Entity entity, Annotations annotations, JsonSchema schema) {
-		ValidateArgument.required(entity, "entity");
-		ValidateArgument.required(annotations, "annotations");
-		ValidateArgument.required(schema, "schema");
-		JSONObject jsonObject = new JSONObject();
-		writeAnnotationsToJSONObjectWithSchema(annotations, jsonObject, schema);
+		writeAnnotationsToJSONObject(annotations, jsonObject, schema);
 		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(jsonObject);
 		try {
 			// write the entity second to override any conflicts.
@@ -368,74 +352,67 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param toWrite
 	 * @param jsonObject
 	 */
-	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject) {
+	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
+		Map<String, Boolean> isArrayMap = null;
+		if (schema != null) {
+			isArrayMap = buildJsonSchemaIsArrayMap(schema);
+		}
 		for (Entry<String, AnnotationsValue> entry : toWrite.getAnnotations().entrySet()) {
-			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject);
+			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, isArrayMap);
 		}
 	}
 
-	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject) {
-		if (value == null || value.getValue() == null || value.getType() == null
-				|| jsonObject.has(key)) {
+	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, Boolean> isArrayMap) {
+		if (value == null || value.getValue() == null || value.getType() == null) {
 			return;
 		}
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
-		} else if (value.getValue().size() > 1) {
+		} else if (value.getValue().size() == 1 
+				&& isArrayMap != null 
+				&& isArrayMap.containsKey(key) 
+				&& !isArrayMap.get(key)) {
+			/*
+			 * The idea is that we are using the JSON schema to guide the single versus array type decision
+			 * when it is ambiguous. Therefore if the annotations give enough information, we want to use that
+			 * to drive the decision of which to write. Example: an array annotation with > 1 value 
+			 * but the schema defines it as a single, in which case we write an array and ignore the schema.
+			 * The cases in which we write a single:
+			 * 1. Annotation is a single and the schema defines it as a single
+			 * 2. Annotation is a single and the schema defines a const or enum (we will assume these are singles)
+			 * 	  (note the isArrayMap stores false aka single for enum/const existing)
+			 */
+			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
+		} else { // everything else is stored in an array
 			JSONArray array = new JSONArray();
 			jsonObject.put(key, array);
 			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
-		} else {
-			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
 		}
 	}
 	
-	/* handle with schema */
-	void writeAnnotationsToJSONObjectWithSchema(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
-		Map<String, AnnotationsValue> annotationsMap = toWrite.getAnnotations();
-		// first write with the schema (only writes annotations that appear in the schema as arrays)
-		writeAnnotationValueWithSchema(annotationsMap, jsonObject, schema);
-		// write everything else
-		writeAnnotationsToJSONObject(toWrite, jsonObject);
-	}
-	
-	/* only writes annotations that appear in the schema and are defined as arrays */
-	void writeAnnotationValueWithSchema(Map<String, AnnotationsValue> annotationsMap, 
-			JSONObject jsonObject, JsonSchema schema) {
-		// write the top-level schema first because the SubSchemaIterable does not look at it
-		writeAnnotationsValueWithSchemaHelper(schema, annotationsMap, jsonObject);
-		// look at the subschemas
+	Map<String, Boolean> buildJsonSchemaIsArrayMap(JsonSchema schema) {
+		Map<String, Boolean> result = new HashMap<>();
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
-			writeAnnotationsValueWithSchemaHelper(subSchema, annotationsMap, jsonObject);
-		}
-	}
-	
-	void writeAnnotationsValueWithSchemaHelper(JsonSchema schema, Map<String, AnnotationsValue> annotationsMap, 
-			JSONObject jsonObject) {
-		Map<String, JsonSchema> properties = schema.getProperties();
-		// only look at the properties schema if it is not null
-		if (properties != null) {
-			for (String key : properties.keySet()) {
-				// only look at the property keys that are also in the annotations
-				// and if the prop is of type array in the schema
-				JsonSchema typeSchema = properties.get(key);
-				if (annotationsMap.containsKey(key) 
-						&& typeSchema != null 
-						&& typeSchema.getType() != null
-						&& typeSchema.getType().equals(Type.array)) {
-					AnnotationsValue value = annotationsMap.get(key);
-					if (value == null || value.getValue() == null || value.getType() == null) {
-						continue;
-					} else if (value.getValue().isEmpty()) {
-						jsonObject.put(key, "");
-					} else {
-						JSONArray array = new JSONArray();
-						value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
-						jsonObject.put(key, array);
+			Map<String, JsonSchema> properties = subSchema.getProperties();
+			if (properties != null) {
+				for (String key : properties.keySet()) {
+					JsonSchema typeSchema = properties.get(key);
+					if (typeSchema != null) {
+						if (typeSchema.getType() != null) {
+							if (typeSchema.getType().equals(Type.array)) {
+								result.put(key, true);
+							} else {
+								result.put(key, false);
+							}
+						} else if (typeSchema.get_enum() != null || typeSchema.get_const() != null) {
+							// if const/enum exists, we assume it is not an array for our map
+							result.put(key, false);
+						}
 					}
 				}
 			}
 		}
+		return result;
 	}
 
 	Object stringToObject(AnnotationsValueType type, String value) {

@@ -420,7 +420,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(project.getParentId(), result.getString("parentId"));
 		
 		// the annotations:
-		assertEquals("one", result.getString("singleString"));
+		assertEquals("one", result.getJSONArray("singleString").getString(0));
 		JSONArray doubleArray = result.getJSONArray("listOfDoubles");
 		assertNotNull(doubleArray);
 		assertEquals(2, doubleArray.length());
@@ -463,7 +463,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(project.getParentId(), result.getString("parentId"));
 		
 		// the annotations:
-		assertEquals("two", result.getString("singleString"));
+		assertEquals("two", result.getJSONArray("singleString").getString(0));
 		doubleArray = result.getJSONArray("listOfDoubles");
 		assertNotNull(doubleArray);
 		assertEquals(2, doubleArray.length());
