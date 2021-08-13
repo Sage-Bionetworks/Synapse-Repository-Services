@@ -434,9 +434,10 @@ public class AnnotationsTranslatorImplTest {
 		AnnotationsV2TestUtils.putAnnotations(annotations, "createdOn", "ignore me!", AnnotationsValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedOn", "ignore me!", AnnotationsValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(annotations, "modifiedBy", "ignore me!", AnnotationsValueType.STRING);
+		schema = null;
 		
 		// call under test
-		JSONObject json = translator.writeToJsonObject(project, annotations, null);
+		JSONObject json = translator.writeToJsonObject(project, annotations, schema);
 		assertNotNull(json);
 		assertEquals(project.getName(), json.getString("name"));
 		assertEquals(project.getId(), json.getString("id"));
@@ -560,7 +561,8 @@ public class AnnotationsTranslatorImplTest {
 		schema = null;
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
-		map.put("nullValue", null);
+		AnnotationsValue annoValue = null;
+		map.put("nullValue", annoValue);
 		toWrite.setAnnotations(map);
 		JSONObject json = new JSONObject();
 		// call under test
@@ -866,6 +868,8 @@ public class AnnotationsTranslatorImplTest {
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithAllNullSchemaTypeAndAnnotationSingle() {
 		// this is where type, enum, and const are all null
+		JsonSchema typeSchema = new JsonSchema();
+		properties.put("key", typeSchema);
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		AnnotationsValue annoValue = new AnnotationsValue();
@@ -882,6 +886,8 @@ public class AnnotationsTranslatorImplTest {
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithAllNullSchemaTypeAndAnnotationArray() {
 		// this is where type, enum, and const are all null
+		JsonSchema typeSchema = new JsonSchema();
+		properties.put("key", typeSchema);
 		Annotations toWrite = new Annotations();
 		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
 		AnnotationsValue annoValue = new AnnotationsValue();

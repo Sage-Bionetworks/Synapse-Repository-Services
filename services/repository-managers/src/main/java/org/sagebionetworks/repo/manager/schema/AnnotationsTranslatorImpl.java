@@ -353,44 +353,35 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 */
 	void writeAnnotationsToJSONObject(Annotations toWrite, JSONObject jsonObject, JsonSchema schema) {
-		Map<String, Boolean> isArrayMap = null;
+		Map<String, Boolean> isSingleMap = Collections.emptyMap();
 		if (schema != null) {
-			isArrayMap = buildJsonSchemaIsArrayMap(schema);
+			isSingleMap = buildJsonSchemaIsSingleMap(schema);
 		}
 		for (Entry<String, AnnotationsValue> entry : toWrite.getAnnotations().entrySet()) {
-			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, isArrayMap);
+			writeAnnotationValue(entry.getKey(), entry.getValue(), jsonObject, isSingleMap);
 		}
 	}
 
-	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, Boolean> isArrayMap) {
+	void writeAnnotationValue(String key, AnnotationsValue value, JSONObject jsonObject, Map<String, Boolean> isSingleMap) {
 		if (value == null || value.getValue() == null || value.getType() == null) {
 			return;
 		}
 		if (value.getValue().isEmpty()) {
 			jsonObject.put(key, "");
-		} else if (value.getValue().size() == 1 
-				&& isArrayMap != null 
-				&& isArrayMap.containsKey(key) 
-				&& !isArrayMap.get(key)) {
+		} else if (value.getValue().size() == 1 && Boolean.TRUE.equals(isSingleMap.get(key))) {
 			/*
-			 * The idea is that we are using the JSON schema to guide the single versus array type decision
-			 * when it is ambiguous. Therefore if the annotations give enough information, we want to use that
-			 * to drive the decision of which to write. Example: an array annotation with > 1 value 
-			 * but the schema defines it as a single, in which case we write an array and ignore the schema.
-			 * The cases in which we write a single:
-			 * 1. Annotation is a single and the schema defines it as a single
-			 * 2. Annotation is a single and the schema defines a const or enum (we will assume these are singles)
-			 * 	  (note the isArrayMap stores false aka single for enum/const existing)
+			 * The only case where we write a single is when the annotations is a single
+			 * and the schema defines it as a single, const, or enum
 			 */
 			jsonObject.put(key, stringToObject(value.getType(), value.getValue().get(0)));
-		} else { // everything else is stored in an array
+		} else {
 			JSONArray array = new JSONArray();
 			jsonObject.put(key, array);
 			value.getValue().forEach(s -> array.put(stringToObject(value.getType(), s)));
 		}
 	}
 	
-	Map<String, Boolean> buildJsonSchemaIsArrayMap(JsonSchema schema) {
+	Map<String, Boolean> buildJsonSchemaIsSingleMap(JsonSchema schema) {
 		Map<String, Boolean> result = new HashMap<>();
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
 			Map<String, JsonSchema> properties = subSchema.getProperties();
@@ -400,13 +391,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 					if (typeSchema != null) {
 						if (typeSchema.getType() != null) {
 							if (typeSchema.getType().equals(Type.array)) {
-								result.put(key, true);
-							} else {
 								result.put(key, false);
+							} else {
+								result.put(key, true);
 							}
 						} else if (typeSchema.get_enum() != null || typeSchema.get_const() != null) {
-							// if const/enum exists, we assume it is not an array for our map
-							result.put(key, false);
+							// if const/enum exists, we assume it is a single in our map
+							result.put(key, true);
 						}
 					}
 				}

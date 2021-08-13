@@ -890,6 +890,7 @@ public class EntityManagerImplUnitTest {
 	
 	@Test
 	public void testGetEntityJson() {
+		JsonSchema schema = null;
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		Project project = new Project();
 		project.setId(entityId);
@@ -906,7 +907,7 @@ public class EntityManagerImplUnitTest {
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
-		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, null);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
 	}
 	
 	@Test
@@ -966,6 +967,7 @@ public class EntityManagerImplUnitTest {
 	
 	@Test
 	public void testGetEntityJsonSubject() {
+		JsonSchema schema = null;
 		Project project = new Project();
 		project.setId(entityId);
 		project.setEtag("some-etag");
@@ -983,7 +985,7 @@ public class EntityManagerImplUnitTest {
 		assertEquals(org.sagebionetworks.repo.model.schema.ObjectType.entity, subject.getObjectType());
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
-		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, null);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
 	}
 	
 	@Test
