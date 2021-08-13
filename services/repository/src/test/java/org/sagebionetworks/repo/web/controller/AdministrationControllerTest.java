@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -37,13 +39,13 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 	private Long adminUserId;
 	private Project entity;
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		toDelete = new ArrayList<String>();
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		// Always restore the status to read-write
 		StackStatus status = new StackStatus();
@@ -130,11 +132,12 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testClearLocksUnauthorized() throws Exception{
-		// Clear all locks
-		servletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		
+		assertThrows(UnauthorizedException.class, ()->{
+			// Clear all locks
+			servletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		});
 	}
 }
 

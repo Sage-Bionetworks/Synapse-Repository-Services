@@ -12,9 +12,9 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -80,7 +80,7 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		return sb.toString();
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
@@ -113,7 +113,7 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		fileHandleToDelete = (ExternalFileHandle) fileMetadataDao.createFile(fileHandleToDelete);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (verificationToDelete!=null) {
 			servletTestHelper.deleteVerificationSubmission(dispatchServlet, 

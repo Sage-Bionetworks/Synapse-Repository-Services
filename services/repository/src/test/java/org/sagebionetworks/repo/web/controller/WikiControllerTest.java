@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.ids.IdGenerator;
@@ -74,7 +74,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -101,7 +101,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		
 		for(WikiPageKey key: toDelete){
@@ -193,7 +193,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// Title should be updated. V2 should have mirrored it too.
 		assertEquals("updated title", cloneUpdated.getTitle());
 		assertEquals("updated title", v2WikiPageDao.get(key, null).getTitle());
-		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getId()));
+		assertFalse(currentEtag.equals(cloneUpdated.getId()));
 		
 		// Add a child wiki
 		WikiPage child = new WikiPage();

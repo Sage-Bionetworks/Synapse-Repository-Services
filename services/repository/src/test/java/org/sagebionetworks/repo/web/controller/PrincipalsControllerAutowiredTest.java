@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,9 +10,9 @@ import java.util.List;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -46,7 +46,7 @@ public class PrincipalsControllerAutowiredTest extends AbstractAutowiredControll
 
 	private List<String> toDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
@@ -59,7 +59,7 @@ public class PrincipalsControllerAutowiredTest extends AbstractAutowiredControll
 		UserInfo.validateUserInfo(testUser);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws UnauthorizedException {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
@@ -110,7 +110,7 @@ public class PrincipalsControllerAutowiredTest extends AbstractAutowiredControll
 					TeamConstants.ADMINISTRATORS_TEAM_ID.toString())) {
 				foundAdmin = true;
 			}
-			assertTrue(ug.toString(), !ug.getIsIndividual());
+			assertTrue(!ug.getIsIndividual());
 		}
 		assertTrue(foundPublic);
 		assertTrue(foundAdmin);

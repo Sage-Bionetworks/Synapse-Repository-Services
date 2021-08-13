@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP;
@@ -16,9 +16,9 @@ import java.util.Set;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,14 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
-	UserManager userManger;
+	private UserManager userManger;
 	@Autowired
-	UserProfileService userProfileService;
+	private UserProfileService userProfileService;
 	@Autowired
-	PrincipalPrefixDAO principalPrefixDAO;
-
-	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
+	private PrincipalPrefixDAO principalPrefixDAO;
 	
 	private List<Long> principalsToDelete;
 
@@ -55,7 +51,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	Long principalThree;
 	UserInfo admin;
 
-	@Before
+	@BeforeEach
 	public void before() throws NotFoundException{
 		principalPrefixDAO.truncateTable();
 		principalsToDelete = new LinkedList<Long>();
@@ -104,7 +100,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		principalPrefixDAO.addPrincipalAlias(PUBLIC_GROUP.name(), PUBLIC_GROUP.getPrincipalId());
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(principalsToDelete != null){
 			for(Long id: principalsToDelete){
@@ -121,17 +117,17 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		UserProfile profile =userProfileService.getUserProfileByOwnerId(principalOne, principalTwo.toString());
 		assertNotNull(profile);
 		assertEquals(principalTwo.toString(), profile.getOwnerId());
-		assertEquals("This is deprecated and should always be null",null, profile.getEmail());
-		assertEquals("One user should not be able to see the Emails of another user.",null, profile.getEmails());
-		assertEquals("One user should not be able to see the OpenIds of another user.",null, profile.getOpenIds());
-		assertEquals("One user should be able to see the username of another user.","random", profile.getUserName());
+		assertEquals(null, profile.getEmail());
+		assertEquals(null, profile.getEmails());
+		assertEquals(null, profile.getOpenIds());
+		assertEquals("random", profile.getUserName());
 		// We should be able see our own data
 		profile =userProfileService.getUserProfileByOwnerId(principalTwo, principalTwo.toString());
 		assertNotNull(profile);
 		assertEquals(principalTwo.toString(), profile.getOwnerId());
 		List<String> expected = new LinkedList<String>();
 		expected.add("super@duper.org");
-		assertEquals("A user must be able to see their own email's", expected, profile.getEmails());
+		assertEquals(expected, profile.getEmails(), "A user must be able to see their own email's");
 	}
 	
 	@Test
@@ -145,8 +141,8 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		for(UserGroupHeader ugh: ughrp.getChildren()){
 			Long ownerId = Long.parseLong(ugh.getOwnerId());
 			resultSet.add(ownerId);
-			assertEquals("Email should always be null", null, ugh.getEmail());
-			assertEquals("Email should always be null", null, ugh.getEmail());
+			assertEquals(null, ugh.getEmail());
+			assertEquals(null, ugh.getEmail());
 			if(principalOne.equals(ownerId)){
 				assertEquals("James", ugh.getFirstName());
 				assertEquals("Bond", ugh.getLastName());
@@ -154,8 +150,8 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 			}
 		}
 		
-		assertTrue("Failed to find the user with a 'j' prefix query",resultSet.contains(principalOne));
-		assertTrue("Failed to find the user with a 'j' prefix query",resultSet.contains(principalTwo));
+		assertTrue(resultSet.contains(principalOne));
+		assertTrue(resultSet.contains(principalTwo));
 	}
 
 	@Test
@@ -173,11 +169,11 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 			resultSet.add(ownerId);
 		}
 		// spot check: should find first 15 alphabetical names
-		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalOne));
-		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalTwo));
-		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalThree));
-		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(AUTHENTICATED_USERS_GROUP.getPrincipalId()));
-		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(PUBLIC_GROUP.getPrincipalId()));
+		assertTrue(resultSet.contains(principalOne));
+		assertTrue(resultSet.contains(principalTwo));
+		assertTrue(resultSet.contains(principalThree));
+		assertTrue(resultSet.contains(AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertTrue(resultSet.contains(PUBLIC_GROUP.getPrincipalId()));
 	}
 	
 
@@ -206,8 +202,8 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 			resultSet.add(ownerId);
 		}
 		
-		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalOne));
-		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalTwo));
+		assertTrue(resultSet.contains(principalOne));
+		assertTrue(resultSet.contains(principalTwo));
 	}
 	
 	@Test

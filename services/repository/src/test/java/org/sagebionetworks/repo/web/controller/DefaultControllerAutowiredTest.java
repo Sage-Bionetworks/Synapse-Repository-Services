@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,9 +14,9 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -61,7 +62,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 	private List<String> toDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
@@ -81,7 +82,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		otherUserInfo = userManager.getUserInfo(otherUserId);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (nodeManager != null && toDelete != null) {
 			UserInfo userInfo = userManager.getUserInfo(userId);
@@ -99,7 +100,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getId().toString()));
 	}
 
-	@Test(expected = EntityInTrashCanException.class)
+	@Test
 	public void testDelete() throws Exception {
 		// Create a project
 		Project project = new Project();
@@ -110,7 +111,9 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityService.getEntity(userId, clone.getId(), Project.class);
+		assertThrows(EntityInTrashCanException.class, ()->{
+			entityService.getEntity(userId, clone.getId(), Project.class);
+		});
 	}
 
 	@Test
@@ -144,14 +147,11 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		assertNotNull(dsClone);
 		toDelete.add(dsClone.getId());
 
-		AccessControlList acl = null;
-		try {
-			acl = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
-			fail("Should have failed to get the ACL of an inheriting node");
-		} catch (ACLInheritanceException e) {
-			// Get the ACL from the redirect
-			acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
-		}
+
+		ACLInheritanceException e = assertThrows(ACLInheritanceException.class, ()->{
+			servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+		});
+		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl.getId());
@@ -174,14 +174,11 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		servletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userId);
 		// try retrieving the ACL for the child
 
-		// should get the parent's ACL
-		AccessControlList acl4 = null;
-		try{
+		e = assertThrows(ACLInheritanceException.class, ()->{
 			servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
-		}catch (ACLInheritanceException e){
-			acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
-		}
-
+		});
+		// should get the parent's ACL
+		AccessControlList acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl4.getId());
@@ -217,7 +214,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
+		assertEquals(clone.getId(), clone.getName(), "The name should match the ID when the name is set to null");
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");
@@ -273,7 +270,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
@@ -289,8 +286,11 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Get the ACL for the project
 		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherUserId);
 
+		String dsId = ds.getId();
 		// Now attempt to update the ACL as the dataset
-		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
+		assertThrows(IllegalArgumentException.class, ()->{
+			servletTestHelper.updateEntityAcl(dispatchServlet, dsId, projectAcl, otherUserId);
+		});
 	}
 
 }
