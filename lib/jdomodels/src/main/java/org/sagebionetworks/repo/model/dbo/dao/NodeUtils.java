@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +23,15 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.DatasetItemList;
+import org.sagebionetworks.schema.adapter.JSONAdapter;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Translates JDOs and DTOs.
@@ -89,7 +101,40 @@ public class NodeUtils {
 		if(dto.getScopeIds() != null){
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
+		rev.setItems(writeItemsToJson(dto.getItems()));
 		rev.setReference(compressReference(dto.getReference()));
+	}
+	
+	/**
+	 * Read the given JSON into a list of dataset items.
+	 * @param json
+	 * @return
+	 */
+	public static List<DatasetItem> readJsonToItems(String json){
+		if(json == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.createEntityFromJSONString(json, DatasetItemList.class).getList();
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
+	 * Write the given list of dataset items to JSON.
+	 * @param items
+	 * @return
+	 */
+	public static String writeItemsToJson(List<DatasetItem> items) {
+		if(items == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.createJSONStringForEntity(new DatasetItemList().setList(items));
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 	/**
@@ -143,6 +188,7 @@ public class NodeUtils {
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		dbo.setReference(compressReference(dto.getReference()));
+		dbo.setItems(writeItemsToJson(dto.getItems()));
 		return dbo;
 	}
 	
@@ -197,7 +243,7 @@ public class NodeUtils {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	/**
 	 * Create a DTO from the JDO
 	 * @param jdo
@@ -261,6 +307,7 @@ public class NodeUtils {
 		if(rev.getScopeIds() != null){
 			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
+		dto.setItems(readJsonToItems(rev.getItems()));
 	}
 	
 	/**

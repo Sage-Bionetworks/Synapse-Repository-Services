@@ -6,7 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 
 import com.google.common.collect.Lists;
 
@@ -63,6 +66,7 @@ public class NodeUtilsTest {
 		columnIds.add("1");
 		node.setColumnModelIds(columnIds);
 		node.setScopeIds(Lists.newArrayList("8","9"));
+		node.setItems(Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(6L)));
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
@@ -359,7 +363,7 @@ public class NodeUtilsTest {
 		assertEquals(null, dbo.getActivityId());
 		assertNotNull(dbo.getColumnModelIds());
 		assertNotNull(dbo.getScopeIds());
-		assertEquals(new Long(8888),dbo.getFileHandleId());
+		assertEquals(new Long(8888), dbo.getFileHandleId());
 		assertEquals(dto.getModifiedByPrincipalId(), dbo.getModifiedBy());
 		assertEquals(new Long(dto.getModifiedOn().getTime()), dbo.getModifiedOn());
 		assertNotNull(dbo.getScopeIds());
@@ -368,6 +372,9 @@ public class NodeUtilsTest {
 		assertEquals(dto.getVersionComment(), dbo.getComment());
 		assertEquals(new Long(123), dbo.getOwner());
 		assertNotNull(dbo.getReference());
+		assertEquals(
+				"{\"list\":[{\"entityId\":\"syn555\",\"versionNumber\":2},{\"entityId\":\"syn777\",\"versionNumber\":4}]}",
+				dbo.getItems());
 	}
 
 	@Test
@@ -381,6 +388,35 @@ public class NodeUtilsTest {
 		assertNull(NodeUtils.isBucketSynapseStorage(null));
 	}
 	
+	@Test
+	public void testWriteAndReadJsonToItems() {
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn111").setVersionNumber(1L),
+				new DatasetItem().setEntityId("syn222").setVersionNumber(2L));
+		// Call under test
+		String json = NodeUtils.writeItemsToJson(items);
+		assertNotNull(json);
+		// call under test
+		List<DatasetItem> clone = NodeUtils.readJsonToItems(json);
+		assertEquals(items, clone);
+	}
+	
+	@Test
+	public void testWriteItemsToJsonWithNull() {
+		assertNull(NodeUtils.writeItemsToJson(null));
+	}
+	
+	@Test
+	public void testReadJsonToItemsWithNull() {
+		assertNull(NodeUtils.readJsonToItems(null));
+	}
+	
+	@Test
+	public void testReadJsonToItemsWithInvalidJson() {
+		assertThrows(IllegalArgumentException.class, ()->{
+			NodeUtils.readJsonToItems("Not json");
+		});
+	}
+	
 	Node createDefaultNode() {
 		Node node = new Node();
 		node.setNodeType(EntityType.project);
@@ -388,6 +424,8 @@ public class NodeUtilsTest {
 		node.setAlias("");
 		node.setColumnModelIds(Lists.newArrayList("111","222"));
 		node.setScopeIds(Lists.newArrayList(Lists.newArrayList("333","444")));
+		node.setItems(Lists.newArrayList(new DatasetItem().setEntityId("syn555").setVersionNumber(2L),
+				new DatasetItem().setEntityId("syn777").setVersionNumber(4L)));
 		node.setCreatedByPrincipalId(11L);
 		node.setCreatedOn(new Date(555L));
 		node.setETag("etag");

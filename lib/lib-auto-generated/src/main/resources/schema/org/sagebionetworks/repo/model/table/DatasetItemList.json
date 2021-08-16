@@ -1,0 +1,11 @@
+{
+	"description": "A list of DatasetItem",
+	"properties": {
+		"list": {
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.table.DatasetItem"
+			}
+		}
+	}
+}

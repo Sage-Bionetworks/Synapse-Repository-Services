@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
@@ -55,6 +56,7 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 		rev.setReference(rs.getBytes(COL_REVISION_REF_BLOB));
 		rev.setColumnModelIds(rs.getBytes(COL_REVISION_COLUMN_MODEL_IDS));
 		rev.setScopeIds(rs.getBytes(COL_REVISION_SCOPE_IDS));
+		rev.setItems(rs.getString(COL_REVISION_ITEMS));
 		
 		if(includeAnnotations){
 			rev.setUserAnnotationsJSON(rs.getString(COL_REVISION_USER_ANNOS_JSON));
