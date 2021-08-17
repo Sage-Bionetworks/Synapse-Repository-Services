@@ -184,7 +184,7 @@ public class EmailUtils {
 		for (String fieldMarker : fieldValues.keySet()) {
 			String replacementValue = fieldValues.get(fieldMarker);
 			if (replacementValue==null) replacementValue = "";
-			template = template.replaceAll(fieldMarker, replacementValue);
+			template = template.replace(fieldMarker, replacementValue);
 		}
 		return template;
 	}
