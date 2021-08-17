@@ -133,6 +133,10 @@
         {
             "name": "MEMBERSHIP_INVITATION",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATASET",
+            "description": "A dataset is a view of a list of entities."
         }
     ]
 }

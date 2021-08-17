@@ -1,16 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Collections;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -25,7 +27,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import junit.framework.Assert;
 
 /**
  * Autowired test for AsynchronousJobController
@@ -44,13 +45,13 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 	private IdGenerator idGenerator;
 	private S3FileHandle fileHandle;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
 		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
-		Assert.assertNotNull(parent);
+		assertNotNull(parent);
 		// Create a table
 		table = new TableEntity();
 		table.setName("TableEntity");
@@ -61,7 +62,7 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 		fileHandle = (S3FileHandle) fileMetadataDao.createFile(fileHandle);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(parent != null){
 			try {

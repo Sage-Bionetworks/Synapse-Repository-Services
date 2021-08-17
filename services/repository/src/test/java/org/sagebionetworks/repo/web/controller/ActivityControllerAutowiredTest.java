@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -14,9 +15,9 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -55,7 +56,7 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 	
 	HttpServletRequest mockRequest;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {		
 		assertNotNull(activityService);
 		activityIdstoDelete = new ArrayList<String>();
@@ -68,7 +69,7 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 		when(mockRequest.getParameter(eq(AuthorizationConstants.USER_ID_PARAM))).thenReturn(userId.toString());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws UnauthorizedException {
 
 		if (entityService != null && entityIdsToDelete != null) {
@@ -121,13 +122,12 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 		
 		// test deletion
 		servletTestHelper.deleteActivity(dispatchServlet, act.getId(), userId, extraParams);
-		// assure deletion
-		try {
-			servletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
-			fail("Activity should have been deleted");
-		} catch (NotFoundException e) {
-			// good.
-		}
+		
+		String activityId = act.getId();
+		assertThrows(NotFoundException.class, ()->{
+			servletTestHelper.getActivity(dispatchServlet, activityId, userId);
+		});
+
 	}
 
 	@Test

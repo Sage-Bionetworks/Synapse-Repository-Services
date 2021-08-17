@@ -42,6 +42,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -474,5 +476,61 @@ public class EntityServiceImplAutowiredTest  {
 		// call under test
 		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class, EventType.GET);
 		assertEquals(secondSchema, table.getColumnIds());
+	}
+	
+	@Test
+	public void testDatasetCRUD() {
+		boolean newVersion = false;
+		String activityId = null;
+		Dataset dataset = new Dataset();
+		dataset.setName("first-dataset");
+		dataset.setParentId(project.getId());
+		// call under test (create and get)
+		dataset = entityService.createEntity(adminUserId, dataset, activityId);
+		assertNotNull(dataset.getId());
+		final String datsetId = dataset.getId();
+		
+		dataset.setName("new-dataset-name");
+		// call under test (update)
+		dataset = entityService.updateEntity(adminUserId, dataset, newVersion, activityId);
+		
+		// call under test (delete)
+		entityService.deleteEntity(adminUserId, datsetId);
+		
+		assertThrows(NotFoundException.class, ()->{
+			entityService.getEntity(adminUserId, datsetId);
+		});
+		
+	}
+	
+	@Test
+	public void testDatasetScope() {
+		FileEntity file = new FileEntity();
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle1.getId());
+		file = entityService.createEntity(adminUserId, file, null);
+		
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one = columnModelManager.createColumnModel(adminUserInfo, one);
+		List<String> schema = Arrays.asList(one.getId());
+		
+		List<DatasetItem> scope = Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()));
+
+		boolean newVersion = false;
+		String activityId = null;
+		Dataset dataset = new Dataset();
+		dataset.setName("first-dataset");
+		dataset.setParentId(project.getId());
+
+		dataset.setItems(scope);
+		dataset.setColumnIds(schema);
+		// call under test (create and get)
+		dataset = entityService.createEntity(adminUserId, dataset, activityId);
+		assertNotNull(dataset.getId());
+		final String datsetId = dataset.getId();
+		assertEquals(scope, dataset.getItems());
+		assertEquals(schema, dataset.getColumnIds());
 	}
 }

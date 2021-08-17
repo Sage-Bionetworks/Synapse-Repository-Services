@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -10,9 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.commons.logging.Log;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -43,13 +43,13 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 
 	private EntityManager originalEntityManager;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		originalEntityManager = (EntityManager) ReflectionTestUtils.getField(((EntityServiceImpl) getTargetObject(entityService)),
 				"entityManager");
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		ReflectionTestUtils.setField(((EntityServiceImpl) getTargetObject(entityService)), "entityManager", originalEntityManager);
 	}
@@ -60,16 +60,15 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 		deadlockWatcher.setLog(mockLog);
 
 		EntityManager mockEntityManager = mock(EntityManager.class);
-		when(mockEntityManager.getEntityHeader(any(UserInfo.class), anyString())).thenThrow(
+		when(mockEntityManager.getEntityHeader(any(), anyString())).thenThrow(
 				new DeadlockLoserDataAccessException("fake", null));
 
 		ReflectionTestUtils.setField(((EntityServiceImpl) getTargetObject(entityService)), "entityManager", mockEntityManager);
 
-		try {
-			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), (String)null);
-			fail("Should have thrown a DeadlockLoserDataAccessException");
-		} catch (DeadlockLoserDataAccessException e2) {
-		}
+		assertThrows(DeadlockLoserDataAccessException.class, ()->{
+			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), "someId");
+		});
+
 		// The log should have been hit at least 4 times
 		verify(mockLog, atLeast(4)).debug(any(String.class));
 	}
@@ -87,12 +86,9 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 
 		ReflectionTestUtils.setField(((EntityServiceImpl) getTargetObject(entityService)), "entityManager", mockEntityManager);
 
-		try {
-			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), (String)null);
-			fail("Should have thrown a DeadlockLoserDataAccessException");
-		} catch (TransientDataAccessException e2) {
-
-		}
+		assertThrows(TransientDataAccessException.class, ()->{
+			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), "someId");
+		});
 		// The log should have been hit at least 4 times
 		verify(mockLog, atLeast(4)).debug(any(String.class));
 	}

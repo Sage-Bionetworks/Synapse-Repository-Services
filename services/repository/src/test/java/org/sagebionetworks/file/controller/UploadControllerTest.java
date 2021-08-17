@@ -1,16 +1,15 @@
 package org.sagebionetworks.file.controller;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -41,7 +40,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
 		
@@ -70,7 +69,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		toDelete.add(handleTwo.getId());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id : toDelete) {
 			fileHandleDao.delete(id);

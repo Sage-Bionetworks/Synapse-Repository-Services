@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,10 +16,9 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -34,7 +33,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -58,6 +56,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -107,7 +106,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	ColumnModel columnModelOne;
 
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
@@ -142,7 +141,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		columnModelOne = columnModelDao.createColumnModel(columnModelOne);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (entityController != null && toDelete != null) {
 			UserInfo userInfo = userManager.getUserInfo(userId);
@@ -327,13 +326,11 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now delete each one
 		for(Entity entity: created){
 			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
-			// This should throw an exception
-			try {
+			
+			assertThrows(Exception.class, ()->{
+				// This should throw an exception
 				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
-				fail("Entity ID " + entity.getId() + " should no longer exist. Expected an exception.");
-			} catch (Exception e) {
-				// expected
-			}
+			});
 		}
 	}
 	
@@ -460,7 +457,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
+			if(isTableOrView(entity)) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -492,7 +489,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
+			if(isTableOrView(entity)) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -536,7 +533,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			// We can only create new versions for versionable entities.
 			if(entity instanceof VersionableEntity){
 				// Cannot directly create version of tables or views
-				if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
+				if(isTableOrView(entity)) {
 					continue;
 				}
 				VersionableEntity versionableEntity = (VersionableEntity) entity;
@@ -588,7 +585,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
+			if(isTableOrView(entity)) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -646,7 +643,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Cannot directly create version of tables or views
-			if(entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView) {
+			if(isTableOrView(entity)) {
 				continue;
 			}
 			// We can only create new versions for versionable entities.
@@ -699,6 +696,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			assertEquals(true, uep.getCanView());
 			assertEquals(true, uep.getCanAddChild());
 		}
+	}
+	
+	public boolean isTableOrView(Entity entity) {
+		return entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView || entity instanceof Dataset;
 	}
 	
 }

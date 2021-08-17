@@ -33,6 +33,10 @@
         {
             "name": "submissionview",
             "description": "Type for entities that define evaluation submission views"
+        },
+        {
+            "name": "dataset",
+            "description": "A dataset is a view of a list of entities."
         }
     ]
 }

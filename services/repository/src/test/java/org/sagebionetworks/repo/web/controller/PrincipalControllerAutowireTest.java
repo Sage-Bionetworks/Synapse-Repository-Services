@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
@@ -25,7 +25,7 @@ public class PrincipalControllerAutowireTest extends AbstractAutowiredController
 		AliasCheckResponse response = servletTestHelper.checkAlias(dispatchServlet, request);
 		assertNotNull(response);
 		assertTrue(response.getValid());
-		assertFalse("The 'anonymous' users should already have this alias so it cannot be available!",response.getAvailable());
+		assertFalse(response.getAvailable());
 	}
 
 	@Test

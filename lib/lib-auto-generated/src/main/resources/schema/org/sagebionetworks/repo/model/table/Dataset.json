@@ -1,0 +1,17 @@
+{
+	"description": "A dataset is a type of view defined by a flat list of entities.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.View"
+		}
+	],
+	"properties": {
+		"items": {
+			"description": "The flat list of entities that define this dataset.  Limit: 20K items.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.DatasetItem"
+			}
+		}
+	}
+}

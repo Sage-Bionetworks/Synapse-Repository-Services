@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StaticWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
@@ -18,7 +19,7 @@ import org.springframework.web.servlet.DispatcherServlet;
  * Base class for autowired controller tests
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public abstract class AbstractAutowiredControllerTestBase implements ApplicationContextAware {
 
@@ -39,7 +40,7 @@ public abstract class AbstractAutowiredControllerTestBase implements Application
 		this.parentContext = parentContext;
 	}
 
-	@Before
+	@BeforeEach
 	public void beforeBase() throws Exception {
 		MockServletConfig servletConfig = new MockServletConfig("repository");
 		servletConfig.addInitParameter("contextConfigLocation", "classpath:test-empty-context.xml");
@@ -53,7 +54,7 @@ public abstract class AbstractAutowiredControllerTestBase implements Application
 		entityServletHelper = new EntityServletTestHelper(dispatchServlet, oidcTokenHelper);
 	}
 
-	@After
+	@AfterEach
 	public void afterBase() throws Exception {
 		servletTestHelper.tearDown();
 	}
