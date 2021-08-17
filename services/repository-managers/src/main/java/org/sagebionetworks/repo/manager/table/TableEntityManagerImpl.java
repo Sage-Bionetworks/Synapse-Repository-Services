@@ -363,7 +363,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
  		
  		final Long userId = user.getId();
  		
- 		List<StatisticsFileEvent> uploadEvents = getFileHandleIdsNotAssociatedWithTable(tableId, newFileIds).stream().map(fileHandleId -> 
+ 		List<StatisticsFileEvent> uploadEvents = newFileIds.stream().map(fileHandleId -> 
 			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
 		).collect(Collectors.toList());
 		
@@ -1058,12 +1058,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			
 			try {
 				SparseChangeSet changeSet = getSparseChangeSet(changeMetadata);
-				
-				final Set<Long> fileIdsInSet = changeSet.getFileHandleIdsInSparseChangeSet();
-				
-		 		final Set<Long> newFileIds = getFileHandleIdsNotAssociatedWithTable(changeSet.getTableId(), fileIdsInSet);
 		 		
-		 		hasFileRefs = !newFileIds.isEmpty();
+		 		hasFileRefs = !changeSet.getFileHandleIdsInSparseChangeSet().isEmpty();
 			 
 			} catch (IOException e) {
 				throw new IllegalStateException(e);
