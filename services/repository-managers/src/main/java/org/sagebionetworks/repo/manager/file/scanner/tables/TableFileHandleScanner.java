@@ -38,7 +38,7 @@ public class TableFileHandleScanner implements FileHandleAssociationScanner {
 	
 	private static final Logger LOG = LogManager.getLogger(TableFileHandleScanner.class);
 	
-	private static final long MAX_SCAN_ID_RANGE = 10_000;
+	private static final long MAX_SCAN_ID_RANGE = 5_000;
 			
 	private TableEntityManager tableManager;
 	
