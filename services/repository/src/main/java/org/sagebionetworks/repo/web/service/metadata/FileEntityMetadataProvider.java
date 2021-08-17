@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, TypeSpecificCreateProvider<FileEntity>,
 		TypeSpecificUpdateProvider<FileEntity> {
 

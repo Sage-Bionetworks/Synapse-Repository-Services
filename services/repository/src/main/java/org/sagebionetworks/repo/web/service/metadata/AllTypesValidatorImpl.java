@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * This class provides basic validation that applies to all object types.
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
+@Service
 public class AllTypesValidatorImpl implements AllTypesValidator {
 	static final int MAX_DESCRIPTION_CHARS  = 1000;
 	static final int MAX_NAME_CHARS  = 256;
