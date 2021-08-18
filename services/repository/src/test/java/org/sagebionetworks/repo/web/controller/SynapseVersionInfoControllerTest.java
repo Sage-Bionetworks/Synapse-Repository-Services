@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
  *
  * @author xschildw
  */
-public class SynapseVersionInfoControllerTest extends AbstractAutowiredControllerJunit5TestBase {
+public class SynapseVersionInfoControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Test
 	public void testGetVersionInfo() throws Exception {

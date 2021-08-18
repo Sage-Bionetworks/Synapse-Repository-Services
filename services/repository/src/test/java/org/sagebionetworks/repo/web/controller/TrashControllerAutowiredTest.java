@@ -34,7 +34,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private EntityService entityService;
