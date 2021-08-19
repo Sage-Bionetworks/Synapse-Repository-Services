@@ -176,7 +176,7 @@ public class TestHelper {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private <T extends Entity> T createEntity(UserInfo user, T entity) {
+	public <T extends Entity> T createEntity(UserInfo user, T entity) {
 		String id = entityManager.createEntity(user, entity, null);
 		
 		return (T) entityManager.getEntity(user, id);

@@ -9,6 +9,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +33,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
@@ -359,6 +362,29 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		ViewScope viewScope = new ViewScope();
 		viewScope.setViewEntityType(entityType);
 		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewTypeMask(typeMask);
+
+		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
+
+		return view;
+	}
+	
+	@Override
+	public Dataset createDataset(UserInfo user, String name, String parentId, List<DatasetItem> items) {
+		ViewEntityType entityType = ViewEntityType.dataset;
+		Long typeMask = 0L;
+		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, typeMask);
+		Dataset view = new Dataset();
+		view.setName(name);
+		view.setParentId(parentId);
+		view.setColumnIds(TableModelUtils.getIds(defaultColumns));
+		view.setItems(items);
+		String viewId = entityManager.createEntity(user, view, null);
+		view = entityManager.getEntity(user, viewId, Dataset.class);
+
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(entityType);
+		viewScope.setScope(items.stream().map(i->i.getEntityId()).collect(Collectors.toList()));
 		viewScope.setViewTypeMask(typeMask);
 
 		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);

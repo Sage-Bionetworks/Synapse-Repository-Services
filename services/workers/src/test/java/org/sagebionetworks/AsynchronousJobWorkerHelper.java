@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
@@ -130,6 +132,16 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope);
+	
+	/**
+	 * Create a dataset with the default columns.
+	 * @param user
+	 * @param name
+	 * @param parentId
+	 * @param items
+	 * @return
+	 */
+	Dataset createDataset(UserInfo user, String name, String parentId, List<DatasetItem> items);
 
 	/**
 	 * Set the schema for the given table and wait for the lock as needed.

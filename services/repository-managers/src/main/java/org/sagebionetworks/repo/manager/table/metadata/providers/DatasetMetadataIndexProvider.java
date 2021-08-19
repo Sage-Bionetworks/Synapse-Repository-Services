@@ -5,21 +5,53 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.google.common.collect.ImmutableList;
 
 @Service
 public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
+	
+	
+	private NodeDAO nodeDao;
+	private NodeManager nodeManager;
+	
+	// @formatter:off
+	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET)
+			.withObjectField(
+					ObjectField.id, 
+					ObjectField.name, 
+					ObjectField.createdOn, 
+					ObjectField.createdBy,
+					ObjectField.etag, 
+					ObjectField.modifiedOn, 
+					ObjectField.modifiedBy
+			).build();
+	// @formatter:on
+	
+	@Autowired
+	public DatasetMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager) {
+		super();
+		this.nodeDao = nodeDao;
+		this.nodeManager = nodeManager;
+	}
 
 	@Override
 	public ViewObjectType getObjectType() {
@@ -28,112 +60,97 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public List<String> getSubTypesForMask(Long typeMask) {
-		// TODO Auto-generated method stub
-		return null;
+		// currently only files are supported.
+		return ImmutableList.of(EntityType.file.name());
 	}
 
 	@Override
 	public boolean isFilterScopeByObjectId(Long typeMask) {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	@Override
 	public ColumnType getIdColumnType() {
-		// TODO Auto-generated method stub
-		return null;
+		return ColumnType.ENTITYID;
 	}
 
 	@Override
 	public ColumnType getParentIdColumnType() {
-		// TODO Auto-generated method stub
-		return null;
+		return ColumnType.ENTITYID;
 	}
 
 	@Override
 	public ColumnType getBenefactorIdColumnType() {
-		// TODO Auto-generated method stub
-		return null;
+		return ColumnType.ENTITYID;
 	}
 
 	@Override
 	public ObjectType getBenefactorObjectType() {
-		// TODO Auto-generated method stub
-		return null;
+		return ObjectType.ENTITY;
 	}
 
 	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		return BASIC_ENTITY_DEAFULT_COLUMNS;
 	}
 
 	@Override
 	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		// TODO Auto-generated method stub
-		return null;
+		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
 	}
 
 	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException {
-		// TODO Auto-generated method stub
-		return null;
+		// The datasets are not hierarchical, so the scope cannot be expanded
+		return scope;
+	}
+	
+	@Override
+	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
+			throws LimitExceededException {
+		return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 	}
 
 	@Override
 	public String createViewOverLimitMessage(Long viewTypeMask, int containerLimit) {
-		// TODO Auto-generated method stub
-		return null;
+		return String.format("Maximum of %,d items in a dataset exceeded.", containerLimit);
 	}
 
 	@Override
 	public Optional<Annotations> getAnnotations(UserInfo userInfo, String objectId) {
-		// TODO Auto-generated method stub
-		return null;
+		return Optional.ofNullable(nodeManager.getUserAnnotations(userInfo, objectId));
 	}
 
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String objectId, Annotations annotations) {
-		// TODO Auto-generated method stub
-
+		nodeManager.updateUserAnnotations(userInfo, objectId, annotations);
 	}
 
 	@Override
 	public boolean canUpdateAnnotation(ColumnModel model) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
-		// TODO Auto-generated method stub
-		return null;
+		return true;
 	}
 
 	@Override
 	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		// TODO Auto-generated method stub
-		return null;
+		return nodeDao.getAvailableNodes(containerIds);
 	}
 
 	@Override
 	public List<IdAndEtag> getChildren(Long containerId) {
-		// TODO Auto-generated method stub
-		return null;
+		return nodeDao.getChildren(containerId);
 	}
 
 	@Override
 	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		// TODO Auto-generated method stub
-		return null;
+		return nodeDao.getSumOfChildCRCsForEachParent(containerIds);
 	}
 
 	@Override
 	public void validateTypeMask(Long viewTypeMask) {
-		// TODO Auto-generated method stub
-
+		// not currently using the view type mask
 	}
 
 }
