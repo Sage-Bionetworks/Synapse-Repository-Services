@@ -232,6 +232,27 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return Optional.empty();
 		}
 	}
+	
+	/**
+	 * Attempt to read the value for the given index as a boolean. if the value is not a boolean an
+	 * empty optional will be returned.
+	 * @param index
+	 * @param array
+	 * @return
+	 */
+	Optional<ListValue> attemptToReadAsBoolean(int index, JSONArray array) {
+		try {
+			Boolean value = array.getBoolean(index);
+			String testString = array.getString(index);
+			if (!testString.equals(value.toString())) {
+				// data loss
+				return Optional.empty();
+			}
+			return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, value.toString()));
+		} catch (JSONException e) {
+			return Optional.empty();
+		}
+	}
 
 	/**
 	 * Attempt to read the value for the given key as a long. If the value is not a
@@ -305,7 +326,7 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			AnnotationsValueType lastType = null;
 			for (int i = 0; i < array.length(); i++) {
 				ListValue listValue = Stream
-						.of(attemptToReadAsDouble(i, array), attemptToReadAsTimestamp(i, array),
+						.of(attemptToReadAsBoolean(i, array), attemptToReadAsDouble(i, array), attemptToReadAsTimestamp(i, array),
 								attemptToReadAsLong(i, array), attemptToReadAsString(i, array))
 						.filter(Optional::isPresent).findFirst().get().orElseThrow(() -> new IllegalArgumentException(
 								"Cannot translate value at '" + key + "' to an Annotation"));
