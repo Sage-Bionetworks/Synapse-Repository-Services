@@ -20,7 +20,6 @@ public class ValidationJsonSchemaIndexDaoImpl implements ValidationJsonSchemaInd
 	@Autowired
 	private DBOBasicDao basicDao;
 
-	@WriteTransaction
 	@Override
 	public JsonSchema getValidationSchema(String versionId) {
 		try {
