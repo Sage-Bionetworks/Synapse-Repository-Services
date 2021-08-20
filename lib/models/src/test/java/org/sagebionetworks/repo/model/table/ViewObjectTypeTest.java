@@ -44,9 +44,7 @@ public class ViewObjectTypeTest {
 		for (ViewObjectType viewObjectType : ViewObjectType.values()) {
 			
 			// Call under test
-			ObjectType result = viewObjectType.getObjectType();
-			
-			assertEquals(ObjectType.valueOf(viewObjectType.name()), result);
+			assertNotNull(viewObjectType.getObjectType());
 		}
 		
 	}
