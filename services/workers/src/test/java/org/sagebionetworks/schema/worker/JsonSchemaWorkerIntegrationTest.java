@@ -557,62 +557,6 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 	
-	@Test
-	public void testAnnotationsWithBooleanListVerifyBooleansOnGet() throws Exception {
-		/*
-		 * PLFM-6874: It was reported that getting boolean list annotations defaulted
-		 * to strings. The issue was that on PUT for annotations, a case was missing
-		 * for parsing the string to boolean.
-		 */
-		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
-		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
-		Map<String, JsonSchema> properties = new HashMap<>();
-		JsonSchema fooType = new JsonSchema();
-		fooType.setType(Type.array);
-		properties.put("fooKey", fooType);
-		basicSchema.setProperties(properties);
-		/* 
-		 * this is the basicSchema
-		 * {
-		 * 	"properties": 
-		 * 	{ 
-		 * 		"fooKey": { 
-		 * 			"type": "array", 
-		 * 			"items": { "type": "boolean" } 
-		 * 		}
-		 * 	}
-		 * }
-		 */
-
-		// create the schema
-		CreateSchemaResponse createResponse = registerSchema(basicSchema);
-		String schema$id = createResponse.getNewVersionInfo().get$id();
-		// bind the schema to the project
-		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
-		bindRequest.setEntityId(projectId);
-		bindRequest.setSchema$id(schema$id);
-		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
-		
-		// add a folder to the project
-		Folder folder = new Folder();
-		folder.setParentId(project.getId());
-		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
-		
-		// add data
-		folderJson.put("fooKey", Arrays.asList("true", "false"));
-		folderJson.put("barKey", Arrays.asList("false", "true"));
-		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
-		
-		folderJson = entityManager.getEntityJson(folderId);
-		assertEquals(folderJson.getJSONArray("fooKey").get(0).getClass(), Boolean.class);
-		assertEquals(folderJson.getJSONArray("barKey").get(0).getClass(), Boolean.class);
-		
-		// clean up
-		entityManager.clearBoundSchema(adminUserInfo, projectId);
-		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
-	}
-	
 	/**
 	 * Wait for the validation results
 	 * 

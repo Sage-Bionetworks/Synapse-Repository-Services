@@ -242,13 +242,13 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 */
 	Optional<ListValue> attemptToReadAsBoolean(int index, JSONArray array) {
 		try {
-			Boolean value = array.getBoolean(index);
-			String testString = array.getString(index);
-			if (!testString.equals(value.toString())) {
-				// data loss
+			Object value = array.get(index);
+			if (value.getClass().equals(Boolean.class)) {
+				String valueAsString = array.getString(index);
+				return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, valueAsString));
+			} else {
 				return Optional.empty();
 			}
-			return Optional.of(new ListValue(AnnotationsValueType.BOOLEAN, value.toString()));
 		} catch (JSONException e) {
 			return Optional.empty();
 		}

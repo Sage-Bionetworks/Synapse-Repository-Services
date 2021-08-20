@@ -484,4 +484,43 @@ public class EntityManagerImplAutowireTest {
 		assertEquals( Arrays.asList("4.5","6.7"), value.getValue());
 	}
 	
+	@Test
+	public void testUpdateEntityJsonWithBooleanList() {
+		// Test for PLFM-6874: To show that boolean lists do not become string lists
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		// get entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		// add a list of booleans annotation
+		toUpdate.put("key", Arrays.asList(true, false));
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		// get the entity JSON
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid);
+		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), Boolean.class);
+		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), Boolean.class);
+	}
+	
+	@Test
+	public void testUpdateEntityJsonWithStringListOfBooleans() {
+		// Test for PLFM-6874: To show that string false/true are still strings
+		Project project = new Project();
+		project.setName("project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		// get entity JSON
+		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		// add a list of string boolean annotation
+		toUpdate.put("key", Arrays.asList("true", "false"));
+		// put entity JSON
+		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
+		// get the entity JSON
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid);
+		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), String.class);
+		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), String.class);
+	}
 }
