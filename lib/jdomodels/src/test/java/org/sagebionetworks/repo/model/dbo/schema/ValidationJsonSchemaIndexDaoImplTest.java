@@ -4,14 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -21,77 +24,83 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class ValidationJsonSchemaIndexDaoImplTest {
 	
 	@Autowired
-	ValidationJsonSchemaIndexDao validationDao;
+	private ValidationJsonSchemaIndexDao validationIndexDao;
 	
 	@Autowired
-	JsonSchemaDao jsonSchemaDao;
+	private JsonSchemaDao jsonSchemaDao;
 	
 	@Autowired
-	OrganizationDao organizationDao;
+	private OrganizationDao organizationDao;
 	
-	String versionId;
-	JsonSchema schema;
-	String organizationName;
-	String organizationId;
-	Long creator;
-	Organization org;
-	String schemaName;
+	@Autowired
+	private JsonSchemaTestHelper jsonSchemaTestHelper;
+	
+	private JsonSchema schema;
+	private String organizationName;
+	private String organizationId;
+	private Long createdBy;
+	private Organization organization;
+	private String schemaName;
+	private String semanticVersion;
+	private NewSchemaVersionRequest newSchemaVersionRequest;
+	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	
 	@BeforeEach
-	public void before() {
-		validationDao.truncateAll();
-		jsonSchemaDao.truncateAll();
-		organizationDao.truncateAll();
-		organizationName = "testOrg";
-		schemaName = "testName";
-		creator = 2L;
+	public void before() throws Exception {
+		validationIndexDao.truncateAll();
+		jsonSchemaTestHelper.truncateAll();
+		createdBy = adminUserId;
+		organizationName = "Foo.baR";
+		organization = organizationDao.createOrganization(organizationName, adminUserId);
+		organizationId = organization.getId();
+		schemaName = "path.Name";
+		semanticVersion = "1.2.3";
 		schema = new JsonSchema();
 		schema.set_const("foo");
-		// create new organization
-		org = organizationDao.createOrganization(organizationName, creator);
-		organizationId = org.getId();
-		// add to the JSON_SCHEMA_VERSION table
-		NewSchemaVersionRequest request = new NewSchemaVersionRequest();
-		request = request.withOrganizationId(organizationId).withCreatedBy(creator)
-				.withSchemaName(schemaName).withJsonSchema(schema);
-		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(request);
-		versionId = info.getVersionId();
+		schema.set$id(organizationName + "-" + schemaName);
+
+		newSchemaVersionRequest = new NewSchemaVersionRequest().withCreatedBy(createdBy)
+				.withOrganizationId(organizationId).withJsonSchema(schema).withSchemaName(schemaName)
+				.withSemanticVersion(semanticVersion);
 	}
 	
 	@AfterEach
 	public void after() {
-		validationDao.truncateAll();
-		jsonSchemaDao.truncateAll();
-		organizationDao.truncateAll();
+		validationIndexDao.truncateAll();
+		jsonSchemaTestHelper.truncateAll();
 	}
 	
 	@Test
 	public void testBasicCRUD() {
+		// create the new Json schema
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newSchemaVersionRequest);
+		String versionId = info.getVersionId();
+		
 		// create the validation schema for versionId
-		validationDao.createOrUpdate(versionId, schema);
+		validationIndexDao.createOrUpdate(versionId, schema);
 		
 		// get the schema for the versionId
-		JsonSchema resultSchema = validationDao.getValidationSchema(versionId);
+		JsonSchema resultSchema = validationIndexDao.getValidationSchema(versionId);
 		assertEquals(resultSchema.get_const(), schema.get_const());
 		
 		// update the versionId to a different schema
 		JsonSchema newSchema = new JsonSchema();
 		newSchema.set_const("bar");
-		validationDao.createOrUpdate(versionId, newSchema);
-		resultSchema = validationDao.getValidationSchema(versionId);
+		validationIndexDao.createOrUpdate(versionId, newSchema);
+		resultSchema = validationIndexDao.getValidationSchema(versionId);
 		assertNotEquals(resultSchema.get_const(), schema.get_const());
 		
 		// delete the schema for the id
-		validationDao.delete(versionId);
+		validationIndexDao.delete(versionId);
 		assertThrows(NotFoundException.class, () -> {
-			validationDao.getValidationSchema(versionId);
+			validationIndexDao.getValidationSchema(versionId);
 		});
 	}
 	
 	@Test
 	public void testGetValidationSchemaWithNotFound() {
 		assertThrows(NotFoundException.class, () -> {
-			validationDao.getValidationSchema("randomId");
+			validationIndexDao.getValidationSchema("randomId");
 		});
 	}
 }
