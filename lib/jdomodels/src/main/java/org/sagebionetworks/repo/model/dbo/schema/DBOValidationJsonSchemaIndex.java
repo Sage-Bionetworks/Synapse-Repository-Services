@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VALIDA
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -18,7 +19,7 @@ public class DBOValidationJsonSchemaIndex implements DatabaseObject<DBOValidatio
 			new FieldColumn("versionId", COL_VALIDATION_SCHEMA_VERSION_ID, true),
 			new FieldColumn("validationSchema", COL_VALIDATION_JSON_SCHEMA), };
 
-	private String versionId;
+	private Long versionId;
 	private String validationSchema;
 	
 	TableMapping<DBOValidationJsonSchemaIndex> MAPPING = new TableMapping<DBOValidationJsonSchemaIndex>() {
@@ -26,7 +27,7 @@ public class DBOValidationJsonSchemaIndex implements DatabaseObject<DBOValidatio
 		@Override
 		public DBOValidationJsonSchemaIndex mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOValidationJsonSchemaIndex dbo = new DBOValidationJsonSchemaIndex();
-			dbo.setVersionId(rs.getString(COL_VALIDATION_SCHEMA_VERSION_ID));
+			dbo.setVersionId(rs.getLong(COL_VALIDATION_SCHEMA_VERSION_ID));
 			dbo.setValidationSchema(rs.getString(COL_VALIDATION_JSON_SCHEMA));
 			return dbo;
 		}
@@ -57,7 +58,7 @@ public class DBOValidationJsonSchemaIndex implements DatabaseObject<DBOValidatio
 		return MAPPING;
 	}
 
-	public void setVersionId(String versionId) {
+	public void setVersionId(Long versionId) {
 		this.versionId = versionId;
 	}
 
@@ -65,7 +66,7 @@ public class DBOValidationJsonSchemaIndex implements DatabaseObject<DBOValidatio
 		this.validationSchema = validationSchema;
 	}
 	
-	public String getVersionId() {
+	public Long getVersionId() {
 		return versionId;
 	}
 	
@@ -75,32 +76,18 @@ public class DBOValidationJsonSchemaIndex implements DatabaseObject<DBOValidatio
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((validationSchema == null) ? 0 : validationSchema.hashCode());
-		result = prime * result + ((versionId == null) ? 0 : versionId.hashCode());
-		return result;
+		return Objects.hash(validationSchema, versionId);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof DBOValidationJsonSchemaIndex)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		DBOValidationJsonSchemaIndex other = (DBOValidationJsonSchemaIndex) obj;
-		if (validationSchema == null) {
-			if (other.validationSchema != null)
-				return false;
-		} else if (!validationSchema.equals(other.validationSchema))
-			return false;
-		if (versionId == null) {
-			if (other.versionId != null)
-				return false;
-		} else if (!versionId.equals(other.versionId))
-			return false;
-		return true;
+		return Objects.equals(validationSchema, other.validationSchema) && Objects.equals(versionId, other.versionId);
 	}
 }

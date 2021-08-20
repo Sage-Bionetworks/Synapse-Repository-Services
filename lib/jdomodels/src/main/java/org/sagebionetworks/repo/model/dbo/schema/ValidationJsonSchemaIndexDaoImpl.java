@@ -52,9 +52,9 @@ public class ValidationJsonSchemaIndexDaoImpl implements ValidationJsonSchemaInd
 		jdbcTemplate.update("DELETE FROM " + TABLE_VALIDATION_JSON_SCHEMA_INDEX);
 	}
 	
-	private DBOValidationJsonSchemaIndex convertFromDTOtoDBO(String versionId, JsonSchema schema) {
+	DBOValidationJsonSchemaIndex convertFromDTOtoDBO(String versionId, JsonSchema schema) {
 		DBOValidationJsonSchemaIndex dbo = new DBOValidationJsonSchemaIndex();
-		dbo.setVersionId(versionId);
+		dbo.setVersionId(Long.parseLong(versionId));
 		try {
 			dbo.setValidationSchema(EntityFactory.createJSONStringForEntity(schema));
 		} catch (JSONObjectAdapterException e) {
@@ -63,7 +63,7 @@ public class ValidationJsonSchemaIndexDaoImpl implements ValidationJsonSchemaInd
 		return dbo;
 	}
 	
-	private JsonSchema convertFromDBOtoDTO(DBOValidationJsonSchemaIndex dbo) {
+	JsonSchema convertFromDBOtoDTO(DBOValidationJsonSchemaIndex dbo) {
 		String schemaString = dbo.getValidationSchema();
 		try {
 			JsonSchema dto = EntityFactory.createEntityFromJSONString(schemaString, JsonSchema.class);
