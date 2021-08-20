@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -344,8 +345,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
-	
-	private static final String SUBTYPE_SUBMISSION = ViewObjectType.SUBMISSION.defaultSubType();
 	
 	@Override
 	@WriteTransaction
@@ -884,7 +883,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
 		ObjectDataDTO data = new ObjectDataDTO();
-		
 		data.setId(rs.getLong(COL_SUBMISSION_ID));
 		data.setName(rs.getString(COL_SUBMISSION_NAME));
 		data.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
@@ -896,7 +894,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		data.setModifiedOn(new Date(rs.getLong(COL_SUBSTATUS_MODIFIED_ON)));
 		data.setModifiedBy(rs.getLong(MODIFIED_BY));
 		data.setCurrentVersion(rs.getLong(COL_SUBSTATUS_VERSION));
-		data.setSubType(SUBTYPE_SUBMISSION);
+		data.setSubType(SubType.submission);
 	
 		List<ObjectAnnotationDTO> annotations = fetchAnnotations(rs, data.getId(), maxAnnotationChars);
 		

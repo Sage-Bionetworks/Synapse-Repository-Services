@@ -11,18 +11,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -35,7 +35,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetIntegrationTest {
 
-	private static final int MAX_WAIT = 2 * 60 * 1000 * 1000;
+	private static final int MAX_WAIT = 1 * 60 * 1000*10;
 
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
@@ -70,7 +70,7 @@ public class DatasetIntegrationTest {
 		});
 		file = testHelper.createEntity(userInfo,
 				new FileEntity().setName("afile").setParentId(project.getId()).setDataFileHandleId(fh.getId()));
-		testHelper.addNodeForCleanup(project.getId());
+		asyncHelper.waitForObjectReplication(MainType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(), MAX_WAIT);
 	}
 
 	@AfterEach
@@ -86,14 +86,13 @@ public class DatasetIntegrationTest {
 	}
 
 	@Test
-	public void testQueryDataset() throws AssertionError, AsynchJobFailedException {
+	public void testQueryDataset() throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 		List<DatasetItem> items = Arrays
 				.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()));
 		Dataset dataset = asyncHelper.createDataset(userInfo, "aDataset", project.getId(), items);
 		// call under test
 		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
 			List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-
 			assertEquals(1, rows.size());
 		}, MAX_WAIT);
 	}

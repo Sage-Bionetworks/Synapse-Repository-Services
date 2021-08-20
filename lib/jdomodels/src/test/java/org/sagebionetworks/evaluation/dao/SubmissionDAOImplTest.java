@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1202,7 +1203,7 @@ public class SubmissionDAOImplTest {
 		assertEquals(submission.getEvaluationId(), data.getBenefactorId().toString());
 		assertEquals(evaluation.getContentSource(), KeyFactory.keyToString(data.getProjectId()));
 		assertEquals(submission.getName(), data.getName());
-		assertEquals(ViewObjectType.SUBMISSION.defaultSubType(), data.getSubType());
+		assertEquals(SubType.submission.name(), data.getSubType());
 		assertNotNull(data.getAnnotations());
 
 		Map<String, ObjectAnnotationDTO> annotations = data.getAnnotations().stream()

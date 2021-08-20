@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -331,7 +332,7 @@ public class SubmissionViewIntegrationTest {
 		String etag = status.getEtag();
 		
 		// Wait for the replication to finish
-		asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, submissionId, etag, MAX_WAIT);
+		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, submissionId, etag, MAX_WAIT);
 		
 		ViewScope viewScope = new ViewScope();
 		viewScope.setScope(ImmutableList.of(evaluation.getId()));

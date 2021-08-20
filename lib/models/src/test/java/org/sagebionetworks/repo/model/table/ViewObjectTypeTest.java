@@ -50,13 +50,6 @@ public class ViewObjectTypeTest {
 		}
 		
 	}
-	
-	@Test
-	public void testDefaultSubType() {
-		for (ViewObjectType viewObjectType : ViewObjectType.values()) {
-			assertEquals(viewObjectType.name().toLowerCase(), viewObjectType.defaultSubType());
-		}
-	}
 
 	@Test
 	public void testMapFromEntityType() {

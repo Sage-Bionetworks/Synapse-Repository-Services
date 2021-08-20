@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -91,7 +92,7 @@ public class SubmissionReplicationIntegrationTest {
 		Long submissionId = Long.valueOf(submission.getSubmissionStatus().getId());
 		String etag = submission.getSubmissionStatus().getEtag();
 		
-		ObjectDataDTO data = asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, submissionId, etag, MAX_WAIT);
+		ObjectDataDTO data = asyncHelper.waitForObjectReplication(MainType.SUBMISSION, submissionId, etag, MAX_WAIT);
 
 		assertEquals(KeyFactory.stringToKey(evaluationProject.getId()), data.getProjectId());
 		assertEquals(KeyFactory.stringToKey(evaluation.getId()), data.getParentId());
@@ -120,7 +121,7 @@ public class SubmissionReplicationIntegrationTest {
 		
 		etag = status.getEtag();
 		
-		data = asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, submissionId, etag, MAX_WAIT);
+		data = asyncHelper.waitForObjectReplication(MainType.SUBMISSION, submissionId, etag, MAX_WAIT);
 		
 		annotations = data.getAnnotations()
 				.stream()

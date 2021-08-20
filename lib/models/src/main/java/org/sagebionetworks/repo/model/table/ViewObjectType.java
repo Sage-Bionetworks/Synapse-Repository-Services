@@ -15,16 +15,18 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public enum ViewObjectType {
 
-	ENTITY(ViewEntityType.entityview, ObjectType.ENTITY),
-	SUBMISSION(ViewEntityType.submissionview, ObjectType.SUBMISSION),
-	DATASET(ViewEntityType.dataset, ObjectType.DATASET);
+	ENTITY(ViewEntityType.entityview, MainType.ENTITY),
+	SUBMISSION(ViewEntityType.submissionview, MainType.SUBMISSION),
+	DATASET(ViewEntityType.dataset, MainType.ENTITY);
 
 	private ViewEntityType viewEntityType;
+	private MainType mainType;
 	private ObjectType objectType;
 
-	private ViewObjectType(ViewEntityType viewEntityType, ObjectType objectType) {
+	private ViewObjectType(ViewEntityType viewEntityType, MainType mainType) {
 		this.viewEntityType = viewEntityType;
-		this.objectType = objectType;
+		this.mainType = mainType;
+		this.objectType = ObjectType.valueOf(mainType.name());
 	}
 
 	/**
@@ -40,13 +42,9 @@ public enum ViewObjectType {
 	public ObjectType getObjectType() {
 		return objectType;
 	}
-
-	/**
-	 * @return The default subtype value used for replication for this object type
-	 *         (e.g. use when there is not subtype for the given type)
-	 */
-	public String defaultSubType() {
-		return name().toLowerCase();
+	
+	public MainType getMainType() {
+		return this.mainType;
 	}
 
 	/**

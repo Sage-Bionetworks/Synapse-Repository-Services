@@ -112,6 +112,7 @@ import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -1770,7 +1771,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
-				dto.setSubType(rs.getString(COL_NODE_TYPE));
+				dto.setSubType(SubType.valueOf(rs.getString(COL_NODE_TYPE)));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){
 					dto.setParentId(null);

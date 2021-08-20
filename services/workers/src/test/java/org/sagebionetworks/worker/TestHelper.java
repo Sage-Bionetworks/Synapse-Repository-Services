@@ -92,7 +92,7 @@ public class TestHelper {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
-	public void addNodeForCleanup(String node) {
+	private void addNodeForCleanup(String node) {
 		nodes.add(node);
 	}
 	

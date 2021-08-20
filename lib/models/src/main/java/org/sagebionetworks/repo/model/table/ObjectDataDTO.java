@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Data Transfer Object (TDO) used to populate the replication index from synapse objects.
+ * Data Transfer Object (DTO) used to populate the replication index from synapse objects.
  *
  */
 public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
@@ -16,7 +16,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Date createdOn;
 	private String etag;
 	private String name;
-	private String subType;
+	private SubType subType;
 	private Long parentId;
 	private Long benefactorId;
 	private Long projectId;
@@ -76,11 +76,11 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		this.name = name;
 	}
 
-	public String getSubType() {
+	public SubType getSubType() {
 		return subType;
 	}
 
-	public void setSubType(String type) {
+	public void setSubType(SubType type) {
 		this.subType = type;
 	}
 

@@ -50,7 +50,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 					writer.writeNext(row);
 				};
 
-				tableIndexDAO.streamSynapseStorageStats(ViewObjectType.ENTITY, callback);
+				tableIndexDAO.streamSynapseStorageStats(ViewObjectType.ENTITY.getMainType(), callback);
 				break;
 			default:
 				throw new IllegalArgumentException("Only storage reports of type \"ALL_PROJECTS\" are currently supported.");

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -74,7 +75,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public List<String> getSubTypesForMask(Long typeMask) {
 		// Submissions are not hierarchical
-		return ImmutableList.of(OBJECT_TYPE.defaultSubType());
+		return ImmutableList.of(SubType.submission.name());
 	}
 
 	@Override
@@ -193,4 +194,5 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public void validateTypeMask(Long viewTypeMask) {
 		// Nothing to validate, the mask is not used
 	}
+
 }

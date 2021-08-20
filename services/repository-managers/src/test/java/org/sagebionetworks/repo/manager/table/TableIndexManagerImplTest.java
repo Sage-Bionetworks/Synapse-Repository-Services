@@ -2200,7 +2200,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.refreshViewBenefactors(viewId);
 		verify(mockManagerSupport).getViewScopeType(viewId);
-		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType());
+		verify(mockIndexDao).refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
 	}
 	
 	@Test
