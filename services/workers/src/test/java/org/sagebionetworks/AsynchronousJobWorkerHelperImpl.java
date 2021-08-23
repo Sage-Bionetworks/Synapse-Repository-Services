@@ -371,26 +371,20 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
-	public Dataset createDataset(UserInfo user, String name, String parentId, List<DatasetItem> items) {
+	public Dataset createDataset(UserInfo user, Dataset dataset) {
 		ViewEntityType entityType = ViewEntityType.dataset;
 		Long typeMask = 0L;
-		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, typeMask);
-		Dataset view = new Dataset();
-		view.setName(name);
-		view.setParentId(parentId);
-		view.setColumnIds(TableModelUtils.getIds(defaultColumns));
-		view.setItems(items);
-		String viewId = entityManager.createEntity(user, view, null);
-		view = entityManager.getEntity(user, viewId, Dataset.class);
+		String viewId = entityManager.createEntity(user, dataset, null);
+		dataset = entityManager.getEntity(user, viewId, Dataset.class);
 
 		ViewScope viewScope = new ViewScope();
 		viewScope.setViewEntityType(entityType);
-		viewScope.setScope(items.stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+		viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
 		viewScope.setViewTypeMask(typeMask);
 
-		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
+		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
 
-		return view;
+		return dataset;
 	}
 
 	@Override

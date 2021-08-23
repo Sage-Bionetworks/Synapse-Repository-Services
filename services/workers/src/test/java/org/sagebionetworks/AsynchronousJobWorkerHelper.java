@@ -137,12 +137,10 @@ public interface AsynchronousJobWorkerHelper {
 	/**
 	 * Create a dataset with the default columns.
 	 * @param user
-	 * @param name
-	 * @param parentId
-	 * @param items
+	 * @param dataset
 	 * @return
 	 */
-	Dataset createDataset(UserInfo user, String name, String parentId, List<DatasetItem> items);
+	Dataset createDataset(UserInfo user, Dataset dataset);
 
 	/**
 	 * Set the schema for the given table and wait for the lock as needed.
