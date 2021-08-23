@@ -178,6 +178,12 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_VALIDATION_EXCEPTION		= "VALIDATION_EXCEPTION";
 	public static final String DDL_FILE_JSON_SCHEMA_VALIDATION_RESULTS	= "schema/JsonSchemaValidationResults-ddl.sql";
 	
+	// Table for validation schemas
+	public static final String TABLE_VALIDATION_JSON_SCHEMA_INDEX 		= "VALIDATION_JSON_SCHEMA_INDEX";
+	public static final String COL_VALIDATION_SCHEMA_VERSION_ID 		= "VERSION_ID";
+	public static final String COL_VALIDATION_JSON_SCHEMA 				= "VALIDATION_SCHEMA";
+	public static final String DDL_FILE_VALIDATION_JSON_SCHEMA_INDEX	= "schema/ValidationJsonSchemaIndex-ddl.sql";
+	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
