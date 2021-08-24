@@ -1372,6 +1372,49 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(one.getSchemaId(), dbo.getDependsOnSchemaId().toString());
 		assertNull(dbo.getDependsOnVersionId());
 	}
+	
+	@Test
+	public void testGetDependants() throws Exception {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one-1.0.0", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId())
+				.withDependsOnVersionId(one.getVersionId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-two-1.0.0", index++, dependencies);
+
+		// call under test
+		List<Long> result = jsonSchemaDao.getVersionIdsOfDependants(one.getVersionId());
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals(result.get(0).toString(), two.getVersionId());
+	}
+	
+	@Test
+	public void testGetDependantsWithNoDependants() throws Exception {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one-1.0.0", index++);
+
+		// call under test
+		List<Long> result = jsonSchemaDao.getVersionIdsOfDependants(one.getVersionId());
+		assertNotNull(result);
+		assertEquals(0, result.size());
+	}
+	
+	@Test
+	public void testGetDependantsWithNullVersionId() throws Exception {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one-1.0.0", index++);
+		// two depends on one with a null version Id
+		ArrayList<SchemaDependency> dependencies = new ArrayList<SchemaDependency>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()).withDependsOnVersionId(null));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-two-1.0.0", index++, dependencies);
+
+		// call under test
+		List<Long> result = jsonSchemaDao.getVersionIdsOfDependants(one.getVersionId());
+		assertNotNull(result);
+		assertEquals(0, result.size());
+	}
 
 	@Test
 	public void testBindSchemaToObject() throws JSONObjectAdapterException {

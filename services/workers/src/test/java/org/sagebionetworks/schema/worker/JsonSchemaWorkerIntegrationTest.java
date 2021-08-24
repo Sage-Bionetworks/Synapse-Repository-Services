@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
@@ -21,6 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -39,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -47,6 +52,7 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
+import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
@@ -65,6 +71,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -551,6 +559,77 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals(folderJson.getJSONArray("bazKey").getString(0), "baz");
 		// fooKey is defined as a single in the schema, it will become a single
 		assertEquals(folderJson.getString("fooKey"), "foo");
+		
+		// clean up
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
+	@Disabled
+	@Test
+	public void testValidationSchemaIndexWithReindexingAndRevalidation() throws Exception {
+		// PLFM-6870: Validate that the index reindexes and also triggers revalidation on reindex
+		
+		// child schema, key property of type string
+		JsonSchema child = new JsonSchema();
+		child.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + "child");
+		Map<String, JsonSchema> properties = new HashMap<>();
+		JsonSchema typeSchema = new JsonSchema();
+		typeSchema.setType(Type.string);
+		properties.put("key", typeSchema);
+		child.setProperties(properties);
+		// reference to child schema
+		JsonSchema refToChild = new JsonSchema();
+		refToChild.set$ref(child.get$id());
+		// parent contains a reference to the child
+		JsonSchema parent = new JsonSchema();
+		parent.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + "parent");
+		parent.setAllOf(Arrays.asList(refToChild));
+		
+		// create project
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create child schema
+		CreateSchemaResponse createResponse = registerSchema(child);
+		// create parent schema
+		createResponse = registerSchema(parent);
+		// bind parent schema to the project
+		String parentSchema$id = createResponse.getNewVersionInfo().get$id();
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(parentSchema$id);
+		// we want to validate on putting annotations, so don't send notifications
+		boolean sendNotificationMessages = false;
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		
+		// Add single element annotations to the folder that is valid
+		folderJson.put("key", Arrays.asList("foo"));
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		// wait till it is valid
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+		
+		// change child schema and register the new schema
+		typeSchema.setType(Type.number);
+		properties.put("key", typeSchema);
+		child.setProperties(properties);
+		createResponse = registerSchema(child);
+		
+		// wait till it is not valid
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertFalse(t.getIsValid());
+		});
 		
 		// clean up
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
