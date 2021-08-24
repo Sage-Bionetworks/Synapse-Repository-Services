@@ -4374,4 +4374,68 @@ public class TableIndexDAOImplTest {
 		assertEquals("1.23", results.getRows().get(0).getValues().get(0));
 		assertEquals("100.19", results.getRows().get(1).getValues().get(0));
 	}
+	
+	@Test
+	public void testViewWithMultipleVersions() throws ParseException{
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectId = 22L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectId));
+		tableIndexDAO.deleteTable(tableId);
+		
+		// v1
+		ObjectDataDTO v1 = createObjectDataDTO(objectId, EntityType.file, 2);
+		v1.setParentId(333L);
+		v1.setVersion(1L);
+		v1.setCurrentVersion(1L);
+		ObjectAnnotationDTO a1 = new ObjectAnnotationDTO();
+		a1.setKey("foo");
+		a1.setValue("one");
+		a1.setType(AnnotationType.STRING);
+		a1.setObjectId(objectId);
+		a1.setObjectVersion(1L);
+		v1.setAnnotations(Arrays.asList(a1));
+		
+		// v2
+		ObjectDataDTO v2 = createObjectDataDTO(objectId, EntityType.file, 3);
+		v2.setParentId(222L);
+		v2.setVersion(2L);
+		v2.setCurrentVersion(2L);
+		ObjectAnnotationDTO a2 = new ObjectAnnotationDTO();
+		a2.setKey("foo");
+		a2.setValue("two");
+		a2.setType(AnnotationType.STRING);
+		a2.setObjectId(objectId);
+		a2.setObjectVersion(2L);
+		v2.setAnnotations(Arrays.asList(a2));
+		
+		// call under test
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		List<String> subTypes = EnumUtils.names(EntityType.file);
+		boolean filterByObjectId = true;
+		Set<Long> scope = Sets.newHashSet(objectId);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.DATASET, subTypes, filterByObjectId, scope);
+		
+		// Copy the entity data to the table
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, ROW_BENEFACTOR, 'foo' from " + tableId, schema, userId).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertEquals(2, results.getRows().size());
+		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getBenefactorId().toString()), results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(v2.getId().toString(),v2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+		
+		// update the benefactors in the replication table
+		v1.setBenefactorId(new Long(3));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(v1.getId()));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1));
+	}
 }

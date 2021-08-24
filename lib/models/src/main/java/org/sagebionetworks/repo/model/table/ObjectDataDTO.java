@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.model.table;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Data Transfer Object (DTO) used to populate the replication index from synapse objects.
@@ -12,6 +16,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 
 	private Long id;
 	private Long currentVersion;
+	private Long version;
 	private Long createdBy;
 	private Date createdOn;
 	private String etag;
@@ -32,143 +37,175 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		return id;
 	}
 
-	public void setId(Long id) {
+	public ObjectDataDTO setId(Long id) {
 		this.id = id;
+		return this;
 	}
-
+	
 	public Long getCurrentVersion() {
 		return currentVersion;
 	}
 
-	public void setCurrentVersion(Long currentVersion) {
+	public ObjectDataDTO setCurrentVersion(Long currentVersion) {
 		this.currentVersion = currentVersion;
+		return this;
+	}
+
+	/**
+	 * @return the version
+	 */
+	public Long getVersion() {
+		return version;
+	}
+
+	/**
+	 * @param version the version to set
+	 */
+	public ObjectDataDTO setVersion(Long version) {
+		this.version = version;
+		return this;
 	}
 
 	public Long getCreatedBy() {
 		return createdBy;
 	}
 
-	public void setCreatedBy(Long createdBy) {
+	public ObjectDataDTO setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
+		return this;
 	}
 
 	public Date getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public ObjectDataDTO setCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
+		return this;
 	}
 
 	public String getEtag() {
 		return etag;
 	}
 
-	public void setEtag(String etag) {
+	public ObjectDataDTO setEtag(String etag) {
 		this.etag = etag;
+		return this;
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public ObjectDataDTO setName(String name) {
 		this.name = name;
+		return this;
 	}
 
 	public SubType getSubType() {
 		return subType;
 	}
 
-	public void setSubType(SubType type) {
+	public ObjectDataDTO setSubType(SubType type) {
 		this.subType = type;
+		return this;
 	}
 
 	public Long getParentId() {
 		return parentId;
 	}
 
-	public void setParentId(Long parentId) {
+	public ObjectDataDTO setParentId(Long parentId) {
 		this.parentId = parentId;
+		return this;
 	}
 
 	public Long getBenefactorId() {
 		return benefactorId;
 	}
 
-	public void setBenefactorId(Long benefactorId) {
+	public ObjectDataDTO setBenefactorId(Long benefactorId) {
 		this.benefactorId = benefactorId;
+		return this;
 	}
 
 	public Long getProjectId() {
 		return projectId;
 	}
 
-	public void setProjectId(Long projectId) {
+	public ObjectDataDTO setProjectId(Long projectId) {
 		this.projectId = projectId;
+		return this;
 	}
 
 	public Long getModifiedBy() {
 		return modifiedBy;
 	}
 
-	public void setModifiedBy(Long modifiedBy) {
+	public ObjectDataDTO setModifiedBy(Long modifiedBy) {
 		this.modifiedBy = modifiedBy;
+		return this;
 	}
 
 	public Date getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public ObjectDataDTO setModifiedOn(Date modifiedOn) {
 		this.modifiedOn = modifiedOn;
+		return this;
 	}
 
 	public Long getFileHandleId() {
 		return fileHandleId;
 	}
 
-	public void setFileHandleId(Long fileHandleId) {
+	public ObjectDataDTO setFileHandleId(Long fileHandleId) {
 		this.fileHandleId = fileHandleId;
+		return this;
 	}
 
 	public List<ObjectAnnotationDTO> getAnnotations() {
 		return annotations;
 	}
 
-	public void setAnnotations(List<ObjectAnnotationDTO> annotations) {
+	public ObjectDataDTO setAnnotations(List<ObjectAnnotationDTO> annotations) {
 		this.annotations = annotations;
+		return this;
 	}
 
 	public Long getFileSizeBytes() {
 		return this.fileSizeBytes;
 	}
 
-	public void setFileSizeBytes(Long fileSizeBytes) {
+	public ObjectDataDTO setFileSizeBytes(Long fileSizeBytes) {
 		this.fileSizeBytes = fileSizeBytes;
+		return this;
 	}
 
 	public Boolean getIsInSynapseStorage() {
 		return this.isInSynapseStorage;
 	}
 
-	public void setIsInSynapseStorage(Boolean isInSynapseStorage) {
+	public ObjectDataDTO setIsInSynapseStorage(Boolean isInSynapseStorage) {
 		this.isInSynapseStorage = isInSynapseStorage;
+		return this;
 	}
 
 	public String getFileMD5() {
 		return fileMD5;
 	}
 
-	public void setFileMD5(String fileMD5) {
+	public ObjectDataDTO setFileMD5(String fileMD5) {
 		this.fileMD5 = fileMD5;
+		return this;
 	}
 
 	@Override
 	public int hashCode() {
 		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, etag, fileHandleId,
 				fileMD5, fileSizeBytes, id, isInSynapseStorage, modifiedBy, modifiedOn, name, parentId, projectId,
-				subType);
+				subType, version);
 	}
 
 	@Override
@@ -176,10 +213,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof ObjectDataDTO)) {
 			return false;
 		}
 		ObjectDataDTO other = (ObjectDataDTO) obj;
@@ -191,13 +225,39 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
 				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
 				&& Objects.equals(name, other.name) && Objects.equals(parentId, other.parentId)
-				&& Objects.equals(projectId, other.projectId) && Objects.equals(subType, other.subType);
+				&& Objects.equals(projectId, other.projectId) && subType == other.subType
+				&& Objects.equals(version, other.version);
 	}
 
 	@Override
 	public int compareTo(ObjectDataDTO o) {
-		// sort on Id.
-		return Long.compare(this.id, o.id);
+		// sort on Id then version
+		int idComp = Long.compare(this.id, o.id);
+		if(idComp == 0) {
+			return Long.compare(this.version, o.version);
+		}else {
+			return idComp;
+		}
+	}
+	
+	/**
+	 * returns 'id.version'
+	 * @return
+	 */
+	public String getIdVersion() {
+		return String.format("%s.%s", this.id, this.version);
+	}
+	
+	/**
+	 * Deduplcate the passed collection of ObjectDataDTO based on 'id.version'
+	 * @param in
+	 * @return
+	 */
+	public static Collection<ObjectDataDTO> deDuplicate(Collection<ObjectDataDTO> in){
+		Map<String, ObjectDataDTO> deduplicated = in.stream().collect(
+				Collectors.toMap(ObjectDataDTO::getIdVersion, Function.identity(), (a, b) -> b)
+		);
+		return deduplicated.values();
 	}
 
 }

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 public class ObjectAnnotationDTO {
 
 	private Long objectId;
+	private Long objectVersion;
 	private String key;
 	private AnnotationType type;
 	private List<String> value;
@@ -46,6 +47,20 @@ public class ObjectAnnotationDTO {
 
 	public Long getObjectId() {
 		return objectId;
+	}
+
+	/**
+	 * @return the objectVersion
+	 */
+	public Long getObjectVersion() {
+		return objectVersion;
+	}
+
+	/**
+	 * @param objectVersion the objectVersion to set
+	 */
+	public void setObjectVersion(Long objectVersion) {
+		this.objectVersion = objectVersion;
 	}
 
 	public void setObjectId(Long objectId) {
@@ -82,7 +97,7 @@ public class ObjectAnnotationDTO {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(objectId, key, type, value);
+		return Objects.hash(key, objectId, objectVersion, type, value);
 	}
 
 	@Override
@@ -90,14 +105,12 @@ public class ObjectAnnotationDTO {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof ObjectAnnotationDTO)) {
 			return false;
 		}
 		ObjectAnnotationDTO other = (ObjectAnnotationDTO) obj;
-		return Objects.equals(objectId, other.objectId) && Objects.equals(key, other.key) && type == other.type
+		return Objects.equals(key, other.key) && Objects.equals(objectId, other.objectId)
+				&& Objects.equals(objectVersion, other.objectVersion) && type == other.type
 				&& Objects.equals(value, other.value);
 	}
 

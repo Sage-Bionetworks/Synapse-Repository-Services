@@ -26,7 +26,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
@@ -114,6 +114,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
+	
+	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("sql/ObjectReplication.sql");
+	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("sql/AnnotationReplication.sql");
+	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("sql/ReplicationSynchExpiration.sql");
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
 			+ " FROM " + OBJECT_REPLICATION_TABLE 
@@ -703,9 +707,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void createObjectReplicationTablesIfDoesNotExist(){
-		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
-		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
-		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
+		template.update(OBJECT_REPLICATION_TABLE_CREATE);
+		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
+		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
@@ -733,13 +737,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void addObjectData(MainType mainType, List<ObjectDataDTO> objectDtos) {
-		
-		Map<Long, ObjectDataDTO> deduplicated = objectDtos.stream().collect(
-				Collectors.toMap(ObjectDataDTO::getId, Function.identity(), (a, b) -> b)
-		);
-		
-		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(deduplicated.values());
-		
+		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(ObjectDataDTO.deDuplicate(objectDtos));
 		Collections.sort(sorted);
 		
 		// batch update the object replication table
@@ -754,6 +752,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
+				ps.setLong(parameterIndex++, dto.getVersion());
 				
 				ps.setLong(parameterIndex++, dto.getCurrentVersion());
 				ps.setLong(parameterIndex + updateOffset, dto.getCurrentVersion());
@@ -869,7 +868,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
 				ObjectDataDTO dto1 = new ObjectDataDTO();
 				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
-				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
+				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
 				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
 				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
 				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));

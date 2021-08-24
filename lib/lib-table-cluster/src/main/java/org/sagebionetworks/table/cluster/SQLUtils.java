@@ -16,10 +16,10 @@ import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
@@ -33,6 +33,9 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.VIEW_ROWS_OUT_OF_DATE_TEMPLATE;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -48,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -57,9 +61,7 @@ import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeFilter;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -1590,7 +1592,7 @@ public class SQLUtils {
 		builder.append(".");
 		builder.append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		buildObjectReplicationSelect(builder,
-				OBJECT_REPLICATION_COL_VERSION,
+				OBJECT_REPLICATION_COL_CUR_VERSION,
 				OBEJCT_REPLICATION_COL_ETAG,
 				OBJECT_REPLICATION_COL_BENEFACTOR_ID);
 		List<String> headers = new LinkedList<>();
@@ -1834,6 +1836,7 @@ public class SQLUtils {
 		
 		ps.setString(parameterIndex++, mainType.name());
 		ps.setLong(parameterIndex++, dto.getObjectId());
+		ps.setLong(parameterIndex++, dto.getObjectVersion());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
 		
@@ -2099,6 +2102,22 @@ public class SQLUtils {
 				+ OBJECT_REPLICATION_COL_OBJECT_ID + " AND O." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ?) SET T."
 				+ ROW_BENEFACTOR + " = O." + OBJECT_REPLICATION_COL_BENEFACTOR_ID + " WHERE T." + ROW_BENEFACTOR
 				+ " <> O." + OBJECT_REPLICATION_COL_BENEFACTOR_ID, viewName);
+	}
+	
+	/**
+	 * Load a SQL string from the classpath.
+	 * @param fileName
+	 * @return
+	 */
+	public static String loadSQLFromClasspath(String fileName) {
+		try(InputStream in = SQLUtils.class.getClassLoader().getResourceAsStream(fileName)){
+			if(in == null){
+				throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
+			}
+			return IOUtils.toString(in, StandardCharsets.UTF_8.name());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }
