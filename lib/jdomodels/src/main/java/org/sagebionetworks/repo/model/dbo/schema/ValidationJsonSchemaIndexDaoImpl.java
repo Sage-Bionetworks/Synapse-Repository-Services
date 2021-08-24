@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VALIDATION_JSON_SCHEMA_INDEX;
+
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -10,6 +11,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -17,6 +19,7 @@ public class ValidationJsonSchemaIndexDaoImpl implements ValidationJsonSchemaInd
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
 	@Autowired
 	private DBOBasicDao basicDao;
 

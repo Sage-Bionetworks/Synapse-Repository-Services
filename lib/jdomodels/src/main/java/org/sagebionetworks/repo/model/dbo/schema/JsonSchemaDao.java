@@ -167,5 +167,13 @@ public interface JsonSchemaDao {
 	 */
 	List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset);
 
+	/**
+	 * Gets a list of the JSON schema versionIds that has the given versionId as a dependency
+	 * 
+	 * @param versionId
+	 * @return
+	 */
+	List<Long> getVersionIdsOfDependants(String versionId);
+
 
 }

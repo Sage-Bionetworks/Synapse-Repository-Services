@@ -555,6 +555,15 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		return jdbcTemplate.query("SELECT * FROM " + TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
 				+ COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " = ?", DEPENDENCY_MAPPER, versionId);
 	}
+	
+	@Override
+	public List<Long> getVersionIdsOfDependants(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
+		return jdbcTemplate.queryForList("SELECT " + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " FROM " 
+				+ TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
+				+ COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + " = ? ORDER BY "
+				+ COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID, Long.class, versionId);
+	}
 
 	@WriteTransaction
 	@Override
