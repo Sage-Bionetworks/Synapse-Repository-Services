@@ -30,7 +30,7 @@ public class ViewScopeFilterBuilder {
 		boolean filterByObjectId = provider.isFilterScopeByObjectId(viewTypeMask);
 		Set<Long> containerIds = this.containerIds == null ? Collections.emptySet() : this.containerIds;
 		
-		return new ViewScopeFilter(provider.getObjectType(), subTypes, filterByObjectId, containerIds);
+		return new ViewScopeFilter(provider.getObjectType().getMainType(), subTypes, filterByObjectId, containerIds);
 	}
 
 }

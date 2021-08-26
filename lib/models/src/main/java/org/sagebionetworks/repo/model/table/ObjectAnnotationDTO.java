@@ -24,7 +24,9 @@ public class ObjectAnnotationDTO {
 	private AnnotationType type;
 	private List<String> value;
 
-	public ObjectAnnotationDTO() {
+	public ObjectAnnotationDTO(ObjectDataDTO object) {
+		this.objectId = object.getId();
+		this.objectVersion = object.getVersion();
 	}
 
 	/**

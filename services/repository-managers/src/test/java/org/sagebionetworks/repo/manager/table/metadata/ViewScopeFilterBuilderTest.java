@@ -47,7 +47,7 @@ public class ViewScopeFilterBuilderTest {
 		// Call under test
 		ViewScopeFilter filter = builder.build();
 		
-		assertEquals(objectType, filter.getObjectType());
+		assertEquals(objectType, filter.getMainType());
 		assertEquals(subTypes, filter.getSubTypes());
 		assertEquals(filterByObjectId, filter.isFilterByObjectId());
 		assertEquals(containerIds, filter.getContainerIds());

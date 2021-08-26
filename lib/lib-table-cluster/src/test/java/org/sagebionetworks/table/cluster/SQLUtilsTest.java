@@ -3137,7 +3137,7 @@ public class SQLUtilsTest {
 	}
 	
 	private ViewScopeFilter getSQLScopeFilter(List<String> subTypes, boolean filterByObjectId) {
-		return new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, Collections.emptySet());
+		return new ViewScopeFilter(ViewObjectType.ENTITY.getMainType(), subTypes, filterByObjectId, Collections.emptySet());
 	}
 
 	

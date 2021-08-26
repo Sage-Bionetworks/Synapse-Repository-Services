@@ -16,8 +16,8 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -376,17 +376,7 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
-	
-	/**
-	 * Copy the data from the entity replication tables to the given view.
-	 * 
-	 * @param viewId
-	 * @param scopeFilter
-	 * @param currentSchema
-	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
-	 */
-	void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy);
+	void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
@@ -395,7 +385,7 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromObjectReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
+	void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
 
 	
 	/**
@@ -426,7 +416,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, List<String> excludeKeys, Long limit, Long offset);
+	List<ColumnModel> getPossibleColumnModelsForContainers(ViewFilter filter, List<String> excludeKeys, Long limit, Long offset);
 	
 	/**
 	 * The process for synchronizing entity replication data with the truth is
@@ -530,7 +520,7 @@ public interface TableIndexDAO {
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeFilter scopeFilter, long limit);
+	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit);
 
 	/**
 	 * Delete a batch of rows from a view.

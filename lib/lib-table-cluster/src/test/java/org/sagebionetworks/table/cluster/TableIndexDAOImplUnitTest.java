@@ -66,7 +66,7 @@ public class TableIndexDAOImplUnitTest {
 	private ViewObjectType objectType = ViewObjectType.ENTITY;
 
 	private ViewScopeFilter getScopeFilter(Set<Long> containerIds) {
-		return new ViewScopeFilter(objectType, EnumUtils.names(EntityType.file), false, containerIds);
+		return new ViewScopeFilter(objectType.getMainType(), EnumUtils.names(EntityType.file), false, containerIds);
 	}
 
 	@Test

@@ -565,7 +565,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scope);
 		
 		// call under test
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
@@ -660,7 +660,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scope);
 		// call under test
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
 		assertEquals(crc32, resultCrc);
@@ -754,7 +754,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
 		List<String> excludeKeys = null;
 		
 		// call under test
@@ -780,7 +780,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
 		List<String> excludeKeys = null;
 		tokenString = null;
 		// call under test
@@ -807,7 +807,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
 		List<String> excludeKeys = null;
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
@@ -921,7 +921,7 @@ public class TableIndexManagerImplTest {
 		
 		scope.setViewEntityType(null);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, containerIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY.getMainType(), subTypes, filterByObjectId, containerIds);
 		List<String> excludeKeys = null;
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
@@ -951,7 +951,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY, subTypes, filterByObjectId, containerIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY.getMainType(), subTypes, filterByObjectId, containerIds);
 		
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
@@ -1515,7 +1515,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
 		
 		setupExecuteInWriteTransaction();
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
@@ -1542,7 +1542,7 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
 		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
 		
 		setupExecuteInWriteTransaction();
 		// setup an exception on copy
@@ -2141,7 +2141,7 @@ public class TableIndexManagerImplTest {
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
 		
 		List<ColumnModel> schema = ImmutableList.of(columnModel);
 		
@@ -2180,7 +2180,7 @@ public class TableIndexManagerImplTest {
 		List<String> subTypes = EnumUtils.names(EntityType.file);
 		boolean filterByObjectId = false;
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType, subTypes, filterByObjectId, scopeIds);
+		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
 		
 		List<ColumnModel> schema = ImmutableList.of(columnModel);
 		

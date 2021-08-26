@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_LIST_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
@@ -16,22 +17,17 @@ import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
-import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
-import static org.sagebionetworks.repo.model.table.TableConstants.VIEW_ROWS_OUT_OF_DATE_TEMPLATE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +57,6 @@ import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -85,7 +80,9 @@ import com.google.common.collect.Lists;
  */
 public class SQLUtils {
 
-
+	private static final String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/ViewOutOfDate.sql");
+	private static final String SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/ViewDistinctAnnotations.sql");
+	
 	private static final String EMPTY_STRING = "";
 	private static final String ABSTRACT_DOUBLE_ALIAS_PREFIX = "_DBL";
 	private static final String TEMPLATE_MAX_ANNOTATION_SELECT = ", MAX(IF(%1$s.%2$s ='%3$s', %1$s.%4$s, NULL)) AS %5$s%6$s";
@@ -714,7 +711,11 @@ public class SQLUtils {
 			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 			builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
 		}
-		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		builder.append("PRIMARY KEY (").append("ROW_ID");
+		if(isView) {
+			builder.append(", ").append(ROW_VERSION);
+		}
+		builder.append(")");
 		if(isView){
 			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
 			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
@@ -1441,14 +1442,14 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, ViewScopeFilter scopeFilter, boolean filterByRows) {
+	public static String createSelectInsertFromObjectReplication(Long viewId, List<ColumnMetadata> metadata, String filterSql) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
-		createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
+		createSelectFromObjectReplication(builder, metadata, filterSql);
 		return builder.toString();
 	}
 	
@@ -1459,16 +1460,17 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, ViewScopeFilter scopeFilter, boolean filterByRows) {
+	public static List<String> createSelectFromObjectReplication(StringBuilder builder, List<ColumnMetadata> metadata, String filterSql) {
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
-		objectReplicationJoinAnnotationReplicationFilter(builder, scopeFilter, filterByRows);
+		objectReplicationJoinAnnotationReplicationFilter(builder, filterSql);
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(",").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		return headers;
 	}
 
-	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, ViewScopeFilter scopeFilter, boolean filterByRows) {
+	private static void objectReplicationJoinAnnotationReplicationFilter(StringBuilder builder, String filterSql) {
 		builder.append(" FROM ");
 		builder.append(OBJECT_REPLICATION_TABLE);
 		builder.append(" ");
@@ -1484,36 +1486,13 @@ public class SQLUtils {
 		builder.append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(" = ");
 		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_OBJECT_ID);
-		builder.append(")");
-		builder.append(" WHERE ");
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(OBJECT_REPLICATION_COL_OBJECT_TYPE);
-		builder.append(" = :");
-		builder.append(OBJECT_TYPE_PARAM_NAME);
 		builder.append(" AND ");
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(getViewScopeFilterColumn(scopeFilter));
-		builder.append(" IN (:");
-		builder.append(PARENT_ID_PARAM_NAME);
-		builder.append(") AND ");
-		builder.append(OBJECT_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.OBJECT_REPLICATION_COL_SUBTYPE);
-		builder.append(" IN (:");
-		builder.append(TableConstants.SUBTYPE_PARAM_NAME);
+		builder.append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
+		builder.append(" = ");
+		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(")");
-		if (filterByRows) {
-			builder
-				.append(" AND ")
-				.append(OBJECT_REPLICATION_ALIAS)
-				.append(".")
-				.append(OBJECT_REPLICATION_COL_OBJECT_ID)
-				.append(" IN (:")
-				.append(ID_PARAM_NAME)
-				.append(")");
-		}
+		builder.append(" WHERE");
+		builder.append(filterSql);
 	}
 
 	/**
@@ -1523,7 +1502,7 @@ public class SQLUtils {
 	 * @param annotationNames
 	 * @return
 	 */
-	public static String createAnnotationMaxListLengthSQL(ViewScopeFilter scopeFilter, Set<String> annotationNames, boolean filterByRows) {
+	public static String createAnnotationMaxListLengthSQL(Set<String> annotationNames, String filterSql) {
 		ValidateArgument.requiredNotEmpty(annotationNames,"annotationNames");
 
 		StringBuilder builder = new StringBuilder();
@@ -1532,7 +1511,7 @@ public class SQLUtils {
 				.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(", MAX(").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_LIST_LENGTH).append(")");
 		
-		objectReplicationJoinAnnotationReplicationFilter(builder, scopeFilter, filterByRows);
+		objectReplicationJoinAnnotationReplicationFilter(builder, filterSql);
 		
 		builder.append(" AND ").append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_KEY)
 				.append(" IN (:").append(ANNOTATION_KEYS_PARAM_NAME).append(")");
@@ -1591,8 +1570,11 @@ public class SQLUtils {
 		builder.append(OBJECT_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(", ");
+		builder.append(OBJECT_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		buildObjectReplicationSelect(builder,
-				OBJECT_REPLICATION_COL_CUR_VERSION,
 				OBEJCT_REPLICATION_COL_ETAG,
 				OBJECT_REPLICATION_COL_BENEFACTOR_ID);
 		List<String> headers = new LinkedList<>();
@@ -1814,13 +1796,12 @@ public class SQLUtils {
 	 * @param withExclusionList If true the SQL will include a NOT IN clause on the annotation key with the :exclusionList parameter
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(ViewScopeFilter scopeFilter, boolean withExclusionList){
-		String filterColumn = getViewScopeFilterColumn(scopeFilter);
+	public static String getDistinctAnnotationColumnsSql(String filterSql, boolean withExclusionList){
 		String exclusionListReplace = "";
 		if (withExclusionList) {
 			exclusionListReplace = ANNOTATION_KEY_EXCLUSION_LIST;
 		}
-		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumn, exclusionListReplace);
+		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterSql, exclusionListReplace);
 	}
 	
 	/**
@@ -2070,10 +2051,9 @@ public class SQLUtils {
 	 * @param viewTypeMask
 	 * @return
 	 */
-	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, ViewScopeFilter scopeFilter) {
+	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, String filterSql) {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
-		String scopeColumn = getViewScopeFilterColumn(scopeFilter);
-		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn);
+		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, filterSql);
 	}
 	
 	public static final String DELETE_ROWS_FROM_VIEW_TEMPLATE = "DELETE FROM %1$s WHERE "+ROW_ID+" = ?";
@@ -2086,13 +2066,6 @@ public class SQLUtils {
 	public static String getDeleteRowsFromViewSql(IdAndVersion viewId) {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
 		return String.format(DELETE_ROWS_FROM_VIEW_TEMPLATE, viewName);
-	}
-	
-	public static String getViewScopeFilterColumn(ViewScopeFilter scopeFilter) {
-		if (scopeFilter.isFilterByObjectId()) {
-			return OBJECT_REPLICATION_COL_OBJECT_ID;
-		}
-		return OBJECT_REPLICATION_COL_PARENT_ID;
 	}
 
 	public static String generateSqlToRefreshViewBenefactors(IdAndVersion viewId) {

@@ -9,23 +9,22 @@ import java.util.Set;
  * 
  * @author Marco Marasca
  */
-public class ViewScopeFilter implements HasViewObjectType {
+public class ViewScopeFilter  {
 
-	private final ViewObjectType objectType;
+	private final MainType mainType;
 	private final List<String> subTypes;
 	private final boolean filterByObjectId;
 	private final Set<Long> containerIds;
 
-	public ViewScopeFilter(ViewObjectType objectType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
-		this.objectType = objectType;
+	public ViewScopeFilter(MainType mainType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+		this.mainType = mainType;
 		this.subTypes = subTypes;
 		this.filterByObjectId = filterByObjectId;
 		this.containerIds = containerIds;
 	}
 	
-	@Override
-	public ViewObjectType getObjectType() {
-		return objectType;
+	public MainType getMainType() {
+		return mainType;
 	}
 
 	public List<String> getSubTypes() {
@@ -42,7 +41,7 @@ public class ViewScopeFilter implements HasViewObjectType {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(containerIds, filterByObjectId, objectType, subTypes);
+		return Objects.hash(containerIds, filterByObjectId, mainType, subTypes);
 	}
 
 	@Override
@@ -50,15 +49,12 @@ public class ViewScopeFilter implements HasViewObjectType {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof ViewScopeFilter)) {
 			return false;
 		}
 		ViewScopeFilter other = (ViewScopeFilter) obj;
 		return Objects.equals(containerIds, other.containerIds) && filterByObjectId == other.filterByObjectId
-				&& objectType == other.objectType && Objects.equals(subTypes, other.subTypes);
+				&& mainType == other.mainType && Objects.equals(subTypes, other.subTypes);
 	}
 	
 }
