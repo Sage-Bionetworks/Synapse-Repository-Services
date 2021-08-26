@@ -230,6 +230,16 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	}
 
 	@Override
+	public String toString() {
+		return "ObjectDataDTO [id=" + id + ", currentVersion=" + currentVersion + ", version=" + version
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name
+				+ ", subType=" + subType + ", parentId=" + parentId + ", benefactorId=" + benefactorId + ", projectId="
+				+ projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId="
+				+ fileHandleId + ", fileSizeBytes=" + fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage
+				+ ", fileMD5=" + fileMD5 + ", annotations=" + annotations + "]";
+	}
+
+	@Override
 	public int compareTo(ObjectDataDTO o) {
 		// sort on Id then version
 		int idComp = Long.compare(this.id, o.id);

@@ -1595,7 +1595,7 @@ public class TableIndexDAOImplTest {
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames)
 		).getMessage();
 
-		assertEquals("scopeFilter.containerIds is required.", errorMessage);
+		assertEquals("filter is required.", errorMessage);
 
 	}
 	
@@ -4106,7 +4106,7 @@ public class TableIndexDAOImplTest {
 		long maxBytesPerBatch = 10;
 		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId, schema, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4233,7 +4233,7 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'foo' from " + tableId, schema, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'foo' from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
