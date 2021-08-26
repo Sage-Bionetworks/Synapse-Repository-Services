@@ -545,7 +545,7 @@ public interface TableIndexDAO {
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
-	ObjectDataDTO getObjectData(MainType mainType, Long objectId);
+	ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion);
 
 	/**
 	 * Ensure the benefactor ID within the given view snapshot are up-to-date with object replication.

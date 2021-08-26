@@ -863,7 +863,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public ObjectDataDTO getObjectData(MainType mainType, Long objectId) {
+	public ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
@@ -906,7 +906,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
 
 				return dto1;
-			}, mainType.name(), objectId);
+			}, mainType.name(), objectId, objectVersion);
 		} catch (DataAccessException e) {
 			return null;
 		}
@@ -921,7 +921,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
 							.toList());
 			return dto1;
-		}, mainType.name(), objectId);
+		}, mainType.name(), objectId, objectVersion);
 		
 		if (!annotations.isEmpty()) {
 			dto.setAnnotations(annotations);

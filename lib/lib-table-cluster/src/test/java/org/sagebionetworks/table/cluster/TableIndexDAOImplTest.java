@@ -1432,11 +1432,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file, folder, project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, project.getId(), project.getVersion());
 		assertEquals(project, fetched);
-		fetched = tableIndexDAO.getObjectData(mainType, 2L);
+		fetched = tableIndexDAO.getObjectData(mainType, folder.getId(), folder.getVersion());
 		assertEquals(folder, fetched);
-		fetched = tableIndexDAO.getObjectData(mainType, 3L);
+		fetched = tableIndexDAO.getObjectData(mainType, file.getId(), file.getVersion());
 		assertEquals(file, fetched);
 	}
 	
@@ -1454,7 +1454,7 @@ public class TableIndexDAOImplTest {
 		// Add the data to the index once
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
 		
-		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId());
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
 	
 		assertEquals(objectData, result);
 		
@@ -1466,7 +1466,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
 		
 		// Makes sure the data was updated
-		result = tableIndexDAO.getObjectData(mainType, objectData.getId());
+		result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
 		
 		assertEquals(objectData, result);
 	}
@@ -1485,7 +1485,7 @@ public class TableIndexDAOImplTest {
 		// This should work, but only the latter should have been added
 		tableIndexDAO.addObjectData(mainType, objectData);
 		
-		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectId);
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectId, 2L);
 		
 		assertEquals(objectData.get(1), result);
 		
@@ -1531,7 +1531,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, id);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, id, project.getVersion());
 		assertEquals(project, fetched);
 	}
 	
@@ -1548,7 +1548,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, project.getVersion());
 		assertEquals(project, fetched);
 	}
 	
@@ -1580,7 +1580,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, file.getVersion());
 		assertEquals(file, fetched);
 	}
 
@@ -2989,6 +2989,30 @@ public class TableIndexDAOImplTest {
 		}
 		return objectDataDTO;
 	}
+	
+	/**
+	 * Helper to create multiple version of a single object. Each version will have different annotation values.
+	 * @param id
+	 * @param type
+	 * @param annotationCount The number of annotations that each version will have.
+	 * @param numberOfVersion The total number of version to create.
+	 * @return Results will include one ObjectDataDTO for each version.
+	 */
+	public List<ObjectDataDTO> createMultipleVersions(long id, EntityType type, int annotationCount, int numberOfVersion){
+		List<ObjectDataDTO> list = new ArrayList<>(numberOfVersion);
+		for(long version=1; version<numberOfVersion+1; version++) {
+			ObjectDataDTO dto = createObjectDataDTO(id, type, annotationCount);
+			dto.setVersion(version);
+			dto.setCurrentVersion((long)numberOfVersion);
+			for(int annoIndex = 0; annoIndex<annotationCount; annoIndex++) {
+				ObjectAnnotationDTO anno = dto.getAnnotations().get(annoIndex);
+				anno.setObjectVersion(version);
+				anno.setValue(""+annoIndex+"-"+version);
+			}
+			list.add(dto);
+		}
+		return list;
+	}
 
 	@Test
 	public void testCreateAndPopulateListColumnIndexTables(){
@@ -4191,28 +4215,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectId));
 		tableIndexDAO.deleteTable(tableId);
 		
-		// v1
-		ObjectDataDTO v1 = createObjectDataDTO(objectId, EntityType.file, 2);
-		v1.setParentId(333L);
-		v1.setVersion(1L);
-		v1.setCurrentVersion(1L);
-		ObjectAnnotationDTO a1 = new ObjectAnnotationDTO(v1);
-		a1.setKey("foo");
-		a1.setValue("one");
-		a1.setType(AnnotationType.STRING);
-		v1.setAnnotations(Arrays.asList(a1));
-		
-		// v2
-		ObjectDataDTO v2 = createObjectDataDTO(objectId, EntityType.file, 3);
-		v2.setParentId(222L);
-		v2.setId(v1.getId());
-		v2.setVersion(2L);
-		v2.setCurrentVersion(2L);
-		ObjectAnnotationDTO a2 = new ObjectAnnotationDTO(v2);
-		a2.setKey("foo");
-		a2.setValue("two");
-		a2.setType(AnnotationType.STRING);
-		v2.setAnnotations(Arrays.asList(a2));
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v1 = objects.get(0);
+		ObjectDataDTO v2 = objects.get(1);
 		
 		// call under test
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2));
@@ -4233,17 +4240,33 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'foo' from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'key0' from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		assertEquals(2, results.getRows().size());
-		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getVersion().toString(), "one"), results.getRows().get(0).getValues());
-		assertEquals(Lists.newArrayList(v2.getId().toString(),v2.getVersion().toString(), "two"), results.getRows().get(1).getValues());
+		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getVersion().toString(), "0-1"), results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(v2.getId().toString(),v2.getVersion().toString(), "0-2"), results.getRows().get(1).getValues());
 		
 		// update the benefactors in the replication table
 		v1.setBenefactorId(new Long(3));
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(v1.getId()));
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1));
+	}
+	
+	@Test
+	public void testGetObjectDataMultipleVersion() {
+		Long objectId = 22L;
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v1 = objects.get(0);
+		ObjectDataDTO v2 = objects.get(1);
+		
+		tableIndexDAO.addObjectData(mainType, objects);
+		
+		// Call under test
+		assertEquals(v1, tableIndexDAO.getObjectData(mainType, objectId, v1.getVersion()));
+		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
 	}
 }
