@@ -172,7 +172,7 @@ public interface JsonSchemaDao {
 	 * @param versionId
 	 * @return
 	 */
-	Iterator<Long> getVersionIdsOfDependantsIterator(String versionId);
+	Iterator<String> getVersionIdsOfDependantsIterator(String versionId);
 
 	/**
 	 * Gets a list of the schema version ids that depend on the given versionId, limited to the given limit,
@@ -182,7 +182,7 @@ public interface JsonSchemaDao {
 	 * @param offset
 	 * @return
 	 */
-	List<Long> getNextPageForVersionIdsOfDependants(String versionId, long limit, long offset);
+	List<String> getNextPageForVersionIdsOfDependants(String versionId, long limit, long offset);
 
 
 }

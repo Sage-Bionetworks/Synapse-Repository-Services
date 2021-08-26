@@ -1389,11 +1389,10 @@ public class JsonSchemaDaoImplTest {
 		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu-three-1.0.0", index++, dependencies);
 		
 		// call under test
-		Iterator<Long> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
+		Iterator<String> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
 		assertNotNull(result);
-		List<Long> expected = Arrays.asList(Long.parseLong(two.getVersionId()), 
-				Long.parseLong(three.getVersionId()));
-		List<Long> resultList = new LinkedList<>();
+		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId());
+		List<String> resultList = new LinkedList<>();
 		while (result.hasNext()) {
 			resultList.add(result.next());
 		}
@@ -1406,7 +1405,7 @@ public class JsonSchemaDaoImplTest {
 		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one-1.0.0", index++);
 
 		// call under test
-		Iterator<Long> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
+		Iterator<String> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
 		assertFalse(result.hasNext());
 	}
 	
@@ -1420,7 +1419,7 @@ public class JsonSchemaDaoImplTest {
 		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-two-1.0.0", index++, dependencies);
 
 		// call under test
-		Iterator<Long> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
+		Iterator<String> result = jsonSchemaDao.getVersionIdsOfDependantsIterator(one.getVersionId());
 		assertNotNull(result);
 	}
 	
@@ -1447,10 +1446,10 @@ public class JsonSchemaDaoImplTest {
 		long limit = 2;
 		long offset = 1;
 		// should get us ids for schema three and four, because we offset by 1 (skip two)
-		List<Long> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getVersionId(), limit, offset);
+		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getVersionId(), limit, offset);
 		assertTrue(result.size() == 2);
-		assertEquals(result.get(0), Long.parseLong(three.getVersionId()));
-		assertEquals(result.get(1), Long.parseLong(four.getVersionId()));
+		assertEquals(result.get(0), three.getVersionId());
+		assertEquals(result.get(1), four.getVersionId());
 	}
 
 	@Test

@@ -557,20 +557,20 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 	
 	@Override
-	public Iterator<Long> getVersionIdsOfDependantsIterator(String versionId) {
+	public Iterator<String> getVersionIdsOfDependantsIterator(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
-		return new PaginationIterator<Long>((long limit, long offset) -> {
+		return new PaginationIterator<String>((long limit, long offset) -> {
 			return getNextPageForVersionIdsOfDependants(versionId, limit, offset);
 		}, PAGE_SIZE_LIMIT);
 	}
 	
 	@Override
-	public List<Long> getNextPageForVersionIdsOfDependants(String versionId, long limit, long offset) {
+	public List<String> getNextPageForVersionIdsOfDependants(String versionId, long limit, long offset) {
 		ValidateArgument.required(versionId, "versionId");
 		return jdbcTemplate.queryForList("SELECT " + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " FROM " 
 				+ TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
 				+ COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + " = ? LIMIT ? OFFSET ?", 
-				Long.class, versionId, limit, offset);
+				String.class, versionId, limit, offset);
 	}
 
 	@WriteTransaction
