@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
+import java.util.Set;
+
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
@@ -26,4 +28,16 @@ public interface ViewFilter {
 	 * @return
 	 */
 	String getFilterSql();
+	
+	/**
+	 * Limit the results to the provided Object Ids.
+	 * @param limitObjectIds
+	 */
+	ViewFilter setLimitToObjectIds(Set<Long> limitObjectIds);
+	
+	/**
+	 * Exclude all annotation keys
+	 * @param excludeKeys
+	 */
+	ViewFilter setExcludeAnnotationKeys(Set<String> excludeKeys);
 }

@@ -80,7 +80,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -111,7 +110,6 @@ public class TableIndexDAOImplTest {
 	
 	private MainType mainType;
 	private List<SubType> subTypes;
-	private Set<Long> additionalFilter;
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
@@ -156,7 +154,6 @@ public class TableIndexDAOImplTest {
 			}
 		};
 		subTypes = Collections.singletonList(SubType.file);
-		additionalFilter = null;
 	}
 
 	@AfterEach
@@ -1607,7 +1604,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, emptyScope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, emptyScope);
 	
 		assertEquals(Collections.emptyMap(),
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames));
@@ -1621,7 +1618,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> nullAnnotationNames = null;
 			
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, nullAnnotationNames)
@@ -1639,7 +1636,7 @@ public class TableIndexDAOImplTest {
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		assertEquals(Collections.emptyMap(),
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, emptyAnnotationNames));
@@ -1689,7 +1686,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// method under test
 		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
@@ -1726,7 +1723,7 @@ public class TableIndexDAOImplTest {
 		// method under test
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 	
 		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
 		assertEquals(Collections.emptyMap(), listSizes);
@@ -1778,7 +1775,7 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, objectIdFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(objectIdFilter);
 		
 		// method under test
 		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
@@ -1810,7 +1807,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -1854,7 +1851,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 	
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
 		// method under test
@@ -1907,7 +1904,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -1945,7 +1942,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
@@ -1988,7 +1985,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.INTEGER_LIST));
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
@@ -2035,7 +2032,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
@@ -2062,7 +2059,7 @@ public class TableIndexDAOImplTest {
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 				
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -2092,7 +2089,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -2121,10 +2118,9 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, containerIds);
-		List<String> excludeKeys = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2161,11 +2157,9 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, containerIds);
-
-		List<String> excludeKeys = ImmutableList.of("key0");
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds).setExcludeAnnotationKeys(Sets.newHashSet("key0"));
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
@@ -2220,10 +2214,9 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, containerIds);
-		List<String> excludeKeys = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		// expected
@@ -2314,10 +2307,9 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, containerIds);
-		List<String> excludeKeys = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(1, columns.size());
 
@@ -2430,10 +2422,9 @@ public class TableIndexDAOImplTest {
 		
 		subTypes = Arrays.asList(SubType.project);
 		
-		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, additionalFilter, containerIds);
-		List<String> excludeKeys = null;
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, containerIds);
+	
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2487,11 +2478,10 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, containerIds);
-		List<String> excludeKeys = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
 		// call under test
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		
@@ -3221,7 +3211,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3249,7 +3239,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3284,7 +3274,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3322,7 +3312,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3360,7 +3350,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3398,7 +3388,7 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3429,7 +3419,7 @@ public class TableIndexDAOImplTest {
 		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
 		long limit = 1L;
 
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3460,7 +3450,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3497,7 +3487,7 @@ public class TableIndexDAOImplTest {
 		
 		subTypes = Arrays.asList(SubType.values());
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3505,7 +3495,7 @@ public class TableIndexDAOImplTest {
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
 		subTypes = Arrays.asList(SubType.file);
-		filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3528,7 +3518,7 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 1L;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3541,7 +3531,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Collections.emptySet();
 		long limit = 1L;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
@@ -3622,7 +3612,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
@@ -3656,7 +3646,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
@@ -3711,19 +3701,20 @@ public class TableIndexDAOImplTest {
 		// Only add the first and last row to the view and a row that does not exist
 		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, rowFilter, scope);
-		ViewFilter filterNoAdditional = new HierarchyFilter(mainType, subTypes, null, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowFilter);
+		
+		ViewFilter filterNoAdditional = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		Set<Long> expectedMissing = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
-		filter = new HierarchyFilter(mainType, subTypes, null, scope);
+		filter = new HierarchyFilter(mainType, subTypes, scope);
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
 		assertEquals(expectedMissing, deltas);
 		// Add the remaining rows
 		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
-		filter = new HierarchyFilter(mainType, subTypes, rowFilter, scope);
+		filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowFilter);
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
@@ -3744,10 +3735,8 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
-		
-		// Null row filter will add all rows
-		Set<Long> rowFilter = null;
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, rowFilter, scope);
+	
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// all rows should be added
@@ -3776,12 +3765,10 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
 
-		// Null row filter will add all rows
-		Set<Long> rowIdFilter = null;
-		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, rowIdFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		// push all of the data to the view
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		Set<Long> rowIdFilter = null;
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 
@@ -3818,7 +3805,7 @@ public class TableIndexDAOImplTest {
 
 		// Null row filter will add all rows
 		Set<Long> rowIdFilter = null;
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, rowIdFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// push all of the data to the view
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3835,7 +3822,7 @@ public class TableIndexDAOImplTest {
 		
 		// add the two rows back to the view
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
-		filter = new HierarchyFilter(mainType, subTypes, rowIdFilter, scope);
+		filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowIdFilter);
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
@@ -4117,7 +4104,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, additionalFilter, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
@@ -4235,7 +4222,7 @@ public class TableIndexDAOImplTest {
 				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion())
 		);
 		
-		ViewFilter filter = new FlatIdAndVersionFilter(MainType.ENTITY, subTypes, additionalFilter, scope);
+		ViewFilter filter = new FlatIdAndVersionFilter(MainType.ENTITY, subTypes, scope);
 		
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);

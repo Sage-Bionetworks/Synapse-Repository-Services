@@ -1465,7 +1465,7 @@ public class SQLUtils {
 		List<String> headers = buildSelect(builder, metadata);
 		objectReplicationJoinAnnotationReplicationFilter(builder, filterSql);
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
-		builder.append(",").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
+		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		return headers;
 	}
@@ -1796,12 +1796,8 @@ public class SQLUtils {
 	 * @param withExclusionList If true the SQL will include a NOT IN clause on the annotation key with the :exclusionList parameter
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(String filterSql, boolean withExclusionList){
-		String exclusionListReplace = "";
-		if (withExclusionList) {
-			exclusionListReplace = ANNOTATION_KEY_EXCLUSION_LIST;
-		}
-		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterSql, exclusionListReplace);
+	public static String getDistinctAnnotationColumnsSql(String filterSql){
+		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterSql);
 	}
 	
 	/**

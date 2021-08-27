@@ -2,13 +2,13 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,17 +20,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.util.EnumUtils;
+import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -64,10 +65,8 @@ public class TableIndexDAOImplUnitTest {
 	private TableIndexDAOImpl spyDao;
 
 	private ViewObjectType objectType = ViewObjectType.ENTITY;
-
-	private ViewScopeFilter getScopeFilter(Set<Long> containerIds) {
-		return new ViewScopeFilter(objectType.getMainType(), EnumUtils.names(EntityType.file), false, containerIds);
-	}
+	
+	private List<SubType> subTypes = Collections.singletonList(SubType.file);
 
 	@Test
 	public void testValidateMaxListLengthInAnnotationReplication_noListColumns() {
@@ -80,14 +79,13 @@ public class TableIndexDAOImplUnitTest {
 		List<ColumnModel> currentSchema = Arrays.asList(bar);
 
 		Set<Long> allContainersInScope = Sets.newHashSet(111L, 222L);
-		Set<Long> objectIdFilter = null;
-
-		ViewScopeFilter scopeFilter = getScopeFilter(allContainersInScope);
+		
+		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
 
 		// method under test
-		spyDao.validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter);
+		spyDao.validateMaxListLengthInAnnotationReplication(filter, currentSchema);
 		// validation should not have called any additional helpers
-		verify(spyDao).validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter);
+		verify(spyDao).validateMaxListLengthInAnnotationReplication(filter, currentSchema);
 		verifyNoMoreInteractions(spyDao);
 	}
 
@@ -114,23 +112,22 @@ public class TableIndexDAOImplUnitTest {
 		List<ColumnModel> currentSchema = Arrays.asList(foo, bar, baz);
 
 		Set<Long> allContainersInScope = Sets.newHashSet(111L, 222L);
-		Set<Long> objectIdFilter = null;
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
-
-		ViewScopeFilter scopeFilter = getScopeFilter(allContainersInScope);
+		
+		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where "baz" exceeds its defined limit
-		doReturn(ImmutableMap.of("foo", 4L, "baz", 16L)).when(spyDao).getMaxListSizeForAnnotations(scopeFilter,
-				listAnnotationNames, objectIdFilter);
+		doReturn(ImmutableMap.of("foo", 4L, "baz", 16L)).when(spyDao).getMaxListSizeForAnnotations(filter,
+				listAnnotationNames);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
 		// method under test
-		spyDao.validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter)).getMessage();
+		spyDao.validateMaxListLengthInAnnotationReplication(filter, currentSchema)).getMessage();
 
 		assertEquals("maximumListLength for ColumnModel \"baz\" must be at least: 16", errorMessage);
 
-		verify(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames, objectIdFilter);
+		verify(spyDao).getMaxListSizeForAnnotations(filter, listAnnotationNames);
 	}
 
 	@Test
@@ -156,21 +153,19 @@ public class TableIndexDAOImplUnitTest {
 		List<ColumnModel> currentSchema = Arrays.asList(foo, bar, baz);
 
 		Set<Long> allContainersInScope = Sets.newHashSet(111L, 222L);
-		Set<Long> objectIdFilter = null;
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
 
-		ViewScopeFilter scopeFilter = getScopeFilter(allContainersInScope);
+		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where only "foo" exists as a key
-		doReturn(ImmutableMap.of("foo", 4L)).when(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames,
-				objectIdFilter);
+		doReturn(ImmutableMap.of("foo", 4L)).when(spyDao).getMaxListSizeForAnnotations(filter, listAnnotationNames);
 
 		assertDoesNotThrow(() ->
 		// method under test
-		spyDao.validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter));
+		spyDao.validateMaxListLengthInAnnotationReplication(filter, currentSchema));
 
-		verify(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames, objectIdFilter);
+		verify(spyDao).getMaxListSizeForAnnotations(filter, listAnnotationNames);
 	}
 
 	@Test
@@ -196,21 +191,20 @@ public class TableIndexDAOImplUnitTest {
 		List<ColumnModel> currentSchema = Arrays.asList(foo, bar, baz);
 
 		Set<Long> allContainersInScope = Sets.newHashSet(111L, 222L);
-		Set<Long> objectIdFilter = null;
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
 
-		ViewScopeFilter scopeFilter = getScopeFilter(allContainersInScope);
+		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where "baz" does not exceed limit
-		doReturn(ImmutableMap.of("foo", 4L, "bar", 15L)).when(spyDao).getMaxListSizeForAnnotations(scopeFilter,
-				listAnnotationNames, objectIdFilter);
+		doReturn(ImmutableMap.of("foo", 4L, "bar", 15L)).when(spyDao).getMaxListSizeForAnnotations(filter,
+				listAnnotationNames);
 
 		assertDoesNotThrow(() ->
 		// method under test
-		spyDao.validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, objectIdFilter));
+		spyDao.validateMaxListLengthInAnnotationReplication(filter, currentSchema));
 
-		verify(spyDao).getMaxListSizeForAnnotations(scopeFilter, listAnnotationNames, objectIdFilter);
+		verify(spyDao).getMaxListSizeForAnnotations(filter, listAnnotationNames);
 	}
 	
 	// relevant to PLFM-6344

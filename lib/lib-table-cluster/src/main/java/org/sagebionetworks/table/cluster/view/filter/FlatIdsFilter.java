@@ -14,8 +14,8 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	
 	protected final Set<Long> scope;
 
-	public FlatIdsFilter(MainType mainType, List<SubType> subTypes, Set<Long> additionalFilter, Set<Long> scope) {
-		super(mainType, subTypes, additionalFilter);
+	public FlatIdsFilter(MainType mainType, List<SubType> subTypes, Set<Long> scope) {
+		super(mainType, subTypes);
 		this.scope = scope;
 		this.params.addValue("flatIds", scope);
 	}

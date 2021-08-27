@@ -1094,7 +1094,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewFilter filter, List<String> excludeKeys, Long limit, Long offset) {
+	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewFilter filter, Long limit, Long offset) {
 		ValidateArgument.required(filter, "filter");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
@@ -1108,14 +1108,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		
-		boolean withExclusionList = false;
-		
-		if (excludeKeys != null && !excludeKeys.isEmpty()) {
-			withExclusionList = true;
-			param.addValue(EXCLUSION_LIST_PARAM_NAME, excludeKeys);
-		}
-		
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql(), withExclusionList);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql());
 		
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, (ResultSet rs, int rowNum) -> {
 			ColumnAggregation aggregation = new ColumnAggregation();

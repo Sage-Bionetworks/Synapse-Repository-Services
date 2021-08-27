@@ -17,8 +17,8 @@ public class HierarchyFilter extends AbstractViewFilter {
 	
 	protected final Set<Long> scope;
 	
-	public HierarchyFilter(MainType mainType, List<SubType> subTypes, Set<Long> additionalFilter, Set<Long> scope) {
-		super(mainType, subTypes, additionalFilter);
+	public HierarchyFilter(MainType mainType, List<SubType> subTypes, Set<Long> scope) {
+		super(mainType, subTypes);
 		ValidateArgument.required(scope, "scope");
 		this.scope = scope;
 		this.params.addValue("parentIds", scope);
