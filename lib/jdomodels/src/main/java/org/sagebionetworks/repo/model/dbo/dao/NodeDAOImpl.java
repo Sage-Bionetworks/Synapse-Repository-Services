@@ -110,6 +110,7 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -2147,6 +2148,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			SqlParameterSource deleteParams = new MapSqlParameterSource("toDelete", idsToDelete);
 			namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN(:toDelete)",
 					deleteParams);
+		}
+	}
+
+	@Override
+	public List<DatasetItem> getDatasetItems(Long datasetId) {
+		ValidateArgument.required(datasetId, "datasetId");
+		String sql = "SELECT R." + COL_REVISION_ITEMS + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
+				+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
+				+ " = R." + COL_REVISION_NUMBER + ") WHERE N."+COL_NODE_ID+" = ?";
+		try {
+			return NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
 		}
 	}
 

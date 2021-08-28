@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,7 +17,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	 * @param subTypes One or more sub-types.  Required.
 	 * @param additionalFilter Additional filter to limit the results to this set of object ids.  Optional.
 	 */
-	public AbstractViewFilter(MainType mainType, List<SubType> subTypes) {
+	public AbstractViewFilter(MainType mainType, Set<SubType> subTypes) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(subTypes, "subTypes");
 		if(subTypes.isEmpty()) {

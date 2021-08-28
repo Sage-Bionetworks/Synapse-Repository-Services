@@ -49,8 +49,6 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.manager.table.metadata.ViewScopeFilterBuilder;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -67,7 +65,6 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -79,12 +76,12 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.util.EnumUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -98,23 +95,25 @@ import com.google.common.collect.Sets;
 public class TableIndexManagerImplTest {
 	
 	@Mock
-	TableIndexDAO mockIndexDao;
+	private TableIndexDAO mockIndexDao;
 	@Mock
-	TransactionStatus mockTransactionStatus;
+	private TransactionStatus mockTransactionStatus;
 	@Mock
-	TableManagerSupport mockManagerSupport;
+	private TableManagerSupport mockManagerSupport;
 	@Mock
-	ProgressCallback mockCallback;
+	private ProgressCallback mockCallback;
 	@Mock
-	MetadataIndexProviderFactory mockMetadataProviderFactory;
+	private MetadataIndexProviderFactory mockMetadataProviderFactory;
 	@Mock
-	MetadataIndexProvider mockMetadataProvider;
+	private MetadataIndexProvider mockMetadataProvider;
 	@Mock
-	DefaultColumnModel mockDefaultColumnModel;
+	private DefaultColumnModel mockDefaultColumnModel;
 	@Mock
-	ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
+	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	@Mock
-	ObjectFieldModelResolver mockObjectFieldModelResolver;
+	private ObjectFieldModelResolver mockObjectFieldModelResolver;
+	@Mock
+	private ViewFilter mockFilter;
 	
 	@Captor 
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
@@ -148,7 +147,6 @@ public class TableIndexManagerImplTest {
 	
 	Set<Long> rowsIdsWithChanges;
 	ViewScopeType scopeType;
-	ViewScopeFilterBuilder scopeFilterBuilder;
 	ObjectFieldModelResolver objectFieldModelResolver;
 	
 	@BeforeEach
@@ -554,23 +552,14 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplication(){
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scope);
-		
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -581,67 +570,41 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn() {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.etag);
 		
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 	}
 	
-	/**
-	 * Etag column is no longer requierd.
-	 */
 	@Test
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds(ObjectField.benefactorId);
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 	}
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationNullViewType(){
 		scopeType = null;
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		});
 	}
 	
-	@Test
-	public void testPopulateViewFromEntityReplicationScopeNull(){
-		Set<Long> scope = null;
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
-		});
-	}
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationSchemaNull(){
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		});
 	}
 	
@@ -649,41 +612,26 @@ public class TableIndexManagerImplTest {
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scope);
 		// call under test
-		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationUnknownCause() throws Exception{
-		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
 		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
 		// setup a failure
 		IllegalArgumentException expected = new IllegalArgumentException("Something went wrong");
@@ -691,7 +639,7 @@ public class TableIndexManagerImplTest {
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		});
 		// when the cause cannot be determined the original exception is thrown.
 		assertEquals(expected, ex);
@@ -699,18 +647,10 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationKnownCause() throws Exception{
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
 		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
 		ColumnModel column = new ColumnModel();
 		column.setId("123");
@@ -725,7 +665,7 @@ public class TableIndexManagerImplTest {
 		annotationModel.setColumnType(ColumnType.STRING);
 		annotationModel.setMaximumSize(11L);
 		
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
 
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
@@ -734,7 +674,7 @@ public class TableIndexManagerImplTest {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		});
 		
 		assertNotEquals(error, ex);
@@ -743,45 +683,27 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
-		
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+				
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit+1, offset);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockFilter, limit+1, offset);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPageNullToken(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
 		tokenString = null;
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, tokenString);
@@ -789,26 +711,18 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockFilter, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
 		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
 		pagePluseOne.add(new ColumnModel());
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(pagePluseOne);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(pagePluseOne);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken.toToken());
@@ -816,7 +730,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockFilter, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	
@@ -840,7 +754,7 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
-		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(any(), any(), anyLong(), anyLong());
+		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(any(), anyLong(), anyLong());
 	}
 	
 	
@@ -858,17 +772,11 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForView(){
 		when(mockManagerSupport.getViewScopeType(tableId)).thenReturn(scopeType);
 		
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-		
+			
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId.getId(), tokenString);
 		assertNotNull(results);
@@ -887,16 +795,10 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
 		
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
@@ -907,58 +809,41 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 		
 		scope.setViewEntityType(null);
 
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY.getMainType(), subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		
 		assertNotNull(results);
 		// should default to file view.
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockFilter, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsWithCustomFields(){
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 		
 		ColumnModel customField = new ColumnModel();
 		customField.setName("CustomField");
 		
 		when(mockDefaultColumnModel.getCustomFields()).thenReturn(ImmutableList.of(customField));
-		List<String> excludeKeys = ImmutableList.of(customField.getName());
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(ViewObjectType.ENTITY.getMainType(), subTypes, filterByObjectId, containerIds);
 		
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		
 		assertNotNull(results);
 		// Makes sure the exclude list is passed correctly.
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockFilter, nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
 	@Test
@@ -1506,59 +1391,38 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testUpdateViewRowsInTransaction() {
-		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
-		
 		setupExecuteInWriteTransaction();
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
 		// call under test
-		managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+		managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 	}
 	
 	@Test
 	public void testUpdateViewRowsInTransaction_ExceptionDuringUpdate() {
-		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockObjectFieldModelResolverFactory.getObjectFieldModelResolver(any())).thenReturn(mockObjectFieldModelResolver);
 		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		when(mockMetadataProvider.getObjectType()).thenReturn(objectType);
-		when(mockMetadataProvider.getSubTypesForMask(scopeType.getTypeMask())).thenReturn(subTypes);
-		when(mockMetadataProvider.isFilterScopeByObjectId(scopeType.getTypeMask())).thenReturn(filterByObjectId);
-
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
-		
+				
 		setupExecuteInWriteTransaction();
 		// setup an exception on copy
 		IllegalArgumentException exception = new IllegalArgumentException("something wrong");
-		doThrow(exception).when(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		doThrow(exception).when(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
 		Exception thrown = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+			managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		});
 		assertEquals(exception, thrown);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, mockMetadataProvider, rowsIdsWithChanges);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		// must attempt to determine the type of exception.
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
 	}
@@ -1568,7 +1432,7 @@ public class TableIndexManagerImplTest {
 		tableId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		});
 	}
 	
@@ -1577,7 +1441,7 @@ public class TableIndexManagerImplTest {
 		rowsIdsWithChanges = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		});
 	}
 	
@@ -1586,25 +1450,17 @@ public class TableIndexManagerImplTest {
 		scopeType = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		});
 	}
 	
-	@Test
-	public void testUpdateViewRowsInTransaction_ScopeIds() {
-		scopeIds = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
-		});
-	}
 	
 	@Test
 	public void testUpdateViewRowsInTransaction_Schema() {
 		schema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, scopeIds, schema);
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter, mockMetadataProvider);
 		});
 	}
 
@@ -2136,18 +1992,13 @@ public class TableIndexManagerImplTest {
 		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(ImmutableList.of(annotationModel));
 		
 		List<ColumnModel> schema = ImmutableList.of(columnModel);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), scopeFilter);
+			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), mockFilter);
 		});
 		
 		assertEquals(original, ex.getCause());
@@ -2175,18 +2026,13 @@ public class TableIndexManagerImplTest {
 		when(mockObjectFieldModelResolver.findMatch(any())).thenReturn(Optional.empty());
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any(), any())).thenReturn(ImmutableList.of(a1, a2));
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = new ViewScopeFilter(objectType.getMainType(), subTypes, filterByObjectId, scopeIds);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(ImmutableList.of(a1, a2));
 		
 		List<ColumnModel> schema = ImmutableList.of(columnModel);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), scopeFilter);
+			manager.determineCauseOfReplicationFailure(original, schema, mockMetadataProvider, scope.getViewTypeMask(), mockFilter);
 		});
 		
 		assertEquals(original, ex.getCause());

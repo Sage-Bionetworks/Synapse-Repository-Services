@@ -78,7 +78,6 @@ import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -92,6 +91,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 
 public class SubmissionDAOImpl implements SubmissionDAO {
+
+	public static final long DEFAULT_VERSION_NUMBER = 1L;
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -884,6 +885,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
 		ObjectDataDTO data = new ObjectDataDTO();
 		data.setId(rs.getLong(COL_SUBMISSION_ID));
+		data.setVersion(DEFAULT_VERSION_NUMBER);
 		data.setName(rs.getString(COL_SUBMISSION_NAME));
 		data.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
 		data.setParentId(rs.getLong(SubmissionField.evaluationid.getColumnAlias()));
@@ -938,7 +940,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				continue;
 			}
 
-			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO();
+			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO(new ObjectDataDTO().setId(submissionId).setVersion(DEFAULT_VERSION_NUMBER));
 			
 			annotationValue.setObjectId(submissionId);
 			annotationValue.setKey(field.getColumnName());

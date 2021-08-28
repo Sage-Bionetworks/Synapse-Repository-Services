@@ -4634,4 +4634,74 @@ public class NodeDAOImplTest {
 		Node fromVersion = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
 		assertEquals(dataset, fromVersion);
 	}
+	
+	@Test
+	public void testGetDatasetItems() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		// Call under test
+		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		assertEquals(items, fetched);
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithMultipleVersion() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		// v2
+		List<DatasetItem> itemsV2 = Arrays.asList(new DatasetItem().setEntityId("syn333").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn444").setVersionNumber(6L));
+		dataset.setVersionNumber(2L);
+		dataset.setVersionComment("v2");
+		dataset.setVersionLabel("v2");
+		dataset.setItems(itemsV2);
+		nodeDao.createNewVersion(dataset);
+
+		// Call under test
+		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		assertEquals(itemsV2, fetched);
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithNotFound() {
+		Long datasetId = -1L;
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getDatasetItems(datasetId);
+		});
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithNullId() {
+		Long datasetId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getDatasetItems(datasetId);
+		});
+	}
 }

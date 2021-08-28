@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
-import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.MainType;
@@ -14,7 +13,7 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	
 	protected final Set<Long> scope;
 
-	public FlatIdsFilter(MainType mainType, List<SubType> subTypes, Set<Long> scope) {
+	public FlatIdsFilter(MainType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		super(mainType, subTypes);
 		this.scope = scope;
 		this.params.addValue("flatIds", scope);

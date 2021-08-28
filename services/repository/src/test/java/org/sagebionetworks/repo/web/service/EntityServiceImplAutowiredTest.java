@@ -544,8 +544,8 @@ public class EntityServiceImplAutowiredTest  {
 		one = columnModelManager.createColumnModel(adminUserInfo, one);
 		List<String> schema = Arrays.asList(one.getId());
 		
-		List<DatasetItem> scope = new ArrayList<>(TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1);
-		for(int i=0; i<TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1; i++) {
+		List<DatasetItem> scope = new ArrayList<>(TableConstants.MAX_CONTAINERS_PER_VIEW+1);
+		for(int i=0; i<TableConstants.MAX_CONTAINERS_PER_VIEW+1; i++) {
 			scope.add(new DatasetItem().setEntityId("syn"+(i+100_100_000)).setVersionNumber((long)i));
 		}
 

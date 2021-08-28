@@ -47,6 +47,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionMetadataIndexProviderUnitTest {
@@ -119,9 +120,9 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	@Test
 	public void testGetSubTypesForMask() {
 		// Call under test
-		List<String> result = provider.getSubTypesForMask(mockViewTypeMask);
+		Set<SubType> result = provider.getSubTypesForMask(mockViewTypeMask);
 
-		assertEquals(ImmutableList.of(SubType.submission.name()), result);
+		assertEquals(Sets.newHashSet(SubType.submission), result);
 
 	}
 

@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
-import static org.sagebionetworks.repo.model.table.TableConstants.EXCLUSION_LIST_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
@@ -37,7 +36,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
@@ -81,7 +79,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -120,6 +117,58 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
 	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
+	
+	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		ObjectDataDTO dto1 = new ObjectDataDTO();
+		dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
+		dto1.setVersion(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_VERSION));
+		dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
+		dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+		dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
+		dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
+		dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+		dto1.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+		dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
+		if (rs.wasNull()) {
+			dto1.setParentId(null);
+		}
+		dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
+		if (rs.wasNull()) {
+			dto1.setBenefactorId(null);
+		}
+		dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
+		if (rs.wasNull()) {
+			dto1.setProjectId(null);
+		}
+		dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
+		dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
+		dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
+		if (rs.wasNull()) {
+			dto1.setFileHandleId(null);
+		}
+		dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
+		if (rs.wasNull()) {
+			dto1.setFileSizeBytes(null);
+		}
+		dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+		if (rs.wasNull()) {
+			dto1.setIsInSynapseStorage(null);
+		}
+		dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
+		return dto1;
+	};
+	
+	@SuppressWarnings("unchecked")
+	public static RowMapper<ObjectAnnotationDTO> OBJECT_ANNOTATION_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
+		dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
+		dto1.setObjectVersion(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_VERSION));
+		dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+		dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
+		dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
+						.toList());
+		return dto1;
+	};
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
 			+ " FROM " + OBJECT_REPLICATION_TABLE 
@@ -867,61 +916,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
-			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-				ObjectDataDTO dto1 = new ObjectDataDTO();
-				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
-				dto1.setVersion(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_VERSION));
-				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
-				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
-				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
-				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
-				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
-				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
-				if (rs.wasNull()) {
-					dto1.setParentId(null);
-				}
-				dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
-				if (rs.wasNull()) {
-					dto1.setBenefactorId(null);
-				}
-				dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
-				if (rs.wasNull()) {
-					dto1.setProjectId(null);
-				}
-				dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
-				dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
-				dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
-				if (rs.wasNull()) {
-					dto1.setFileHandleId(null);
-				}
-				dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
-				if (rs.wasNull()) {
-					dto1.setFileSizeBytes(null);
-				}
-				dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
-				if (rs.wasNull()) {
-					dto1.setIsInSynapseStorage(null);
-				}
-				dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
-
-				return dto1;
-			}, mainType.name(), objectId, objectVersion);
+			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, OBJECT_DATA_ROW_MAPPER);
 		} catch (DataAccessException e) {
 			return null;
 		}
 		// get the annotations.
-		@SuppressWarnings("unchecked")
-		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO(dto);
-			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
-			dto1.setObjectVersion(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_VERSION));
-			dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
-			dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-			dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
-							.toList());
-			return dto1;
-		}, mainType.name(), objectId, objectVersion);
+		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, OBJECT_ANNOTATION_ROW_MAPPER, mainType.name(), objectId, objectVersion);
 		
 		if (!annotations.isEmpty()) {
 			dto.setAnnotations(annotations);
@@ -1367,20 +1367,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		truncateReplicationSyncExpiration();
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
-	}
-	
-	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, Set<Long> rowIdsToCopy) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		
-		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getMainType().name());
-		param.addValue(PARENT_ID_PARAM_NAME, scopeFilter.getContainerIds());
-		
-		if (rowIdsToCopy != null) {
-			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
-		}
-		param.addValue(SUBTYPE_PARAM_NAME, scopeFilter.getSubTypes());
-		
-		return param;
 	}
 
 	@Override

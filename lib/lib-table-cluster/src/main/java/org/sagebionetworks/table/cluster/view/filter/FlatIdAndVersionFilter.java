@@ -15,7 +15,7 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	
 	private final Set<IdVersionPair> scope;
 
-	public FlatIdAndVersionFilter(MainType mainType, List<SubType> subTypes, Set<IdVersionPair> scope) {
+	public FlatIdAndVersionFilter(MainType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
 		super(mainType, subTypes);
 		this.scope = scope;
 		List<Long[]> pairedList = scope.stream().map(i-> new Long[] {i.getId(), i.getVersion()}).collect(Collectors.toList());

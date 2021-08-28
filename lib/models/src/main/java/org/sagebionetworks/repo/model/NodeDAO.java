@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -672,5 +673,12 @@ public interface NodeDAO {
 	 * @return
 	 */
 	Integer getEntityPathDepth(String entityId, int maxDepth);
+
+	/**
+	 * Get the DatasetItems for the given datasetId.
+	 * @param datasetId
+	 * @return
+	 */
+	public List<DatasetItem> getDatasetItems(Long datasetId);
 
 }

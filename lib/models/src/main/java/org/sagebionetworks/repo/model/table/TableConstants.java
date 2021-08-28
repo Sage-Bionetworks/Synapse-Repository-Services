@@ -48,6 +48,11 @@ public class TableConstants {
 	public static final Long ROW_ETAG_ID = -3L;
 	
 	public static final int MAX_COLUMN_NAME_SIZE_CHARS = 256;
+	
+	/**
+	 * Note: We raised this limit from 10K to 20K for PLFM-6287.
+	 */
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 20; // 20K;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and

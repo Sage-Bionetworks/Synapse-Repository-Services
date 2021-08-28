@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
-import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.MainType;
@@ -17,7 +16,7 @@ public class HierarchyFilter extends AbstractViewFilter {
 	
 	protected final Set<Long> scope;
 	
-	public HierarchyFilter(MainType mainType, List<SubType> subTypes, Set<Long> scope) {
+	public HierarchyFilter(MainType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		super(mainType, subTypes);
 		ValidateArgument.required(scope, "scope");
 		this.scope = scope;

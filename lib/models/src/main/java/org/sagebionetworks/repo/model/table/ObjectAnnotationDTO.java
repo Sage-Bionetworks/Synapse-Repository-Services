@@ -23,6 +23,8 @@ public class ObjectAnnotationDTO {
 	private String key;
 	private AnnotationType type;
 	private List<String> value;
+	
+	public ObjectAnnotationDTO() {}
 
 	public ObjectAnnotationDTO(ObjectDataDTO object) {
 		this.objectId = object.getId();

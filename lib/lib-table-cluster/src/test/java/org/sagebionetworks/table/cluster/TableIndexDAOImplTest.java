@@ -109,7 +109,7 @@ public class TableIndexDAOImplTest {
 	private ViewObjectType otherObjectType;
 	
 	private MainType mainType;
-	private List<SubType> subTypes;
+	private Set<SubType> subTypes;
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
@@ -153,7 +153,7 @@ public class TableIndexDAOImplTest {
 				return ColumnType.ENTITYID;
 			}
 		};
-		subTypes = Collections.singletonList(SubType.file);
+		subTypes = Sets.newHashSet(SubType.file);
 	}
 
 	@AfterEach
@@ -2420,7 +2420,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		subTypes = Arrays.asList(SubType.project);
+		subTypes = Sets.newHashSet(SubType.project);
 		
 		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, containerIds);
 	
@@ -3485,7 +3485,7 @@ public class TableIndexDAOImplTest {
 		
 		// start including all types
 		
-		subTypes = Arrays.asList(SubType.values());
+		subTypes = new HashSet<SubType>(Arrays.asList(SubType.values())) ;
 		
 		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
@@ -3494,7 +3494,7 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
-		subTypes = Arrays.asList(SubType.file);
+		subTypes = Sets.newHashSet(SubType.file);
 		filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
@@ -4215,8 +4215,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<SubType> subTypes = Collections.singletonList(SubType.file);
-		Set<Long> additionalFilter = null;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 		Set<IdVersionPair> scope = Sets.newHashSet(
 				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
 				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion())

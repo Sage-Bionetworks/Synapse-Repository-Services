@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
@@ -63,10 +61,8 @@ public class TableIndexDAOImplUnitTest {
 	@Spy
 	@InjectMocks
 	private TableIndexDAOImpl spyDao;
-
-	private ViewObjectType objectType = ViewObjectType.ENTITY;
 	
-	private List<SubType> subTypes = Collections.singletonList(SubType.file);
+	private Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 
 	@Test
 	public void testValidateMaxListLengthInAnnotationReplication_noListColumns() {
