@@ -126,7 +126,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

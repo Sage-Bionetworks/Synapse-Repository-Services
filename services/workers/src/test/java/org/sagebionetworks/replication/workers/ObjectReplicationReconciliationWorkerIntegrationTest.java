@@ -212,7 +212,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(mainType, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(mainType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				if(expectedBenefactor == null || expectedBenefactor.equals(entityDto.getBenefactorId())) {
 					return entityDto;

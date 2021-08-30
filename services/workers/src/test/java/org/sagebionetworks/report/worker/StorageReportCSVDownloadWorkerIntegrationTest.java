@@ -193,7 +193,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		while(true){
-			ObjectDataDTO dto = indexDao.getObjectData(MainType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO dto = indexDao.getObjectDataForCurrentVersion(MainType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);

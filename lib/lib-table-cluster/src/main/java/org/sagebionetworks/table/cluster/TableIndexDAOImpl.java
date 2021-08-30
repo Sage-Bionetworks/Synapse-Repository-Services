@@ -3,9 +3,11 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
@@ -913,20 +915,58 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("mainType", mainType.name());
+		params.addValue("objectId", objectId);
+		params.addValue("objectVersion", objectVersion);
+
+		String objectSql = "SELECT * FROM "+ OBJECT_REPLICATION_TABLE + " WHERE "
+				+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :mainType AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_ID+" = :objectId AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION+" = :objectVersion";
+		
+		String annotationSql = "SELECT * FROM "+ANNOTATION_REPLICATION_TABLE+" WHERE "
+				+ANNOTATION_REPLICATION_COL_OBJECT_TYPE+" = :mainType AND "
+				+ANNOTATION_REPLICATION_COL_OBJECT_ID+" = :objectId AND "
+				+ANNOTATION_REPLICATION_COL_OBJECT_VERSION+" = :objectVersion";	
+		
+		return getObjectData(objectSql, annotationSql, params);
+	}
+	
+	@Override
+	public ObjectDataDTO getObjectDataForCurrentVersion(MainType mainType, Long objectId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("mainType", mainType.name());
+		params.addValue("objectId", objectId);
+
+		String objectSql = "SELECT * FROM " + OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_OBJECT_TYPE
+				+ " = :mainType AND " + OBJECT_REPLICATION_COL_OBJECT_ID + " = :objectId AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION + " = " + OBJECT_REPLICATION_COL_CUR_VERSION;
+
+		String annotationSql = "SELECT A.* FROM " + OBJECT_REPLICATION_TABLE + " O JOIN " + ANNOTATION_REPLICATION_TABLE
+				+ " A ON (O." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_TYPE
+				+ " AND O." + OBJECT_REPLICATION_COL_OBJECT_ID + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_ID
+				+ " AND O." + OBJECT_REPLICATION_COL_OBJECT_VERSION + " = A."
+				+ ANNOTATION_REPLICATION_COL_OBJECT_VERSION + ") " + " WHERE O." + OBJECT_REPLICATION_COL_OBJECT_TYPE
+				+ " = :mainType AND O." + OBJECT_REPLICATION_COL_OBJECT_ID + " = :objectId AND O."
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION + " = O." + OBJECT_REPLICATION_COL_CUR_VERSION;
+
+		return getObjectData(objectSql, annotationSql, params);
+	}
+	
+	ObjectDataDTO getObjectData(String objectSql, String annotationSql, MapSqlParameterSource params) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
-			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, OBJECT_DATA_ROW_MAPPER);
+			dto = namedTemplate.queryForObject(objectSql, params, OBJECT_DATA_ROW_MAPPER);
 		} catch (DataAccessException e) {
 			return null;
 		}
 		// get the annotations.
-		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, OBJECT_ANNOTATION_ROW_MAPPER, mainType.name(), objectId, objectVersion);
-		
+		List<ObjectAnnotationDTO> annotations = namedTemplate.query(annotationSql, params, OBJECT_ANNOTATION_ROW_MAPPER);
 		if (!annotations.isEmpty()) {
 			dto.setAnnotations(annotations);
 		}
-		
 		return dto;
 	}
 	

@@ -4241,7 +4241,7 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testGetObjectDataMultipleVersion() {
+	public void testGetObjectDataWithMultipleVersion() {
 		Long objectId = 22L;
 		int annotationCoun = 1;
 		int versionCount = 2;
@@ -4254,5 +4254,20 @@ public class TableIndexDAOImplTest {
 		// Call under test
 		assertEquals(v1, tableIndexDAO.getObjectData(mainType, objectId, v1.getVersion()));
 		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
+	}
+	
+	@Test
+	public void testGetObjectDataForCurrentVersionWithMultipleVersions() {
+		Long objectId = 22L;
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v2 = objects.get(1);
+		
+		tableIndexDAO.addObjectData(mainType, objects);
+		
+		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
+		// call under test
+		assertEquals(v2, tableIndexDAO.getObjectDataForCurrentVersion(mainType, objectId));
 	}
 }

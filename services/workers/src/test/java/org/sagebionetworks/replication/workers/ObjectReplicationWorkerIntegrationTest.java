@@ -71,7 +71,7 @@ public class ObjectReplicationWorkerIntegrationTest {
 		TableIndexDAO indexDao = tableConnectionFactory.getAllConnections().get(0);
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(MainType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(MainType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

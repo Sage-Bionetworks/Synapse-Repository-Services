@@ -305,7 +305,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		long start = System.currentTimeMillis();
 		while (true) {
-			ObjectDataDTO dto = indexDao.getObjectData(objectType, objectId);
+			ObjectDataDTO dto = indexDao.getObjectDataForCurrentVersion(objectType, objectId);
 			if (dto == null || !dto.getEtag().equals(etag)) {
 				assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out waiting for object replication.");
 				LOG.info("Waiting for object replication...(Type: {}, Id: {}, Etag: {})", objectType.name(), objectId, etag);
