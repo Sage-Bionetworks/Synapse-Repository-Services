@@ -73,6 +73,8 @@ public class SQLUtilsTest {
 	IdAndVersion tableId;
 	Long viewId;
 
+	private String LINE_SEPERATOR =  System.getProperty("line.separator");
+	
 	@BeforeEach
 	public void before(){
 		simpleSchema = new LinkedList<ColumnModel>();
@@ -2544,7 +2546,7 @@ public class SQLUtilsTest {
 	public void testGetDistinctAnnotationColumnsSql(){
 		String filter = " the-filter";
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter);
-		sql = sql.replaceAll("\r\n", "");
+		sql = sql.replaceAll(LINE_SEPERATOR, "");
 		String expected = 
 				"SELECT "
 				+ "	A.ANNO_KEY,"
@@ -2929,7 +2931,7 @@ public class SQLUtilsTest {
 		String filter = " the-filter";
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, filter);
-		sql = sql.replace("\r\n", "");
+		sql = sql.replace(LINE_SEPERATOR, "");
 		String expected = 
 				"WITH DELTAS (ID, MISSING) AS ( "
 				+ "	SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R "
