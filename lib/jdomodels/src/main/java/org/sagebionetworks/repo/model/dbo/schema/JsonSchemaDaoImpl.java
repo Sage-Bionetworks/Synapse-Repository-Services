@@ -557,20 +557,37 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 	
 	@Override
-	public Iterator<String> getVersionIdsOfDependantsIterator(String versionId) {
+	public Iterator<String> getVersionIdsOfDependantsIteratorWithVersionId(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
 		return new PaginationIterator<String>((long limit, long offset) -> {
-			return getNextPageForVersionIdsOfDependants(versionId, limit, offset);
+			return getNextPageForVersionIdsOfDependantsWithVersionId(versionId, limit, offset);
 		}, PAGE_SIZE_LIMIT);
 	}
 	
 	@Override
-	public List<String> getNextPageForVersionIdsOfDependants(String versionId, long limit, long offset) {
+	public List<String> getNextPageForVersionIdsOfDependantsWithVersionId(String versionId, long limit, long offset) {
 		ValidateArgument.required(versionId, "versionId");
 		return jdbcTemplate.queryForList("SELECT " + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " FROM " 
 				+ TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
 				+ COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + " = ? LIMIT ? OFFSET ?", 
 				String.class, versionId, limit, offset);
+	}
+	
+	@Override
+	public Iterator<String> getVersionIdsOfDependantsIteratorWithSchemaId(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return new PaginationIterator<String>((long limit, long offset) -> {
+			return getNextPageForVersionIdsOfDependantsWithSchemaId(schemaId, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
+	
+	@Override
+	public List<String> getNextPageForVersionIdsOfDependantsWithSchemaId(String schemaId, long limit, long offset) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return jdbcTemplate.queryForList("SELECT " + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " FROM " 
+				+ TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
+				+ COL_JSON_SCHEMA_DEPEPNDENCY_DEPENDS_ON_SCHEMA_ID + " = ? LIMIT ? OFFSET ?", 
+				String.class, schemaId, limit, offset);
 	}
 
 	@WriteTransaction
