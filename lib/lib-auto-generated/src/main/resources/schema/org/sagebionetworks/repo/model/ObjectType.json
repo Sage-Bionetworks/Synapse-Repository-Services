@@ -133,6 +133,14 @@
         {
             "name": "MEMBERSHIP_INVITATION",
             "description": "TODO: Auto-generated description"
+        },
+        {
+        	"name": "JSON_SCHEMA",
+        	"description": "A JSON schema."
+        },
+        {
+        	"name": "JSON_SCHEMA_DEPENDANT",
+        	"description": "A JSON schema that references other schemas."
         }
     ]
 }
