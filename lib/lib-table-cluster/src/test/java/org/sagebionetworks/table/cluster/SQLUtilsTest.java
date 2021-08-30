@@ -2544,15 +2544,16 @@ public class SQLUtilsTest {
 	public void testGetDistinctAnnotationColumnsSql(){
 		String filter = " the-filter";
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter);
+		sql = sql.replaceAll("\r\n", "");
 		String expected = 
-				"SELECT \r\n"
-				+ "	A.ANNO_KEY,\r\n"
-				+ "    GROUP_CONCAT(DISTINCT A.ANNO_TYPE),\r\n"
-				+ "    MAX(MAX_STRING_LENGTH),\r\n"
-				+ "    MAX(LIST_LENGTH)\r\n"
-				+ "		FROM OBJECT_REPLICATION AS R\r\n"
-				+ "			INNER JOIN ANNOTATION_REPLICATION AS A ON (R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID AND R.OBJECT_VERSION = A.OBJECT_VERSION)\r\n"
-				+ "				WHERE  the-filter\r\n"
+				"SELECT "
+				+ "	A.ANNO_KEY,"
+				+ "    GROUP_CONCAT(DISTINCT A.ANNO_TYPE),"
+				+ "    MAX(MAX_STRING_LENGTH),"
+				+ "    MAX(LIST_LENGTH)"
+				+ "		FROM OBJECT_REPLICATION AS R"
+				+ "			INNER JOIN ANNOTATION_REPLICATION AS A ON (R.OBJECT_TYPE = A.OBJECT_TYPE AND R.OBJECT_ID = A.OBJECT_ID AND R.OBJECT_VERSION = A.OBJECT_VERSION)"
+				+ "				WHERE  the-filter"
 				+ "        GROUP BY A.ANNO_KEY LIMIT :pLimit OFFSET :pOffset";
 		assertEquals(expected, sql);
 	}
@@ -2928,16 +2929,17 @@ public class SQLUtilsTest {
 		String filter = " the-filter";
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, filter);
+		sql = sql.replace("\r\n", "");
 		String expected = 
-				"WITH DELTAS (ID, MISSING) AS ( \r\n"
-				+ "	SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R \r\n"
-				+ "		LEFT JOIN T999 V ON ( R.OBJECT_ID = V.ROW_ID AND R.ETAG = V.ROW_ETAG AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)\r\n"
-				+ "        	WHERE  the-filter\r\n"
-				+ "UNION ALL\r\n"
-				+ "	SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R \r\n"
-				+ "		RIGHT JOIN T999 V ON ( R.OBJECT_ID = V.ROW_ID AND R.ETAG = V.ROW_ETAG AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR \r\n"
-				+ "			AND  the-filter )\r\n"
-				+ ")\r\n"
+				"WITH DELTAS (ID, MISSING) AS ( "
+				+ "	SELECT R.OBJECT_ID, V.ROW_ID FROM OBJECT_REPLICATION R "
+				+ "		LEFT JOIN T999 V ON ( R.OBJECT_ID = V.ROW_ID AND R.ETAG = V.ROW_ETAG AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "        	WHERE  the-filter"
+				+ "UNION ALL"
+				+ "	SELECT V.ROW_ID, R.OBJECT_ID FROM OBJECT_REPLICATION R "
+				+ "		RIGHT JOIN T999 V ON ( R.OBJECT_ID = V.ROW_ID AND R.ETAG = V.ROW_ETAG AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR "
+				+ "			AND  the-filter )"
+				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :pLimit";
 		assertEquals(expected, sql);
 	}
