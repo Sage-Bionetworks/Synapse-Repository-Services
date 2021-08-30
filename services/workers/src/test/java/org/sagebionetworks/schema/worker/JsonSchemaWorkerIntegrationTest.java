@@ -78,7 +78,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class JsonSchemaWorkerIntegrationTest {
 
-	public static final long MAX_WAIT_MS = 1000 * 60;
+	public static final long MAX_WAIT_MS = 1000 * 80;
 
 	@Autowired
 	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
@@ -565,10 +565,10 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 	
-	@Disabled
 	@Test
 	public void testValidationSchemaIndexWithReindexingAndRevalidation() throws Exception {
-		// PLFM-6870: Validate that the index reindexes and also triggers revalidation on reindex
+		// PLFM-6870: Validate that the index reindexes dependant schemas,
+		// and also triggers revalidation on reindex
 		
 		// child schema, key property of type string
 		JsonSchema child = new JsonSchema();

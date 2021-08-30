@@ -166,5 +166,24 @@ public interface JsonSchemaManager {
 	 */
 	void deleteSchemaById(UserInfo user, String $id);
 
+	/**
+	 * Creates a validation JSON schema for the given versionId, indexes it in the validation schema index,
+	 * sends a notification to handle schemas that depend on it, and sends out notifications to entities bound to it.
+	 * @param versionId
+	 * @return
+	 */
+	JsonSchema createOrUpdateValidationSchemaIndex(String versionId);
 
+	/**
+	 * Sends notifications to all schemas that depend on it for reindexing
+	 * @param versionId
+	 */
+	void sendValidationIndexNotificationsForDependants(String versionId);
+
+	/**
+	 * Gets the validation schema from the index for the given versionId
+	 * @param versionId
+	 * @return
+	 */
+	JsonSchema getValidationSchemaFromIndex(String versionId);
 }

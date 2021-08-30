@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
+import org.sagebionetworks.repo.model.dbo.schema.ValidationJsonSchemaIndexDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -84,6 +85,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	
 	@Autowired
 	private NodeDAO nodeDao;
+	
+	@Autowired
+	private ValidationJsonSchemaIndexDao validationIndexDao;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -224,15 +228,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 		
-		// If the semantic version is null, notify the entities bound to it, because
-		// schemas with no semantic version are mutable.
-		if (info.getSemanticVersion() == null) {
-			sendUpdateNotifications(info.getSchemaId());
+		JsonSchema validationSchema = null;
+		if (Boolean.TRUE.equals(request.getDryRun())) {
+			validationSchema = getValidationSchema(info.get$id());
+		} else {
+			// update the validation schema index and send notifications
+			// for bound entities and for dependant schemas
+			validationSchema = createOrUpdateValidationSchemaIndex(info.getVersionId());
 		}
-
-		// Ensure we can create the validation schema
-		JsonSchema validationSchema = getValidationSchema(schemaId.toString());
-
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
 		response.setValidationSchema(validationSchema);
@@ -358,6 +361,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Override
 	public void truncateAll() {
+		validationIndexDao.truncateAll();
 		jsonSchemaDao.truncateAll();
 		organizationDao.truncateAll();
 	}
@@ -381,6 +385,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
+		validationIndexDao.delete(versionInfo.getVersionId());
 		if (parsedId.getSemanticVersion() == null) {
 			jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
 		} else {
@@ -549,5 +554,42 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
 		jsonSchemaDao.clearBoundSchema(objectId, objectType);
 	}
-
+	
+	@Override
+	public JsonSchema createOrUpdateValidationSchemaIndex(String versionId) {
+		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
+		JsonSchema schema = getValidationSchema(info.get$id());
+		validationIndexDao.createOrUpdate(versionId, schema);
+		// update the schemas that depend on this schema
+		transactionalMessenger.sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
+		// If the semantic version is null, notify the entities bound to it, because
+		// schemas with no semantic version are mutable.
+		if (info.getSemanticVersion() == null) {
+			sendUpdateNotifications(info.getSchemaId());
+		}
+		return schema;
+	}
+	
+	@Override
+	public void sendValidationIndexNotificationsForDependants(String versionId) {
+		// case where versionId is a schema with semantic version
+		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
+		Iterator<String> versionIds = null;
+		// semantic version is non-null, then versionId is non-null in dependency table
+		if (info.getSemanticVersion() != null) {
+			versionIds = jsonSchemaDao.getVersionIdsOfDependantsIteratorWithVersionId(versionId);
+		} else {
+			// otherwise grab the versionId's schemaId from the latest version table to access the dependency table
+			String schemaId = info.getSchemaId();
+			versionIds = jsonSchemaDao.getVersionIdsOfDependantsIteratorWithSchemaId(schemaId);
+		}
+		while (versionIds.hasNext()) {
+			transactionalMessenger.sendMessageAfterCommit(versionIds.next(), ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
+		}
+	}
+	
+	@Override
+	public JsonSchema getValidationSchemaFromIndex(String versionId) {
+		return validationIndexDao.getValidationSchema(versionId);
+	}
 }
