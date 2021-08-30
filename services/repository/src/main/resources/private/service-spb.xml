@@ -119,56 +119,6 @@
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
 
-	<!-- Provides validation for all types -->
-	<bean id="allTypesValidator"
-		class="org.sagebionetworks.repo.web.service.metadata.AllTypesValidatorImpl"
-		scope="singleton" />
-
-	<bean id="projectMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.ProjectMetadataProvider"
-		scope="singleton" />
-	<bean id="folderMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.FolderMetadataProvider"
-		scope="singleton" />
-	<bean id="tableEntityMetadataProvider"
-		class="org.sagebionetworks.repo.web.service.metadata.TableEntityMetadataProvider"
-		scope="singleton" />
-	<bean id="externalDockerRepoValidator"
-		class="org.sagebionetworks.repo.web.service.metadata.ExternalDockerRepoValidator"
-		scope="singleton" />	
-
-	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
-		enum -->
-	<bean id="metadataProviderFactory"
-		class="org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactoryImpl"
-		scope="singleton">
-		<property name="metadataProviderMap">
-			<map>
-				<entry key="project">
-					<ref bean="projectMetadataProvider" />
-				</entry>
-				<entry key="folder">
-					<ref bean="folderMetadataProvider" />
-				</entry>
-				<entry key="file">
-					<bean class= "org.sagebionetworks.repo.web.service.metadata.FileEntityMetadataProvider"/> 
-				</entry>
-				<entry key="table">
-					<ref bean="tableEntityMetadataProvider"/>
-				</entry>
-				<entry key="entityview">
-					<ref bean="entityViewMetadataProvider"/>
-				</entry>				
-				<entry key="dockerrepo">
-					<ref bean="externalDockerRepoValidator"/>
-				</entry>
-				<entry key="submissionview">
-					<ref bean="submissionViewMetadataProvider"/>
-				</entry>				
-			</map>
-		</property>
-	</bean>
-
 	<bean id="dataAccessService"
 		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
 		scope="singleton" />

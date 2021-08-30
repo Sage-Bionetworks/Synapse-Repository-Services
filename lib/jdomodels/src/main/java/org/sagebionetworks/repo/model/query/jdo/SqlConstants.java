@@ -44,6 +44,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String COL_REVISION_COLUMN_MODEL_IDS= "COLUMN_MODEL_IDS";
 	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
+	public static final String COL_REVISION_ITEMS			= "ITEMS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";

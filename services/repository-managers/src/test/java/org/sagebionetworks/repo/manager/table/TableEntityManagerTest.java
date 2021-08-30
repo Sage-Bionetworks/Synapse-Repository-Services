@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.apache.commons.collections4.IteratorUtils;
@@ -2006,8 +2005,6 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
 		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
 		
 		// Call under test
 		manager.backFillTableRowChanges();
@@ -2016,8 +2013,6 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
 		verify(mockTruthDao, times(pageSize)).getRowSet(any());
 		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTableConnectionFactory, times(pageSize)).getConnection(any());
-		verify(mockTableIndexDAO, times(pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
 		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
 	}
 	
@@ -2036,8 +2031,6 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
 		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
 		
 		// Call under test
 		manager.backFillTableRowChanges();
@@ -2046,8 +2039,6 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
 		verify(mockTruthDao, times(pageSize)).getRowSet(any());
 		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTableConnectionFactory, times(pageSize)).getConnection(any());
-		verify(mockTableIndexDAO, times(pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
 		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), true);
 	}
 	
@@ -2072,21 +2063,16 @@ public class TableEntityManagerTest {
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, (List<TableRowChange>[]) otherPages.toArray(new List[otherPages.size()]));
 		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
 		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(), any())).thenReturn(Collections.emptySet());
 		
 		// Call under test
 		manager.backFillTableRowChanges();
 		
 		for (int i=0; i < totalPages + 1; i++) {
 			verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, i * 1000);
-			List<Long> ids = IntStream.range(0, pageSize).boxed().map(Long::new).collect(Collectors.toList());
 		}
 		
 		verify(mockTruthDao, times(totalPages * pageSize)).getRowSet(any());
 		verify(mockColumModelManager, times(totalPages * pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTableConnectionFactory, times(totalPages * pageSize)).getConnection(any());
-		verify(mockTableIndexDAO, times(totalPages * pageSize)).getFileHandleIdsAssociatedWithTable(any(), any());
 		verify(mockTruthDao, times((int)Math.ceil((totalPages * pageSize)/10_000D))).updateRowChangeHasFileRefsBatch(anyList(), eq(false));
 	}
 	

@@ -4,7 +4,9 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.Folder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class FolderMetadataProvider implements EntityValidator<Folder> {
 	@Autowired
 	private EntityManager entityManager;

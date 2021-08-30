@@ -1,20 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageManager;
-import org.sagebionetworks.repo.manager.MessageManagerImpl;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -51,7 +50,7 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 	private static final String TEAM_NAME = "MIS_CONTRL_AW_TEST";
 	private Team teamToDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
@@ -69,7 +68,7 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		assertNotNull(testInvitee.getId().toString());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		 // creating invitations generates messages. We have to delete
 		 // the file handles as part of cleaning up

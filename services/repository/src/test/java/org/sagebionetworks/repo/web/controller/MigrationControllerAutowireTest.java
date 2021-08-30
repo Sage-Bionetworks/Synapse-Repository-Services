@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -51,7 +51,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	S3FileHandle preview;
 	long startFileCount;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -75,7 +75,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	}
 	
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		// Delete the project
 		if(entity != null){

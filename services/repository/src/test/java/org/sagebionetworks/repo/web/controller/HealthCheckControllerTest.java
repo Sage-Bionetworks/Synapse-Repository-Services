@@ -4,7 +4,7 @@
  */
 package org.sagebionetworks.repo.web.controller;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  *

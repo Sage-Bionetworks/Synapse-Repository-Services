@@ -1,57 +1,38 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
-		InitializingBean {
+@Service
+public class MetadataProviderFactoryImpl implements MetadataProviderFactory {
 
-	private Map<String, EntityProvider<? extends Entity>> metadataProviderMap;
-	private Map<String, List<EntityProvider<? extends Entity>>> metadataProviders;
-	private EntityProvider<? extends Entity> locationableProvider;
+	private Map<EntityType, List<EntityProvider<? extends Entity>>> metadataProviders;
 
-	/**
-	 * @param metadataProviderMap
-	 *            the metadataProviderMap to set
-	 */
-	public void setMetadataProviderMap(Map<String, EntityProvider<? extends Entity>> metadataProviderMap) {
-		this.metadataProviderMap = metadataProviderMap;
+	@Autowired
+	void metadataProviders(ProjectMetadataProvider projectProvider, FolderMetadataProvider folderProvider,
+			FileEntityMetadataProvider fileProvider, TableEntityMetadataProvider tableProvider,
+			EntityViewMetadataProvider entityViewProvider, ExternalDockerRepoValidator dockerProvider,
+			SubmissionViewMetadataProvider submissionViewProvider, DatasetMetadataProvider datasetProvider) {
+		metadataProviders = new HashMap<EntityType, List<EntityProvider<? extends Entity>>>();
+		metadataProviders.put(EntityType.project, Collections.singletonList(projectProvider));
+		metadataProviders.put(EntityType.folder, Collections.singletonList(folderProvider));
+		metadataProviders.put(EntityType.file, Collections.singletonList(fileProvider));
+		metadataProviders.put(EntityType.table, Collections.singletonList(tableProvider));
+		metadataProviders.put(EntityType.entityview, Collections.singletonList(entityViewProvider));
+		metadataProviders.put(EntityType.dockerrepo, Collections.singletonList(dockerProvider));
+		metadataProviders.put(EntityType.submissionview, Collections.singletonList(submissionViewProvider));
+		metadataProviders.put(EntityType.dataset, Collections.singletonList(datasetProvider));
 	}
 
 	@Override
-	public List<EntityProvider<? extends Entity>> getMetadataProvider(
-			EntityType type) {
-
-		List<EntityProvider<? extends Entity>> providers = metadataProviders.get(type.name());
-		return providers;
+	public List<EntityProvider<? extends Entity>> getMetadataProvider(EntityType type) {
+		return metadataProviders.get(type);
 	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		metadataProviders = new HashMap<String, List<EntityProvider<? extends Entity>>>();
-
-		locationableProvider = this.metadataProviderMap.get("locationable");
-
-		for (Entry<String, EntityProvider<? extends Entity>> providerEntry : metadataProviderMap
-				.entrySet()) {
-			if (providerEntry.getValue() == locationableProvider) {
-				continue;
-			}
-
-			List<EntityProvider<? extends Entity>> allProvidersForType = new LinkedList<EntityProvider<? extends Entity>>();
-			allProvidersForType.add(providerEntry.getValue());
-
-			EntityType type = EntityType.valueOf(providerEntry.getKey());
-
-			metadataProviders.put(providerEntry.getKey(), allProvidersForType);
-		}
-	}
-
 }

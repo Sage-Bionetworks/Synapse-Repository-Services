@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -82,7 +82,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	private static List<MessageStatusType> inboxFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
 
 	@SuppressWarnings("serial")
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		cleanup = new ArrayList<String>();
 		
@@ -124,7 +124,7 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		fileHandleId = handle.getId();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		try {
 			for (String id : cleanup) {

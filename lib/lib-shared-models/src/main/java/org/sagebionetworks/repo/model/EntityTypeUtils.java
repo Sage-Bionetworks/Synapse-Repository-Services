@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -57,7 +58,9 @@ public class EntityTypeUtils {
 				// dockerrepo
 				buildMetadata(EntityType.dockerrepo, Arrays.asList(Project.class.getName()), DockerRepository.class, "Docker Repository"),
 				// submission views
-				buildMetadata(EntityType.submissionview, Arrays.asList(Project.class.getName(), Folder.class.getName()), SubmissionView.class, "Submission View")
+				buildMetadata(EntityType.submissionview, Arrays.asList(Project.class.getName(), Folder.class.getName()), SubmissionView.class, "Submission View"),
+				// dataset
+				buildMetadata(EntityType.dataset, Arrays.asList(Project.class.getName(), Folder.class.getName()), Dataset.class, "Dataset")
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -69,6 +72,7 @@ public class EntityTypeUtils {
 		className.put(EntityView.class.getName(), EntityView.class);
 		className.put(DockerRepository.class.getName(), DockerRepository.class);
 		className.put(SubmissionView.class.getName(), SubmissionView.class);
+		className.put(Dataset.class.getName(), Dataset.class);
 	}
 
 	/**

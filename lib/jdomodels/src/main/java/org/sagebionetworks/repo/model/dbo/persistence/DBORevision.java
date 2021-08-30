@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ITEMS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
@@ -53,6 +54,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID).withHasFileHandleRef(true),
 		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("scopeIds", COL_REVISION_SCOPE_IDS),
+		new FieldColumn("items", COL_REVISION_ITEMS),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
 		new FieldColumn("reference", COL_REVISION_REF_BLOB),
 		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON)
@@ -99,6 +101,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private Long fileHandleId;
 	private byte[] columnModelIds;
 	private byte[] scopeIds;
+	private String items;
 	private byte[] entityPropertyAnnotations;
 	private byte[] reference;
 	private String userAnnotationsJSON;
@@ -212,52 +215,59 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		return null;
 	}
 
+	/**
+	 * @return the items
+	 */
+	public String getItems() {
+		return items;
+	}
+	/**
+	 * @param items the items to set
+	 */
+	public void setItems(String items) {
+		this.items = items;
+	}
+	
 	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		DBORevision that = (DBORevision) o;
-		return Objects.equals(owner, that.owner) &&
-				Objects.equals(revisionNumber, that.revisionNumber) &&
-				Objects.equals(activityId, that.activityId) &&
-				Objects.equals(label, that.label) &&
-				Objects.equals(comment, that.comment) &&
-				Objects.equals(modifiedBy, that.modifiedBy) &&
-				Objects.equals(modifiedOn, that.modifiedOn) &&
-				Objects.equals(fileHandleId, that.fileHandleId) &&
-				Arrays.equals(columnModelIds, that.columnModelIds) &&
-				Arrays.equals(scopeIds, that.scopeIds) &&
-				Arrays.equals(entityPropertyAnnotations, that.entityPropertyAnnotations) &&
-				Arrays.equals(reference, that.reference) &&
-				Objects.equals(userAnnotationsJSON, that.userAnnotationsJSON);
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof DBORevision)) {
+			return false;
+		}
+		DBORevision other = (DBORevision) obj;
+		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
+				&& Objects.equals(comment, other.comment)
+				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(items, other.items)
+				&& Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
+				&& Arrays.equals(reference, other.reference) && Objects.equals(revisionNumber, other.revisionNumber)
+				&& Arrays.equals(scopeIds, other.scopeIds)
+				&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
 	@Override
 	public int hashCode() {
-		int result = Objects.hash(owner, revisionNumber, activityId, label, comment, modifiedBy, modifiedOn, fileHandleId, userAnnotationsJSON);
-		result = 31 * result + Arrays.hashCode(columnModelIds);
-		result = 31 * result + Arrays.hashCode(scopeIds);
-		result = 31 * result + Arrays.hashCode(entityPropertyAnnotations);
-		result = 31 * result + Arrays.hashCode(reference);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(columnModelIds);
+		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
+		result = prime * result + Arrays.hashCode(reference);
+		result = prime * result + Arrays.hashCode(scopeIds);
+		result = prime * result + Objects.hash(activityId, comment, fileHandleId, items, label, modifiedBy, modifiedOn,
+				owner, revisionNumber, userAnnotationsJSON);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "DBORevision{" +
-				"owner=" + owner +
-				", revisionNumber=" + revisionNumber +
-				", activityId=" + activityId +
-				", label='" + label + '\'' +
-				", comment='" + comment + '\'' +
-				", modifiedBy=" + modifiedBy +
-				", modifiedOn=" + modifiedOn +
-				", fileHandleId=" + fileHandleId +
-				", columnModelIds=" + Arrays.toString(columnModelIds) +
-				", scopeIds=" + Arrays.toString(scopeIds) +
-				", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) +
-				", reference=" + Arrays.toString(reference) +
-				", userAnnotationsJSON='" + userAnnotationsJSON + '\'' +
-				'}';
+		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
+				+ ", label=" + label + ", comment=" + comment + ", modifiedBy=" + modifiedBy + ", modifiedOn="
+				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds)
+				+ ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations="
+				+ Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference)
+				+ ", userAnnotationsJSON=" + userAnnotationsJSON + "]";
 	}
 }

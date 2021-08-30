@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -4610,5 +4611,27 @@ public class NodeDAOImplTest {
 		
 		assertEquals(Collections.EMPTY_LIST, NodeDAOImpl.getTypeNames(Collections.singletonList(null)));
 		
+	}
+	
+	@Test
+	public void testCreateAndGetDataset() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L));
+		toDelete.add(project.getId());
+		// call under test
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		// call under test
+		Node fromVersion = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
+		assertEquals(dataset, fromVersion);
 	}
 }

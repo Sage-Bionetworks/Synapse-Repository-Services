@@ -16,7 +16,8 @@ import org.sagebionetworks.util.ValidateArgument;
 public enum ViewObjectType {
 
 	ENTITY(ViewEntityType.entityview, ObjectType.ENTITY),
-	SUBMISSION(ViewEntityType.submissionview, ObjectType.SUBMISSION);
+	SUBMISSION(ViewEntityType.submissionview, ObjectType.SUBMISSION),
+	DATASET(ViewEntityType.dataset, ObjectType.DATASET);
 
 	private ViewEntityType viewEntityType;
 	private ObjectType objectType;

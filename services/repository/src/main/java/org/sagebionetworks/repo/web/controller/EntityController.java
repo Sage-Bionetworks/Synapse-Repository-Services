@@ -89,6 +89,22 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * setting Authorization rules, and Annotating Entities.
  * </p>
  * <p>
+ * In addition to the basic entity types (Project, Folder, & FileEntity),
+ * Synapse also supports the following Entity types:
+ * <ul>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a></li>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.docker.DockerRepository}">DockerRepository</a></li>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.EntityView}">EntityView</a></li>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.SubmissionView}">SubmissionView</a></li>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a></li>
+ * </ul>
+ * </p>
+ * <p>
  * The following methods provide the basic Create, Read, Update, Delete (CRUD)
  * for Entities:
  * </p>
