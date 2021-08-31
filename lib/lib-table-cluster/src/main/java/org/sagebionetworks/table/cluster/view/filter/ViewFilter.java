@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
-import java.util.Set;
-
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
- * Abstraction for a filter that defines the rows of a view.
+ * Abstraction for an immutable filter that defines the rows of a view.
  *
  */
 public interface ViewFilter {
@@ -30,14 +28,9 @@ public interface ViewFilter {
 	String getFilterSql();
 	
 	/**
-	 * Limit the results to the provided Object Ids.
-	 * @param limitObjectIds
+	 * Builder to build a new filter from the existing filter.
+	 * @return
 	 */
-	ViewFilter setLimitToObjectIds(Set<Long> limitObjectIds);
+	Builder newBuilder();
 	
-	/**
-	 * Exclude all annotation keys
-	 * @param excludeKeys
-	 */
-	ViewFilter setExcludeAnnotationKeys(Set<String> excludeKeys);
 }

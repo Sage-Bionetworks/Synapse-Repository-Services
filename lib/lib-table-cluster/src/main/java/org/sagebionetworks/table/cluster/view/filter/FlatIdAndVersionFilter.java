@@ -16,11 +16,17 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	private final Set<IdVersionPair> scope;
 
 	public FlatIdAndVersionFilter(MainType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
-		super(mainType, subTypes);
+		this(mainType, subTypes, null, null, scope);
+	}
+	
+	public FlatIdAndVersionFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+			Set<String> excludeKeys, Set<IdVersionPair> scope) {
+		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		this.scope = scope;
 		List<Long[]> pairedList = scope.stream().map(i-> new Long[] {i.getId(), i.getVersion()}).collect(Collectors.toList());
 		this.params.addValue("scopePairs", pairedList);
 	}
+
 
 	@Override
 	public boolean isEmpty() {
@@ -32,4 +38,25 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		return super.getFilterSql()+" AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)";
 	}
 
+	@Override
+	public Builder newBuilder() {
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+	}
+
+	static class Builder extends AbstractBuilder {
+		
+		Set<IdVersionPair> scope;
+
+		public Builder(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+				Set<String> excludeKeys, Set<IdVersionPair> scope) {
+			super(mainType, subTypes, limitObjectIds, excludeKeys);
+			this.scope = scope;
+		}
+
+		@Override
+		public ViewFilter build() {
+			return new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		}
+		
+	}
 }

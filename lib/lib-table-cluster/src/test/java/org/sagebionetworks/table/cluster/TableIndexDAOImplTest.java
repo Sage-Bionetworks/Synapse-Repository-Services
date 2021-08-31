@@ -1775,7 +1775,7 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(objectIdFilter);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, objectIdFilter, null, scope);
 		
 		// method under test
 		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
@@ -2157,7 +2157,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds).setExcludeAnnotationKeys(Sets.newHashSet("key0"));
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, null, Sets.newHashSet("key0"), containerIds);
 		
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		
@@ -3701,9 +3701,11 @@ public class TableIndexDAOImplTest {
 		// Only add the first and last row to the view and a row that does not exist
 		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
 		
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowFilter);
+
 		
 		ViewFilter filterNoAdditional = new HierarchyFilter(mainType, subTypes, scope);
+		
+		ViewFilter filter = filterNoAdditional.newBuilder().addLimitObjectids(rowFilter).build();
 		
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -3714,7 +3716,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(expectedMissing, deltas);
 		// Add the remaining rows
 		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
-		filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowFilter);
+		filter = filter.newBuilder().addLimitObjectids(rowFilter).build();
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
@@ -3822,7 +3824,7 @@ public class TableIndexDAOImplTest {
 		
 		// add the two rows back to the view
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
-		filter = new HierarchyFilter(mainType, subTypes, scope).setLimitToObjectIds(rowIdFilter);
+		filter = new HierarchyFilter(mainType, subTypes,rowIdFilter,null, scope);
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);

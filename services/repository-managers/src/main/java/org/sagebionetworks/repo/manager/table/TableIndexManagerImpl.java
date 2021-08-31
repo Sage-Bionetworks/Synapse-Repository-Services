@@ -513,7 +513,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// We exclude from the suggested column models the custom fields defined for the object (since they are included in the default column model itself)
 		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);
 		if(excludeKeys != null) {
-			filter.setExcludeAnnotationKeys(new HashSet<>(excludeKeys));
+			filter = filter.newBuilder().addExcludeAnnotationKeys(new HashSet<>(excludeKeys)).build();
 		}
 
 		// request one page with a limit one larger than the passed limit.
@@ -737,8 +737,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
  			// First delete the provided rows from the view
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
+				ViewFilter newFilter = filter.newBuilder().addLimitObjectids(rowsIdsWithChanges).build();
 				// Apply any updates to the view for the given Ids
-				tableIndexDao.copyObjectReplicationToView(viewId.getId(), filter, currentSchema, provider);
+				tableIndexDao.copyObjectReplicationToView(viewId.getId(), newFilter, currentSchema, provider);
 				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
@@ -754,7 +755,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);
 		if(excludeKeys != null) {
-			filter.setExcludeAnnotationKeys(new HashSet<>(excludeKeys));
+			filter = filter.newBuilder().addExcludeAnnotationKeys(new HashSet<>(excludeKeys)).build();
 		}
 
 		// Calculate the schema from the annotations

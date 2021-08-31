@@ -17,7 +17,12 @@ public class HierarchyFilter extends AbstractViewFilter {
 	protected final Set<Long> scope;
 	
 	public HierarchyFilter(MainType mainType, Set<SubType> subTypes, Set<Long> scope) {
-		super(mainType, subTypes);
+		this(mainType, subTypes, null, null, scope);
+	}
+
+	public HierarchyFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
+			Set<Long> scope) {
+		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		ValidateArgument.required(scope, "scope");
 		this.scope = scope;
 		this.params.addValue("parentIds", scope);
@@ -33,4 +38,26 @@ public class HierarchyFilter extends AbstractViewFilter {
 		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
 
+	@Override
+	public Builder newBuilder() {
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+	}
+
+	static class Builder extends AbstractBuilder {
+		
+		 Set<Long> scope;
+
+		public Builder(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+				Set<String> excludeKeys,  Set<Long> scope) {
+			super(mainType, subTypes, limitObjectIds, excludeKeys);
+			this.scope = scope;
+		}
+
+		@Override
+		public ViewFilter build() {
+			return new HierarchyFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		}
+		
+	}
+	
 }
