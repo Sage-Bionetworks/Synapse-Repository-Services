@@ -433,8 +433,12 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			return value;
 		case DOUBLE:
 			// NaN is not a valid value in JSON, so we convert it to string "NaN"
-			if (value.equals(Double.toString(Double.NaN))) {
+			if (Double.toString(Double.NaN).equals(value)) {
 				return Double.toString(Double.NaN);
+			} else if (Double.toString(Double.POSITIVE_INFINITY).equals(value)) {
+				return Double.toString(Double.POSITIVE_INFINITY);
+			} else if (Double.toString(Double.NEGATIVE_INFINITY).equals(value)) {
+				return Double.toString(Double.NEGATIVE_INFINITY);
 			}
 			return Double.parseDouble(value);
 		case LONG:
