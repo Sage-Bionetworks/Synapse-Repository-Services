@@ -38,15 +38,16 @@ public class ObjectAnnotationDTO {
 	 * @param type
 	 * @param value
 	 */
-	public ObjectAnnotationDTO(Long objectId, String key, AnnotationType type, List<String> value) {
+	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, List<String> value) {
 		this.objectId = objectId;
+		this.objectVersion = objectVersion;
 		this.key = key;
 		this.type = type;
 		this.value = value;
 	}
 
-	public ObjectAnnotationDTO(Long objectId, String key, AnnotationType type, String value) {
-		this(objectId, key, type, Collections.singletonList(value));
+	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, String value) {
+		this(objectId, objectVersion, key, type, Collections.singletonList(value));
 	}
 
 	public Long getObjectId() {

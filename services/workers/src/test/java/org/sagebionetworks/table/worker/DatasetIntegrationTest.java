@@ -43,7 +43,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetIntegrationTest {
 
-	private static final int MAX_WAIT = 1 * 60 * 1000 * 10;
+	private static final int MAX_WAIT = 1 * 60 * 1000;
 
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;

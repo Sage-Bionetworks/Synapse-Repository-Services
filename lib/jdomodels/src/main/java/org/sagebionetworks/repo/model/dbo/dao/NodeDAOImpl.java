@@ -1766,7 +1766,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					throws SQLException {
 				ObjectDataDTO dto = new ObjectDataDTO();
 				long entityId = rs.getLong(COL_NODE_ID);
+				long objectVersion = rs.getLong(COL_NODE_CURRENT_REV);
 				dto.setId(entityId);
+				dto.setVersion(objectVersion);
 				dto.setCurrentVersion(rs.getLong(COL_NODE_CURRENT_REV));
 				dto.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
@@ -1804,7 +1806,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(userAnnoJson != null){
 					try {
 						Annotations annos = EntityFactory.createEntityFromJSONString(userAnnoJson, Annotations.class);
-						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, annos, maxAnnotationSize));
+						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, objectVersion, annos, maxAnnotationSize));
 					} catch (JSONObjectAdapterException e) {
 						throw new DatastoreException(e);
 					}

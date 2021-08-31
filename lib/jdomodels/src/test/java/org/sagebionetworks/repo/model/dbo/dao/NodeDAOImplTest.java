@@ -3028,6 +3028,7 @@ public class NodeDAOImplTest {
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertEquals(file.getVersionNumber(), fileDto.getVersion());
 		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
 		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
@@ -3047,10 +3048,10 @@ public class NodeDAOImplTest {
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
 		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
-				new ObjectAnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
-				new ObjectAnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
-				new ObjectAnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new ObjectAnnotationDTO(fileIdLong, "aDouble2", AnnotationType.DOUBLE, "1.22")
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aString", AnnotationType.STRING, "someString"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aLong", AnnotationType.LONG, "123"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble2", AnnotationType.DOUBLE, "1.22")
 		);
 		// Annotation order is not preserved by the JSON database column used to store annotations
 		for(ObjectAnnotationDTO expectedDto: expected) {
