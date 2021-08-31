@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,39 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 	}
 
-	static class Builder extends AbstractBuilder {
+	
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + Objects.hash(scope);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (!(obj instanceof FlatIdAndVersionFilter)) {
+			return false;
+		}
+		FlatIdAndVersionFilter other = (FlatIdAndVersionFilter) obj;
+		return Objects.equals(scope, other.scope);
+	}
+
+	@Override
+	public String toString() {
+		return "FlatIdAndVersionFilter [scope=" + scope + ", mainType=" + mainType + ", subTypes=" + subTypes
+				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
+	}
+
+
+	public static class Builder extends AbstractBuilder {
 		
 		Set<IdVersionPair> scope;
 

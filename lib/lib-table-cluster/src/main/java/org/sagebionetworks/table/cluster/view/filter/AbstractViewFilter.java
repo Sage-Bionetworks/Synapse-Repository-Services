@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,4 +60,23 @@ public abstract class AbstractViewFilter implements ViewFilter {
 		return builder.toString();
 	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(excludeKeys, limitObjectIds, mainType, params, subTypes);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof AbstractViewFilter)) {
+			return false;
+		}
+		AbstractViewFilter other = (AbstractViewFilter) obj;
+		return Objects.equals(excludeKeys, other.excludeKeys) && Objects.equals(limitObjectIds, other.limitObjectIds)
+				&& mainType == other.mainType && Objects.equals(params, other.params)
+				&& Objects.equals(subTypes, other.subTypes);
+	}
+	
 }
