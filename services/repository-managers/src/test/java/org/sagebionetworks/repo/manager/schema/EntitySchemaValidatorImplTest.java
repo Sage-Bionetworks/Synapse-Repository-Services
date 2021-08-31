@@ -38,6 +38,8 @@ public class EntitySchemaValidatorImplTest {
 
 	String entityId;
 	String schema$id;
+	String versionId;
+
 	JsonSchemaObjectBinding binding;
 	@Mock
 	JsonSubject mockEntitySubject;
@@ -48,11 +50,13 @@ public class EntitySchemaValidatorImplTest {
 
 	@BeforeEach
 	public void before() {
+		versionId = "1";
 		entityId = "syn123";
 		schema$id = "my.org-foo.bar-1.0.0";
 		binding = new JsonSchemaObjectBinding();
 		JsonSchemaVersionInfo versionInfo = new JsonSchemaVersionInfo();
 		versionInfo.set$id(schema$id);
+		versionInfo.setVersionId(versionId);
 		binding.setJsonSchemaVersionInfo(versionInfo);
 	}
 
@@ -60,7 +64,8 @@ public class EntitySchemaValidatorImplTest {
 	public void testValidateObject() {
 		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
 		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
-		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
+		when(mockJsonSchemaManager.getValidationSchemaFromIndex(versionId))
+				.thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
 		// call under test
@@ -69,7 +74,7 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
 		verify(mockEntityManger).getEntityJsonSubject(entityId);
-		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
+		verify(mockJsonSchemaManager).getValidationSchemaFromIndex(versionId);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 	}
 	
@@ -81,6 +86,27 @@ public class EntitySchemaValidatorImplTest {
 		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao, never()).createOrUpdateResults(any());
 		verify(mockSchemaValidationResultDao).clearResults(entityId, ObjectType.entity);
+	}
+	
+	@Test
+	public void testValidateObjectWithValidationSchemaNotFoundInIndex() {
+		NotFoundException exception = new NotFoundException();
+		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
+		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
+		when(mockJsonSchemaManager.getValidationSchemaFromIndex(versionId))
+				.thenThrow(exception);
+		when(mockJsonSchemaManager.createOrUpdateValidationSchemaIndex(versionId))
+				.thenReturn(mockJsonSchema);
+		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
+				.thenReturn(mockValidationResults);
+		// call under test
+		manager.validateObject(entityId);
+		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
+		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
+		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId);
+		verify(mockJsonSchemaManager).createOrUpdateValidationSchemaIndex(versionId);
+		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 	}
 	
 	@Test
