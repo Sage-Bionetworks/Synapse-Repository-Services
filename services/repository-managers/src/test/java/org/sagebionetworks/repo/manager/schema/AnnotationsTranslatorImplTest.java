@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -187,7 +188,7 @@ public class AnnotationsTranslatorImplTest {
 		List<String> expected = Lists.newArrayList(value.toString());
 		assertEquals(expected, annoValue.getValue());
 	}
-	
+
 	@Test
 	public void testGetAnnotationValueFromJsonObjectWithTimestamp() {
 		String key = "theKey";
@@ -900,5 +901,23 @@ public class AnnotationsTranslatorImplTest {
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		assertEquals(json.getJSONArray("key").getString(0), "foo");
 		assertEquals(json.getJSONArray("key").getString(1), "bar");
+	}
+
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithNaNValue() {
+		// See PLFM-6872 -- NaN is not a valid JSON value, so we replace it with the string "NaN"
+		schema = null;
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","NaN"), AnnotationsValueType.DOUBLE);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		JSONArray array = json.getJSONArray("aListOfDoubles");
+		assertNotNull(array);
+		// If the array includes Double.NaN, it will throw an error on write.
+		assertDoesNotThrow(() -> {array.write(new StringWriter());});
+		assertEquals(2, array.length());
+		assertEquals(new Double(1.22), array.getDouble(0));
+		assertEquals("NaN", array.getString(1));
 	}
 }
