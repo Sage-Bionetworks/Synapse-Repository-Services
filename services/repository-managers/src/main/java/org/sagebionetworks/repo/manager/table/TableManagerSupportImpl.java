@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.MAX_CONTAINERS_PER_VIEW;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
@@ -56,11 +58,6 @@ import org.springframework.stereotype.Service;
 public class TableManagerSupportImpl implements TableManagerSupport {
 
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000 * 60 * 10; // 10 mins
-
-	/**
-	 * Note: We raised this limit from 10K to 20K for PLFM-6287.
-	 */
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 20; // 20K;
 
 	@Autowired
 	private TableStatusDAO tableStatusDAO;

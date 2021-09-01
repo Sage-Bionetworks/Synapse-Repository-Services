@@ -103,7 +103,7 @@ public class AnnotationsV2Utils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<ObjectAnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
+	public static List<ObjectAnnotationDTO> translate(Long entityId, Long objectVersion, Annotations annos, int maxAnnotationChars) {
 		Map<String, ObjectAnnotationDTO> map;
 		
 		if (annos == null || annos.getAnnotations() == null) {
@@ -111,13 +111,13 @@ public class AnnotationsV2Utils {
 		} else {
 			map = new LinkedHashMap<>(annos.getAnnotations().size());
 			// add additional
-			addAnnotations(entityId, maxAnnotationChars, map, annos.getAnnotations());
+			addAnnotations(entityId, objectVersion, maxAnnotationChars, map, annos.getAnnotations());
 		}
 		// build the results from the map
 		return map.values().stream().collect(Collectors.toList());
 	}
 
-	private static void addAnnotations(Long entityId, int maxAnnotationChars, Map<String, ObjectAnnotationDTO> map, Map<String, AnnotationsValue> additional) {
+	private static void addAnnotations(Long entityId, Long objectVersion, int maxAnnotationChars, Map<String, ObjectAnnotationDTO> map, Map<String, AnnotationsValue> additional) {
 		
 		additional.forEach((String key, AnnotationsValue annotationsV2Value) -> {
 			//ignore empty list or null list for values
@@ -139,7 +139,7 @@ public class AnnotationsV2Utils {
 			
 			if(!transferredValues.isEmpty()) {
 				AnnotationType annotationType = AnnotationType.forAnnotationV2Type(annotationsV2Value.getType());
-				map.put(key, new ObjectAnnotationDTO(entityId, key, annotationType, transferredValues));
+				map.put(key, new ObjectAnnotationDTO(entityId, objectVersion, key, annotationType, transferredValues));
 			}
 		});
 	}

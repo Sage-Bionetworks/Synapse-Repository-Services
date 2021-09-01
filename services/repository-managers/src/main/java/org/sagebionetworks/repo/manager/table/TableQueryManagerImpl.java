@@ -543,7 +543,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				boolean isGreaterThan = rowIds.size() > MAX_ROWS_PER_CALL;
 				result.setGreaterThan(isGreaterThan);
 				// Use the rowIds to calculate the sum of the file sizes.
-				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY, rowIds);
+				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), rowIds);
 				result.setSumFileSizesBytes(sumFileSizesBytes);
 			} catch (SimpleAggregateQueryException e) {
 				// zero results will be returned for this case.

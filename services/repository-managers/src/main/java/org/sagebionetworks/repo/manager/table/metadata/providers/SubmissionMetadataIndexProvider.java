@@ -16,18 +16,25 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 @Service
 public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
@@ -54,16 +61,18 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 			 
 	// @formatter:on
 
-	private SubmissionManager submissionManager;
-	private SubmissionDAO submissionDao;
-	private EvaluationDAO evaluationDao;
+	private final SubmissionManager submissionManager;
+	private final SubmissionDAO submissionDao;
+	private final EvaluationDAO evaluationDao;
+	private final ViewScopeDao viewScopeDao;
 
 	@Autowired
 	public SubmissionMetadataIndexProvider(SubmissionManager submissionManager, SubmissionDAO submissionDao,
-			EvaluationDAO evaluationDao) {
+			EvaluationDAO evaluationDao, ViewScopeDao viewScopeDao) {
 		this.submissionManager = submissionManager;
 		this.submissionDao = submissionDao;
 		this.evaluationDao = evaluationDao;
+		this.viewScopeDao = viewScopeDao;
 	}
 
 	@Override
@@ -72,9 +81,13 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<String> getSubTypesForMask(Long typeMask) {
+	public Set<SubType> getSubTypesForMask(Long typeMask) {
+		return getSubTypes();
+	}
+	
+	Set<SubType> getSubTypes(){
 		// Submissions are not hierarchical
-		return ImmutableList.of(OBJECT_TYPE.defaultSubType());
+		return Sets.newHashSet(SubType.submission);
 	}
 
 	@Override
@@ -193,4 +206,16 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public void validateTypeMask(Long viewTypeMask) {
 		// Nothing to validate, the mask is not used
 	}
+
+	@Override
+	public ViewFilter getViewFilter(Long viewId) {
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), scope);
+	}
+
+	@Override
+	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
+		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), containerIds);
+	}
+
 }

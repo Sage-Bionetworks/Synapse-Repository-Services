@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -59,7 +60,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	Folder folder;
 	Folder child;
 	
-	ViewObjectType viewObjectType;
+	private MainType viewObjectType;
 	
 	@Before
 	public void before(){
@@ -87,7 +88,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		id = entityManager.createEntity(adminUser, child, null);
 		child = entityManager.getEntity(adminUser, id, Folder.class);
 		
-		viewObjectType = ViewObjectType.ENTITY;
+		viewObjectType = MainType.ENTITY;
 	}
 	
 	@After
@@ -125,7 +126,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(viewObjectType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

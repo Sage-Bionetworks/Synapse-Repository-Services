@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
@@ -433,7 +434,9 @@ public class TableViewManagerImpl implements TableViewManager {
 		try {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
-			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, scopeType);
+			MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+			ViewFilter filter = provider.getViewFilter(viewId.getId());
+			
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
@@ -444,7 +447,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, scopeType, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, filter,  MAX_ROWS_PER_TRANSACTION);
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 						previousPageRowIdsWithChanges);
@@ -457,8 +460,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, scopeType, allContainersInScope,
-							currentSchema);
+					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, scopeType, currentSchema, filter, provider);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
@@ -554,12 +556,8 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnModel> viewSchema) {
 		// Look-up the type for this table.
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		
-		// Get the containers for this view.
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion,
-				scopeType);
-		
-		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema);
+
+		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
 	}
 
 	/**
@@ -623,7 +621,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					writer.writeNext(nextLine);
 				};
 				// write the snapshot to the temp file.
-				indexManager.createViewSnapshot(idAndVersion.getId(), scopeType, allContainersInScope, viewSchema,
+				indexManager.createViewSnapshot(idAndVersion.getId(), scopeType, viewSchema,
 						writerAdapter);
 			}
 			// upload the resulting CSV to S3.

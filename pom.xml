@@ -1040,7 +1040,7 @@
 		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.6.6</schema-to-pojo.version>
+		<schema-to-pojo.version>0.6.7</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.15</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>

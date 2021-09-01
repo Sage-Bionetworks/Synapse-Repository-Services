@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -538,14 +539,14 @@ public class TableManagerSupportTest {
 		assertEquals(containersInScope, containers);
 		verify(mockViewScopeDao).getViewScope(idAndVersion.getId());
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
 	public void testGetAllContainerIdsForScopeOverLimit(){
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		Set<Long> overLimit = new HashSet<>();
-		int countOverLimit = TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1;
+		int countOverLimit = TableConstants.MAX_CONTAINERS_PER_VIEW+1;
 		for(long i=0; i<countOverLimit; i++){
 			overLimit.add(i);
 		}
@@ -561,7 +562,7 @@ public class TableManagerSupportTest {
 		assertEquals(errMessage, ex.getMessage());
 		
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -574,7 +575,7 @@ public class TableManagerSupportTest {
 		assertEquals(containersInScope, containers);
 		
 		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 		
 	}
 	
@@ -594,7 +595,7 @@ public class TableManagerSupportTest {
 		// setup limit exceeded.
 		LimitExceededException exception = new LimitExceededException("too many");
 
-		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
@@ -603,7 +604,7 @@ public class TableManagerSupportTest {
 		
 		assertEquals(errMessage, ex.getMessage());
 		
-		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -614,7 +615,7 @@ public class TableManagerSupportTest {
 		manager.validateScope(scopeType, scope);
 		
 		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test

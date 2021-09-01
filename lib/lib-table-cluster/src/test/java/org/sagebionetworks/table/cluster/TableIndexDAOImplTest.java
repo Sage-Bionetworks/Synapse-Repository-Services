@@ -1,8 +1,34 @@
 package org.sagebionetworks.table.cluster;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -23,19 +49,25 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
@@ -43,40 +75,13 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Callback;
-import org.sagebionetworks.util.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -100,8 +105,11 @@ public class TableIndexDAOImplTest {
 	ObjectDataDTO entityOne;
 	ObjectDataDTO entityTwo;
 	
-	ViewObjectType objectType;
-	ViewObjectType otherObjectType;
+	private ViewObjectType objectType;
+	private ViewObjectType otherObjectType;
+	
+	private MainType mainType;
+	private Set<SubType> subTypes;
 	
 	ObjectFieldTypeMapper fieldTypeMapper;
 	
@@ -114,6 +122,7 @@ public class TableIndexDAOImplTest {
 	public void before() {
 		objectType = ViewObjectType.ENTITY;
 		otherObjectType = ViewObjectType.SUBMISSION;
+		mainType = MainType.ENTITY;
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
 		// First get a connection for this table
@@ -144,6 +153,7 @@ public class TableIndexDAOImplTest {
 				return ColumnType.ENTITYID;
 			}
 		};
+		subTypes = Sets.newHashSet(SubType.file);
 	}
 
 	@AfterEach
@@ -1411,19 +1421,19 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplication(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L,2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L));
 
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		ObjectDataDTO folder = createObjectDataDTO(2L, EntityType.folder, 5);
 		ObjectDataDTO file = createObjectDataDTO(3L, EntityType.file, 10);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file, folder, project));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file, folder, project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, project.getId(), project.getVersion());
 		assertEquals(project, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 2L);
+		fetched = tableIndexDAO.getObjectData(mainType, folder.getId(), folder.getVersion());
 		assertEquals(folder, fetched);
-		fetched = tableIndexDAO.getObjectData(objectType, 3L);
+		fetched = tableIndexDAO.getObjectData(mainType, file.getId(), file.getVersion());
 		assertEquals(file, fetched);
 	}
 	
@@ -1439,9 +1449,9 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
 		
 		// Add the data to the index once
-		tableIndexDAO.addObjectData(objectType, Collections.singletonList(objectData));
+		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
 		
-		ObjectDataDTO result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectData.getId());
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
 	
 		assertEquals(objectData, result);
 		
@@ -1450,10 +1460,10 @@ public class TableIndexDAOImplTest {
 		objectData.getAnnotations().get(0).setValue("updated_annotation");
 		
 		// Re-adding to the index should simply update the object without throwing
-		tableIndexDAO.addObjectData(objectType, Collections.singletonList(objectData));
+		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
 		
 		// Makes sure the data was updated
-		result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectData.getId());
+		result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
 		
 		assertEquals(objectData, result);
 	}
@@ -1470,9 +1480,9 @@ public class TableIndexDAOImplTest {
 		);
 		
 		// This should work, but only the latter should have been added
-		tableIndexDAO.addObjectData(objectType, objectData);
+		tableIndexDAO.addObjectData(mainType, objectData);
 		
-		ObjectDataDTO result = tableIndexDAO.getObjectData(ViewObjectType.ENTITY, objectId);
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectId, 2L);
 		
 		assertEquals(objectData.get(1), result);
 		
@@ -1482,17 +1492,16 @@ public class TableIndexDAOImplTest {
 	public void testEntityReplication_maxStringLength(){
 		// delete all data
 		long id = 1L;
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(id));
 
 		ObjectDataDTO project = createObjectDataDTO(id, EntityType.project, 0);
-		ObjectAnnotationDTO stringAnno = new ObjectAnnotationDTO();
-		stringAnno.setObjectId(id);
+		ObjectAnnotationDTO stringAnno = new ObjectAnnotationDTO(project);
 		stringAnno.setType(AnnotationType.STRING);
 		stringAnno.setKey("myStringAnno");
 		stringAnno.setValue(Arrays.asList("a", "ab", "aaa", "abc", "c"));
 		project.setAnnotations(Collections.singletonList(stringAnno));
 
-		tableIndexDAO.addObjectData(objectType, Collections.singletonList(project));
+		tableIndexDAO.addObjectData(mainType, Collections.singletonList(project));
 
 		// lookup the column manually
 		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
@@ -1507,49 +1516,48 @@ public class TableIndexDAOImplTest {
 	public void testEntityReplication_AbstractDoubles(){
 		// delete all data
 		long id = 1L;
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(id));
 
 		ObjectDataDTO project = createObjectDataDTO(id, EntityType.project, 0);
-		ObjectAnnotationDTO abstractDoubleAnnos = new ObjectAnnotationDTO();
-		abstractDoubleAnnos.setObjectId(id);
+		ObjectAnnotationDTO abstractDoubleAnnos = new ObjectAnnotationDTO(project);
 		abstractDoubleAnnos.setType(AnnotationType.DOUBLE);
 		abstractDoubleAnnos.setKey("abstractDoubles");
 		abstractDoubleAnnos.setValue(Arrays.asList("1.2", "infinity", "+infinity", "5.6", "nan", "7.8"));
 		project.setAnnotations(Collections.singletonList(abstractDoubleAnnos));
 
-		tableIndexDAO.addObjectData(objectType, Collections.singletonList(project));
+		tableIndexDAO.addObjectData(mainType, Collections.singletonList(project));
 
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, id);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, id, project.getVersion());
 		assertEquals(project, fetched);
 	}
 	
 	@Test
 	public void testEntityReplicationWithNulls(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
 		
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
 		project.setFileMD5(null);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, project.getVersion());
 		assertEquals(project, fetched);
 	}
 	
 	@Test
 	public void testEntityReplicationWithNullBenefactor(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
 		
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		project.setBenefactorId(null);
 		try {
-			tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project));
+			tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project));
 			fail();
 		} catch (Exception e) {
 			// expected
@@ -1559,43 +1567,35 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplicationUpdate(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
 		
 		ObjectDataDTO file = createObjectDataDTO(1L, EntityType.file, 5);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file));
 		// delete before an update
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(file.getId()));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(file.getId()));
 		file = createObjectDataDTO(1L, EntityType.file, 3);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file));
 		
 		// lookup each
-		ObjectDataDTO fetched = tableIndexDAO.getObjectData(objectType, 1L);
+		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, file.getVersion());
 		assertEquals(file, fetched);
-	}
-	
-	private ViewScopeFilter getScopeFilter(ViewObjectType objectType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
-		return new ViewScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
 	}
 
 	@Test
-	public void testGetMaxListSizeForAnnotations_nullScope() throws ParseException {
-
-		Set<Long> nullScope = null;
+	public void testGetMaxListSizeForAnnotations_nullFilter() throws ParseException {
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, nullScope);
+		ViewFilter filter = null;
 		
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames)
 		).getMessage();
 
-		assertEquals("scopeFilter.containerIds is required.", errorMessage);
+		assertEquals("filter is required.", errorMessage);
 
 	}
+	
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_emptyScope() throws ParseException {
@@ -1604,13 +1604,10 @@ public class TableIndexDAOImplTest {
 
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, emptyScope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, emptyScope);
 	
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames));
 
 	}
 
@@ -1620,40 +1617,17 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(222L,333L);
 
 		Set<String> nullAnnotationNames = null;
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+			
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, nullAnnotationNames, null)
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, nullAnnotationNames)
 		).getMessage();
 
 		assertEquals("annotationNames is required.", errorMessage);
 
 	}
 
-	@Test
-	public void testGetMaxListSizeForAnnotations_emptyObjectIdFilter() throws ParseException {
-
-		Set<Long> scope = Sets.newHashSet(222L,333L);
-
-		Set<String> annotationNames = Sets.newHashSet("foo","bar");
-
-		Set<Long> emptyObjectIdFilter = Collections.emptySet();
-
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, emptyObjectIdFilter)
-		).getMessage();
-
-		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", errorMessage);
-	}
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_emptyAnnotationNames() throws ParseException {
@@ -1662,13 +1636,10 @@ public class TableIndexDAOImplTest {
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		assertEquals(Collections.emptyMap(),
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, emptyAnnotationNames, null));
+				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, emptyAnnotationNames));
 
 	}
 
@@ -1676,41 +1647,36 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations() throws ParseException {
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO foo1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO foo1 = new ObjectAnnotationDTO(file1);
 		foo1.setKey("foo");
 		foo1.setValue(Arrays.asList("one", "two", "three"));
 		foo1.setType(AnnotationType.STRING);
-		foo1.setObjectId(2L);
-		ObjectAnnotationDTO bar1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO bar1 = new ObjectAnnotationDTO(file1);
 		bar1.setKey("bar");
 		bar1.setValue(Arrays.asList("1", "2", "3"));
 		bar1.setType(AnnotationType.LONG);
-		bar1.setObjectId(2L);
-
 		file1.setAnnotations(Arrays.asList(foo1,bar1));
 
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO foo2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO foo2 = new ObjectAnnotationDTO(file2);
 		foo2.setKey("foo");
 		foo2.setValue(Arrays.asList("one", "two"));
 		foo2.setType(AnnotationType.STRING);
-		foo2.setObjectId(3L);
-		ObjectAnnotationDTO bar2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO bar2 = new ObjectAnnotationDTO(file2);
 		bar2.setKey("bar");
 		bar2.setValue(Arrays.asList("1", "2", "3", "4","5"));
 		bar2.setType(AnnotationType.LONG);
-		bar2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(foo2,bar2));
 
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1720,13 +1686,10 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",5L);
@@ -1738,7 +1701,7 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations_noAnnotationsInReplication() throws ParseException {
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -1748,7 +1711,7 @@ public class TableIndexDAOImplTest {
 		file2.setParentId(222L);
 
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1760,12 +1723,9 @@ public class TableIndexDAOImplTest {
 		// method under test
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 	
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, null);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
 		assertEquals(Collections.emptyMap(), listSizes);
 	}
 
@@ -1773,41 +1733,38 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations_WithObjectIdFilter() throws ParseException {
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO foo1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO foo1 = new ObjectAnnotationDTO(file1);
 		foo1.setKey("foo");
 		foo1.setValue(Arrays.asList("one", "two", "three"));
 		foo1.setType(AnnotationType.STRING);
 		foo1.setObjectId(2L);
-		ObjectAnnotationDTO bar1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO bar1 = new ObjectAnnotationDTO(file1);
 		bar1.setKey("bar");
 		bar1.setValue(Arrays.asList("1", "2", "3"));
 		bar1.setType(AnnotationType.LONG);
-		bar1.setObjectId(2L);
 
 		file1.setAnnotations(Arrays.asList(foo1,bar1));
 
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO foo2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO foo2 = new ObjectAnnotationDTO(file2);
 		foo2.setKey("foo");
 		foo2.setValue(Arrays.asList("one", "two"));
 		foo2.setType(AnnotationType.STRING);
-		foo2.setObjectId(3L);
-		ObjectAnnotationDTO bar2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO bar2 = new ObjectAnnotationDTO(file2);
 		bar2.setKey("bar");
 		bar2.setValue(Arrays.asList("1", "2", "3", "4"));
 		bar2.setType(AnnotationType.LONG);
-		bar2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(foo2,bar2));
 
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1818,13 +1775,10 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, objectIdFilter, null, scope);
 		
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(scopeFilter, annotationNames, objectIdFilter);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
 		HashMap<String,Long> expected = new HashMap<>();
 		expected.put("foo",3L);
 		expected.put("bar",3L);
@@ -1836,7 +1790,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTable(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -1844,7 +1798,7 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1853,13 +1807,10 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
@@ -1873,27 +1824,25 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException {
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("foo");
 		double1.setValue(Arrays.asList("NaN", "1.2", "Infinity"));
 		double1.setType(AnnotationType.STRING);
-		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("foo");
 		double2.setValue(Arrays.asList("Infinity", "222.222"));
 		double2.setType(AnnotationType.STRING);
-		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1901,15 +1850,12 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
-
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+	
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
 		// method under test
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema, userId).build();
@@ -1931,27 +1877,25 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1960,13 +1904,10 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1976,42 +1917,37 @@ public class TableIndexDAOImplTest {
 	public void testCreateViewSnapshotFromEntityReplicationWithDoubleAnnotation(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -2024,42 +1960,37 @@ public class TableIndexDAOImplTest {
 	public void testCreateViewSnapshotFromEntityReplication_ListColumns(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO(file1);
 		int1.setKey("foo");
 		int1.setValue(Arrays.asList("123", "456", "789"));
 		int1.setType(AnnotationType.LONG);
-		int1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(int1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO(file2);
 		int2.setKey("foo");
 		int2.setValue(Arrays.asList("321", "654"));
 		int2.setType(AnnotationType.LONG);
-		int2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(int2));
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.INTEGER_LIST));
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -2075,27 +2006,25 @@ public class TableIndexDAOImplTest {
 		tableId = IdAndVersion.parse("syn123.45");
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
@@ -2103,14 +2032,11 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -2132,15 +2058,12 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+				
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema,
+			tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema,
 					fieldTypeMapper, stream);
 		});
 	}
@@ -2149,7 +2072,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTableScopeEmpty(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -2157,7 +2080,7 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = new HashSet<Long>();
@@ -2166,13 +2089,10 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// Copy the entity data to the table
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -2184,7 +2104,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainers(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
@@ -2192,19 +2112,15 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2227,7 +2143,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersExcludingKeys(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
@@ -2235,20 +2151,15 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, null, Sets.newHashSet("key0"), containerIds);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-
-		List<String> excludeKeys = ImmutableList.of("key0");
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
@@ -2270,7 +2181,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersPLFM_5034(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		String duplicateName = "duplicate";
 		
@@ -2279,7 +2190,7 @@ public class TableIndexDAOImplTest {
 		file1.getAnnotations().clear();
 		file1.setParentId(333L);
 		// add a string annotation with a size of 3
-		ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO(file1);
 		annoDto.setObjectId(file1.getId());
 		annoDto.setKey(duplicateName);
 		annoDto.setType(AnnotationType.STRING);
@@ -2291,26 +2202,21 @@ public class TableIndexDAOImplTest {
 		file2.getAnnotations().clear();
 		file2.setParentId(222L);
 		// add a long annotation with a size of 6
-		annoDto = new ObjectAnnotationDTO();
-		annoDto.setObjectId(file2.getId());
+		annoDto = new ObjectAnnotationDTO(file2);
 		annoDto.setKey(duplicateName);
 		annoDto.setType(AnnotationType.LONG);
 		annoDto.setValue("123456");
-		file1.getAnnotations().add(annoDto);
+		file2.getAnnotations().add(annoDto);
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		// expected
@@ -2337,7 +2243,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCaseSensitiveAnnotationNamesPLFM_5449() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		// one
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 1);
 		file1.getAnnotations().clear();
@@ -2345,28 +2251,26 @@ public class TableIndexDAOImplTest {
 
 		String key = "someKey";
 		// lower
-		ObjectAnnotationDTO lower = new ObjectAnnotationDTO();
-		lower.setObjectId(file1.getId());
+		ObjectAnnotationDTO lower = new ObjectAnnotationDTO(file1);
 		lower.setKey(key.toLowerCase());
 		lower.setType(AnnotationType.STRING);
 		lower.setValue("123");
 		file1.getAnnotations().add(lower);
 		//upper
-		ObjectAnnotationDTO upper = new ObjectAnnotationDTO();
-		upper.setObjectId(file1.getId());
+		ObjectAnnotationDTO upper = new ObjectAnnotationDTO(file1);
 		upper.setKey(key.toUpperCase());
 		upper.setType(AnnotationType.STRING);
 		upper.setValue("123");
 		file1.getAnnotations().add(upper);
 		// call under test
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
 	}
 
 	//PLFM-6013
 	@Test
 	public void testGetPossibleAnnotationsForContainers_ListColumns(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
 
 		String annoKey = "myAnnotation";
@@ -2375,44 +2279,37 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 0);
 		file1.setParentId(333L);
 
-		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO(file1);
 		annotationDTO1.setKey(annoKey);
 		annotationDTO1.setType(AnnotationType.STRING);
-		annotationDTO1.setObjectId(2L);
 		annotationDTO1.setValue(Arrays.asList("123"));
 		file1.setAnnotations(Collections.singletonList(annotationDTO1));
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 0);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO(file2);
 		annotationDTO2.setKey(annoKey);
 		annotationDTO2.setType(AnnotationType.STRING);
-		annotationDTO2.setObjectId(3L);
 		annotationDTO2.setValue(Arrays.asList("12",  "123456", "1234"));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
 
 		ObjectDataDTO file3 = createObjectDataDTO(4L, EntityType.file, 0);
 		file3.setParentId(222L);
-		ObjectAnnotationDTO annotationDTO3 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annotationDTO3 = new ObjectAnnotationDTO(file3);
 		annotationDTO3.setKey(annoKey);
 		annotationDTO3.setType(AnnotationType.STRING);
-		annotationDTO3.setObjectId(3L);
 		annotationDTO3.setValue(Arrays.asList("12345"));
 		file3.setAnnotations(Collections.singletonList(annotationDTO3));
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(1, columns.size());
 
@@ -2509,7 +2406,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersProject(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		ObjectDataDTO project1 = createObjectDataDTO(2L, EntityType.project, 15);
@@ -2517,19 +2414,17 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO project2 = createObjectDataDTO(3L, EntityType.project, 12);
 		project2.setParentId(111L);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project1, project2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project1, project2));
 		
 		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.project);
-		boolean filterByObjectId = true;
+		subTypes = Sets.newHashSet(SubType.project);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
-		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, containerIds);
+	
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2553,17 +2448,16 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersWithEmptyStringAnnotation(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		// setup file1 with no annotations
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 0);
 		file1.setParentId(333L);
 		String testKey1 = "testKey1";
 		// add empty string annotation to file1
-		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annotationDTO1 = new ObjectAnnotationDTO(file1);
 		annotationDTO1.setKey(testKey1);
 		annotationDTO1.setType(AnnotationType.STRING);
-		annotationDTO1.setObjectId(2L);
 		annotationDTO1.setValue(Arrays.asList(""));
 		file1.setAnnotations(Collections.singletonList(annotationDTO1));
 		
@@ -2572,27 +2466,22 @@ public class TableIndexDAOImplTest {
 		file2.setParentId(222L);
 		String testKey2 = "testKey2";
 		// add empty string list annotation to file2
-		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO(file2);
 		annotationDTO2.setKey(testKey2);
 		annotationDTO2.setType(AnnotationType.STRING);
-		annotationDTO2.setObjectId(3L);
 		annotationDTO2.setValue(Arrays.asList("", ""));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, containerIds);
-		List<String> excludeKeys = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, containerIds);
 		
 		// call under test
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(scopeFilter, excludeKeys, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		
@@ -2612,7 +2501,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfChildCRCsForEachParent(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -2623,11 +2512,11 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		List<Long> parentIds = Lists.newArrayList(parentOneId,parentTwoId,parentThreeId);
 		// call under test
-		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(objectType, parentIds);
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(mainType, parentIds);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		assertNotNull(results.get(parentOneId));
@@ -2639,7 +2528,7 @@ public class TableIndexDAOImplTest {
 	public void testGetSumOfChildCRCsForEachParentEmpty(){		
 		List<Long> parentIds = new LinkedList<Long>();
 		// call under test
-		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(objectType, parentIds);
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(mainType, parentIds);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
@@ -2647,7 +2536,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetEntityChildren(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -2658,19 +2547,19 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
-		List<IdAndEtag> results = tableIndexDAO.getObjectChildren(objectType, parentOneId);
+		List<IdAndEtag> results = tableIndexDAO.getObjectChildren(mainType, parentOneId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag(), 2L), results.get(0));
 		
-		results = tableIndexDAO.getObjectChildren(objectType, parentTwoId);
+		results = tableIndexDAO.getObjectChildren(mainType, parentTwoId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag(), 2L), results.get(0));
 		
-		results = tableIndexDAO.getObjectChildren(objectType, parentThreeId);
+		results = tableIndexDAO.getObjectChildren(mainType, parentThreeId);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -2678,7 +2567,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfFileSizes(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -2688,9 +2577,9 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(objectType, Lists.newArrayList(file1.getId(), file2.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Lists.newArrayList(file1.getId(), file2.getId()));
 		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
 	}
 	
@@ -2700,16 +2589,16 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfFileSizesNoFiles(){
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		// setup some hierarchy.
 		ObjectDataDTO folder = createObjectDataDTO(2L, EntityType.folder, 2);
 		folder.setParentId(parentOneId);
 		
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(folder));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(folder));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(objectType, Lists.newArrayList(folder.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Lists.newArrayList(folder.getId()));
 		assertEquals(0L, fileSizes);
 	}
 	
@@ -2717,7 +2606,7 @@ public class TableIndexDAOImplTest {
 	public void testGetSumOfFileSizesEmpty(){
 		List<Long> list = new LinkedList<>();
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(objectType, list);
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, list);
 		assertEquals(0, fileSizes);
 	}
 	
@@ -2727,7 +2616,7 @@ public class TableIndexDAOImplTest {
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			 tableIndexDAO.getSumOfFileSizes(objectType, list);;
+			 tableIndexDAO.getSumOfFileSizes(mainType, list);;
 		});
 	}
 	
@@ -2738,7 +2627,7 @@ public class TableIndexDAOImplTest {
 		Long three = 333L;
 		List<Long> input = Lists.newArrayList(one,two,three);
 		// call under test
-		List<Long> expired = tableIndexDAO.getExpiredContainerIds(objectType, input);
+		List<Long> expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
 		assertNotNull(expired);
 		// all three should be expired
 		assertEquals(Lists.newArrayList(one,two,three), expired);
@@ -2748,19 +2637,19 @@ public class TableIndexDAOImplTest {
 		long timeout = 4 * 1000;
 		long expires = now + timeout;
 		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(objectType, Lists.newArrayList(two, three), expires);
+		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(two, three), expires);
 		// set one to already be expired
 		expires = now - 1;
-		tableIndexDAO.setContainerSynchronizationExpiration(objectType, Lists.newArrayList(one), expires);
+		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(one), expires);
 		// one should still be expired.
-		expired = tableIndexDAO.getExpiredContainerIds(objectType, input);
+		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
 		assertNotNull(expired);
 		// all three should be expired
 		assertEquals(Lists.newArrayList(one), expired);
 		// wait for the two to expire
 		Thread.sleep(timeout+1);
 		// all three should be expired
-		expired = tableIndexDAO.getExpiredContainerIds(objectType, input);
+		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
 		assertNotNull(expired);
 		// all three should be expired
 		assertEquals(Lists.newArrayList(one,two,three), expired);
@@ -2770,12 +2659,12 @@ public class TableIndexDAOImplTest {
 	public void testReplicationExpirationEmpty() throws InterruptedException{
 		List<Long> empty = new LinkedList<Long>();
 		// call under test
-		List<Long> results  = tableIndexDAO.getExpiredContainerIds(objectType, empty);
+		List<Long> results  = tableIndexDAO.getExpiredContainerIds(mainType, empty);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 		Long expires = 0L;
 		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(objectType, empty, expires);
+		tableIndexDAO.setContainerSynchronizationExpiration(mainType, empty, expires);
 	}
 	
 	@Test
@@ -2928,7 +2817,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void generateProjectStatistics() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
 
 		// Set up some data to test
 		ObjectDataDTO project1 = createObjectDataDTO(1L, EntityType.project, 0);
@@ -2961,13 +2850,13 @@ public class TableIndexDAOImplTest {
 		file3.setProjectId(2L);
 		file4.setProjectId(2L);
 
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(project1, project2, file1, file2, file3, file4));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project1, project2, file1, file2, file3, file4));
 
 		List<SynapseStorageProjectStats> result = new ArrayList<>();
 
 		Callback<SynapseStorageProjectStats> callback = result::add;
 		// Call under test
-		tableIndexDAO.streamSynapseStorageStats(objectType, callback);
+		tableIndexDAO.streamSynapseStorageStats(mainType, callback);
 
 		assertEquals(2, result.size()); // 2 projects
 		// Note project 2 is bigger so it will be first
@@ -3058,37 +2947,61 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	private static ObjectDataDTO createObjectDataDTO(long id, EntityType type, int annotationCount){
-		ObjectDataDTO ObjectDataDTO = new ObjectDataDTO();
-		ObjectDataDTO.setId(id);
-		ObjectDataDTO.setCurrentVersion(2L);
-		ObjectDataDTO.setCreatedBy(222L);
-		ObjectDataDTO.setCreatedOn(new Date());
-		ObjectDataDTO.setEtag("etag"+id);
-		ObjectDataDTO.setName("name"+id);
-		ObjectDataDTO.setSubType(type.name());
-		ObjectDataDTO.setParentId(1L);
-		ObjectDataDTO.setBenefactorId(2L);
-		ObjectDataDTO.setProjectId(3L);
-		ObjectDataDTO.setModifiedBy(333L);
-		ObjectDataDTO.setModifiedOn(new Date());
+		ObjectDataDTO objectDataDTO = new ObjectDataDTO();
+		objectDataDTO.setId(id);
+		objectDataDTO.setVersion(2L);
+		objectDataDTO.setCurrentVersion(objectDataDTO.getVersion());
+		objectDataDTO.setCreatedBy(222L);
+		objectDataDTO.setCreatedOn(new Date());
+		objectDataDTO.setEtag("etag"+id);
+		objectDataDTO.setName("name"+id);
+		objectDataDTO.setSubType(SubType.valueOf(type.name()));
+		objectDataDTO.setParentId(1L);
+		objectDataDTO.setBenefactorId(2L);
+		objectDataDTO.setProjectId(3L);
+		objectDataDTO.setModifiedBy(333L);
+		objectDataDTO.setModifiedOn(new Date());
 		if(EntityType.file.equals(type)){
-			ObjectDataDTO.setFileHandleId(888L);
-			ObjectDataDTO.setFileSizeBytes(999L);
-			ObjectDataDTO.setFileMD5(Long.toHexString(id*1000));
+			objectDataDTO.setFileHandleId(888L);
+			objectDataDTO.setFileSizeBytes(999L);
+			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
 		}
 		List<ObjectAnnotationDTO> annos = new LinkedList<ObjectAnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){
-			ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO();
-			annoDto.setObjectId(id);
+			ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO(objectDataDTO);
 			annoDto.setKey("key"+i);
 			annoDto.setType(AnnotationType.values()[i%AnnotationType.values().length]);
 			annoDto.setValue(""+i);
 			annos.add(annoDto);
 		}
 		if(!annos.isEmpty()){
-			ObjectDataDTO.setAnnotations(annos);
+			objectDataDTO.setAnnotations(annos);
 		}
-		return ObjectDataDTO;
+		return objectDataDTO;
+	}
+	
+	/**
+	 * Helper to create multiple version of a single object. Each version will have different annotation values.
+	 * @param id
+	 * @param type
+	 * @param annotationCount The number of annotations that each version will have.
+	 * @param numberOfVersion The total number of version to create.
+	 * @return Results will include one ObjectDataDTO for each version.
+	 */
+	public List<ObjectDataDTO> createMultipleVersions(long id, EntityType type, int annotationCount, int numberOfVersion){
+		List<ObjectDataDTO> list = new ArrayList<>(numberOfVersion);
+		for(long version=1; version<numberOfVersion+1; version++) {
+			ObjectDataDTO dto = createObjectDataDTO(id, type, annotationCount);
+			dto.setVersion(version);
+			dto.setCurrentVersion((long)numberOfVersion);
+			for(int annoIndex = 0; annoIndex<annotationCount; annoIndex++) {
+				ObjectAnnotationDTO anno = dto.getAnnotations().get(annoIndex);
+				anno.setObjectVersion(version);
+				anno.setValue(""+annoIndex+"-"+version);
+			}
+			list.add(dto);
+		}
+		return list;
 	}
 
 	@Test
@@ -3298,13 +3211,10 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		
 		assertNotNull(results);
 		Set<Long> expected = dtos.stream().map(ObjectDataDTO::getId).collect(Collectors.toSet());
@@ -3329,21 +3239,18 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		//delete the first row from replication
 		List<Long> toDelete = Lists.newArrayList(dtos.get(0).getId());
-		tableIndexDAO.deleteObjectData(objectType, toDelete);
+		tableIndexDAO.deleteObjectData(mainType, toDelete);
 		
 		long limit = 100L;
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = new HashSet<Long>(toDelete);
 		assertEquals(expected, results);
@@ -3367,24 +3274,21 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		// move the entity out of scope
 		ObjectDataDTO first = dtos.get(0);
 		first.setParentId(9999L);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
-		tableIndexDAO.deleteObjectData(objectType, toUpdate);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(first));
+		tableIndexDAO.deleteObjectData(mainType, toUpdate);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
 		
 		long limit = 100L;
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
@@ -3408,24 +3312,21 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		// change the etag of the first entity
 		ObjectDataDTO first = dtos.get(0);
 		first.setEtag(first.getEtag()+"updated");
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
-		tableIndexDAO.deleteObjectData(objectType, toUpdate);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(first));
+		tableIndexDAO.deleteObjectData(mainType, toUpdate);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
 		
 		long limit = 100L;
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
@@ -3449,24 +3350,21 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		// change the benefactor of the first entity
 		ObjectDataDTO first = dtos.get(0);
 		first.setBenefactorId(first.getBenefactorId()*100);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
-		tableIndexDAO.deleteObjectData(objectType, toUpdate);
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(first));
+		tableIndexDAO.deleteObjectData(mainType, toUpdate);
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
 		
 		long limit = 100L;
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
@@ -3490,17 +3388,14 @@ public class TableIndexDAOImplTest {
 		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
 
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 			
 		long limit = 100L;
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertEquals(Collections.emptySet(), results);
 	}
 	
@@ -3524,13 +3419,10 @@ public class TableIndexDAOImplTest {
 		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
 		long limit = 1L;
 
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = Sets.newHashSet(dtos.get(3).getId());
 		assertEquals(expected, results);
@@ -3558,13 +3450,10 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		long limit = 100L;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		// The view should not be in the results
 		assertFalse(results.contains(viewDto.getId()));
@@ -3596,21 +3485,20 @@ public class TableIndexDAOImplTest {
 		
 		// start including all types
 		
-		List<String> subTypes = EnumUtils.names(EntityType.class);
-		boolean filterByObjectId = false;
+		subTypes = new HashSet<SubType>(Arrays.asList(SubType.values())) ;
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// add all of the rows to the view.
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
-		subTypes = EnumUtils.names(EntityType.file);
-		scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		subTypes = Sets.newHashSet(SubType.file);
+		filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		// the folder should be removed from the view.
 		Set<Long> expectedResults = Sets.newHashSet(folderDto.getId());
@@ -3630,13 +3518,10 @@ public class TableIndexDAOImplTest {
 		
 		long limit = 1L;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// call under test
-		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertEquals(Collections.emptySet(), results);
 	}
 	
@@ -3646,30 +3531,11 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Collections.emptySet();
 		long limit = 1L;
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
-		});
-	}
-	
-	@Test
-	public void testGetOutOfDateRowsForView_NullScope(){
-		Set<Long> scope = null;
-		long limit = 1L;
-		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+			tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		});
 	}
 	
@@ -3696,8 +3562,7 @@ public class TableIndexDAOImplTest {
 			ObjectDataDTO file = createObjectDataDTO(entityId, subType, 3);
 			file.setParentId(entityId*100);
 			if(includeMultiValue) {
-				ObjectAnnotationDTO multiValue = new ObjectAnnotationDTO();
-				multiValue.setObjectId(file.getId());
+				ObjectAnnotationDTO multiValue = new ObjectAnnotationDTO(file);
 				multiValue.setKey("multiValue");
 				multiValue.setType(AnnotationType.STRING);
 				multiValue.setValue(Lists.newArrayList("one"+i, "two"+i));
@@ -3706,9 +3571,9 @@ public class TableIndexDAOImplTest {
 			results.add(file);
 		}
 		// delete all rows if they already exist
-		tableIndexDAO.deleteObjectData(objectType, newIds);
+		tableIndexDAO.deleteObjectData(mainType, newIds);
 		// create all of the rows in the replication table
-		tableIndexDAO.addObjectData(objectType, results);
+		tableIndexDAO.addObjectData(mainType, results);
 		return results;
 	}
 	
@@ -3728,9 +3593,9 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO object = createObjectDataDTO(id, subtype, 3);
 		object.setParentId(parentId);
 		// delete all rows if they already exist
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(id));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(id));
 		// create all of the rows in the replication table
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(object));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(object));
 		return object;
 	}
 	
@@ -3747,15 +3612,12 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
-		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 		
@@ -3764,7 +3626,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
 		// Deleted rows should now show as deltas
-		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertEquals(2, deltas.size());
 		assertTrue(deltas.contains(toDelete[0]));
@@ -3784,15 +3646,12 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
-		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 		// delete the first and last
@@ -3800,7 +3659,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
 		// nothing should be deleted
-		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 	}
@@ -3842,22 +3701,25 @@ public class TableIndexDAOImplTest {
 		// Only add the first and last row to the view and a row that does not exist
 		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
+
 		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filterNoAdditional = new HierarchyFilter(mainType, subTypes, scope);
+		
+		ViewFilter filter = filterNoAdditional.newBuilder().addLimitObjectids(rowFilter).build();
 		
 		// call under test
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
 		Set<Long> expectedMissing = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
-		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		filter = new HierarchyFilter(mainType, subTypes, scope);
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
 		assertEquals(expectedMissing, deltas);
 		// Add the remaining rows
 		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
+		filter = filter.newBuilder().addLimitObjectids(rowFilter).build();
 		// call under test
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
-		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 	}
@@ -3875,43 +3737,14 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		// Null row filter will add all rows
-		Set<Long> rowFilter = null;
+	
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		// call under test
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// all rows should be added
-		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, scopeFilter, limit);
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
-	}
-	
-	@Test
-	public void testCopyEntityReplicationToViewWithRowFilterEmpty() {
-		isView = true;
-		int rowCount = 4;
-		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
-		// Make additional object with a different type but same ids
-		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
-		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
-		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
-		createOrUpdateTable(schema, tableId, isView);
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		// Null row filter will add all rows
-		Set<Long> rowFilter = Collections.emptySet();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowFilter);
-		}).getMessage();
-		assertEquals("When objectIdFilter is provided (not null) it cannot be empty", message);
 	}
 	
 	@Test
@@ -3933,14 +3766,11 @@ public class TableIndexDAOImplTest {
 		multiValue.setMaximumListLength(53L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
-		// Null row filter will add all rows
-		Set<Long> rowIdFilter = null;
+
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		// push all of the data to the view
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		Set<Long> rowIdFilter = null;
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 
@@ -3974,14 +3804,13 @@ public class TableIndexDAOImplTest {
 		multiValue.setMaximumListLength(22L);
 		List<ColumnModel> schema = Lists.newArrayList(multiValue);
 		createOrUpdateTable(schema, tableId, isView);
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+
 		// Null row filter will add all rows
 		Set<Long> rowIdFilter = null;
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
+		
 		// push all of the data to the view
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// start will all of the data in the secondary table
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		// Should start with two row for each entity 
@@ -3995,7 +3824,8 @@ public class TableIndexDAOImplTest {
 		
 		// add the two rows back to the view
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
-		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), scopeFilter, schema, fieldTypeMapper, rowIdFilter);
+		filter = new HierarchyFilter(mainType, subTypes,rowIdFilter,null, scope);
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);
 		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
@@ -4250,27 +4080,25 @@ public class TableIndexDAOImplTest {
 		tableId = IdAndVersion.parse("syn123.45");
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
 		
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("foo");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		double1.setObjectId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO();
+		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("foo");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		double2.setObjectId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
@@ -4278,14 +4106,11 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		
-		List<String> subTypes = EnumUtils.names(EntityType.file);
-		boolean filterByObjectId = false;
-		
-		ViewScopeFilter scopeFilter = getScopeFilter(objectType, subTypes, filterByObjectId, scope);
+		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope);
 		
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), scopeFilter, schema, fieldTypeMapper, stream);
+		tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema, fieldTypeMapper, stream);
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
@@ -4294,7 +4119,7 @@ public class TableIndexDAOImplTest {
 		long maxBytesPerBatch = 10;
 		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId, schema, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4303,11 +4128,11 @@ public class TableIndexDAOImplTest {
 		
 		// update the benefactors in the replication table
 		file1.setBenefactorId(new Long(3));
-		tableIndexDAO.deleteObjectData(objectType, Lists.newArrayList(file1.getId()));
-		tableIndexDAO.addObjectData(objectType, Lists.newArrayList(file1));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(file1.getId()));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
 		
 		// call under test
-		tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+		tableIndexDAO.refreshViewBenefactors(tableId, mainType);
 		
 		// The benefactors should be updated.
 		results = tableIndexDAO.query(mockProgressCallback, query);
@@ -4322,16 +4147,16 @@ public class TableIndexDAOImplTest {
 		tableId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+			tableIndexDAO.refreshViewBenefactors(tableId, mainType);
 		});
 	}
 	
 	@Test
 	public void testRefreshViewBenefactorsWithNullObjectType() {
-		objectType = null;
+		mainType = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.refreshViewBenefactors(tableId, objectType);
+			tableIndexDAO.refreshViewBenefactors(tableId, mainType);
 		});
 	}
 
@@ -4368,5 +4193,83 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, results.getRows().size());
 		assertEquals("1.23", results.getRows().get(0).getValues().get(0));
 		assertEquals("100.19", results.getRows().get(1).getValues().get(0));
+	}
+	
+	@Test
+	public void testViewWithMultipleVersions() throws ParseException{
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectId = 22L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectId));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v1 = objects.get(0);
+		ObjectDataDTO v2 = objects.get(1);
+		
+		// call under test
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<IdVersionPair> scope = Sets.newHashSet(
+				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
+				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion())
+		);
+		
+		ViewFilter filter = new FlatIdAndVersionFilter(MainType.ENTITY, subTypes, scope);
+		
+		// Copy the entity data to the table
+		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
+		
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'key0' from " + tableId+" ORDER BY ROW_ID ASC", schema, userId).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertEquals(2, results.getRows().size());
+		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getVersion().toString(), "0-1"), results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(v2.getId().toString(),v2.getVersion().toString(), "0-2"), results.getRows().get(1).getValues());
+		
+		// update the benefactors in the replication table
+		v1.setBenefactorId(new Long(3));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(v1.getId()));
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1));
+	}
+	
+	@Test
+	public void testGetObjectDataWithMultipleVersion() {
+		Long objectId = 22L;
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v1 = objects.get(0);
+		ObjectDataDTO v2 = objects.get(1);
+		
+		tableIndexDAO.addObjectData(mainType, objects);
+		
+		// Call under test
+		assertEquals(v1, tableIndexDAO.getObjectData(mainType, objectId, v1.getVersion()));
+		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
+	}
+	
+	@Test
+	public void testGetObjectDataForCurrentVersionWithMultipleVersions() {
+		Long objectId = 22L;
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v2 = objects.get(1);
+		
+		tableIndexDAO.addObjectData(mainType, objects);
+		
+		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
+		// call under test
+		assertEquals(v2, tableIndexDAO.getObjectDataForCurrentVersion(mainType, objectId));
 	}
 }

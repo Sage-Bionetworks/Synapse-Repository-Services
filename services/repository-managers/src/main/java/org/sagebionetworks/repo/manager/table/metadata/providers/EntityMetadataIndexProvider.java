@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,16 +18,27 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.google.common.collect.Sets;
 
 @Service
 public class EntityMetadataIndexProvider implements MetadataIndexProvider {
@@ -72,13 +84,15 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			).build();
 	// @formatter:on
 
-	private NodeManager nodeManager;
-	private NodeDAO nodeDao;
+	private final NodeManager nodeManager;
+	private final NodeDAO nodeDao;
+	private final ViewScopeDao viewScopeDao;
 
 	@Autowired
-	public EntityMetadataIndexProvider(NodeManager nodeManager, NodeDAO nodeDao) {
+	public EntityMetadataIndexProvider(NodeManager nodeManager, NodeDAO nodeDao, ViewScopeDao viewScopeDao) {
 		this.nodeManager = nodeManager;
 		this.nodeDao = nodeDao;
+		this.viewScopeDao = viewScopeDao;
 	}
 
 	@Override
@@ -189,12 +203,12 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<String> getSubTypesForMask(Long typeMask) {
+	public Set<SubType> getSubTypesForMask(Long typeMask) {
 		ValidateArgument.required(typeMask, "viewTypeMask");
-		List<String> typesFilter = new ArrayList<>();
+		Set<SubType> typesFilter = new HashSet<>();
 		for (ViewTypeMask type : ViewTypeMask.values()) {
 			if ((type.getMask() & typeMask) > 0) {
-				typesFilter.add(type.getEntityType().name());
+				typesFilter.add(SubType.valueOf(type.getEntityType().name()));
 			}
 		}
 		return typesFilter;
@@ -219,5 +233,27 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			}
 		}
 		
+	}
+
+	@Override
+	public ViewFilter getViewFilter(Long viewId) {
+		ViewScopeType type = viewScopeDao.getViewScopeType(viewId);
+		Set<Long> scope = viewScopeDao.getViewScope(viewId);
+		return getViewFilter(type, scope);
+	}
+
+	@Override
+	public ViewFilter getViewFilter(ViewScopeType type, Set<Long> scope) {
+		Set<SubType> subTypes = getSubTypesForMask(type.getTypeMask());
+		if (ViewTypeMask.Project.getMask() == type.getTypeMask()) {
+			return new FlatIdsFilter(MainType.ENTITY, Sets.newHashSet(SubType.project), scope);
+		}else {
+			try {
+				Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
+				return new HierarchyFilter(MainType.ENTITY, subTypes, allContainers);
+			} catch (LimitExceededException e) {
+				throw new IllegalStateException(e);
+			}
+		}
 	}
 }

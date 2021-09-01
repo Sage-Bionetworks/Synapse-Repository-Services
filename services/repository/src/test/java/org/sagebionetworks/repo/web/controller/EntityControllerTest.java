@@ -12,6 +12,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import javax.servlet.ServletException;
 
 import org.junit.jupiter.api.AfterEach;
@@ -48,7 +49,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestBase {
+public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private FileHandleDao fileHandleDao;

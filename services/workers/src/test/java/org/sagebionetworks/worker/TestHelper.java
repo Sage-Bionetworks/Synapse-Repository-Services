@@ -33,10 +33,9 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableSet;
@@ -92,7 +91,7 @@ public class TestHelper {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
-	public void addNodeForCleanup(String node) {
+	private void addNodeForCleanup(String node) {
 		nodes.add(node);
 	}
 	
@@ -176,7 +175,7 @@ public class TestHelper {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private <T extends Entity> T createEntity(UserInfo user, T entity) {
+	public <T extends Entity> T createEntity(UserInfo user, T entity) {
 		String id = entityManager.createEntity(user, entity, null);
 		
 		return (T) entityManager.getEntity(user, id);

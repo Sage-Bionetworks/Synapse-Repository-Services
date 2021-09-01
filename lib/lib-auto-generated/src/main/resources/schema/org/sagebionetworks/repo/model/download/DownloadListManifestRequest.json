@@ -9,6 +9,10 @@
 		"csvTableDescriptor": {
 			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor",
 			"description": "Describes how the CSV should be constructed."
+		},
+		"concreteType": {
+			"type": "string",
+			"description": "Required. For this type the value should be: 'org.sagebionetworks.repo.model.download.DownloadListManifestRequest'"
 		}
 	}
 }
