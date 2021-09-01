@@ -110,8 +110,10 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -1764,13 +1766,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					throws SQLException {
 				ObjectDataDTO dto = new ObjectDataDTO();
 				long entityId = rs.getLong(COL_NODE_ID);
+				long objectVersion = rs.getLong(COL_NODE_CURRENT_REV);
 				dto.setId(entityId);
+				dto.setVersion(objectVersion);
 				dto.setCurrentVersion(rs.getLong(COL_NODE_CURRENT_REV));
 				dto.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
 				dto.setEtag(rs.getString(COL_NODE_ETAG));
 				dto.setName(rs.getString(COL_NODE_NAME));
-				dto.setSubType(rs.getString(COL_NODE_TYPE));
+				dto.setSubType(SubType.valueOf(rs.getString(COL_NODE_TYPE)));
 				dto.setParentId(rs.getLong(COL_NODE_PARENT_ID));
 				if(rs.wasNull()){
 					dto.setParentId(null);
@@ -1802,7 +1806,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(userAnnoJson != null){
 					try {
 						Annotations annos = EntityFactory.createEntityFromJSONString(userAnnoJson, Annotations.class);
-						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, annos, maxAnnotationSize));
+						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, objectVersion, annos, maxAnnotationSize));
 					} catch (JSONObjectAdapterException e) {
 						throw new DatastoreException(e);
 					}
@@ -2146,6 +2150,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			SqlParameterSource deleteParams = new MapSqlParameterSource("toDelete", idsToDelete);
 			namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN(:toDelete)",
 					deleteParams);
+		}
+	}
+
+	@Override
+	public List<DatasetItem> getDatasetItems(Long datasetId) {
+		ValidateArgument.required(datasetId, "datasetId");
+		String sql = "SELECT R." + COL_REVISION_ITEMS + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
+				+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
+				+ " = R." + COL_REVISION_NUMBER + ") WHERE N."+COL_NODE_ID+" = ?";
+		try {
+			return NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
 		}
 	}
 

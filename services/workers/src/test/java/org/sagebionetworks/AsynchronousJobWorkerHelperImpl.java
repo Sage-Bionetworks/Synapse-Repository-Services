@@ -9,6 +9,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -32,7 +33,10 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -291,17 +295,17 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	public ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
 			throws InterruptedException {
 		Entity entity = entityManager.getEntity(user, entityId);
-		return waitForObjectReplication(ViewObjectType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(),
+		return waitForObjectReplication(MainType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(),
 				maxWaitMS);
 	}
 
 	@Override
-	public ObjectDataDTO waitForObjectReplication(ViewObjectType objectType, Long objectId, String etag, long maxWaitMS)
+	public ObjectDataDTO waitForObjectReplication(MainType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException {
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		long start = System.currentTimeMillis();
 		while (true) {
-			ObjectDataDTO dto = indexDao.getObjectData(objectType, objectId);
+			ObjectDataDTO dto = indexDao.getObjectDataForCurrentVersion(objectType, objectId);
 			if (dto == null || !dto.getEtag().equals(etag)) {
 				assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out waiting for object replication.");
 				LOG.info("Waiting for object replication...(Type: {}, Id: {}, Etag: {})", objectType.name(), objectId, etag);
@@ -364,6 +368,23 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
 
 		return view;
+	}
+	
+	@Override
+	public Dataset createDataset(UserInfo user, Dataset dataset) {
+		ViewEntityType entityType = ViewEntityType.dataset;
+		Long typeMask = 0L;
+		String viewId = entityManager.createEntity(user, dataset, null);
+		dataset = entityManager.getEntity(user, viewId, Dataset.class);
+
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(entityType);
+		viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+		viewScope.setViewTypeMask(typeMask);
+
+		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
+
+		return dataset;
 	}
 
 	@Override

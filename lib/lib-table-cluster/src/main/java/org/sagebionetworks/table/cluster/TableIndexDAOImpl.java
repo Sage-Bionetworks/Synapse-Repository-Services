@@ -3,17 +3,20 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
-import static org.sagebionetworks.repo.model.table.TableConstants.EXCLUSION_LIST_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CREATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
@@ -23,10 +26,10 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
@@ -35,7 +38,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.SUBTYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
@@ -57,7 +59,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -72,20 +73,20 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeFilter;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
@@ -114,6 +115,62 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
+	
+	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
+	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
+	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
+	
+	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		ObjectDataDTO dto1 = new ObjectDataDTO();
+		dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
+		dto1.setVersion(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_VERSION));
+		dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
+		dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+		dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
+		dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
+		dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+		dto1.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+		dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
+		if (rs.wasNull()) {
+			dto1.setParentId(null);
+		}
+		dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
+		if (rs.wasNull()) {
+			dto1.setBenefactorId(null);
+		}
+		dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
+		if (rs.wasNull()) {
+			dto1.setProjectId(null);
+		}
+		dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
+		dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
+		dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
+		if (rs.wasNull()) {
+			dto1.setFileHandleId(null);
+		}
+		dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
+		if (rs.wasNull()) {
+			dto1.setFileSizeBytes(null);
+		}
+		dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+		if (rs.wasNull()) {
+			dto1.setIsInSynapseStorage(null);
+		}
+		dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
+		return dto1;
+	};
+	
+	@SuppressWarnings("unchecked")
+	public static RowMapper<ObjectAnnotationDTO> OBJECT_ANNOTATION_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
+		ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
+		dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
+		dto1.setObjectVersion(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_VERSION));
+		dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+		dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
+		dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
+						.toList());
+		return dto1;
+	};
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
 			+ " FROM " + OBJECT_REPLICATION_TABLE 
@@ -703,13 +760,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void createObjectReplicationTablesIfDoesNotExist(){
-		template.update(TableConstants.OBJECT_REPLICATION_TABLE_CREATE);
-		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
-		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
+		template.update(OBJECT_REPLICATION_TABLE_CREATE);
+		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
+		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
-	public void deleteObjectData(ViewObjectType objectsType, List<Long> objectIds) {
+	public void deleteObjectData(MainType mainType, List<Long> objectIds) {
 		final List<Long> sorted = new ArrayList<Long>(objectIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -720,7 +777,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, objectsType.name());
+				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, sorted.get(i));
 			}
 
@@ -732,14 +789,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addObjectData(ViewObjectType objectType, List<ObjectDataDTO> objectDtos) {
-		
-		Map<Long, ObjectDataDTO> deduplicated = objectDtos.stream().collect(
-				Collectors.toMap(ObjectDataDTO::getId, Function.identity(), (a, b) -> b)
-		);
-		
-		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(deduplicated.values());
-		
+	public void addObjectData(MainType mainType, List<ObjectDataDTO> objectDtos) {
+		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(ObjectDataDTO.deDuplicate(objectDtos));
 		Collections.sort(sorted);
 		
 		// batch update the object replication table
@@ -752,8 +803,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				int parameterIndex = 1;
 				int updateOffset = 14;
 				
-				ps.setString(parameterIndex++, objectType.name());
+				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
+				ps.setLong(parameterIndex++, dto.getVersion());
 				
 				ps.setLong(parameterIndex++, dto.getCurrentVersion());
 				ps.setLong(parameterIndex + updateOffset, dto.getCurrentVersion());
@@ -770,8 +822,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ps.setString(parameterIndex++, dto.getName());
 				ps.setString(parameterIndex + updateOffset, dto.getName());
 				
-				ps.setString(parameterIndex++, dto.getSubType());
-				ps.setString(parameterIndex + updateOffset, dto.getSubType());
+				ps.setString(parameterIndex++, dto.getSubType().name());
+				ps.setString(parameterIndex + updateOffset, dto.getSubType().name());
 				
 				if(dto.getParentId() != null){
 					ps.setLong(parameterIndex++, dto.getParentId());
@@ -851,7 +903,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				ObjectAnnotationDTO dto = annotations.get(i);
-				SQLUtils.writeAnnotationDtoToPreparedStatement(objectType, ps, dto);
+				SQLUtils.writeAnnotationDtoToPreparedStatement(mainType, ps, dto);
 			}
 
 			@Override
@@ -862,68 +914,59 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public ObjectDataDTO getObjectData(ViewObjectType objectType, Long objectId) {
+	public ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("mainType", mainType.name());
+		params.addValue("objectId", objectId);
+		params.addValue("objectVersion", objectVersion);
+
+		String objectSql = "SELECT * FROM "+ OBJECT_REPLICATION_TABLE + " WHERE "
+				+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :mainType AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_ID+" = :objectId AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION+" = :objectVersion";
+		
+		String annotationSql = "SELECT * FROM "+ANNOTATION_REPLICATION_TABLE+" WHERE "
+				+ANNOTATION_REPLICATION_COL_OBJECT_TYPE+" = :mainType AND "
+				+ANNOTATION_REPLICATION_COL_OBJECT_ID+" = :objectId AND "
+				+ANNOTATION_REPLICATION_COL_OBJECT_VERSION+" = :objectVersion";	
+		
+		return getObjectData(objectSql, annotationSql, params);
+	}
+	
+	@Override
+	public ObjectDataDTO getObjectDataForCurrentVersion(MainType mainType, Long objectId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("mainType", mainType.name());
+		params.addValue("objectId", objectId);
+
+		String objectSql = "SELECT * FROM " + OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_OBJECT_TYPE
+				+ " = :mainType AND " + OBJECT_REPLICATION_COL_OBJECT_ID + " = :objectId AND "
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION + " = " + OBJECT_REPLICATION_COL_CUR_VERSION;
+
+		String annotationSql = "SELECT A.* FROM " + OBJECT_REPLICATION_TABLE + " O JOIN " + ANNOTATION_REPLICATION_TABLE
+				+ " A ON (O." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_TYPE
+				+ " AND O." + OBJECT_REPLICATION_COL_OBJECT_ID + " = A." + ANNOTATION_REPLICATION_COL_OBJECT_ID
+				+ " AND O." + OBJECT_REPLICATION_COL_OBJECT_VERSION + " = A."
+				+ ANNOTATION_REPLICATION_COL_OBJECT_VERSION + ") " + " WHERE O." + OBJECT_REPLICATION_COL_OBJECT_TYPE
+				+ " = :mainType AND O." + OBJECT_REPLICATION_COL_OBJECT_ID + " = :objectId AND O."
+				+ OBJECT_REPLICATION_COL_OBJECT_VERSION + " = O." + OBJECT_REPLICATION_COL_CUR_VERSION;
+
+		return getObjectData(objectSql, annotationSql, params);
+	}
+	
+	ObjectDataDTO getObjectData(String objectSql, String annotationSql, MapSqlParameterSource params) {
 		// query for the template.
 		ObjectDataDTO dto;
 		try {
-			dto = template.queryForObject(TableConstants.OBJECT_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-				ObjectDataDTO dto1 = new ObjectDataDTO();
-				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
-				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
-				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
-				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
-				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
-				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-				dto1.setSubType(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE));
-				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
-				if (rs.wasNull()) {
-					dto1.setParentId(null);
-				}
-				dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
-				if (rs.wasNull()) {
-					dto1.setBenefactorId(null);
-				}
-				dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
-				if (rs.wasNull()) {
-					dto1.setProjectId(null);
-				}
-				dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
-				dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
-				dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
-				if (rs.wasNull()) {
-					dto1.setFileHandleId(null);
-				}
-				dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
-				if (rs.wasNull()) {
-					dto1.setFileSizeBytes(null);
-				}
-				dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
-				if (rs.wasNull()) {
-					dto1.setIsInSynapseStorage(null);
-				}
-				dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
-
-				return dto1;
-			}, objectType.name(), objectId);
+			dto = namedTemplate.queryForObject(objectSql, params, OBJECT_DATA_ROW_MAPPER);
 		} catch (DataAccessException e) {
 			return null;
 		}
 		// get the annotations.
-		@SuppressWarnings("unchecked")
-		List<ObjectAnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
-			ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
-			dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
-			dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
-			dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-			dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
-							.toList());
-			return dto1;
-		}, objectType.name(), objectId);
-		
+		List<ObjectAnnotationDTO> annotations = namedTemplate.query(annotationSql, params, OBJECT_ANNOTATION_ROW_MAPPER);
 		if (!annotations.isEmpty()) {
 			dto.setAnnotations(annotations);
 		}
-		
 		return dto;
 	}
 	
@@ -939,7 +982,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	/***
 	 * Get the maximum number of elements in a list for each annotation column
-	 * @param objectType
+	 * @param mainType
 	 * @param viewId
 	 * @param viewTypeMask
 	 * @param allContainersInScope
@@ -947,28 +990,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @return Map where the key is the columnId found in curentSchema,
 	 * and value is the maximum number of list elements for that annotation
 	 */
-	Map<String, Long> getMaxListSizeForAnnotations(ViewScopeFilter scopeFilter, Set<String> annotationNames, Set<Long> objectIdFilter){
-		ValidateArgument.required(scopeFilter, "scopeFilter");
-		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+	Map<String, Long> getMaxListSizeForAnnotations(ViewFilter filter, Set<String> annotationNames){
+		ValidateArgument.required(filter, "filter");
 		ValidateArgument.required(annotationNames, "annotationNames");
 		
-		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
-		
-		if(allContainersInScope.isEmpty() || annotationNames.isEmpty()){
+		if(filter.isEmpty() || annotationNames.isEmpty()){
 			// nothing to do if the scope or annotation names are empty.
 			return Collections.emptyMap();
 		}
-		if(objectIdFilter != null && objectIdFilter.isEmpty()) {
-			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
-		}
-
-		boolean filterByRows = objectIdFilter != null;
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, objectIdFilter);
+		MapSqlParameterSource param = filter.getParameters();
 
 		//additional param
 		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
-		String sql = SQLUtils.createAnnotationMaxListLengthSQL(scopeFilter, annotationNames, filterByRows);
+		String sql = SQLUtils.createAnnotationMaxListLengthSQL(annotationNames, filter.getFilterSql());
 		return namedTemplate.query(sql,param, resultSet -> {
 			Map<String, Long> result = new HashMap<>();
 			while(resultSet.next()){
@@ -978,7 +1013,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		});
 	}
 
-	void validateMaxListLengthInAnnotationReplication(ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, Set<Long> objectIdFilter){
+	void validateMaxListLengthInAnnotationReplication(ViewFilter filter, List<ColumnModel> currentSchema){
 		Map<String,Long> listAnnotationListLengthMaximum = currentSchema.stream()
 				.filter(cm -> ColumnTypeListMappings.isList(cm.getColumnType()))
 				.collect(Collectors.toMap(
@@ -990,7 +1025,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return;
 		}
 
-		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(scopeFilter, listAnnotationListLengthMaximum.keySet(), objectIdFilter);
+		Map<String,Long> maxLengthsInReplication = this.getMaxListSizeForAnnotations(filter, listAnnotationListLengthMaximum.keySet());
 
 		for(Entry<String,Long> entry : listAnnotationListLengthMaximum.entrySet()){
 			String annotationName = entry.getKey();
@@ -1008,66 +1043,47 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				"FROM " + SQLUtils.getTemporaryTableName(tableId);
 		return template.queryForObject(sql, Long.class);
 	}
-
-	@Override
-	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
-		Set<Long> rowIdsToCopy = null;
-		copyObjectReplicationToView(viewId, scopeFilter, currentSchema, fieldTypeMapper, rowIdsToCopy);
-	}
 	
 	@Override
-	public void copyObjectReplicationToView(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, Set<Long> rowIdsToCopy) {
-		ValidateArgument.required(scopeFilter, "scopeFilter");
-		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+	public void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper) {
+		ValidateArgument.required(filter, "filter");
 		
-		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
-		
-		if (allContainersInScope.isEmpty()){
+		if (filter.isEmpty()){
 			// nothing to do if the scope is empty.
 			return;
 		}
 		
-		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
-			throw new IllegalArgumentException("When objectIdFilter is provided (not null) it cannot be empty");
-		}
-		
 		// before updating. verify that all rows that would be changed won't exceed the user-specified maxListLength,
 		// which is used for query row size estimation
-		validateMaxListLengthInAnnotationReplication(scopeFilter, currentSchema, rowIdsToCopy);
-		
-		// Filter by rows only if provided.
-		boolean filterByRows = rowIdsToCopy != null;
-		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, rowIdsToCopy);
+		validateMaxListLengthInAnnotationReplication(filter, currentSchema);
+				
+		MapSqlParameterSource param = filter.getParameters();
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
-		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, scopeFilter, filterByRows);
+		String sql = SQLUtils.createSelectInsertFromObjectReplication(viewId, metadata, filter.getFilterSql());
 		
 		namedTemplate.update(sql, param);
 	}
 
 	@Override
-	public void createViewSnapshotFromObjectReplication(Long viewId, ViewScopeFilter scopeFilter, List<ColumnModel> currentSchema,
+	public void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
 			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outputStream) {
-		ValidateArgument.required(scopeFilter, "scopeFilter");
-		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
+		ValidateArgument.required(filter, "filter");
 		
-		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
 		
-		if (allContainersInScope.isEmpty()) {
+		if (filter.isEmpty()) {
 			// nothing to do if the scope is empty.
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
+		MapSqlParameterSource param = filter.getParameters();
 		
 		StringBuilder builder = new StringBuilder();
-		boolean filterByRows = false;
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, scopeFilter, filterByRows);
+		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, filter.getFilterSql());
 		
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
@@ -1118,30 +1134,21 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewScopeFilter scopeFilter, List<String> excludeKeys, Long limit, Long offset) {
-		ValidateArgument.required(scopeFilter, "scopeFilter");
+	public List<ColumnModel> getPossibleColumnModelsForContainers(ViewFilter filter, Long limit, Long offset) {
+		ValidateArgument.required(filter, "filter");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		
-		Set<Long> containerIds = scopeFilter.getContainerIds();
-		
-		if(containerIds.isEmpty()){
+		if(filter.isEmpty()){
 			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
+		MapSqlParameterSource param = filter.getParameters();
 		
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		
-		boolean withExclusionList = false;
-		
-		if (excludeKeys != null && !excludeKeys.isEmpty()) {
-			withExclusionList = true;
-			param.addValue(EXCLUSION_LIST_PARAM_NAME, excludeKeys);
-		}
-		
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(scopeFilter, withExclusionList);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql());
 		
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, (ResultSet rs, int rowNum) -> {
 			ColumnAggregation aggregation = new ColumnAggregation();
@@ -1197,15 +1204,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(ViewObjectType objectType, List<Long> parentIds) {
-		ValidateArgument.required(objectType, "objectType");
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(MainType mainType, List<Long> parentIds) {
+		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(parentIds, "parentIds");
 		final Map<Long, Long> results = new HashMap<>();
 		if(parentIds.isEmpty()){
 			return results;
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
+		param.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
 		param.addValue(PARENT_ID_PARAM_NAME, parentIds);
 		namedTemplate.query(SELECT_OBJECT_CHILD_CRC, param, (ResultSet rs) -> {
 			Long parentId = rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID);
@@ -1216,8 +1223,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<IdAndEtag> getObjectChildren(ViewObjectType objectType, Long parentId) {
-		ValidateArgument.required(objectType, "objectType");
+	public List<IdAndEtag> getObjectChildren(MainType mainType, Long parentId) {
+		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(parentId, "parentId");
 		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, (ResultSet rs, int rowNum) -> {
 			Long id = rs.getLong(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID);
@@ -1227,11 +1234,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				benefactorId = null;
 			}
 			return new IdAndEtag(id, etag, benefactorId);
-		}, objectType.name(), parentId);
+		}, mainType.name(), parentId);
 	}
 
 	@Override
-	public List<Long> getExpiredContainerIds(ViewObjectType objectType, List<Long> containerIds) {
+	public List<Long> getExpiredContainerIds(MainType mainType, List<Long> containerIds) {
 		ValidateArgument.required(containerIds, "entityContainerIds");
 		if(containerIds.isEmpty()){
 			return new LinkedList<Long>();
@@ -1244,7 +1251,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
+		param.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
 		param.addValue(ID_PARAM_NAME, containerIds);
 		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
@@ -1255,9 +1262,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(ViewObjectType objectType, final List<Long> toSet,
+	public void setContainerSynchronizationExpiration(MainType mainType, final List<Long> toSet,
 			final long newExpirationDateMS) {
-		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(toSet, "toSet");
 		if(toSet.isEmpty()){
 			return;
@@ -1268,7 +1275,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				Long idToSet = toSet.get(i);
 				int index = 1;
-				ps.setString(index++, objectType.name());
+				ps.setString(index++, mainType.name());
 				ps.setLong(index++, idToSet);
 				ps.setLong(index++, newExpirationDateMS);
 				ps.setLong(index++, newExpirationDateMS);
@@ -1291,13 +1298,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long getSumOfFileSizes(ViewObjectType objectType, List<Long> rowIds) {
+	public long getSumOfFileSizes(MainType mainType, List<Long> rowIds) {
 		ValidateArgument.required(rowIds, "rowIds");
 		if(rowIds.isEmpty()) {
 			return 0L;
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
+		params.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
 		params.addValue(ID_PARAM_NAME, rowIds);
 
 		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, params, Long.class);
@@ -1310,8 +1317,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void streamSynapseStorageStats(ViewObjectType objectType, Callback<SynapseStorageProjectStats> callback) {
-		MapSqlParameterSource params = new MapSqlParameterSource(OBJECT_TYPE_PARAM_NAME, objectType.name());
+	public void streamSynapseStorageStats(MainType mainType, Callback<SynapseStorageProjectStats> callback) {
+		MapSqlParameterSource params = new MapSqlParameterSource(OBJECT_TYPE_PARAM_NAME, mainType.name());
 		
 		// We use spring to create create the prepared statement
 		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, params, (ResultSet rs) -> {
@@ -1353,20 +1360,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeFilter scopeFilter, long limit) {
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(scopeFilter, "scopeFilter");
-		ValidateArgument.required(scopeFilter.getContainerIds(), "scopeFilter.containerIds");
-		
-		Set<Long> allContainersInScope = scopeFilter.getContainerIds();
-		
-		if(allContainersInScope.isEmpty()) {
+		ValidateArgument.required(filter, "filter");
+				
+		if(filter.isEmpty()) {
 			return Collections.emptySet();
 		}
 		
-		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, scopeFilter);
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, filter.getFilterSql());
 		
-		MapSqlParameterSource param = getMapSqlParameterSourceForScopeFilter(scopeFilter, true, null);
+		MapSqlParameterSource param = filter.getParameters();
 		
 		param.addValue(P_LIMIT, limit);
 		
@@ -1404,30 +1408,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 	}
-	
-	private MapSqlParameterSource getMapSqlParameterSourceForScopeFilter(ViewScopeFilter scopeFilter, boolean filterBySubTypes, Set<Long> rowIdsToCopy) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		
-		param.addValue(OBJECT_TYPE_PARAM_NAME, scopeFilter.getObjectType().name());
-		param.addValue(PARENT_ID_PARAM_NAME, scopeFilter.getContainerIds());
-		
-		if (rowIdsToCopy != null) {
-			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
-		}
-		
-		if (filterBySubTypes) {
-			param.addValue(SUBTYPE_PARAM_NAME, scopeFilter.getSubTypes());
-		}
-		
-		return param;
-	}
 
 	@Override
-	public void refreshViewBenefactors(IdAndVersion viewId, ViewObjectType objectType) {
+	public void refreshViewBenefactors(IdAndVersion viewId, MainType mainType) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
-		template.update(sql, objectType.name());
+		template.update(sql, mainType.name());
 	}
 	
 }

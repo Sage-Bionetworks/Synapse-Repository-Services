@@ -40,12 +40,14 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionMetadataIndexProviderUnitTest {
@@ -118,9 +120,9 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	@Test
 	public void testGetSubTypesForMask() {
 		// Call under test
-		List<String> result = provider.getSubTypesForMask(mockViewTypeMask);
+		Set<SubType> result = provider.getSubTypesForMask(mockViewTypeMask);
 
-		assertEquals(ImmutableList.of(viewObjectType.defaultSubType()), result);
+		assertEquals(Sets.newHashSet(SubType.submission), result);
 
 	}
 

@@ -245,6 +245,7 @@ public class AnnotationsV2UtilsTest {
 	@Test
 	public void testTranslate(){
 		long entityId = 123;
+		long version = 3L;
 		int maxAnnotationChars = 6;
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "aString", "someString", AnnotationsValueType.STRING);
@@ -253,13 +254,13 @@ public class AnnotationsV2UtilsTest {
 		AnnotationsV2TestUtils.putAnnotations(annos, "aDate", "444", AnnotationsValueType.TIMESTAMP_MS);
 
 		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
-				new ObjectAnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
-				new ObjectAnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
-				new ObjectAnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new ObjectAnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
+				new ObjectAnnotationDTO(entityId, version, "aString", AnnotationType.STRING, "someSt"),
+				new ObjectAnnotationDTO(entityId, version, "aLong", AnnotationType.LONG, "123"),
+				new ObjectAnnotationDTO(entityId, version, "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(entityId, version, "aDate", AnnotationType.DATE, "444")
 		);
 
-		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, version, annos, maxAnnotationChars);
 		assertNotNull(results);
 
 		Assertions.assertEquals(expected, results);
@@ -271,10 +272,11 @@ public class AnnotationsV2UtilsTest {
 	@Test
 	public void testTranslateEmptyList(){
 		long entityId = 123;
+		long version = 3L;
 		int maxAnnotationChars = 6;
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsValueType.STRING);
-		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, version, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
 	}
@@ -282,11 +284,12 @@ public class AnnotationsV2UtilsTest {
 	@Test
 	public void testTranslateNullValueInList(){
 		long entityId = 123;
+		long version = 3L;
 		int maxAnnotationChars = 6;
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsValueType.STRING);
 
-		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		List<ObjectAnnotationDTO> results = AnnotationsV2Utils.translate(entityId, version, annos, maxAnnotationChars);
 		assertEquals(0, results.size());
 	}
 

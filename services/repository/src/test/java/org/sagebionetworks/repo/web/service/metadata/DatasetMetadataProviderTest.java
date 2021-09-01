@@ -93,6 +93,20 @@ public class DatasetMetadataProviderTest {
 
 		verify(mockNodeDao).getEntityHeader(Sets.newHashSet(111L, 222L));
 	}
+	
+	@Test
+	public void testValidateEntityWithNullVersion() {
+		dataset.getItems().get(0).setVersionNumber(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateEntity(dataset, event);
+		}).getMessage();
+
+		assertEquals("Each dataset item must have a non-null version number", message);
+
+		verify(mockNodeDao, never()).getEntityHeader(anySet());
+	}
 
 	@Test
 	public void testCreateViewScope() {

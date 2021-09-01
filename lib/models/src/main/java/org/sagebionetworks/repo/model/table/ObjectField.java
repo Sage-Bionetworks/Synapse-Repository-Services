@@ -14,7 +14,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CUR_VERSION;
 
 /**
  * Enumeration that maps the columns of a OBJECT_REPLICATION to both the database and column model. 
@@ -27,7 +27,7 @@ public enum ObjectField {
 	createdBy			(OBJECT_REPLICATION_COL_CREATED_BY, 	ColumnType.USERID,			null,	FacetType.enumeration),
 	etag				(OBEJCT_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L,	null),
 	type				(OBJECT_REPLICATION_COL_SUBTYPE,	 	ColumnType.STRING,			20L,	FacetType.enumeration),
-	currentVersion		(OBJECT_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null,	null),
+	currentVersion		(OBJECT_REPLICATION_COL_CUR_VERSION, 		ColumnType.INTEGER, 		null,	null),
 	parentId			(OBJECT_REPLICATION_COL_PARENT_ID, 		null,						null,	FacetType.enumeration),
 	benefactorId		(OBJECT_REPLICATION_COL_BENEFACTOR_ID, 	null,						null,	null),
 	projectId			(OBJECT_REPLICATION_COL_PROJECT_ID, 	ColumnType.ENTITYID,		null,	FacetType.enumeration),

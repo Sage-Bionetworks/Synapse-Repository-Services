@@ -6,12 +6,14 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -171,11 +173,10 @@ public interface TableIndexManager {
 	 * @param callback 
 	 * 
 	 * @param scopeType
-	 * @param allContainersInScope
 	 * @param currentSchema
 	 * @return View CRC32
 	 */
-	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
 	
 	/**
 	 * Create a snapshot of the given view.
@@ -185,7 +186,7 @@ public interface TableIndexManager {
 	 * @param viewSchema
 	 * @param writter
 	 */
-	void createViewSnapshot(Long viewId, ViewScopeType scopeType, Set<Long> allContainersInScope,
+	void createViewSnapshot(Long viewId, ViewScopeType scopeType,
 			List<ColumnModel> viewSchema, CSVWriterStream writter);	
 	
 	/**
@@ -236,12 +237,11 @@ public interface TableIndexManager {
 	 * </ul>
 	 * 
 	 * @param viewId The id of the view to check.
-	 * @param scopeType  The scope type of the view.
-	 * @param allContainersInScope All of the containers that define the scope 
+	 * @param filter
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewScopeType scopeType, Set<Long> allContainersInScope, long limit);
+	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit);
 
 	/**
 	 * In a single transaction, update the provided rowIds for a view. For each
@@ -251,11 +251,12 @@ public interface TableIndexManager {
 	 * @param viewId The Id of the view.
 	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this transaction.
 	 * @param viewTypeMask The type of view this is.
-	 * @param allContainersInScope The container Ids that define the scope of this view.
 	 * @param currentSchema The current schema of the view.
+	 * @param filter
+	 * @param provider
 	 */
 	void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, ViewScopeType scopeType,
-			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+			List<ColumnModel> currentSchema, ViewFilter filter, MetadataIndexProvider provider);
 
 	/**
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.

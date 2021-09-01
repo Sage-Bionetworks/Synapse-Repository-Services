@@ -9,7 +9,10 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -105,7 +108,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	ObjectDataDTO waitForObjectReplication(ViewObjectType objectType, Long objectId, String etag, long maxWaitMS)
+	ObjectDataDTO waitForObjectReplication(MainType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException;
 
 	/**
@@ -130,6 +133,14 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope);
+	
+	/**
+	 * Create a dataset with the default columns.
+	 * @param user
+	 * @param dataset
+	 * @return
+	 */
+	Dataset createDataset(UserInfo user, Dataset dataset);
 
 	/**
 	 * Set the schema for the given table and wait for the lock as needed.

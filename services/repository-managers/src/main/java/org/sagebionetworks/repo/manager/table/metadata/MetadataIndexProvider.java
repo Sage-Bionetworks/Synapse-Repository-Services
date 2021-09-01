@@ -10,11 +10,14 @@ import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
 /**
  * Generic interface to be implemented by objects whose metadata is indexed in
@@ -188,5 +191,20 @@ public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilte
 	 * @param viewTypeMask The mask for the view, can be null
 	 */
 	void validateTypeMask(Long viewTypeMask);
+		
+	/**
+	 * Get the view filter for the given view.
+	 * @param viewId
+	 * @return
+	 */
+	ViewFilter getViewFilter(Long viewId);
+
+	/**
+	 * Get a view filter for the given containers and type.s
+	 * @param viewScopeType
+	 * @param containerIds
+	 * @return
+	 */
+	ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds);
 
 }

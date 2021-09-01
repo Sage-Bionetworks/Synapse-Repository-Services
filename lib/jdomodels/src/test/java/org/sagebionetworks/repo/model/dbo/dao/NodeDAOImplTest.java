@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -3027,12 +3028,13 @@ public class NodeDAOImplTest {
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertEquals(file.getVersionNumber(), fileDto.getVersion());
 		assertEquals(file.getVersionNumber(), fileDto.getCurrentVersion());
 		assertEquals(file.getCreatedByPrincipalId(), fileDto.getCreatedBy());
 		assertEquals(file.getCreatedOn(), fileDto.getCreatedOn());
 		assertEquals(file.getETag(), fileDto.getEtag());
 		assertEquals(file.getName(), fileDto.getName());
-		assertEquals(file.getNodeType().name(), fileDto.getSubType());
+		assertEquals(SubType.valueOf(file.getNodeType().name()), fileDto.getSubType());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getParentId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getBenefactorId());
 		assertEquals(KeyFactory.stringToKey(project.getId()), fileDto.getProjectId());
@@ -3046,10 +3048,10 @@ public class NodeDAOImplTest {
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
 		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
-				new ObjectAnnotationDTO(fileIdLong, "aString", AnnotationType.STRING, "someString"),
-				new ObjectAnnotationDTO(fileIdLong, "aLong", AnnotationType.LONG, "123"),
-				new ObjectAnnotationDTO(fileIdLong, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new ObjectAnnotationDTO(fileIdLong, "aDouble2", AnnotationType.DOUBLE, "1.22")
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aString", AnnotationType.STRING, "someString"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aLong", AnnotationType.LONG, "123"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble", AnnotationType.DOUBLE, "1.22"),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble2", AnnotationType.DOUBLE, "1.22")
 		);
 		// Annotation order is not preserved by the JSON database column used to store annotations
 		for(ObjectAnnotationDTO expectedDto: expected) {
@@ -4633,5 +4635,75 @@ public class NodeDAOImplTest {
 		// call under test
 		Node fromVersion = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
 		assertEquals(dataset, fromVersion);
+	}
+	
+	@Test
+	public void testGetDatasetItems() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		// Call under test
+		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		assertEquals(items, fetched);
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithMultipleVersion() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		// v2
+		List<DatasetItem> itemsV2 = Arrays.asList(new DatasetItem().setEntityId("syn333").setVersionNumber(4L),
+				new DatasetItem().setEntityId("syn444").setVersionNumber(6L));
+		dataset.setVersionNumber(2L);
+		dataset.setVersionComment("v2");
+		dataset.setVersionLabel("v2");
+		dataset.setItems(itemsV2);
+		nodeDao.createNewVersion(dataset);
+
+		// Call under test
+		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		assertEquals(itemsV2, fetched);
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithNotFound() {
+		Long datasetId = -1L;
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getDatasetItems(datasetId);
+		});
+	}
+	
+	@Test
+	public void testGetDatasetItemsWithNullId() {
+		Long datasetId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getDatasetItems(datasetId);
+		});
 	}
 }

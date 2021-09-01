@@ -24,7 +24,7 @@ public class SqlConstants {
 	public static final String COL_NODE_MODIFIED_ON 	= "MODIFIED_ON";
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
-	public static final String COL_NODE_CURRENT_REV			= "CURRENT_REV_NUM";
+	public static final String COL_NODE_CURRENT_REV		= "CURRENT_REV_NUM";
 	public static final String COL_NODE_MAX_REV			= "MAX_REV_NUM";
 	public static final String COL_NODE_ALIAS 			= "ALIAS";
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
