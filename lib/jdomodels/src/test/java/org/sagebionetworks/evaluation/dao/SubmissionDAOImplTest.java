@@ -539,6 +539,7 @@ public class SubmissionDAOImplTest {
     	subStatus.setStatus(status);
     	subStatus.setModifiedOn(new Date());
     	subStatus.setSubmissionAnnotations(annotations);
+    	subStatus.setVersionNumber(0L);
     	submissionStatusDAO.create(subStatus);
     }
     
@@ -1198,6 +1199,7 @@ public class SubmissionDAOImplTest {
 		SubmissionStatus status = submissionStatusDAO.get(submissionId);
 
 		assertEquals(status.getEtag(), data.getEtag());
+		assertEquals(status.getVersionNumber(), data.getVersion());
 		assertEquals(submission.getEvaluationId(), data.getParentId().toString());
 		assertEquals(submission.getEvaluationId(), data.getBenefactorId().toString());
 		assertEquals(evaluation.getContentSource(), KeyFactory.keyToString(data.getProjectId()));
@@ -1214,6 +1216,7 @@ public class SubmissionDAOImplTest {
 				assertTrue(field.isNullable(), "No annotation found and the field was not nullable");
 			} else {
 				assertEquals(submissionId, fieldAnnotation.getObjectId().toString());
+				assertEquals(status.getVersionNumber(), fieldAnnotation.getObjectVersion());
 				assertEquals(field.getAnnotationType(), fieldAnnotation.getType());
 				assertFalse(fieldAnnotation.getValue().isEmpty());
 			}

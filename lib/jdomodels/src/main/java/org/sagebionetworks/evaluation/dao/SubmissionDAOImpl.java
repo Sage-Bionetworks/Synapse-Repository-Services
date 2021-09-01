@@ -92,8 +92,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class SubmissionDAOImpl implements SubmissionDAO {
 
-	public static final long DEFAULT_VERSION_NUMBER = 1L;
-
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -885,7 +883,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static ObjectDataDTO mapSubmissionDataRow(ResultSet rs, int index, int maxAnnotationChars) throws SQLException {
 		ObjectDataDTO data = new ObjectDataDTO();
 		data.setId(rs.getLong(COL_SUBMISSION_ID));
-		data.setVersion(DEFAULT_VERSION_NUMBER);
+		data.setVersion(rs.getLong(COL_SUBSTATUS_VERSION));
 		data.setName(rs.getString(COL_SUBMISSION_NAME));
 		data.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
 		data.setParentId(rs.getLong(SubmissionField.evaluationid.getColumnAlias()));
@@ -898,7 +896,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		data.setCurrentVersion(rs.getLong(COL_SUBSTATUS_VERSION));
 		data.setSubType(SubType.submission);
 	
-		List<ObjectAnnotationDTO> annotations = fetchAnnotations(rs, data.getId(), maxAnnotationChars);
+		List<ObjectAnnotationDTO> annotations = fetchAnnotations(rs, data.getId(), data.getVersion(), maxAnnotationChars);
 		
 		data.setAnnotations(annotations);
 	
@@ -906,7 +904,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		
 	}
 	
-	private static List<ObjectAnnotationDTO> fetchAnnotations(ResultSet rs, Long submissionId, int maxAnnotationChars) throws SQLException {
+	private static List<ObjectAnnotationDTO> fetchAnnotations(ResultSet rs, Long submissionId, Long version, int maxAnnotationChars) throws SQLException {
 		
 		Annotations annotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_SUBSTATUS_ANNOTATIONS));
 		
@@ -915,13 +913,13 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		}
 		
 		// Translates the annotations on the object itself first
-		List<ObjectAnnotationDTO> objectAnnotations = AnnotationsV2Utils.translate(submissionId, DEFAULT_VERSION_NUMBER, annotations, maxAnnotationChars);
+		List<ObjectAnnotationDTO> objectAnnotations = AnnotationsV2Utils.translate(submissionId, version, annotations, maxAnnotationChars);
 		
 		// Merge the custom default fields from the result set and return the complete list
-		return mergeCustomFields(submissionId, objectAnnotations, rs);
+		return mergeCustomFields(submissionId, version, objectAnnotations, rs);
 	}
 
-	private static List<ObjectAnnotationDTO> mergeCustomFields(Long submissionId, List<ObjectAnnotationDTO> objectAnnotations, ResultSet rs) throws SQLException {
+	private static List<ObjectAnnotationDTO> mergeCustomFields(Long submissionId, Long version, List<ObjectAnnotationDTO> objectAnnotations, ResultSet rs) throws SQLException {
 		// Turn the list into a map so that we can override the keys
 		Map<String, ObjectAnnotationDTO> map = new LinkedHashMap<>(objectAnnotations.size());
 		
@@ -940,7 +938,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				continue;
 			}
 
-			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO(new ObjectDataDTO().setId(submissionId).setVersion(DEFAULT_VERSION_NUMBER));
+			ObjectAnnotationDTO annotationValue = new ObjectAnnotationDTO(new ObjectDataDTO().setId(submissionId).setVersion(version));
 			
 			annotationValue.setObjectId(submissionId);
 			annotationValue.setKey(field.getColumnName());

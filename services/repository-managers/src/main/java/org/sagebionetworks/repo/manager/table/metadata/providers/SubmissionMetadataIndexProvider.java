@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -209,12 +210,12 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return new FlatIdsFilter(MainType.SUBMISSION, getSubTypes(), scope);
+		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
 	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
-		return new FlatIdsFilter(MainType.SUBMISSION, getSubTypes(), containerIds);
+		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
 }

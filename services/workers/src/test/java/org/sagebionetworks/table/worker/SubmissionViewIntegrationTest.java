@@ -68,7 +68,7 @@ import com.google.common.collect.ImmutableMap;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SubmissionViewIntegrationTest {
 
-	private static final int MAX_WAIT = 2 * 60 * 1000;
+	private static final int MAX_WAIT = 2 * 60 * 1000*10;
 	
 	@Autowired
 	private SubmissionManager submissionManager;
