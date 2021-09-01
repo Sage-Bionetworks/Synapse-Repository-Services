@@ -4,7 +4,7 @@ package org.sagebionetworks.table.cluster.view.filter;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -12,16 +12,16 @@ import org.sagebionetworks.util.ValidateArgument;
  * ViewFilter for a scope defined by a hierarchy of par
  *
  */
-public class HierarchyFilter extends AbstractViewFilter {
+public class HierarchicaFilter extends AbstractViewFilter {
 
 	
 	protected final Set<Long> scope;
 	
-	public HierarchyFilter(MainType mainType, Set<SubType> subTypes, Set<Long> scope) {
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		this(mainType, subTypes, null, null, scope);
 	}
 
-	public HierarchyFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
 			Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		ValidateArgument.required(scope, "scope");
@@ -60,10 +60,10 @@ public class HierarchyFilter extends AbstractViewFilter {
 		if (!super.equals(obj)) {
 			return false;
 		}
-		if (!(obj instanceof HierarchyFilter)) {
+		if (!(obj instanceof HierarchicaFilter)) {
 			return false;
 		}
-		HierarchyFilter other = (HierarchyFilter) obj;
+		HierarchicaFilter other = (HierarchicaFilter) obj;
 		return Objects.equals(scope, other.scope);
 	}
 
@@ -79,7 +79,7 @@ public class HierarchyFilter extends AbstractViewFilter {
 		
 		 Set<Long> scope;
 
-		public Builder(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
 				Set<String> excludeKeys,  Set<Long> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys);
 			this.scope = scope;
@@ -87,7 +87,7 @@ public class HierarchyFilter extends AbstractViewFilter {
 
 		@Override
 		public ViewFilter build() {
-			return new HierarchyFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		}
 		
 	}

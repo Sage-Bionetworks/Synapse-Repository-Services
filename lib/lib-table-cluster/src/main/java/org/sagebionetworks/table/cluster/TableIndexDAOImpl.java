@@ -73,7 +73,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
@@ -121,55 +121,55 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
-		ObjectDataDTO dto1 = new ObjectDataDTO();
-		dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
-		dto1.setVersion(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_VERSION));
-		dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
-		dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
-		dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
-		dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
-		dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-		dto1.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
-		dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
+		ObjectDataDTO dto = new ObjectDataDTO();
+		dto.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
+		dto.setVersion(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_VERSION));
+		dto.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_CUR_VERSION));
+		dto.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CREATED_BY));
+		dto.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CREATED_ON)));
+		dto.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
+		dto.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+		dto.setSubType(SubType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+		dto.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 		if (rs.wasNull()) {
-			dto1.setParentId(null);
+			dto.setParentId(null);
 		}
-		dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
+		dto.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
 		if (rs.wasNull()) {
-			dto1.setBenefactorId(null);
+			dto.setBenefactorId(null);
 		}
-		dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
+		dto.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
 		if (rs.wasNull()) {
-			dto1.setProjectId(null);
+			dto.setProjectId(null);
 		}
-		dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
-		dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
-		dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
+		dto.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
+		dto.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
+		dto.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
 		if (rs.wasNull()) {
-			dto1.setFileHandleId(null);
+			dto.setFileHandleId(null);
 		}
-		dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
+		dto.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
 		if (rs.wasNull()) {
-			dto1.setFileSizeBytes(null);
+			dto.setFileSizeBytes(null);
 		}
-		dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+		dto.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
 		if (rs.wasNull()) {
-			dto1.setIsInSynapseStorage(null);
+			dto.setIsInSynapseStorage(null);
 		}
-		dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
-		return dto1;
+		dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
+		return dto;
 	};
 	
 	@SuppressWarnings("unchecked")
 	public static RowMapper<ObjectAnnotationDTO> OBJECT_ANNOTATION_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
-		ObjectAnnotationDTO dto1 = new ObjectAnnotationDTO();
-		dto1.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
-		dto1.setObjectVersion(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_VERSION));
-		dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
-		dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-		dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
+		ObjectAnnotationDTO dto = new ObjectAnnotationDTO();
+		dto.setObjectId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
+		dto.setObjectVersion(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_VERSION));
+		dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+		dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
+		dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
 						.toList());
-		return dto1;
+		return dto;
 	};
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
@@ -766,7 +766,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteObjectData(MainType mainType, List<Long> objectIds) {
+	public void deleteObjectData(ReplicationType mainType, List<Long> objectIds) {
 		final List<Long> sorted = new ArrayList<Long>(objectIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -789,7 +789,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addObjectData(MainType mainType, List<ObjectDataDTO> objectDtos) {
+	public void addObjectData(ReplicationType mainType, List<ObjectDataDTO> objectDtos) {
 		final List<ObjectDataDTO> sorted = new ArrayList<ObjectDataDTO>(ObjectDataDTO.deDuplicate(objectDtos));
 		Collections.sort(sorted);
 		
@@ -914,7 +914,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion) {
+	public ObjectDataDTO getObjectData(ReplicationType mainType, Long objectId, Long objectVersion) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("mainType", mainType.name());
 		params.addValue("objectId", objectId);
@@ -934,7 +934,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public ObjectDataDTO getObjectDataForCurrentVersion(MainType mainType, Long objectId) {
+	public ObjectDataDTO getObjectDataForCurrentVersion(ReplicationType mainType, Long objectId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("mainType", mainType.name());
 		params.addValue("objectId", objectId);
@@ -1204,7 +1204,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(MainType mainType, List<Long> parentIds) {
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(ReplicationType mainType, List<Long> parentIds) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(parentIds, "parentIds");
 		final Map<Long, Long> results = new HashMap<>();
@@ -1223,7 +1223,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<IdAndEtag> getObjectChildren(MainType mainType, Long parentId) {
+	public List<IdAndEtag> getObjectChildren(ReplicationType mainType, Long parentId) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(parentId, "parentId");
 		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, (ResultSet rs, int rowNum) -> {
@@ -1238,7 +1238,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<Long> getExpiredContainerIds(MainType mainType, List<Long> containerIds) {
+	public List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> containerIds) {
 		ValidateArgument.required(containerIds, "entityContainerIds");
 		if(containerIds.isEmpty()){
 			return new LinkedList<Long>();
@@ -1262,7 +1262,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(MainType mainType, final List<Long> toSet,
+	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
 			final long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(toSet, "toSet");
@@ -1298,7 +1298,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long getSumOfFileSizes(MainType mainType, List<Long> rowIds) {
+	public long getSumOfFileSizes(ReplicationType mainType, List<Long> rowIds) {
 		ValidateArgument.required(rowIds, "rowIds");
 		if(rowIds.isEmpty()) {
 			return 0L;
@@ -1317,7 +1317,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void streamSynapseStorageStats(MainType mainType, Callback<SynapseStorageProjectStats> callback) {
+	public void streamSynapseStorageStats(ReplicationType mainType, Callback<SynapseStorageProjectStats> callback) {
 		MapSqlParameterSource params = new MapSqlParameterSource(OBJECT_TYPE_PARAM_NAME, mainType.name());
 		
 		// We use spring to create create the prepared statement
@@ -1410,7 +1410,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void refreshViewBenefactors(IdAndVersion viewId, MainType mainType) {
+	public void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType) {
 		ValidateArgument.required(viewId, "viewId");
 		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);

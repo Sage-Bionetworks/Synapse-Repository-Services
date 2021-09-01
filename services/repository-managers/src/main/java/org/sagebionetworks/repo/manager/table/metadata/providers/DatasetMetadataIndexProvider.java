@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -169,12 +169,12 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
 				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
 				.collect(Collectors.toSet());
-		return new FlatIdAndVersionFilter(MainType.ENTITY, getSubTypes(), scope);
+		return new FlatIdAndVersionFilter(ReplicationType.ENTITY, getSubTypes(), scope);
 	}
 
 	@Override
 	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
-		return new FlatIdsFilter(MainType.ENTITY, getSubTypes(), containerIds);
+		return new FlatIdsFilter(ReplicationType.ENTITY, getSubTypes(), containerIds);
 	}
 
 	Set<SubType> getSubTypes() {

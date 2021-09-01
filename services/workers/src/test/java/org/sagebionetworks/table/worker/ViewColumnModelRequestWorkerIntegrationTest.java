@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -105,7 +105,7 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
 		
 		// Wait for the object replication
-		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
 				
 		ViewScope viewScope = new ViewScope();
 		
@@ -149,7 +149,7 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
 		
 		// Wait for the object replication
-		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
 				
 		ViewScope viewScope = new ViewScope();
 		

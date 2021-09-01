@@ -8,17 +8,17 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import com.google.common.collect.Sets;
 
-public class HierarchyFilterTest {
+public class HierarchicaFilterTest {
 
-	private MainType mainType;
+	private ReplicationType mainType;
 	private Set<SubType> subTypes;
 	private List<String> expectedSubTypes;
 	private Set<Long> scope;
@@ -27,7 +27,7 @@ public class HierarchyFilterTest {
 
 	@BeforeEach
 	public void before() {
-		mainType = MainType.ENTITY;
+		mainType = ReplicationType.ENTITY;
 		subTypes = Sets.newHashSet(SubType.file);
 		expectedSubTypes = subTypes.stream().map(s -> s.name()).collect(Collectors.toList());
 		scope = Sets.newHashSet(1L, 2L, 3L);
@@ -38,7 +38,7 @@ public class HierarchyFilterTest {
 	@Test
 	public void testFilter() {
 		// call under test
-		HierarchyFilter filter = new HierarchyFilter(mainType, subTypes, scope);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
@@ -54,7 +54,7 @@ public class HierarchyFilterTest {
 	@Test
 	public void testFilterBuilder() {
 		// call under test
-		ViewFilter filter = new HierarchyFilter(mainType, subTypes, scope).newBuilder()
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"

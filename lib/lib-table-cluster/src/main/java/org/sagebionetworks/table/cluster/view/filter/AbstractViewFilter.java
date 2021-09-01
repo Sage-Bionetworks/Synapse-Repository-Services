@@ -1,17 +1,18 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public abstract class AbstractViewFilter implements ViewFilter {
 
-	protected final MainType mainType;
+	protected final ReplicationType mainType;
 	protected final Set<SubType> subTypes;
 	protected final Set<Long> limitObjectIds;
 	protected final Set<String> excludeKeys;
@@ -22,7 +23,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	 * @param subTypes One or more sub-types.  Required.
 	 * @param additionalFilter Additional filter to limit the results to this set of object ids.  Optional.
 	 */
-	public AbstractViewFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys) {
+	public AbstractViewFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(subTypes, "subTypes");
 		this.mainType = mainType;
@@ -58,6 +59,11 @@ public abstract class AbstractViewFilter implements ViewFilter {
 			builder.append(" AND A.ANNO_KEY NOT IN (:excludeKeys)");
 		}
 		return builder.toString();
+	}
+	
+	@Override
+	public Optional<Set<Long>> getLimitObjectIds() {
+		return Optional.of(limitObjectIds);
 	}
 
 	@Override

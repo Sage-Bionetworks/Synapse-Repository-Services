@@ -53,7 +53,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -1807,7 +1807,7 @@ public class SQLUtils {
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(MainType mainType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ReplicationType mainType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
 		int updateOffset = 9;
 		

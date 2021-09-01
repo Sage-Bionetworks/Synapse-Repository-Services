@@ -724,23 +724,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, ViewScopeType scopeType,
-			List<ColumnModel> currentSchema, ViewFilter filter, MetadataIndexProvider provider) {
+	public void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType,
+			List<ColumnModel> currentSchema, ViewFilter filter) {
 		ValidateArgument.required(viewId, "viewId");
-		ValidateArgument.required(rowsIdsWithChanges, "rowsIdsWithChanges");
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(currentSchema, "currentSchema");
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
 		
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new);
+			Long[] rowsIdsArray = filter.getLimitObjectIds().get().stream().toArray(Long[] ::new);
  			// First delete the provided rows from the view
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
-				ViewFilter newFilter = filter.newBuilder().addLimitObjectids(rowsIdsWithChanges).build();
 				// Apply any updates to the view for the given Ids
-				tableIndexDao.copyObjectReplicationToView(viewId.getId(), newFilter, currentSchema, provider);
-				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
+				tableIndexDao.copyObjectReplicationToView(viewId.getId(), filter, currentSchema, provider);
+				populateListColumnIndexTables(viewId, currentSchema, filter.getLimitObjectIds().get());
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
 				determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);

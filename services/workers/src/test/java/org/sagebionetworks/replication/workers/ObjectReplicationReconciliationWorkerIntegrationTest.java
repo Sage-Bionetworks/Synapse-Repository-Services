@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -67,7 +67,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	private Long projectIdLong;
 	
 	private ViewObjectType viewObjectType;
-	private MainType mainType;
+	private ReplicationType mainType;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -84,7 +84,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		indexDao.truncateReplicationSyncExpiration();
 		
 		viewObjectType = ViewObjectType.ENTITY;
-		mainType = MainType.ENTITY;
+		mainType = ReplicationType.ENTITY;
 	}
 	
 	@AfterEach

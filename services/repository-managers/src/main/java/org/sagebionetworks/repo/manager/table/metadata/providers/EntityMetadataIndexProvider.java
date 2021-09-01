@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
-import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -246,11 +246,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	public ViewFilter getViewFilter(ViewScopeType type, Set<Long> scope) {
 		Set<SubType> subTypes = getSubTypesForMask(type.getTypeMask());
 		if (ViewTypeMask.Project.getMask() == type.getTypeMask()) {
-			return new FlatIdsFilter(MainType.ENTITY, Sets.newHashSet(SubType.project), scope);
+			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
 		}else {
 			try {
 				Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-				return new HierarchyFilter(MainType.ENTITY, subTypes, allContainers);
+				return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
 			} catch (LimitExceededException e) {
 				throw new IllegalStateException(e);
 			}

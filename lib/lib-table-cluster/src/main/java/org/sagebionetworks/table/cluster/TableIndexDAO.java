@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
@@ -351,14 +351,14 @@ public interface TableIndexDAO {
 	 * @param objectIds
 	 * @param progressCallback 
 	 */
-	void deleteObjectData(MainType objectsType, List<Long> objectIds);
+	void deleteObjectData(ReplicationType objectsType, List<Long> objectIds);
 
 	/**
 	 * Add the given object data to the index.
 	 * @param mainType TODO
 	 * @param objectDtos
 	 */
-	void addObjectData(MainType mainType, List<ObjectDataDTO> objectDtos);
+	void addObjectData(ReplicationType mainType, List<ObjectDataDTO> objectDtos);
 
 	/**
 	 * Queries for max length of list values in a column in the temporary copy of the table
@@ -434,7 +434,7 @@ public interface TableIndexDAO {
 	 * @param entityContainerIds
 	 * @return
 	 */
-	List<Long> getExpiredContainerIds(MainType mainType, List<Long> entityContainerIds);
+	List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> entityContainerIds);
 	
 	/**
 	 * @see {@link #getExpiredContainerIds(List)}.
@@ -443,14 +443,14 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	void setContainerSynchronizationExpiration(MainType mainType, List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(ReplicationType mainType, List<Long> toSet, long newExpirationDateMS);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.
 	 *   
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	Map<Long, Long> getSumOfChildCRCsForEachParent(MainType mainType, List<Long> parentIds);
+	Map<Long, Long> getSumOfChildCRCsForEachParent(ReplicationType mainType, List<Long> parentIds);
 
 	/**
 	 * Get the Id and Etag for each child of the given parentId.
@@ -458,7 +458,7 @@ public interface TableIndexDAO {
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	List<IdAndEtag> getObjectChildren(MainType mainType, Long parentId);
+	List<IdAndEtag> getObjectChildren(ReplicationType mainType, Long parentId);
 
 	/**
 	 * Get the rowIds for the given query.
@@ -475,13 +475,13 @@ public interface TableIndexDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	long getSumOfFileSizes(MainType mainType, List<Long> rowIds);
+	long getSumOfFileSizes(ReplicationType mainType, List<Long> rowIds);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	void streamSynapseStorageStats(MainType mainType, Callback<SynapseStorageProjectStats> callback);
+	void streamSynapseStorageStats(ReplicationType mainType, Callback<SynapseStorageProjectStats> callback);
 
 	/**
 	 * Populate a view from a snapshot.
@@ -545,7 +545,7 @@ public interface TableIndexDAO {
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
-	ObjectDataDTO getObjectData(MainType mainType, Long objectId, Long objectVersion);
+	ObjectDataDTO getObjectData(ReplicationType mainType, Long objectId, Long objectVersion);
 	
 	/**
 	 * Get the ObjectDataDTO for the current version of an object.
@@ -553,12 +553,12 @@ public interface TableIndexDAO {
 	 * @param objectId
 	 * @return
 	 */
-	ObjectDataDTO getObjectDataForCurrentVersion(MainType mainType, Long objectId);
+	ObjectDataDTO getObjectDataForCurrentVersion(ReplicationType mainType, Long objectId);
 
 	/**
 	 * Ensure the benefactor ID within the given view snapshot are up-to-date with object replication.
 	 * @param viewId
 	 */
-	void refreshViewBenefactors(IdAndVersion viewId, MainType mainType);
+	void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType);
 
 }

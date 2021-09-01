@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -295,12 +295,12 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	public ObjectDataDTO waitForEntityReplication(UserInfo user, String tableId, String entityId, long maxWaitMS)
 			throws InterruptedException {
 		Entity entity = entityManager.getEntity(user, entityId);
-		return waitForObjectReplication(MainType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(),
+		return waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(entity.getId()), entity.getEtag(),
 				maxWaitMS);
 	}
 
 	@Override
-	public ObjectDataDTO waitForObjectReplication(MainType objectType, Long objectId, String etag, long maxWaitMS)
+	public ObjectDataDTO waitForObjectReplication(ReplicationType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException {
 		TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
 		long start = System.currentTimeMillis();

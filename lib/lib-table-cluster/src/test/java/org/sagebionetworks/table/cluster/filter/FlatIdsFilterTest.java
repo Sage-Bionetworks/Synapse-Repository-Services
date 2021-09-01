@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -18,7 +18,7 @@ import com.google.common.collect.Sets;
 
 public class FlatIdsFilterTest {
 
-	private MainType mainType;
+	private ReplicationType mainType;
 	private Set<SubType> subTypes;
 	private List<String> expectedSubTypes;
 	private Set<Long> scope;
@@ -27,7 +27,7 @@ public class FlatIdsFilterTest {
 
 	@BeforeEach
 	public void before() {
-		mainType = MainType.ENTITY;
+		mainType = ReplicationType.ENTITY;
 		subTypes = Sets.newHashSet(SubType.file);
 		expectedSubTypes = subTypes.stream().map(s -> s.name()).collect(Collectors.toList());
 		scope = Sets.newHashSet(1L, 2L, 3L);

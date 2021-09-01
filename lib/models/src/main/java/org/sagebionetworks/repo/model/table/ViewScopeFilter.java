@@ -11,19 +11,19 @@ import java.util.Set;
  */
 public class ViewScopeFilter  {
 
-	private final MainType mainType;
+	private final ReplicationType mainType;
 	private final List<String> subTypes;
 	private final boolean filterByObjectId;
 	private final Set<Long> containerIds;
 
-	public ViewScopeFilter(MainType mainType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
+	public ViewScopeFilter(ReplicationType mainType, List<String> subTypes, boolean filterByObjectId, Set<Long> containerIds) {
 		this.mainType = mainType;
 		this.subTypes = subTypes;
 		this.filterByObjectId = filterByObjectId;
 		this.containerIds = containerIds;
 	}
 	
-	public MainType getMainType() {
+	public ReplicationType getMainType() {
 		return mainType;
 	}
 

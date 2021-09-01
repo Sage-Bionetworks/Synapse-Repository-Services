@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -346,7 +346,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param entityDTOs DTO to be created/updated
 	 * @param ids        All of the ids to be created/updated/deleted.
 	 */
-	void replicateInIndex(TableIndexDAO indexDao, MainType objectType, List<ObjectDataDTO> entityDTOs,
+	void replicateInIndex(TableIndexDAO indexDao, ReplicationType objectType, List<ObjectDataDTO> entityDTOs,
 			List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			indexDao.deleteObjectData(objectType, ids);
