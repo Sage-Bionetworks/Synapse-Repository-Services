@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.filter;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
@@ -35,7 +36,7 @@ public class FlatIdAndVersionFilterTest {
 		expectedSubTypes = subTypes.stream().map(s -> s.name()).collect(Collectors.toList());
 		scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(1L),
 				new IdVersionPair().setId(1L).setVersion(2L));
-		expectedScope = Arrays.asList(new Long[] {1L,1L}, new Long[] {1L,2L});
+		expectedScope = Arrays.asList(new Long[] { 1L, 1L }, new Long[] { 1L, 2L });
 		limitObjectIds = Sets.newHashSet(1L, 3L);
 		excludeKeys = Sets.newHashSet("foo", "bar");
 	}
@@ -44,16 +45,13 @@ public class FlatIdAndVersionFilterTest {
 	public void testFilter() {
 		// call under test
 		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope);
-		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
-				+ " AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
-				filter.getFilterSql());
+		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
+				+ " AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)", filter.getFilterSql());
 		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("scopePairs", expectedScope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		assertEquals(3, paramters.getValues().size());
+		assertEquals(mainType.name(), paramters.getValue("mainType"));
+		assertEquals(expectedSubTypes, paramters.getValue("subTypes"));
+		assertEqualsParams(expectedScope, (List<Long[]>) paramters.getValue("scopePairs"));
 	}
 
 	@Test
@@ -62,21 +60,22 @@ public class FlatIdAndVersionFilterTest {
 		ViewFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
-						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
-						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds) "
+						+ "AND A.ANNO_KEY NOT IN (:excludeKeys) AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
 				filter.getFilterSql());
 		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("limitObjectIds", limitObjectIds);
-		expected.addValue("excludeKeys", excludeKeys);
-		expected.addValue("scopePairs", expectedScope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		assertEquals(5, paramters.getValues().size());
+		assertEquals(mainType.name(), paramters.getValue("mainType"));
+		assertEquals(expectedSubTypes, paramters.getValue("subTypes"));
+		assertEquals(limitObjectIds, paramters.getValue("limitObjectIds"));
+		assertEquals(excludeKeys, paramters.getValue("excludeKeys"));
+		assertEqualsParams(expectedScope, (List<Long[]>) paramters.getValue("scopePairs"));
 	}
-	
-	public void compareParameters(MapSqlParameterSource one, MapSqlParameterSource two) {
-		
+
+	public void assertEqualsParams(List<Long[]> one, List<Long[]> two) {
+		assertEquals(one.size(), two.size());
+		for (int i = 0; i < one.size(); i++) {
+			assertArrayEquals(one.get(i), two.get(i));
+		}
 	}
 }
