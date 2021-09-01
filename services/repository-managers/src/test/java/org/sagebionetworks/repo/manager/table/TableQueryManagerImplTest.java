@@ -1793,7 +1793,7 @@ public class TableQueryManagerImplTest {
 		assertFalse(sum.getGreaterThan());
 		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), any());
 		assertEquals("SELECT ROW_ID FROM T123 LIMIT 101", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
 	}
 	
 	@Test
@@ -1815,7 +1815,7 @@ public class TableQueryManagerImplTest {
 		// when over the limit
 		assertTrue(sum.getGreaterThan());
 		verify(mockTableIndexDAO).getRowIds(anyString(), any());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
 	}
 
 	
@@ -1843,7 +1843,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
 		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
-		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ViewObjectType.ENTITY), any());
+		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
 	}
 	
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){

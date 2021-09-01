@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,14 +21,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.DatasetItemList;
-import org.sagebionetworks.schema.adapter.JSONAdapter;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Translates JDOs and DTOs.
@@ -115,7 +106,7 @@ public class NodeUtils {
 			return null;
 		}
 		try {
-			return EntityFactory.createEntityFromJSONString(json, DatasetItemList.class).getList();
+			return EntityFactory.readFromJSONArrayString(json, DatasetItem.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -131,7 +122,7 @@ public class NodeUtils {
 			return null;
 		}
 		try {
-			return EntityFactory.createJSONStringForEntity(new DatasetItemList().setList(items));
+			return EntityFactory.writeToJSONArrayString(items);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException(e);
 		}

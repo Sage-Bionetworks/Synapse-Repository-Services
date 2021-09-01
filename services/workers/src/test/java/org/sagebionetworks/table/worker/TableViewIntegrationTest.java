@@ -85,6 +85,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -183,8 +184,8 @@ public class TableViewIntegrationTest {
 	ColumnModel entityIdColumn;
 	ColumnModel stringListColumn;
 	
-	ViewObjectType viewObjectType;
-	ViewEntityType viewEntityType;
+	private MainType viewObjectType;
+	private ViewEntityType viewEntityType;
 	
 	@BeforeEach
 	public void before(){
@@ -259,7 +260,7 @@ public class TableViewIntegrationTest {
 		stringListColumn.setMaximumListLength(3L);
 		stringListColumn = columnModelManager.createColumnModel(adminUserInfo, stringListColumn);
 		
-		viewObjectType = ViewObjectType.ENTITY;
+		viewObjectType = MainType.ENTITY;
 	}
 	
 	/**

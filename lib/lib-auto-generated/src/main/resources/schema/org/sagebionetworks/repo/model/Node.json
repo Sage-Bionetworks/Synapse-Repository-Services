@@ -65,7 +65,7 @@
             }
         },
         "items":{
-        	"description":"For Datasets, the list of IDs the define the dataset view.",
+        	"description":"For Datasets, the list of items the define the dataset view.",
             "type":"array",
             "items":{
             	"$ref": "org.sagebionetworks.repo.model.table.DatasetItem"

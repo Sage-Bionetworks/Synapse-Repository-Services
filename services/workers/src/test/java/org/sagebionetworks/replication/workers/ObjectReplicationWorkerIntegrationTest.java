@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -70,7 +71,7 @@ public class ObjectReplicationWorkerIntegrationTest {
 		TableIndexDAO indexDao = tableConnectionFactory.getAllConnections().get(0);
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(ViewObjectType.ENTITY, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(MainType.ENTITY, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				return entityDto;
 			}

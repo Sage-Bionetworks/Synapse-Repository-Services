@@ -373,7 +373,7 @@ public class NodeUtilsTest {
 		assertEquals(new Long(123), dbo.getOwner());
 		assertNotNull(dbo.getReference());
 		assertEquals(
-				"{\"list\":[{\"entityId\":\"syn555\",\"versionNumber\":2},{\"entityId\":\"syn777\",\"versionNumber\":4}]}",
+				"[{\"entityId\":\"syn555\",\"versionNumber\":2},{\"entityId\":\"syn777\",\"versionNumber\":4}]",
 				dbo.getItems());
 	}
 

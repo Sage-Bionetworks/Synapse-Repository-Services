@@ -523,4 +523,49 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), String.class);
 		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), String.class);
 	}
+
+	@Test
+	public void testGetAndUpdateEntityJson_NaN_Infinity() {
+		Project project = new Project();
+		project.setName("test project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", Arrays.asList("NaN", "Infinity", "-Infinity"),
+				AnnotationsValueType.DOUBLE);
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+
+		// Call under test - PLFM-6872
+		// Verify that we get an object back and can read it
+		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		assertEquals("NaN", toUpdate.getJSONArray("listOfDoubles").get(0));
+		assertEquals("Infinity", toUpdate.getJSONArray("listOfDoubles").get(1));
+		assertEquals("-Infinity", toUpdate.getJSONArray("listOfDoubles").get(2));
+
+
+
+		// Call under test
+		// Verify that we can submit the string representations of the values and they are still treated as doubles
+		JSONObject result = entityManager.updateEntityJson(userInfo, pid, toUpdate);
+
+		assertNotNull(result);
+
+		JSONArray doubleArray = result.getJSONArray("listOfDoubles");
+		assertNotNull(doubleArray);
+		assertEquals("NaN", doubleArray.get(0));
+		assertEquals("Infinity", doubleArray.get(1));
+		assertEquals("-Infinity", doubleArray.get(2));
+
+		Annotations afterAnnotations = entityManager.getAnnotations(adminUserInfo, pid);
+		assertNotNull(afterAnnotations);
+		assertEquals(project.getId(), afterAnnotations.getId());
+		Map<String, AnnotationsValue> map = afterAnnotations.getAnnotations();
+		assertNotNull(map);
+		assertEquals(1, map.size());
+		AnnotationsValue value = map.get("listOfDoubles");
+		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
+		assertEquals(Arrays.asList("NaN","Infinity", "-Infinity"), value.getValue());
+	}
 }

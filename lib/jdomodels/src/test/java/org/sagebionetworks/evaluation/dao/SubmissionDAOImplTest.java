@@ -66,7 +66,7 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -539,6 +539,7 @@ public class SubmissionDAOImplTest {
     	subStatus.setStatus(status);
     	subStatus.setModifiedOn(new Date());
     	subStatus.setSubmissionAnnotations(annotations);
+    	subStatus.setVersionNumber(0L);
     	submissionStatusDAO.create(subStatus);
     }
     
@@ -1198,11 +1199,12 @@ public class SubmissionDAOImplTest {
 		SubmissionStatus status = submissionStatusDAO.get(submissionId);
 
 		assertEquals(status.getEtag(), data.getEtag());
+		assertEquals(status.getVersionNumber(), data.getVersion());
 		assertEquals(submission.getEvaluationId(), data.getParentId().toString());
 		assertEquals(submission.getEvaluationId(), data.getBenefactorId().toString());
 		assertEquals(evaluation.getContentSource(), KeyFactory.keyToString(data.getProjectId()));
 		assertEquals(submission.getName(), data.getName());
-		assertEquals(ViewObjectType.SUBMISSION.defaultSubType(), data.getSubType());
+		assertEquals(SubType.submission, data.getSubType());
 		assertNotNull(data.getAnnotations());
 
 		Map<String, ObjectAnnotationDTO> annotations = data.getAnnotations().stream()
@@ -1214,6 +1216,7 @@ public class SubmissionDAOImplTest {
 				assertTrue(field.isNullable(), "No annotation found and the field was not nullable");
 			} else {
 				assertEquals(submissionId, fieldAnnotation.getObjectId().toString());
+				assertEquals(status.getVersionNumber(), fieldAnnotation.getObjectVersion());
 				assertEquals(field.getAnnotationType(), fieldAnnotation.getType());
 				assertFalse(fieldAnnotation.getValue().isEmpty());
 			}

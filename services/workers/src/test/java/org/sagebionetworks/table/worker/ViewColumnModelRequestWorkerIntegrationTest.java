@@ -26,10 +26,10 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,7 +105,7 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
 		
 		// Wait for the object replication
-		asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
 				
 		ViewScope viewScope = new ViewScope();
 		
@@ -149,7 +149,7 @@ public class ViewColumnModelRequestWorkerIntegrationTest {
 		status = submissionManager.updateSubmissionStatus(evaluationOwner, status);
 		
 		// Wait for the object replication
-		asyncHelper.waitForObjectReplication(ViewObjectType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, Long.valueOf(status.getId()), status.getEtag(), MAX_WAIT);
 				
 		ViewScope viewScope = new ViewScope();
 		

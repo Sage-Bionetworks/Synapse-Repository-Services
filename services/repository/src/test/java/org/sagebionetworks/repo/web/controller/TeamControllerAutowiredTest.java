@@ -25,7 +25,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * Simplistic test to see if things are wired up correctly
  * All messages are retrieved oldest first
  */
-public class TeamControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
+public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	public UserManager userManager;

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -52,20 +53,21 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	@Autowired
 	private TableViewManager viewManager;
 	@Autowired
-	DefaultColumnModelMapper modelMapper;
+	private DefaultColumnModelMapper modelMapper;
 
 	@Mock
-	ProgressCallback mockProgressCallback;
+	private ProgressCallback mockProgressCallback;
 	
-	TableIndexDAO indexDao;
+	private TableIndexDAO indexDao;
 	
-	UserInfo adminUserInfo;
-	Project project;
+	private UserInfo adminUserInfo;
+	private Project project;
 	
-	String projectId;
-	Long projectIdLong;
+	private String projectId;
+	private Long projectIdLong;
 	
-	ViewObjectType viewObjectType;
+	private ViewObjectType viewObjectType;
+	private MainType mainType;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -82,6 +84,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		indexDao.truncateReplicationSyncExpiration();
 		
 		viewObjectType = ViewObjectType.ENTITY;
+		mainType = MainType.ENTITY;
 	}
 	
 	@AfterEach
@@ -100,7 +103,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		assertNotNull(dto);
 		
 		// Simulate out-of-synch by deleting the project's replication data
-		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		indexDao.deleteObjectData(mainType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		
 		// ensure a sycn can occur.
 		indexDao.truncateReplicationSyncExpiration();
@@ -128,9 +131,9 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		assertNotNull(dto);
 		
 		// simulate a stale benefactor on the folder
-		indexDao.deleteObjectData(viewObjectType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		indexDao.deleteObjectData(mainType, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		dto.setBenefactorId(KeyFactory.stringToKey(folder.getId()));
-		indexDao.addObjectData(viewObjectType, Lists.newArrayList(dto));
+		indexDao.addObjectData(mainType, Lists.newArrayList(dto));
 		
 		// ensure a sycn can occur.
 		indexDao.truncateReplicationSyncExpiration();
@@ -209,7 +212,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	public ObjectDataDTO waitForEntityDto(String entityId, Long expectedBenefactor) throws InterruptedException{
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
-			ObjectDataDTO entityDto = indexDao.getObjectData(viewObjectType, KeyFactory.stringToKey(entityId));
+			ObjectDataDTO entityDto = indexDao.getObjectDataForCurrentVersion(mainType, KeyFactory.stringToKey(entityId));
 			if(entityDto != null){
 				if(expectedBenefactor == null || expectedBenefactor.equals(entityDto.getBenefactorId())) {
 					return entityDto;

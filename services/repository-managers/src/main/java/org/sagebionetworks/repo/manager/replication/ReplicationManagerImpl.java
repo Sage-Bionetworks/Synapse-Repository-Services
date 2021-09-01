@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -96,7 +97,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			// make all changes in an index as a transaction
 			for (TableIndexDAO indexDao : indexDaos) {
 				// apply the change to this index.
-				replicateInIndex(indexDao, objectType, objectData, groupData.getAllIds());
+				replicateInIndex(indexDao, objectType.getMainType(), objectData, groupData.getAllIds());
 			}
 
 		}
@@ -124,7 +125,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 		TableIndexDAO indexDao = connectionFactory.getConnection(IdAndVersion.parse(objectId));
 
-		replicateInIndex(indexDao, objectType, objectDTOs, ids);
+		replicateInIndex(indexDao, objectType.getMainType(), objectDTOs, ids);
 	}
 
 	@Override
@@ -146,7 +147,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		TableIndexDAO indexDao = connectionFactory.getConnection(idAndVersion);
 
 		// Determine which of the given container IDs have expired.
-		List<Long> expiredContainerIds = indexDao.getExpiredContainerIds(objectType, new ArrayList<>(containerIds));
+		List<Long> expiredContainerIds = indexDao.getExpiredContainerIds(objectType.getMainType(), new ArrayList<>(containerIds));
 
 		if (expiredContainerIds.isEmpty()) {
 			// nothing to do.
@@ -163,7 +164,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 		// re-set the expiration for all containers that were synchronized.
 		long newExpirationDateMs = clock.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
-		indexDao.setContainerSynchronizationExpiration(objectType, expiredContainerIds, newExpirationDateMs);
+		indexDao.setContainerSynchronizationExpiration(objectType.getMainType(), expiredContainerIds, newExpirationDateMs);
 	}
 	
 	Map<ViewObjectType, ReplicationDataGroup> groupByObjectType(List<ChangeMessage> messages) {
@@ -242,7 +243,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		List<ChangeMessage> changes = new LinkedList<>();
 
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
-				firstIndex.getObjectChildren(viewObjectType, outOfSynchParentId));
+				firstIndex.getObjectChildren(viewObjectType.getMainType(), outOfSynchParentId));
 
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
@@ -303,7 +304,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	Set<Long> compareCheckSums(TableIndexDAO indexDao, MetadataIndexProvider provider, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = provider.getSumOfChildCRCsForEachContainer(parentIds);
-		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(provider.getObjectType(), parentIds);
+		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(provider.getObjectType().getMainType(), parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for (Long parentId : parentIds) {
@@ -345,7 +346,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param entityDTOs DTO to be created/updated
 	 * @param ids        All of the ids to be created/updated/deleted.
 	 */
-	void replicateInIndex(TableIndexDAO indexDao, ViewObjectType objectType, List<ObjectDataDTO> entityDTOs,
+	void replicateInIndex(TableIndexDAO indexDao, MainType objectType, List<ObjectDataDTO> entityDTOs,
 			List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			indexDao.deleteObjectData(objectType, ids);

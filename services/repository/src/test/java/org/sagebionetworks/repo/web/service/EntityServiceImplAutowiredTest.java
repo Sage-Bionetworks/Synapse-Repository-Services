@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -30,6 +31,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupportImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -532,5 +534,32 @@ public class EntityServiceImplAutowiredTest  {
 		final String datsetId = dataset.getId();
 		assertEquals(scope, dataset.getItems());
 		assertEquals(schema, dataset.getColumnIds());
+	}
+	
+	@Test
+	public void testDatasetScopeOverLimit() {
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one = columnModelManager.createColumnModel(adminUserInfo, one);
+		List<String> schema = Arrays.asList(one.getId());
+		
+		List<DatasetItem> scope = new ArrayList<>(TableConstants.MAX_CONTAINERS_PER_VIEW+1);
+		for(int i=0; i<TableConstants.MAX_CONTAINERS_PER_VIEW+1; i++) {
+			scope.add(new DatasetItem().setEntityId("syn"+(i+100_100_000)).setVersionNumber((long)i));
+		}
+
+		String activityId = null;
+		Dataset dataset = new Dataset();
+		dataset.setName("first-dataset");
+		dataset.setParentId(project.getId());
+
+		dataset.setItems(scope);
+		dataset.setColumnIds(schema);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityService.createEntity(adminUserId, dataset, activityId);
+		}).getMessage();
+		assertEquals("Maximum of 20,000 items in a dataset exceeded.", message);
 	}
 }
