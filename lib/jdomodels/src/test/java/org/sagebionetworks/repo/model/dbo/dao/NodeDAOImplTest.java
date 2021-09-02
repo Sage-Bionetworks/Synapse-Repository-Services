@@ -4692,10 +4692,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetDatasetItemsWithNotFound() {
 		Long datasetId = -1L;
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			// call under test
 			nodeDao.getDatasetItems(datasetId);
-		});
+		}).getMessage();
+		assertEquals("View '-1' not found", message);
 	}
 	
 	@Test

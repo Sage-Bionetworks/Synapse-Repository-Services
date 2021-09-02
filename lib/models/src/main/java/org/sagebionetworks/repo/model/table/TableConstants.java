@@ -243,8 +243,6 @@ public class TableConstants {
 	public static final String ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE ="STRING_LIST_VALUE";
 	public static final String ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE	="LONG_LIST_VALUE";
 	public static final String ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE="BOOLEAN_LIST_VALUE";
-
-	public static final String ANNOTATION_TYPES = joinEnumForSQL(AnnotationType.values());
 	
 	public static final String ANNOTATION_REPLICATION_INSERT_OR_UPDATE ="INSERT INTO " + ANNOTATION_REPLICATION_TABLE + " ("
 			+ ANNOTATION_REPLICATION_COL_OBJECT_TYPE 		+ ","
@@ -316,23 +314,4 @@ public class TableConstants {
 	 */
 	public static final String IN_PROGRESS = "in progress";
 	
-	/**
-	 * Given the values of an enumeration produces a joined string of the {@link Enum#name()} of each item surrounded by single quote (') and joined by
-	 * a comma so that it can be used to defined a MySQL enum
-	 * 
-	 * @param values
-	 * @return
-	 */
-	public static String joinEnumForSQL(Enum<?>[] values) {
-		return joinEnumForSQL(Stream.of(values));
-	}
-	
-	public static String joinEnumForSQL(Stream<Enum<?>> valuesStream) {
-		return joinValueForSQL(valuesStream, Enum::name);
-	}
-	
-	public static <T> String joinValueForSQL(Stream<T> valuesStream, Function<T, String> valueMapper) {
-		return valuesStream.map( e -> "'" + valueMapper.apply(e) + "'").collect(Collectors.joining(","));
-	}
-
 }

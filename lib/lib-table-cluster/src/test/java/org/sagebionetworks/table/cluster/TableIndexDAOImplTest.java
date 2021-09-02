@@ -4199,16 +4199,18 @@ public class TableIndexDAOImplTest {
 	public void testViewWithMultipleVersions() throws ParseException{
 		tableId = IdAndVersion.parse("syn123");
 		isView = true;
-		Long objectId = 22L;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectId));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
 		tableIndexDAO.deleteTable(tableId);
 		
 		int annotationCoun = 1;
 		int versionCount = 2;
-		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
-		ObjectDataDTO v1 = objects.get(0);
-		ObjectDataDTO v2 = objects.get(1);
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		ObjectDataDTO v1 = oneVersion.get(0);
+		ObjectDataDTO v2 = twoVersion.get(1);
 		
 		// call under test
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2));

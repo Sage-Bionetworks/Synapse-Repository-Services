@@ -711,11 +711,7 @@ public class SQLUtils {
 			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 			builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
 		}
-		builder.append("PRIMARY KEY (").append("ROW_ID");
-		if(isView) {
-			builder.append(", ").append(ROW_VERSION);
-		}
-		builder.append(")");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		if(isView){
 			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
 			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
@@ -1467,6 +1463,7 @@ public class SQLUtils {
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		return headers;
 	}
 

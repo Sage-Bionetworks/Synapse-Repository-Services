@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -14,6 +16,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,9 +39,19 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
 		if (entity.getItems() != null) {
 			
-			if(entity.getItems().stream().filter(i->i.getVersionNumber() == null).findFirst().isPresent()) {
-				throw new IllegalArgumentException("Each dataset item must have a non-null version number");
+			Set<Long> uniqueIds = new HashSet<>(entity.getItems().size());
+			for(DatasetItem item: entity.getItems()) {
+				if(item.getEntityId() == null) {
+					throw new IllegalArgumentException("Each dataset item must have a non-null entity ID.");
+				}
+				if(item.getVersionNumber() == null) {
+					throw new IllegalArgumentException("Each dataset item must have a non-null version number");
+				}
+				if(!uniqueIds.add(KeyFactory.stringToKey(item.getEntityId()))) {
+					throw new IllegalArgumentException("Each dataset item must have a unique entity ID.  Duplicate: "+item.getEntityId());
+				}
 			}
+
 			
 			// Only allow files
 			List<EntityHeader> headers = nodeDao.getEntityHeader(entity.getItems().stream()
