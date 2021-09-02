@@ -3,14 +3,9 @@
  */
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Collections;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -21,29 +16,22 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * @author brucehoff
  *
  */
-public class MembershipInvitationServiceImpl implements
-		MembershipInvitationService {
+@Service
+public class MembershipInvitationServiceImpl implements MembershipInvitationService {
 	
-	@Autowired
 	private MembershipInvitationManager membershipInvitationManager;
-	@Autowired
 	private UserManager userManager;
+		
 	@Autowired
-	private NotificationManager notificationManager;
-	
-	public MembershipInvitationServiceImpl() {}
-	
-	public MembershipInvitationServiceImpl(MembershipInvitationManager membershipInvitationManager,
-			UserManager userManager,
-			NotificationManager notificationManager) {
+	public MembershipInvitationServiceImpl(MembershipInvitationManager membershipInvitationManager, UserManager userManager) {
 		this.membershipInvitationManager = membershipInvitationManager;
 		this.userManager=userManager;
-		this.notificationManager=notificationManager;
 	}
 	
 	/* (non-Javadoc)
@@ -59,19 +47,9 @@ public class MembershipInvitationServiceImpl implements
 		MembershipInvitation created = membershipInvitationManager.create(userInfo, dto);
 		// Post condition: created either has inviteeId or inviteeEmail, never both
 		if (created.getInviteeId()!=null && created.getInviteeEmail()==null) {
-		    // Invitation to existing user
-			MessageToUserAndBody message = membershipInvitationManager.
-					createInvitationMessageToUser(created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
-			if (message != null) {
-				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
-			}
+			membershipInvitationManager.sendInvitationEmailToSynapseUser(userInfo, created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null) {
-			
-			if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
-				throw new IllegalArgumentException("You must be a certified user to send email invitations");
-			}
-			
-			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
+			membershipInvitationManager.sendInvitationEmailToEmail(userInfo, created, acceptInvitationEndpoint);
 		} else {
 			throw new IllegalArgumentException("Exactly one of invitee email or invitee user Id should be included. Received email: "+
 					created.getInviteeEmail()+", and user Id: "+created.getInviteeId());
