@@ -78,4 +78,11 @@ public class FlatIdAndVersionFilterTest {
 			assertArrayEquals(one.get(i), two.get(i));
 		}
 	}
+	
+	@Test
+	public void testBuilderWithAllFields() {
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		ViewFilter clone = filter.newBuilder().build();
+		assertEquals(filter, clone);
+	}
 }

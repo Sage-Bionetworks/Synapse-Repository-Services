@@ -40,14 +40,12 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
-import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionMetadataIndexProviderUnitTest {
@@ -106,24 +104,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		assertEquals(ColumnType.SUBMISSIONID, mapper.getIdColumnType());
 		assertEquals(ColumnType.EVALUATIONID, mapper.getParentIdColumnType());
 		assertEquals(ColumnType.EVALUATIONID, mapper.getBenefactorIdColumnType());
-	}
-
-	@Test
-	public void testIsFilterScopeByObjectId() {
-		// Call under test
-		boolean result = provider.isFilterScopeByObjectId(mockViewTypeMask);
-
-		assertFalse(result);
-
-	}
-
-	@Test
-	public void testGetSubTypesForMask() {
-		// Call under test
-		Set<SubType> result = provider.getSubTypesForMask(mockViewTypeMask);
-
-		assertEquals(Sets.newHashSet(SubType.submission), result);
-
 	}
 
 	@Test

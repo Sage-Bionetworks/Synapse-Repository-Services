@@ -68,7 +68,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(excludeKeys, limitObjectIds, mainType, params, subTypes);
+		return Objects.hash(excludeKeys, limitObjectIds, mainType, subTypes);
 	}
 
 	@Override
@@ -81,8 +81,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 		}
 		AbstractViewFilter other = (AbstractViewFilter) obj;
 		return Objects.equals(excludeKeys, other.excludeKeys) && Objects.equals(limitObjectIds, other.limitObjectIds)
-				&& mainType == other.mainType && Objects.equals(params, other.params)
-				&& Objects.equals(subTypes, other.subTypes);
+				&& mainType == other.mainType && Objects.equals(subTypes, other.subTypes);
 	}
 	
 }

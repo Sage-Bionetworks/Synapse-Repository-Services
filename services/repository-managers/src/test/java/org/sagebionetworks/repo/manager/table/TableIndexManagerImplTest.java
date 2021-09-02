@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.sagebionetworks.table.cluster.view.filter.Builder;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -117,7 +117,7 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private ViewFilter mockFilter;
 	@Mock
-	private Builder mockFilterBuilder;
+	private ViewFilterBuilder mockFilterBuilder;
 	@Mock
 	private ViewFilter mockNewFilter;
 
@@ -1445,20 +1445,15 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[]::new);
 		
-		when(mockFilter.newBuilder()).thenReturn(mockFilterBuilder);
-		when(mockFilterBuilder.addLimitObjectids(any())).thenReturn(mockFilterBuilder);
-		when(mockFilterBuilder.build()).thenReturn(mockNewFilter);
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-				mockMetadataProvider);
+		managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockFilter).newBuilder();
-		verify(mockFilterBuilder).addLimitObjectids(rowsIdsWithChanges);
-		verify(mockFilterBuilder).build();
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockNewFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 	}
 
@@ -1471,9 +1466,8 @@ public class TableIndexManagerImplTest {
 
 		setupExecuteInWriteTransaction();
 		
-		when(mockFilter.newBuilder()).thenReturn(mockFilterBuilder);
-		when(mockFilterBuilder.addLimitObjectids(any())).thenReturn(mockFilterBuilder);
-		when(mockFilterBuilder.build()).thenReturn(mockNewFilter);
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		
 		// setup an exception on copy
 		IllegalArgumentException exception = new IllegalArgumentException("something wrong");
@@ -1482,14 +1476,13 @@ public class TableIndexManagerImplTest {
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[]::new);
 		Exception thrown = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-					mockMetadataProvider);
+			managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
 		});
 		assertEquals(exception, thrown);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
-		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockNewFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		// must attempt to determine the type of exception.
 		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
 	}
@@ -1499,18 +1492,7 @@ public class TableIndexManagerImplTest {
 		tableId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-					mockMetadataProvider);
-		});
-	}
-
-	@Test
-	public void testUpdateViewRowsInTransaction_Changes() {
-		rowsIdsWithChanges = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-					mockMetadataProvider);
+			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1519,8 +1501,7 @@ public class TableIndexManagerImplTest {
 		scopeType = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-					mockMetadataProvider);
+			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1529,8 +1510,7 @@ public class TableIndexManagerImplTest {
 		schema = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, scopeType, schema, mockFilter,
-					mockMetadataProvider);
+			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
 		});
 	}
 

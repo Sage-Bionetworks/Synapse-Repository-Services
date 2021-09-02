@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -19,13 +18,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -54,35 +51,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	// @formatter:off
 	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
-			.withObjectField(
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy
-			).build();
+			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS).build();
 
 	static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
-			.withObjectField(
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
-					ObjectField.type, 
-					ObjectField.currentVersion, 
-					ObjectField.parentId,
-					ObjectField.benefactorId, 
-					ObjectField.projectId, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy,
-					ObjectField.dataFileHandleId, 
-					ObjectField.dataFileSizeBytes, 
-					ObjectField.dataFileMD5Hex
-			).build();
-	// @formatter:on
+			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
 
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;
@@ -202,7 +174,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		return ColumnType.ENTITYID;
 	}
 
-	@Override
 	public Set<SubType> getSubTypesForMask(Long typeMask) {
 		ValidateArgument.required(typeMask, "viewTypeMask");
 		Set<SubType> typesFilter = new HashSet<>();
@@ -212,15 +183,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			}
 		}
 		return typesFilter;
-	}
-
-	@Override
-	public boolean isFilterScopeByObjectId(Long typeMask) {
-		ValidateArgument.required(typeMask, "viewTypeMask");
-		if (ViewTypeMask.Project.getMask() == typeMask) {
-			return true;
-		}
-		return false;
 	}
 
 	@Override

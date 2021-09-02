@@ -76,9 +76,11 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -90,6 +92,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -1304,14 +1307,17 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
 		
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
 
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(), any(), any(), any(), any(), any());
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(), any(), any(), any());
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
@@ -1321,15 +1327,19 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
-		
-		Set<Long> rowsToUpdate = Sets.newHashSet(101L,102L);
+
+		Set<Long> rowsToUpdate = Sets.newHashSet(101L, 102L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(rowsToUpdate);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, rowsToUpdate, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(rowsToUpdate).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
@@ -1399,18 +1409,23 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
-		
-		Set<Long> pageOne = Sets.newHashSet(101L,102L);
-		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
+//		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+
+		Set<Long> pageOne = Sets.newHashSet(101L, 102L);
+		Set<Long> pageTwo = Sets.newHashSet(103L, 104L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(2)).updateChangedOnIfAvailable(idAndVersion);
@@ -1422,20 +1437,25 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
-		
-		Set<Long> pageOne = Sets.newHashSet(101L,102L);
-		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
+
+		Set<Long> pageOne = Sets.newHashSet(101L, 102L);
+		Set<Long> pageTwo = Sets.newHashSet(103L, 104L);
 		// Status starts as available but changes to processing which stop the updates.
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE), Optional.of(TableState.PROCESSING));
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE),
+				Optional.of(TableState.PROCESSING));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
+
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// page two should not be updated because of the switch to processing.
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
@@ -1450,19 +1470,23 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
 		
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(102L,103L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne, pageTwo);
+		
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion);
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// page two should be ignored since it overlaps with page one.
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageTwo).build());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
@@ -1477,21 +1501,25 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
 		
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(any(), any(), anyLong())).thenReturn(pageOne);
+		
+		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.file),
+				allContainersInScope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		
 		// setup a failure
 		IllegalArgumentException exception = new IllegalArgumentException("Something is wrong...");
-		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), any(),
-				 anyList(), any(), any());
+		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(IdAndVersion.class), any(),
+				 anyList(), any());
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.applyChangesToAvailableView(idAndVersion);
 		});
-		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, scopeType,
-				viewSchema, mockFilter, mockMetadataIndexProvider);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, scopeType, viewSchema,
+				filter.newBuilder().addLimitObjectids(pageOne).build());
 		// should fail and change the table status.
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -69,5 +70,12 @@ public class FlatIdsFilterTest {
 		expected.addValue("excludeKeys", excludeKeys);
 		expected.addValue("flatIds", scope);
 		assertEquals(expected.getValues(), paramters.getValues());
+	}
+	
+	@Test
+	public void testBuilderWithAllFields() {
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		ViewFilter clone = filter.newBuilder().build();
+		assertEquals(filter, clone);
 	}
 }

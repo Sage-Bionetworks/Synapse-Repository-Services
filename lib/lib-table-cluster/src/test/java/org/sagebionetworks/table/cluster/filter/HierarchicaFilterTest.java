@@ -70,4 +70,11 @@ public class HierarchicaFilterTest {
 		expected.addValue("parentIds", scope);
 		assertEquals(expected.getValues(), paramters.getValues());
 	}
+	
+	@Test
+	public void testBuilderWithAllFields() {
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		ViewFilter clone = filter.newBuilder().build();
+		assertEquals(filter, clone);
+	}
 }

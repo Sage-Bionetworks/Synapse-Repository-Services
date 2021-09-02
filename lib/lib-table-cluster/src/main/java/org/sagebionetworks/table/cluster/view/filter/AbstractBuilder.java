@@ -5,7 +5,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
-public abstract class AbstractBuilder implements Builder {
+public abstract class AbstractBuilder implements ViewFilterBuilder {
 	
 	protected ReplicationType mainType;
 	protected Set<SubType> subTypes;
@@ -21,13 +21,13 @@ public abstract class AbstractBuilder implements Builder {
 	}
 
 	@Override
-	public Builder addLimitObjectids(Set<Long> limitObjectIds) {
+	public ViewFilterBuilder addLimitObjectids(Set<Long> limitObjectIds) {
 		this.limitObjectIds = limitObjectIds;
 		return this;
 	}
 
 	@Override
-	public Builder addExcludeAnnotationKeys(Set<String> excludeKeys) {
+	public ViewFilterBuilder addExcludeAnnotationKeys(Set<String> excludeKeys) {
 		this.excludeKeys = excludeKeys;
 		return this;
 	}

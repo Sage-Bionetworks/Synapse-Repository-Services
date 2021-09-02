@@ -34,7 +34,7 @@ public interface ViewFilter {
 	 * Builder to build a new filter from the existing filter.
 	 * @return
 	 */
-	Builder newBuilder();
+	ViewFilterBuilder newBuilder();
 	
 	/**
 	 * Get the limit ObjectIds applied to this filter, if it exists.

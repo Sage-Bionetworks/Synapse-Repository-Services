@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -27,7 +26,7 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
  * @author Marco Marasca
  *
  */
-public interface MetadataIndexProvider extends HasViewObjectType, ViewScopeFilterProvider, ObjectFieldTypeMapper {
+public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTypeMapper {
 
 	/**
 	 * @return The {@link ObjectType} of the benefactor of the rows of the view,
