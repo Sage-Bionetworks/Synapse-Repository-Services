@@ -386,7 +386,6 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
-		validationIndexDao.delete(versionInfo.getVersionId());
 		if (parsedId.getSemanticVersion() == null) {
 			jsonSchemaDao.deleteSchema(versionInfo.getSchemaId());
 		} else {
