@@ -1145,7 +1145,6 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		manager.deleteSchemaById(user, $id);
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
-		verify(mockValidationIndexDao).delete(versionInfo.getVersionId());
 		verify(mockSchemaDao).deleteSchema(versionInfo.getSchemaId());
 	}
 
@@ -1183,7 +1182,6 @@ public class JsonSchemaManagerImplTest {
 		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(user, $id);
-		verify(mockValidationIndexDao).delete(versionInfo.getVersionId());
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
 	}
@@ -1210,7 +1208,6 @@ public class JsonSchemaManagerImplTest {
 		String $id = organizationName + "-" + schemaName + "-" + semanticVersionString;
 		// call under test
 		manager.deleteSchemaById(adminUser, $id);
-		verify(mockValidationIndexDao).delete(versionInfo.getVersionId());
 		verify(mockAclDao, never()).canAccess(any(UserInfo.class), any(), any(), any());
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
 	}
