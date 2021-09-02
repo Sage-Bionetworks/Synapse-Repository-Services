@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.schema;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
@@ -43,7 +44,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 				validationSchema = jsonSchemaManager.getValidationSchemaFromIndex(binding.getJsonSchemaVersionInfo().getVersionId());
 			} catch (NotFoundException e) {
 				validationSchema = jsonSchemaManager.createOrUpdateValidationSchemaIndex(
-						binding.getJsonSchemaVersionInfo().getVersionId());
+						binding.getJsonSchemaVersionInfo().getVersionId(), ChangeType.CREATE);
 			}
 			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
 			schemaValidationResultDao.createOrUpdateResults(results);

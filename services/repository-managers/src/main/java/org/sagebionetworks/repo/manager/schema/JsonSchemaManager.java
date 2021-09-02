@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -171,11 +172,12 @@ public interface JsonSchemaManager {
 
 	/**
 	 * Creates a validation JSON schema for the given versionId, indexes it in the validation schema index,
-	 * sends a notification to handle schemas that depend on it, and sends out notifications to entities bound to it.
+	 * sends a notification to handle schemas that depend on it if the changeType is CREATE, 
+	 * and sends out notifications to entities bound to it.
 	 * @param versionId
 	 * @return
 	 */
-	JsonSchema createOrUpdateValidationSchemaIndex(String versionId);
+	JsonSchema createOrUpdateValidationSchemaIndex(String versionId, ChangeType changeType);
 
 	/**
 	 * Gets the validation schema from the index for the given versionId
@@ -193,10 +195,9 @@ public interface JsonSchemaManager {
 	Iterator<String> getVersionIdsOfDependantsIterator(String schemaId);
 
 	/**
-	 * Updates all schemas in the validation schema index that reference the given version id, and
-	 * recursively updates the schemas that reference those. Also sends out notification messages to
-	 * all entities that have these schemas bound.
+	 * Sends update notifications to all schemas that reference the given schema associated to the versionId
+	 * and recursively to all the schemas that reference those schemas.
 	 * @param versionId
 	 */
-	void updateDependantSchemasInValidationIndex(String versionId);
+	void sendUpdateNotificationsForDependantSchemas(String versionId);
 }

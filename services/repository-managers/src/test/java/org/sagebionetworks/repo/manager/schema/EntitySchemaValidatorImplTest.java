@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -95,7 +96,7 @@ public class EntitySchemaValidatorImplTest {
 		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
 		when(mockJsonSchemaManager.getValidationSchemaFromIndex(versionId))
 				.thenThrow(exception);
-		when(mockJsonSchemaManager.createOrUpdateValidationSchemaIndex(versionId))
+		when(mockJsonSchemaManager.createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE))
 				.thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
@@ -105,7 +106,7 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
 		verify(mockEntityManger).getEntityJsonSubject(entityId);
-		verify(mockJsonSchemaManager).createOrUpdateValidationSchemaIndex(versionId);
+		verify(mockJsonSchemaManager).createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 	}
 	
