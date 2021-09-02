@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
@@ -175,15 +178,25 @@ public interface JsonSchemaManager {
 	JsonSchema createOrUpdateValidationSchemaIndex(String versionId);
 
 	/**
-	 * Sends notifications to all schemas that depend on it for reindexing
-	 * @param versionId
-	 */
-	void sendValidationIndexNotificationsForDependants(String versionId);
-
-	/**
 	 * Gets the validation schema from the index for the given versionId
 	 * @param versionId
 	 * @return
 	 */
 	JsonSchema getValidationSchemaFromIndex(String versionId);
+	
+	/**
+	 * Gets an iterator of the version IDs of all the schemas that reference the given schemaId
+	 * and recursively the schemas that reference those schemas.
+	 * @param schemaId
+	 * @return
+	 */
+	Iterator<String> getVersionIdsOfDependantsIterator(String schemaId);
+
+	/**
+	 * Updates all schemas in the validation schema index that reference the given version id, and
+	 * recursively updates the schemas that reference those. Also sends out notification messages to
+	 * all entities that have these schemas bound.
+	 * @param versionId
+	 */
+	void updateDependantSchemasInValidationIndex(String versionId);
 }

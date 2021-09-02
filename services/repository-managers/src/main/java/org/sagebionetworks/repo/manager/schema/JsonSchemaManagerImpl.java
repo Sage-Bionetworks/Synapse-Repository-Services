@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.id.OrganizationName;
 import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -73,6 +74,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
 	
+	private static final long PAGE_SIZE_LIMIT = 10000L;
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -361,7 +363,6 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Override
 	public void truncateAll() {
-		validationIndexDao.truncateAll();
 		jsonSchemaDao.truncateAll();
 		organizationDao.truncateAll();
 	}
@@ -557,6 +558,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	
 	@Override
 	public JsonSchema createOrUpdateValidationSchemaIndex(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
 		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
 		JsonSchema schema = getValidationSchema(info.get$id());
 		validationIndexDao.createOrUpdate(versionId, schema);
@@ -571,25 +573,34 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 	
 	@Override
-	public void sendValidationIndexNotificationsForDependants(String versionId) {
+	public void updateDependantSchemasInValidationIndex(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
 		// case where versionId is a schema with semantic version
 		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
-		Iterator<String> versionIds = null;
-		// semantic version is non-null, then versionId is non-null in dependency table
-		if (info.getSemanticVersion() != null) {
-			versionIds = jsonSchemaDao.getVersionIdsOfDependantsIteratorWithVersionId(versionId);
-		} else {
-			// otherwise grab the versionId's schemaId from the latest version table to access the dependency table
-			String schemaId = info.getSchemaId();
-			versionIds = jsonSchemaDao.getVersionIdsOfDependantsIteratorWithSchemaId(schemaId);
-		}
+		String schemaId = info.getSchemaId();
+		Iterator<String> versionIds = getVersionIdsOfDependantsIterator(schemaId);
 		while (versionIds.hasNext()) {
-			transactionalMessenger.sendMessageAfterCommit(versionIds.next(), ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
+			String currentVersionId = versionIds.next();
+			info = jsonSchemaDao.getVersionInfo(currentVersionId);
+			JsonSchema schema = getValidationSchema(info.get$id());
+			// update the schema in the index
+			validationIndexDao.createOrUpdate(currentVersionId, schema);
+			// send notifications to all entities that have the schema bound to it
+			sendUpdateNotifications(info.getSchemaId());
 		}
 	}
 	
 	@Override
 	public JsonSchema getValidationSchemaFromIndex(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
 		return validationIndexDao.getValidationSchema(versionId);
+	}
+	
+	@Override
+	public Iterator<String> getVersionIdsOfDependantsIterator(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return new PaginationIterator<String>((long limit, long offset) -> {
+			return jsonSchemaDao.getNextPageForVersionIdsOfDependants(schemaId, limit, offset);
+		}, PAGE_SIZE_LIMIT);
 	}
 }

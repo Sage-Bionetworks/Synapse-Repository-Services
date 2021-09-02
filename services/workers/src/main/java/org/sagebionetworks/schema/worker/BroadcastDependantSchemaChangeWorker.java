@@ -15,7 +15,6 @@ public class BroadcastDependantSchemaChangeWorker implements ChangeMessageDriven
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException, Exception {
-		jsonSchemaManager.sendValidationIndexNotificationsForDependants(message.getObjectId());
+		jsonSchemaManager.updateDependantSchemasInValidationIndex(message.getObjectId());
 	}
-
 }

@@ -567,8 +567,9 @@ public class JsonSchemaWorkerIntegrationTest {
 	
 	@Test
 	public void testValidationSchemaIndexWithReindexingAndRevalidation() throws Exception {
-		// PLFM-6870: Validate that the index reindexes dependant schemas,
-		// and also triggers revalidation on reindex
+		// PLFM-6870: Validate that when a schema is changed, the validation schema index is re-indexed for
+		// all schemas that reference the changed schema as well as these schemas that reference those schemas,
+		// and that this also triggers revalidation of entities
 		
 		// child schema, key property of type string
 		JsonSchema child = new JsonSchema();

@@ -27,7 +27,7 @@
 									<bean class="org.sagebionetworks.schema.worker.ValidationSchemaIndexChangeWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="validationSchemaIndexChangeWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="5" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
@@ -65,7 +65,7 @@
 									<bean class="org.sagebionetworks.schema.worker.BroadcastDependantSchemaChangeWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="broadcastDependantSchemaChangeWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="5" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"

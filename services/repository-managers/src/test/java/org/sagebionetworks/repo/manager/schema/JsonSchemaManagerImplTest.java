@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,6 +76,7 @@ import org.sagebionetworks.repo.model.schema.ListOrganizationsRequest;
 import org.sagebionetworks.repo.model.schema.ListOrganizationsResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -1675,31 +1678,100 @@ public class JsonSchemaManagerImplTest {
 	}
 	
 	@Test
-	public void testSendValidationIndexNotificationsForDependantsWithNullSemanticVersion() {
-		versionInfo.setSemanticVersion(null);
-		Iterator<String> itr = Arrays.asList("1", "2").iterator();
+	public void testCreateOrUpdateValidationSchemaIndexWithNonNullSemanticVersion() {
+		// we don't want to send notification messages to bound entities here
+		String semanticVersion = "testSemanticVersion";
+		versionInfo.setSemanticVersion(semanticVersion);
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
-		doReturn(itr).when(mockSchemaDao).getVersionIdsOfDependantsIteratorWithSchemaId(versionInfo.getSchemaId());
-		managerSpy.sendValidationIndexNotificationsForDependants(versionId);
-		verify(mockSchemaDao).getVersionIdsOfDependantsIteratorWithSchemaId(versionInfo.getSchemaId());
-		verify(mockSchemaDao, never()).getVersionIdsOfDependantsIteratorWithVersionId(any());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("2", ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		managerSpy.createOrUpdateValidationSchemaIndex(versionInfo.getVersionId());
+		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
+		verify(mockSchemaDao, never()).getObjectIdsBoundToSchemaIterator(any());
 	}
 	
 	@Test
-	public void testSendValidationIndexNotificationsForDependantsWithNonNullSemanticVersion() {
-		assertNotNull(versionInfo.getSemanticVersion());
-		Iterator<String> itr = Arrays.asList("1", "2").iterator();
+	public void testCreateOrUpdateValidationSchemaIndexWithNullSemanticVersion() {
+		// we want to send notification messages to bound entities here after updating index
+		String semanticVersion = null;
+		versionInfo.setSemanticVersion(semanticVersion);
+		Long objectId = 3L;
+		Iterator<Long> objectIds = Arrays.asList(objectId).iterator();
+		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId)).thenReturn(objectIds);
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
-		doReturn(itr).when(mockSchemaDao).getVersionIdsOfDependantsIteratorWithVersionId(versionInfo.getVersionId());
-		managerSpy.sendValidationIndexNotificationsForDependants(versionId);
-		verify(mockSchemaDao).getVersionIdsOfDependantsIteratorWithVersionId(versionId);
-		verify(mockSchemaDao, never()).getVersionIdsOfDependantsIteratorWithSchemaId(any());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("2", ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		managerSpy.createOrUpdateValidationSchemaIndex(versionInfo.getVersionId());
+		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(objectId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
 	}
-
+	
+	@Test
+	public void testCreateOrUpdateValidationSchemaIndexWithNullVersionId() {
+		// call under test
+		versionId = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			managerSpy.createOrUpdateValidationSchemaIndex(versionId);
+		}).getMessage();
+		assertEquals("versionId is required.", message);
+	}
+	
+	@Test
+	public void testUpdateDependantSchemasInValidationIndex() {
+		Iterator<String> dependants = Arrays.asList("1", "2").iterator();
+		Long objectId = 3L;
+		Iterator<Long> objectIds = Arrays.asList(objectId).iterator();
+		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId)).thenReturn(objectIds);
+		when(mockNodeDao.getNodeTypeById(KeyFactory.keyToString(3L))).thenReturn(EntityType.file);
+		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
+		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo("1");
+		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo("2");
+		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(dependants).when(managerSpy).getVersionIdsOfDependantsIterator(versionInfo.getSchemaId());
+		// call under test
+		managerSpy.updateDependantSchemasInValidationIndex(versionId);
+		verify(managerSpy).getVersionIdsOfDependantsIterator(versionInfo.getSchemaId());
+		verify(mockValidationIndexDao).createOrUpdate("1", validationSchema);
+		verify(mockValidationIndexDao).createOrUpdate("2", validationSchema);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(objectId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+	}
+	
+	@Test
+	public void testUpdateDependantSchemasInValidationIndexWithNullVersionId() {
+		// call under test
+		versionId = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			managerSpy.updateDependantSchemasInValidationIndex(versionId);
+		}).getMessage();
+		assertEquals("versionId is required.", message);
+	}
+	
+	@Test
+	public void testGetValidationSchemaFromIndex() {
+		doReturn(validationSchema).when(mockValidationIndexDao).getValidationSchema(versionId);
+		JsonSchema result = managerSpy.getValidationSchemaFromIndex(versionId);
+		assertEquals(result, validationSchema);
+	}
+	
+	@Test
+	public void testGetValidationSchemaFromIndexWithNullVersionId() {
+		versionId = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			managerSpy.getValidationSchemaFromIndex(versionId);
+		}).getMessage();
+		assertEquals(message, "versionId is required.");
+	}
+	
+	@Test
+	public void testGetVersionIdsOfDependantsIterator() {
+		List<String> page = Arrays.asList("1", "2");
+		when(mockSchemaDao.getNextPageForVersionIdsOfDependants(any(), anyLong(), anyLong()))
+			.thenReturn(page, Collections.emptyList());
+		List<String> result = IteratorUtils.toList(managerSpy.getVersionIdsOfDependantsIterator(schemaId));
+		assertEquals(page, result);
+		verify(mockSchemaDao).getNextPageForVersionIdsOfDependants(schemaId, 10000, 0);
+	}
+	
 	/**
 	 * Helper to create a schema with the given $id.
 	 * 
