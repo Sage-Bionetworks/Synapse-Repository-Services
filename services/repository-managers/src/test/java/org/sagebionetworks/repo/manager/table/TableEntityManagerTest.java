@@ -37,6 +37,7 @@ import java.util.stream.LongStream;
 
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -111,8 +112,12 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -2074,6 +2079,116 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao, times(totalPages * pageSize)).getRowSet(any());
 		verify(mockColumModelManager, times(totalPages * pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
 		verify(mockTruthDao, times((int)Math.ceil((totalPages * pageSize)/10_000D))).updateRowChangeHasFileRefsBatch(anyList(), eq(false));
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithAmazonS3NotFound() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		
+		AmazonS3Exception ex = new AmazonS3Exception("Not found");
+		ex.setStatusCode(HttpStatus.SC_NOT_FOUND);
+		
+		doThrow(ex).when(mockTruthDao).getRowSet(any());
+		
+		// Call under test
+		manager.backFillTableRowChanges();
+		
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
+		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithNotFound() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		
+		NotFoundException ex = new NotFoundException("Not found");
+		
+		doThrow(ex).when(mockTruthDao).getRowSet(any());
+		
+		// Call under test
+		manager.backFillTableRowChanges();
+		
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
+		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithAmazonServiceException() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		
+		AmazonServiceException ex = new AmazonServiceException("Something wrong");
+		ex.setErrorType(ErrorType.Service);
+		
+		doThrow(ex).when(mockTruthDao).getRowSet(any());
+		
+		assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			manager.backFillTableRowChanges();
+		});
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithOtherAmazonException() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		
+		AmazonServiceException ex = new AmazonServiceException("Something wrong");
+		ex.setErrorType(ErrorType.Client);
+		
+		doThrow(ex).when(mockTruthDao).getRowSet(any());
+		
+		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
+			// Call under test
+			manager.backFillTableRowChanges();
+		});
+		
+		assertEquals(ex, result);
+	}
+	
+	@Test
+	public void testBackFillTableRowChangesWithIOException() throws IOException {
+		
+		int pageSize = 10;
+		
+		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		
+		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
+		
+		IOException ex = new IOException("Something wrong");
+		
+		doThrow(ex).when(mockTruthDao).getRowSet(any());
+		
+		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			manager.backFillTableRowChanges();
+		});
+		
+		assertEquals(ex, result.getCause());
 	}
 	
 	/**

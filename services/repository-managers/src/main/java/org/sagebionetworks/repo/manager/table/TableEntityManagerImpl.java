@@ -1068,11 +1068,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			} catch (AmazonServiceException e) {
 				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
 					hasFileRefs = false;
-				}
-				if (ErrorType.Service.equals(e.getErrorType())) {
+				} else if (ErrorType.Service.equals(e.getErrorType())) {
 					throw new RecoverableMessageException(e);
+				} else {
+					throw e;
 				}
-				throw e;
 			}
 			
 			if (hasFileRefs) {
