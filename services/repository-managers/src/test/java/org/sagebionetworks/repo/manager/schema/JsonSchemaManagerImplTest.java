@@ -199,6 +199,7 @@ public class JsonSchemaManagerImplTest {
 		versionInfo.setSemanticVersion(semanticVersionString);
 		versionInfo.setVersionId(versionId);
 		versionInfo.setSchemaId(schemaId);
+		versionInfo.set$id(parsed$Id.toString());
 
 		listOrganizationsRequest = new ListOrganizationsRequest();
 
@@ -813,7 +814,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		// call under test
@@ -828,7 +829,7 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
-		verify(managerSpy).getValidationSchema(versionInfo.get$id());
+		verify(managerSpy).createOrUpdateValidationSchemaIndex(versionInfo.getVersionId());
 		verify(managerSpy).validateSchema(schema);
 	}
 
@@ -839,7 +840,7 @@ public class JsonSchemaManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "-" + schemaName);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		// call under test
@@ -861,7 +862,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		createSchemaRequest.setDryRun(true);
 		// call under test
@@ -876,7 +877,8 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
-		verify(managerSpy).getValidationSchema(versionInfo.get$id());
+		verify(managerSpy, never()).createOrUpdateValidationSchemaIndex(any());
+		verify(managerSpy).buildValidationSchema(versionInfo.get$id());
 		verify(managerSpy).validateSchema(schema);
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
 	}
@@ -887,7 +889,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		createSchemaRequest.setDryRun(null);
@@ -903,7 +905,8 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
-		verify(managerSpy).getValidationSchema(versionInfo.get$id());
+		verify(managerSpy).createOrUpdateValidationSchemaIndex(versionId);
+		verify(managerSpy).buildValidationSchema(versionInfo.get$id());
 		verify(managerSpy).validateSchema(schema);
 		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
 	}
@@ -914,7 +917,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		createSchemaRequest.setDryRun(false);
@@ -930,7 +933,8 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
-		verify(managerSpy).getValidationSchema(versionInfo.get$id());
+		verify(managerSpy).createOrUpdateValidationSchemaIndex(versionId);
+		verify(managerSpy).buildValidationSchema(versionInfo.get$id());
 		verify(managerSpy).validateSchema(schema);
 		verify(mockSchemaDao, never()).deleteSchemaVersion(any());
 	}
@@ -1372,7 +1376,7 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testGetValidationSchema() throws JSONObjectAdapterException {
+	public void testBuildValidationSchema() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.set$schema("http://json-schema.org/draft-07/schema");
 		one.setDescription("about one");
@@ -1393,7 +1397,7 @@ public class JsonSchemaManagerImplTest {
 		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id(), true);
 
 		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
+		JsonSchema validationSchema = managerSpy.buildValidationSchema(three.get$id());
 		assertNotNull(validationSchema);
 		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
 		assertNotNull(validationDefinitions);
@@ -1427,7 +1431,7 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testGetValidationSchemaWithLeafWithNullDefinitions() throws JSONObjectAdapterException {
+	public void testBuildValidationSchemaWithLeafWithNullDefinitions() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
 		one.setDefinitions(null);
@@ -1439,7 +1443,7 @@ public class JsonSchemaManagerImplTest {
 		Mockito.doReturn(cloneSchema(two)).when(managerSpy).getSchema(two.get$id(), true);
 
 		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(two.get$id());
+		JsonSchema validationSchema = managerSpy.buildValidationSchema(two.get$id());
 		assertNotNull(validationSchema);
 		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
 		assertNotNull(validationDefinitions);
@@ -1458,7 +1462,7 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testGetValidationSchemaWithDuplicates() throws JSONObjectAdapterException {
+	public void testBuildValidationSchemaWithDuplicates() throws JSONObjectAdapterException {
 		// one
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
@@ -1479,7 +1483,7 @@ public class JsonSchemaManagerImplTest {
 		Mockito.doReturn(cloneSchema(three)).when(managerSpy).getSchema(three.get$id(), true);
 
 		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(three.get$id());
+		JsonSchema validationSchema = managerSpy.buildValidationSchema(three.get$id());
 		assertNotNull(validationSchema);
 		Map<String, JsonSchema> validationDefinitions = validationSchema.getDefinitions();
 		assertNotNull(validationDefinitions);
@@ -1500,7 +1504,7 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
-	public void testGetValidationSchemaWithCycles() throws JSONObjectAdapterException {
+	public void testBuildValidationSchemaWithCycles() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
 		JsonSchema refToOne = create$RefSchema(one);
@@ -1519,21 +1523,21 @@ public class JsonSchemaManagerImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			managerSpy.getValidationSchema(three.get$id());
+			managerSpy.buildValidationSchema(three.get$id());
 		}).getMessage();
 
 		assertEquals("Schema $id: 'three' has a circular dependency", message);
 	}
 
 	@Test
-	public void testGetValidationWithSchemaNoReferences() throws JSONObjectAdapterException {
+	public void testBuildValidationWithSchemaNoReferences() throws JSONObjectAdapterException {
 		JsonSchema one = createSchema("one");
 		one.setDescription("about one");
 
 		Mockito.doReturn(cloneSchema(one)).when(managerSpy).getSchema(one.get$id(), true);
 
 		// call under test
-		JsonSchema validationSchema = managerSpy.getValidationSchema(one.get$id());
+		JsonSchema validationSchema = managerSpy.buildValidationSchema(one.get$id());
 		assertNotNull(validationSchema);
 		assertNull(validationSchema.getDefinitions());
 		assertEquals("one", validationSchema.get$id());
@@ -1616,7 +1620,7 @@ public class JsonSchemaManagerImplTest {
 		versionInfo.setSemanticVersion(null);
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
 		schema.set$id(organizationName + "-" + schemaName);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		Long fileId = 1L;
@@ -1645,7 +1649,7 @@ public class JsonSchemaManagerImplTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockSchemaDao.createNewSchemaVersion(any())).thenReturn(versionInfo);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(parsed$Id.toString());
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
 		doReturn(SchemaIdParser.parseSchemaId(schema.get$id())).when(managerSpy).validateSchema(any());
 		// call under test
@@ -1660,27 +1664,29 @@ public class JsonSchemaManagerImplTest {
 				.withJsonSchema(schema).withSemanticVersion(semanticVersionString)
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
-		verify(managerSpy).getValidationSchema(versionInfo.get$id());
+		verify(managerSpy).buildValidationSchema(versionInfo.get$id());
 		verify(managerSpy).validateSchema(schema);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
 	}
 	
 	@Test
-	public void testCreateOrUpdateValidationSchemaIndexWithChangeTypeCreate() {
+	public void testCreateOrUpdateValidationSchemaIndex() {
+		Long obj1 = 1L;
+		Long obj2 = 2L;
+		Iterator<Long> objectIds = Arrays.asList(obj1, obj2).iterator();
+		String semanticVersion = null;
+		versionInfo.setSemanticVersion(semanticVersion);
 		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionId);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
-		managerSpy.createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE);
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
+		doReturn(objectIds).when(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
+		doReturn(EntityType.file).when(mockNodeDao).getNodeTypeById(any());
+		// call under test
+		JsonSchema result = managerSpy.createOrUpdateValidationSchemaIndex(versionId);
 		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
-	}
-	
-	@Test
-	public void testCreateOrUpdateValidationSchemaIndexWithChangeTypeUpdate() {
-		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionId);
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
-		managerSpy.createOrUpdateValidationSchemaIndex(versionId, ChangeType.UPDATE);
-		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
+		verify(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(obj1.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(obj2.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		assertEquals(result, validationSchema);
 	}
 	
 	@Test
@@ -1688,28 +1694,13 @@ public class JsonSchemaManagerImplTest {
 		// we don't want to send notification messages to bound entities here
 		String semanticVersion = "testSemanticVersion";
 		versionInfo.setSemanticVersion(semanticVersion);
-		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
-		managerSpy.createOrUpdateValidationSchemaIndex(versionInfo.getVersionId(), ChangeType.CREATE);
+		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionId);
+		doReturn(validationSchema).when(managerSpy).buildValidationSchema(versionInfo.get$id());
+		// call under test
+		JsonSchema result = managerSpy.createOrUpdateValidationSchemaIndex(versionId);
 		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
 		verify(mockSchemaDao, never()).getObjectIdsBoundToSchemaIterator(any());
-	}
-	
-	@Test
-	public void testCreateOrUpdateValidationSchemaIndexWithNullSemanticVersion() {
-		// we want to send notification messages to bound entities here after updating index
-		String semanticVersion = null;
-		versionInfo.setSemanticVersion(semanticVersion);
-		Long objectId = 3L;
-		Iterator<Long> objectIds = Arrays.asList(objectId).iterator();
-		when(mockSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId)).thenReturn(objectIds);
-		doReturn(versionInfo).when(mockSchemaDao).getVersionInfo(versionInfo.getVersionId());
-		doReturn(validationSchema).when(managerSpy).getValidationSchema(versionInfo.get$id());
-		managerSpy.createOrUpdateValidationSchemaIndex(versionInfo.getVersionId(), ChangeType.CREATE);
-		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(objectId.toString(), ObjectType.ENTITY, ChangeType.UPDATE);
+		assertEquals(result, validationSchema);
 	}
 	
 	@Test
@@ -1717,7 +1708,7 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		versionId = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			managerSpy.createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE);
+			managerSpy.createOrUpdateValidationSchemaIndex(versionId);
 		}).getMessage();
 		assertEquals("versionId is required.", message);
 	}
@@ -1745,19 +1736,33 @@ public class JsonSchemaManagerImplTest {
 	}
 	
 	@Test
-	public void testGetValidationSchemaFromIndex() {
+	public void testGetValidationSchema() {
+		doReturn(versionId).when(managerSpy).getSchemaVersionId(parsed$Id.toString());
 		doReturn(validationSchema).when(mockValidationIndexDao).getValidationSchema(versionId);
-		JsonSchema result = managerSpy.getValidationSchemaFromIndex(versionId);
+		// call under test
+		JsonSchema result = managerSpy.getValidationSchema(parsed$Id.toString());
 		assertEquals(result, validationSchema);
 	}
 	
 	@Test
-	public void testGetValidationSchemaFromIndexWithNullVersionId() {
-		versionId = null;
+	public void testGetValidationSchemaWithNotFoundException() {
+		doReturn(versionId).when(managerSpy).getSchemaVersionId(parsed$Id.toString());
+		doThrow(NotFoundException.class).when(mockValidationIndexDao).getValidationSchema(versionId);
+		doReturn(validationSchema).when(managerSpy).createOrUpdateValidationSchemaIndex(versionId);
+		// call under test
+		JsonSchema result = managerSpy.getValidationSchema(parsed$Id.toString());
+		verify(managerSpy).createOrUpdateValidationSchemaIndex(versionId);
+		assertEquals(result, validationSchema);
+	}
+	
+	@Test
+	public void testGetValidationSchemaFromIndexWithNullId() {
+		String $id = null;
+		// call under test
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			managerSpy.getValidationSchemaFromIndex(versionId);
+			managerSpy.getValidationSchema($id);
 		}).getMessage();
-		assertEquals(message, "versionId is required.");
+		assertEquals(message, "$id is required.");
 	}
 	
 	@Test
@@ -1765,6 +1770,7 @@ public class JsonSchemaManagerImplTest {
 		List<String> page = Arrays.asList("1", "2");
 		when(mockSchemaDao.getNextPageForVersionIdsOfDependants(any(), anyLong(), anyLong()))
 			.thenReturn(page, Collections.emptyList());
+		// call under test
 		List<String> result = IteratorUtils.toList(managerSpy.getVersionIdsOfDependantsIterator(schemaId));
 		assertEquals(page, result);
 		verify(mockSchemaDao).getNextPageForVersionIdsOfDependants(schemaId, 10000, 0);

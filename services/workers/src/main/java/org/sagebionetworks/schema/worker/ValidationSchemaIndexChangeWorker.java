@@ -15,6 +15,6 @@ public class ValidationSchemaIndexChangeWorker implements ChangeMessageDrivenRun
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException, Exception {
-		jsonSchemaManager.createOrUpdateValidationSchemaIndex(message.getObjectId(), message.getChangeType());
+		jsonSchemaManager.createOrUpdateValidationSchemaIndex(message.getObjectId());
 	}
 }

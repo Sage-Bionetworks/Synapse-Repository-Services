@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -39,8 +38,6 @@ public class EntitySchemaValidatorImplTest {
 
 	String entityId;
 	String schema$id;
-	String versionId;
-
 	JsonSchemaObjectBinding binding;
 	@Mock
 	JsonSubject mockEntitySubject;
@@ -51,13 +48,11 @@ public class EntitySchemaValidatorImplTest {
 
 	@BeforeEach
 	public void before() {
-		versionId = "1";
 		entityId = "syn123";
 		schema$id = "my.org-foo.bar-1.0.0";
 		binding = new JsonSchemaObjectBinding();
 		JsonSchemaVersionInfo versionInfo = new JsonSchemaVersionInfo();
 		versionInfo.set$id(schema$id);
-		versionInfo.setVersionId(versionId);
 		binding.setJsonSchemaVersionInfo(versionInfo);
 	}
 
@@ -65,8 +60,7 @@ public class EntitySchemaValidatorImplTest {
 	public void testValidateObject() {
 		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
 		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
-		when(mockJsonSchemaManager.getValidationSchemaFromIndex(versionId))
-				.thenReturn(mockJsonSchema);
+		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
 		// call under test
@@ -75,7 +69,7 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
 		verify(mockEntityManger).getEntityJsonSubject(entityId);
-		verify(mockJsonSchemaManager).getValidationSchemaFromIndex(versionId);
+		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 	}
 	
@@ -87,27 +81,6 @@ public class EntitySchemaValidatorImplTest {
 		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao, never()).createOrUpdateResults(any());
 		verify(mockSchemaValidationResultDao).clearResults(entityId, ObjectType.entity);
-	}
-	
-	@Test
-	public void testValidateObjectWithValidationSchemaNotFoundInIndex() {
-		NotFoundException exception = new NotFoundException();
-		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
-		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
-		when(mockJsonSchemaManager.getValidationSchemaFromIndex(versionId))
-				.thenThrow(exception);
-		when(mockJsonSchemaManager.createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE))
-				.thenReturn(mockJsonSchema);
-		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
-				.thenReturn(mockValidationResults);
-		// call under test
-		manager.validateObject(entityId);
-		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
-		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
-		verify(mockEntityManger).getBoundSchema(entityId);
-		verify(mockEntityManger).getEntityJsonSubject(entityId);
-		verify(mockJsonSchemaManager).createOrUpdateValidationSchemaIndex(versionId, ChangeType.CREATE);
-		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 	}
 	
 	@Test

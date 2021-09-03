@@ -1672,6 +1672,7 @@ public class JsonSchemaDaoImplTest {
 		long limit = 100;
 		long offset = 0;
 		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId(), four.getVersionId(), five.getVersionId());
+		// call under test
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertEquals(result, expected);
 	}
@@ -1696,6 +1697,7 @@ public class JsonSchemaDaoImplTest {
 		long limit = 2;
 		long offset = 1;
 		// should get us ids for schema three and four, because we offset by 1 (skip two)
+		// call under test
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertTrue(result.size() == 2);
 		assertEquals(result.get(0), three.getVersionId());
@@ -1703,10 +1705,57 @@ public class JsonSchemaDaoImplTest {
 	}
 	
 	@Test
+	public void testGetNextForVersionIdsOfDependantsWithUnreferencedSchema() throws Exception {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-two", index++, dependencies);
+		// three depends on two
+		dependencies = new ArrayList<>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId()));
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu-three", index++, dependencies);
+		// four depends on none
+		dependencies = new ArrayList<>();
+		JsonSchemaVersionInfo four = createNewSchemaVersion("my.org.edu-four", index++, dependencies);
+		
+		long limit = 100;
+		long offset = 0;
+		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId());
+		// call under test
+		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
+		assertEquals(result, expected);
+	}
+	
+	@Test
+	public void testGetNextPageForVersionIdsOfDependantsWithDuplicates() throws Exception {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
+		// two depends on one
+		ArrayList<SchemaDependency> dependencies = new ArrayList<>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
+		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-two", index++, dependencies);
+		// three depends on one and two
+		dependencies = new ArrayList<>();
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
+		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId()));
+		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu-three", index++, dependencies);
+		
+		long limit = 100;
+		long offset = 0;
+		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId());
+		// call under test, should have no duplicates
+		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
+		assertEquals(result, expected);
+	}
+	
+	@Test
 	public void testGetNextPageForVersionIdsOfDependantsWithNullSchemaId() throws Exception {
 		String schemaId = null;
 		long limit = 100;
 		long offset = 0;
+		// call under test
 		String message = assertThrows(IllegalArgumentException.class, () -> { 
 			jsonSchemaDao.getNextPageForVersionIdsOfDependants(schemaId, limit, offset);
 		}).getMessage();

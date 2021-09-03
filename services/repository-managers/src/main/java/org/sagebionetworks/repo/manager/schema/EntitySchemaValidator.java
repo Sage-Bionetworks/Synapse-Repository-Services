@@ -39,13 +39,8 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		try {
 			JsonSchemaObjectBinding binding = entityManger.getBoundSchema(entityId);
 			JsonSubject entitySubject = entityManger.getEntityJsonSubject(entityId);
-			JsonSchema validationSchema = null;
-			try {
-				validationSchema = jsonSchemaManager.getValidationSchemaFromIndex(binding.getJsonSchemaVersionInfo().getVersionId());
-			} catch (NotFoundException e) {
-				validationSchema = jsonSchemaManager.createOrUpdateValidationSchemaIndex(
-						binding.getJsonSchemaVersionInfo().getVersionId(), ChangeType.CREATE);
-			}
+			JsonSchema validationSchema = jsonSchemaManager
+					.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
 			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
 			schemaValidationResultDao.createOrUpdateResults(results);
 		} catch (NotFoundException e) {

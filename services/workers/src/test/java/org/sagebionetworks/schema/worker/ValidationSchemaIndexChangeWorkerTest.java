@@ -41,14 +41,6 @@ public class ValidationSchemaIndexChangeWorkerTest {
 	@Test
 	public void testRun() throws Exception {
 		worker.run(mockProgressCallback, message);
-		verify(mockSchemaManager).createOrUpdateValidationSchemaIndex(objectId, ChangeType.UPDATE);
-	}
-	
-	@Test
-	public void testRunWithDifferentChangeType() throws Exception {
-		// show that it sets changeType based on message
-		message.setChangeType(ChangeType.CREATE);
-		worker.run(mockProgressCallback, message);
-		verify(mockSchemaManager).createOrUpdateValidationSchemaIndex(objectId, ChangeType.CREATE);
+		verify(mockSchemaManager).createOrUpdateValidationSchemaIndex(objectId);
 	}
 }

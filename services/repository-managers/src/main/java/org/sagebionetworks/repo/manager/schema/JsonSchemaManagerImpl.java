@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.id.OrganizationName;
 import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
@@ -232,11 +233,12 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		
 		JsonSchema validationSchema = null;
 		if (Boolean.TRUE.equals(request.getDryRun())) {
-			validationSchema = getValidationSchema(info.get$id());
+			validationSchema = buildValidationSchema(info.get$id());
 		} else {
 			// update the validation schema index and send notifications
 			// for bound entities and for dependant schemas
-			validationSchema = createOrUpdateValidationSchemaIndex(info.getVersionId(), ChangeType.CREATE);
+			validationSchema = createOrUpdateValidationSchemaIndex(info.getVersionId());
+			transactionalMessenger.sendMessageAfterCommit(info.getVersionId(), ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
 		}
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
@@ -249,7 +251,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		return response;
 	}
 	
-	private void sendUpdateNotifications(String schemaId) {
+	private void sendObjectBindingUpdateNotifications(String schemaId) {
 		// Send update notifications to entities bound to the schema
 		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId);
 		while(objectIds.hasNext()) {
@@ -441,13 +443,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 
 	/**
-	 * Get the validation schema for the given $id.
-	 * 
+	 * Builds the validation schema for the given $id.
+	 * A validation schema is a self-contained representation of a schema.
+	 * Specifically, each external '$ref' in the schema is loaded into the local
+	 * '$defs' map. Each '$ref' is then changed to reference the local '$defs' map.
 	 * @param id
 	 * @return
 	 */
-	@Override
-	public JsonSchema getValidationSchema(String $id) {
+	JsonSchema buildValidationSchema(String $id) {
 		ValidateArgument.required($id, "$id");
 		Deque<String> visitedStack = new ArrayDeque<String>();
 		return getValidationSchema(visitedStack, $id);
@@ -556,20 +559,13 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 	
 	@Override
-	public JsonSchema createOrUpdateValidationSchemaIndex(String versionId, ChangeType changeType) {
+	public JsonSchema createOrUpdateValidationSchemaIndex(String versionId) {
 		ValidateArgument.required(versionId, "versionId");
 		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
-		JsonSchema schema = getValidationSchema(info.get$id());
+		JsonSchema schema = buildValidationSchema(info.get$id());
 		validationIndexDao.createOrUpdate(versionId, schema);
-		// update the schemas that depend on this schema when changeType is CREATE (when the schema is created/changed).
-		// ChangeType is UPDATE when we broadcast for dependants, and we do not want to repeat notifications.
-		if (changeType.equals(ChangeType.CREATE)) {
-			transactionalMessenger.sendMessageAfterCommit(versionId, ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
-		}
-		// If the semantic version is null, notify the entities bound to it, because
-		// schemas with no semantic version are mutable.
 		if (info.getSemanticVersion() == null) {
-			sendUpdateNotifications(info.getSchemaId());
+			sendObjectBindingUpdateNotifications(info.getSchemaId());
 		}
 		return schema;
 	}
@@ -588,9 +584,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 	
 	@Override
-	public JsonSchema getValidationSchemaFromIndex(String versionId) {
-		ValidateArgument.required(versionId, "versionId");
-		return validationIndexDao.getValidationSchema(versionId);
+	public JsonSchema getValidationSchema(String $id) {
+		ValidateArgument.required($id, "$id");
+		String versionId = getSchemaVersionId($id);
+		try {
+			return validationIndexDao.getValidationSchema(versionId);
+		} catch (NotFoundException e) {
+			return createOrUpdateValidationSchemaIndex(versionId);
+		}
 	}
 	
 	@Override
