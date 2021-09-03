@@ -46,6 +46,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_EMAIL = "#email#";
 	public static final String TEMPLATE_KEY_TEAM_NAME = "#teamName#";
 	public static final String TEMPLATE_KEY_TEAM_ID = "#teamId#";
+	public static final String TEMPLATE_KEY_SENDER_DISPLAY_NAME = "#senderDisplayName#";
 	public static final String TEMPLATE_KEY_TEAM_WEB_LINK = "#teamWebLink#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_JOIN = "#oneClickJoin#";
 	public static final String TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE = "#oneClickUnsubscribe#";
@@ -100,7 +101,7 @@ public class EmailUtils {
 	}
 	
 	public static String getDisplayNameOrUsername(UserProfile userProfile) {
-		ValidateArgument.required(userProfile, "userName");
+		ValidateArgument.required(userProfile, "userProfile");
 		
 		final String displayName = getDisplayName(userProfile);
 		

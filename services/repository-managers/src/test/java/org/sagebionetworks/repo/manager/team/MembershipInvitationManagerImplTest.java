@@ -4,13 +4,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl.TWENTY_FOUR_HOURS_IN_MS;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -21,6 +27,7 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.apache.http.entity.ContentType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,10 +39,14 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
@@ -43,14 +54,19 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -104,14 +120,29 @@ public class MembershipInvitationManagerImplTest {
 	private TokenGenerator mockTokenGenerator;
 	@Mock
 	private EmailQuarantineDao mockEmailQuarantineDao;
+	@Mock
+	private MessageManager mockMessageManager;
+	@Mock
+	private UserProfileManager mockUserProfileManager;
+	@Mock
+	private FileHandleManager mockFileHandleManager;
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
+	
 	@InjectMocks
 	private MembershipInvitationManagerImpl membershipInvitationManagerImpl;
 	
 	private UserInfo userInfo = null;
+	private UserProfile userProfile = null;
 
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
+		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		userProfile = new UserProfile();
+		userProfile.setFirstName("First");
+		userProfile.setLastName("Last");
+		userProfile.setUserName("username");
 	}
 
 	private void validateForCreateExpectFailure(MembershipInvitation mis) {
@@ -327,47 +358,179 @@ public class MembershipInvitationManagerImplTest {
 					1, 0);
 		});
 	}
-
+	
 	@Test
-	public void testCreateInvitationToUser() throws Exception {
-		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
-		testCreateInvitationToUserHelper(mis);
+	public void testBuildSenderDisplayName() {
+		String alternativeName = userProfile.getUserName();
+		
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
+		// Call under test
+		String result = membershipInvitationManagerImpl.buildSenderDisplayName(userInfo, alternativeName);
+		
+		assertEquals("First Last", result);
+		
+		verify(mockUserProfileManager).getUserProfile(userInfo.getId().toString());
+	}
+	
+	@Test
+	public void testBuildSenderDisplayNameWithUserNameOnly() {
+		String alternativeName = "something else";
+		
+		userProfile.setFirstName(null).setLastName(null);
+		
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
+		// Call under test
+		String result = membershipInvitationManagerImpl.buildSenderDisplayName(userInfo, alternativeName);
+		
+		assertEquals(userProfile.getUserName(), result);
+		
+		verify(mockUserProfileManager).getUserProfile(userInfo.getId().toString());
+	}
+	
+	@Test
+	public void testBuildSenderDisplayNameWithNoProfile() {
+		String alternativeName = userProfile.getUserName();
+		
+		doThrow(NotFoundException.class).when(mockUserProfileManager).getUserProfile(anyString());
+		
+		// Call under test
+		String result = membershipInvitationManagerImpl.buildSenderDisplayName(userInfo, alternativeName);
+		
+		assertEquals(alternativeName, result);
+		
+		verify(mockUserProfileManager).getUserProfile(userInfo.getId().toString());
+	}
+	
+	@Test
+	public void testBuildInvitationEmailSubject() {
+		assertEquals("First Last has invited you to join the Awesome team", membershipInvitationManagerImpl.buildInvitationEmailSubject("First Last", "Awesome"));
+	}
+	
+	@Test
+	public void testBuildInvitationEmailBody() {
+		String sender = "First Last";
+		String teamName = "Team";
+		String oneClickJoinLink = "http://some-awesome-url.org";
+		String senderMessage = "Some awesome message";
+		
+		String result = membershipInvitationManagerImpl.buildInvitationEmailBody(sender, teamName, oneClickJoinLink, senderMessage);
+		
+		assertTrue(result.contains("First Last is inviting you to join the Team team."));
+		assertTrue(result.contains("The inviter sends the following message: <Blockquote> Some awesome message </Blockquote> "));
+		assertTrue(result.contains("href=\"http://some-awesome-url.org\""));
+	}
+	
+	@Test
+	public void testBuildInvitationEmailBodyWithEmptyMessage() {
+		String sender = "First Last";
+		String teamName = "Team";
+		String oneClickJoinLink = "http://some-awesome-url.org";
+		String senderMessage = " ";
+		
+		String result = membershipInvitationManagerImpl.buildInvitationEmailBody(sender, teamName, oneClickJoinLink, senderMessage);
+		
+		assertTrue(result.contains("First Last is inviting you to join the Team team."));
+		assertFalse(result.contains("The inviter sends the following message"));
+		assertTrue(result.contains("href=\"http://some-awesome-url.org\""));
+	}
+	
+	@Test
+	public void testBuildInvitationEmailBodyWithNullMessage() {
+		String sender = "First Last";
+		String teamName = "Team";
+		String oneClickJoinLink = "http://some-awesome-url.org";
+		String senderMessage = null;
+		
+		String result = membershipInvitationManagerImpl.buildInvitationEmailBody(sender, teamName, oneClickJoinLink, senderMessage);
+		
+		assertTrue(result.contains("First Last is inviting you to join the Team team."));
+		assertFalse(result.contains("The inviter sends the following message"));
+		assertTrue(result.contains("href=\"http://some-awesome-url.org\""));
 	}
 
 	@Test
-	public void testCreateInvitationToUserWithNullCreatedOn() throws Exception {
+	public void testSendInvitationEmailToSynapseUser() throws Exception {
+		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", "https://synapse.org/#acceptInvitationEndpoint:");
+	}
+	
+	@Test
+	public void testSendInvitationEmailToSynapseUserWithUserName() throws Exception {
+		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
+		userProfile.setFirstName(null).setLastName(null);
+		testSendInvitationEmailToSynapseUserHelper(mis, "username", "https://synapse.org/#acceptInvitationEndpoint:");
+	}
+
+	@Test
+	public void testSendInvitationEmailToSynapseUserWithNullCreatedOn() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		mis.setCreatedOn(null);
-		testCreateInvitationToUserHelper(mis);
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", "https://synapse.org/#acceptInvitationEndpoint:");
+	}
+	
+	@Test
+	public void testSendInvitationEmailToSynapseUserWithDefaultAcceptEndpoint() throws Exception {
+		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", null);
 	}
 
-	private void testCreateInvitationToUserHelper(MembershipInvitation mis) {
+	private void testSendInvitationEmailToSynapseUserHelper(MembershipInvitation mis, String expectedSender, String acceptInvitationEndpoint) throws UnsupportedEncodingException, IOException {
 		Team team = new Team();
 		team.setName("test team");
 		team.setId(TEAM_ID);
+		
+		String fileHandleId = "123";
+		
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
-		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		when(mockPrincipalAliasDao.getUserName(anyLong())).thenReturn(userProfile.getUserName());
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		when(mockFileHandleManager.createCompressedFileFromString(any(), any(), any(), any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+		
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-		MessageToUserAndBody result = membershipInvitationManagerImpl.createInvitationMessageToUser(mis,
-				acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
-		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
-		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
-		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
-		assertTrue(result.getBody().contains(acceptInvitationEndpoint));
+		
+		// Call under test
+		membershipInvitationManagerImpl.sendInvitationEmailToSynapseUser(userInfo, mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+		
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		
+		verify(mockFileHandleManager).createCompressedFileFromString(eq(MEMBER_PRINCIPAL_ID), any(), argument.capture(), eq(ContentType.TEXT_HTML.getMimeType()));
+		
+		String body = argument.getValue();
+		
+		assertTrue(body.contains(team.getName()));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(acceptInvitationEndpoint == null ? ServiceConstants.ACCEPT_INVITATION_ENDPOINT : acceptInvitationEndpoint));
+		
+		MessageToUser expectedMessage = new MessageToUser();
+		expectedMessage.setFileHandleId(fileHandleId);
+		expectedMessage.setRecipients(Collections.singleton(MEMBER_PRINCIPAL_ID));
+		expectedMessage.setSubject(expectedSender + " has invited you to join the test team team");
+		expectedMessage.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
+		expectedMessage.setWithProfileSettingLink(false);
+		expectedMessage.setWithUnsubscribeLink(true);
+		expectedMessage.setIsNotificationMessage(false);
+		
+		verify(mockMessageManager).createMessage(userInfo, expectedMessage);
+		
 	}
 
 	@Test
-	public void testSendInvitationToEmail() throws Exception {
+	public void testSendInvitationEmailToEmail() throws Exception {
 		Team team = new Team();
 		String teamName = "Test team";
 		team.setName(teamName);
 		team.setId(TEAM_ID);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockPrincipalAliasDao.getUserName(anyLong())).thenReturn(userProfile.getUserName());
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		
 		// Call under test
-		membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint);
+		membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, acceptInvitationEndpoint);
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
@@ -379,20 +542,103 @@ public class MembershipInvitationManagerImplTest {
 		assertNotNull(mimeMessage.getSubject());
 		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
 		assertTrue(body.contains(teamName));
-		
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
+		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
+		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
 	}
 	
 	@Test
-	public void testSendInvitationToEmailWithQuarantinedAddress() throws Exception {
+	public void testSendInvitationEmailToEmailWithDefaultAcceptEndpoint() throws Exception {
+		Team team = new Team();
+		String teamName = "Test team";
+		team.setName(teamName);
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockPrincipalAliasDao.getUserName(anyLong())).thenReturn(userProfile.getUserName());
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
+		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = null;
+		
+		// Call under test
+		membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, acceptInvitationEndpoint);
+		
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest = argument.getValue();
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertNotNull(mimeMessage.getSubject());
+		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
+		assertTrue(body.contains(teamName));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT));
+		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
+		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
+	}
+	
+	@Test
+	public void testSendInvitationEmailToEmailWithUsernameOnly() throws Exception {
+		Team team = new Team();
+		String teamName = "Test team";
+		team.setName(teamName);
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockPrincipalAliasDao.getUserName(anyLong())).thenReturn(userProfile.getUserName());
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
+		userProfile.setFirstName(null).setLastName(null);
+		
+		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		
+		// Call under test
+		membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, acceptInvitationEndpoint);
+		
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest = argument.getValue();
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertNotNull(mimeMessage.getSubject());
+		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
+		assertTrue(body.contains(teamName));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(acceptInvitationEndpoint));
+		assertEquals("username has invited you to join the Test team team", mimeMessage.getSubject());
+		assertEquals("username@synapse.org", emailRequest.getSource());
+	}
+	
+	@Test
+	public void testSendInvitationEmailToEmailNotCertified() throws Exception {
+		// Remove the certified group
+		userInfo.setGroups(Collections.emptySet());
+		
+		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, acceptInvitationEndpoint);
+		});
+		
+		assertEquals("You must be a certified user to send email invitations", result.getMessage());
+	}
+	
+	@Test
+	public void testSendInvitationEmailToEmailWithQuarantinedAddress() throws Exception {
 		
 		when(mockEmailQuarantineDao.isQuarantined(INVITEE_EMAIL)).thenReturn(true);
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		
 		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			// Call under test
-			membershipInvitationManagerImpl.sendInvitationToEmail(mis, null);
+			membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, null);
 		});
 		
 	}

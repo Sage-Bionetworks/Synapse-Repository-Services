@@ -102,9 +102,7 @@
 	
 	<bean id="asynchronousJobServices" class="org.sagebionetworks.repo.web.service.AsynchronousJobServicesImpl" />
 
-		<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
-	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
-	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
+	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 		
 	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
 

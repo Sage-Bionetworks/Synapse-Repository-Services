@@ -18,25 +18,21 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * @author brucehoff
  *
  */
+@Service
 public class MembershipRequestServiceImpl implements MembershipRequestService {
 
-	@Autowired
 	private MembershipRequestManager membershipRequestManager;
-	@Autowired
 	private UserManager userManager;
-	@Autowired
 	private NotificationManager notificationManager;
 	
-	public MembershipRequestServiceImpl() {}
-	
-	public MembershipRequestServiceImpl(MembershipRequestManager membershipRequestManager,
-			UserManager userManager,
-			NotificationManager notificationManager) {
+	@Autowired
+	public MembershipRequestServiceImpl(MembershipRequestManager membershipRequestManager, UserManager userManager, NotificationManager notificationManager) {
 		this.membershipRequestManager = membershipRequestManager;
 		this.userManager=userManager;
 		this.notificationManager=notificationManager;

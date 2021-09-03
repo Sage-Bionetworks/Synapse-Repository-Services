@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -28,25 +27,27 @@ public interface MembershipInvitationManager {
 	public MembershipInvitation create(UserInfo userInfo, MembershipInvitation mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
-	 * Create an invitation message addressed to an existing user
+	 * Send an invitation message addressed to an existing user
 	 *
-	 * @param mis
+	 * @param user The user that is sending the invitation
+	 * @param mis The invitation, the {@link MembershipInvitation#getInviteeId()} must be present
 	 * @param acceptInvitationEndpoint
 	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 */
-	MessageToUserAndBody createInvitationMessageToUser(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	void sendInvitationEmailToSynapseUser(UserInfo user, MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	/**
 	 * Send an invitation message to an email address
 	 *
-	 * @param mis
+	 * @param user The user that is sending the invitation
+	 * @param mis The invitation, the {@link MembershipInvitation#getInviteeEmail()} must be present
 	 * @param acceptInvitationEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 */
-	void sendInvitationToEmail(MembershipInvitation mis, String acceptInvitationEndpoint) throws NotFoundException;
+	void sendInvitationEmailToEmail(UserInfo user, MembershipInvitation mis, String acceptInvitationEndpoint) throws NotFoundException;
 
 	/**
 	 * Retrieve an invitation by its ID
