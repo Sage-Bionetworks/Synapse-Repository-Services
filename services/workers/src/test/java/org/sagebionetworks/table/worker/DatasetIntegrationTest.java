@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -130,7 +130,7 @@ public class DatasetIntegrationTest {
 		file = entityManager.getEntity(userInfo, fileId, FileEntity.class);
 		assertEquals(2L, file.getVersionNumber());
 
-		asyncHelper.waitForObjectReplication(MainType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(),
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(),
 				MAX_WAIT);
 
 		// add both the first and second version of the file to the dataset.s

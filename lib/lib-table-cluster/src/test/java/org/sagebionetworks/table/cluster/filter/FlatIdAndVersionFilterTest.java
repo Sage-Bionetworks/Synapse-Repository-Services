@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
@@ -21,7 +21,7 @@ import com.google.common.collect.Sets;
 
 public class FlatIdAndVersionFilterTest {
 
-	private MainType mainType;
+	private ReplicationType mainType;
 	private Set<SubType> subTypes;
 	private List<String> expectedSubTypes;
 	private Set<IdVersionPair> scope;
@@ -31,7 +31,7 @@ public class FlatIdAndVersionFilterTest {
 
 	@BeforeEach
 	public void before() {
-		mainType = MainType.ENTITY;
+		mainType = ReplicationType.ENTITY;
 		subTypes = Sets.newHashSet(SubType.file);
 		expectedSubTypes = subTypes.stream().map(s -> s.name()).collect(Collectors.toList());
 		scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(1L),
@@ -77,5 +77,12 @@ public class FlatIdAndVersionFilterTest {
 		for (int i = 0; i < one.size(); i++) {
 			assertArrayEquals(one.get(i), two.get(i));
 		}
+	}
+	
+	@Test
+	public void testBuilderWithAllFields() {
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		ViewFilter clone = filter.newBuilder().build();
+		assertEquals(filter, clone);
 	}
 }

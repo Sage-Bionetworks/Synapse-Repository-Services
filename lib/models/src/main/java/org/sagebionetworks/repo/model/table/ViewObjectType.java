@@ -15,15 +15,15 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public enum ViewObjectType {
 
-	ENTITY(ViewEntityType.entityview, MainType.ENTITY),
-	SUBMISSION(ViewEntityType.submissionview, MainType.SUBMISSION),
-	DATASET(ViewEntityType.dataset, MainType.ENTITY);
+	ENTITY(ViewEntityType.entityview, ReplicationType.ENTITY),
+	SUBMISSION(ViewEntityType.submissionview, ReplicationType.SUBMISSION),
+	DATASET(ViewEntityType.dataset, ReplicationType.ENTITY);
 
 	private ViewEntityType viewEntityType;
-	private MainType mainType;
+	private ReplicationType mainType;
 	private ObjectType objectType;
 
-	private ViewObjectType(ViewEntityType viewEntityType, MainType mainType) {
+	private ViewObjectType(ViewEntityType viewEntityType, ReplicationType mainType) {
 		this.viewEntityType = viewEntityType;
 		this.mainType = mainType;
 		this.objectType = ObjectType.valueOf(mainType.name());
@@ -43,7 +43,7 @@ public enum ViewObjectType {
 		return objectType;
 	}
 	
-	public MainType getMainType() {
+	public ReplicationType getMainType() {
 		return this.mainType;
 	}
 

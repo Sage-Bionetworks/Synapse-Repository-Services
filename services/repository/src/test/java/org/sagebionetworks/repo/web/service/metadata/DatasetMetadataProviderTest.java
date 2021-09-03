@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +48,7 @@ public class DatasetMetadataProviderTest {
 
 	@BeforeEach
 	public void before() {
-		dataset = new Dataset().setItems(Arrays.asList(new DatasetItem().setEntityId("syn111").setVersionNumber(2L),
+		dataset = new Dataset().setItems(Lists.newArrayList(new DatasetItem().setEntityId("syn111").setVersionNumber(2L),
 				new DatasetItem().setEntityId("syn222").setVersionNumber(4L)));
 		event = new EntityEvent();
 		user = new UserInfo(false, 44L);
@@ -95,6 +96,20 @@ public class DatasetMetadataProviderTest {
 	}
 	
 	@Test
+	public void testValidateEntityWithNullEntityId() {
+		dataset.getItems().get(0).setEntityId(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateEntity(dataset, event);
+		}).getMessage();
+
+		assertEquals("Each dataset item must have a non-null entity ID.", message);
+
+		verify(mockNodeDao, never()).getEntityHeader(anySet());
+	}
+	
+	@Test
 	public void testValidateEntityWithNullVersion() {
 		dataset.getItems().get(0).setVersionNumber(null);
 
@@ -104,6 +119,34 @@ public class DatasetMetadataProviderTest {
 		}).getMessage();
 
 		assertEquals("Each dataset item must have a non-null version number", message);
+
+		verify(mockNodeDao, never()).getEntityHeader(anySet());
+	}
+	
+	@Test
+	public void testValidateEntityWithDuplicateEntityId() {
+		dataset.getItems().add(new DatasetItem().setEntityId("syn111").setVersionNumber(3L));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateEntity(dataset, event);
+		}).getMessage();
+
+		assertEquals("Each dataset item must have a unique entity ID.  Duplicate: syn111", message);
+
+		verify(mockNodeDao, never()).getEntityHeader(anySet());
+	}
+	
+	@Test
+	public void testValidateEntityWithDuplicateEntityIdNoSyn() {
+		dataset.getItems().add(new DatasetItem().setEntityId("111").setVersionNumber(3L));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateEntity(dataset, event);
+		}).getMessage();
+
+		assertEquals("Each dataset item must have a unique entity ID.  Duplicate: 111", message);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}

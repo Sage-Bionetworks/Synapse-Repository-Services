@@ -2162,7 +2162,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("View '%s' not found", datasetId), e);
 		}
 	}
 

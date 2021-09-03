@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
 /**
@@ -16,11 +16,11 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	
 	private final Set<IdVersionPair> scope;
 
-	public FlatIdAndVersionFilter(MainType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
+	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
 		this(mainType, subTypes, null, null, scope);
 	}
 	
-	public FlatIdAndVersionFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
 			Set<String> excludeKeys, Set<IdVersionPair> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		this.scope = scope;
@@ -80,7 +80,7 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		
 		Set<IdVersionPair> scope;
 
-		public Builder(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
 				Set<String> excludeKeys, Set<IdVersionPair> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys);
 			this.scope = scope;

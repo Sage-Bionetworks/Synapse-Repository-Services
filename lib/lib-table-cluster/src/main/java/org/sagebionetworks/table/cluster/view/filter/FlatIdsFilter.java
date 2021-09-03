@@ -3,7 +3,7 @@ package org.sagebionetworks.table.cluster.view.filter;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
 /**
@@ -14,11 +14,11 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	
 	protected final Set<Long> scope;
 
-	public FlatIdsFilter(MainType mainType, Set<SubType> subTypes, Set<Long> scope) {
+	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		this(mainType, subTypes, null, null, scope);
 	}
 
-	public FlatIdsFilter(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
+	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
 			Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		this.scope = scope;
@@ -76,7 +76,7 @@ public class FlatIdsFilter extends AbstractViewFilter {
 		
 		 Set<Long> scope;
 
-		public Builder(MainType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
 				Set<String> excludeKeys,  Set<Long> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys);
 			this.scope = scope;

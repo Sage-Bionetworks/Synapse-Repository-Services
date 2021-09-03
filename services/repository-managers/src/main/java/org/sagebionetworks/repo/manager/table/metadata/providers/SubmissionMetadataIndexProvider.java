@@ -20,15 +20,14 @@ import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
-import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,21 +78,10 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public ViewObjectType getObjectType() {
 		return OBJECT_TYPE;
 	}
-
-	@Override
-	public Set<SubType> getSubTypesForMask(Long typeMask) {
-		return getSubTypes();
-	}
 	
 	Set<SubType> getSubTypes(){
 		// Submissions are not hierarchical
 		return Sets.newHashSet(SubType.submission);
-	}
-
-	@Override
-	public boolean isFilterScopeByObjectId(Long typeMask) {
-		// No special treatment, always filter by the evaluation (parent)
-		return false;
 	}
 
 	@Override
@@ -210,12 +198,12 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), scope);
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
 	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
-		return new HierarchyFilter(MainType.SUBMISSION, getSubTypes(), containerIds);
+		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
 }

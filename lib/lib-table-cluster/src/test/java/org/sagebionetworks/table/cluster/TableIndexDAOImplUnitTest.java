@@ -23,12 +23,12 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -76,7 +76,7 @@ public class TableIndexDAOImplUnitTest {
 
 		Set<Long> allContainersInScope = Sets.newHashSet(111L, 222L);
 		
-		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainersInScope);
 
 		// method under test
 		spyDao.validateMaxListLengthInAnnotationReplication(filter, currentSchema);
@@ -111,7 +111,7 @@ public class TableIndexDAOImplUnitTest {
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
 		
-		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where "baz" exceeds its defined limit
 		doReturn(ImmutableMap.of("foo", 4L, "baz", 16L)).when(spyDao).getMaxListSizeForAnnotations(filter,
@@ -152,7 +152,7 @@ public class TableIndexDAOImplUnitTest {
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
 
-		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where only "foo" exists as a key
 		doReturn(ImmutableMap.of("foo", 4L)).when(spyDao).getMaxListSizeForAnnotations(filter, listAnnotationNames);
@@ -190,7 +190,7 @@ public class TableIndexDAOImplUnitTest {
 
 		HashSet<String> listAnnotationNames = Sets.newHashSet("foo", "baz");
 
-		ViewFilter filter = new HierarchyFilter(MainType.ENTITY, subTypes, allContainersInScope);
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainersInScope);
 
 		// mock return a map where "baz" does not exceed limit
 		doReturn(ImmutableMap.of("foo", 4L, "bar", 15L)).when(spyDao).getMaxListSizeForAnnotations(filter,

@@ -42,7 +42,7 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -68,7 +68,7 @@ import com.google.common.collect.ImmutableMap;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SubmissionViewIntegrationTest {
 
-	private static final int MAX_WAIT = 2 * 60 * 1000*10;
+	private static final int MAX_WAIT = 2 * 60 * 1000;
 	
 	@Autowired
 	private SubmissionManager submissionManager;
@@ -332,7 +332,7 @@ public class SubmissionViewIntegrationTest {
 		String etag = status.getEtag();
 		
 		// Wait for the replication to finish
-		asyncHelper.waitForObjectReplication(MainType.SUBMISSION, submissionId, etag, MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.SUBMISSION, submissionId, etag, MAX_WAIT);
 		
 		ViewScope viewScope = new ViewScope();
 		viewScope.setScope(ImmutableList.of(evaluation.getId()));

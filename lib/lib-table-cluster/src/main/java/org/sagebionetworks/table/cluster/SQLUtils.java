@@ -53,7 +53,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -711,11 +711,7 @@ public class SQLUtils {
 			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 			builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
 		}
-		builder.append("PRIMARY KEY (").append("ROW_ID");
-		if(isView) {
-			builder.append(", ").append(ROW_VERSION);
-		}
-		builder.append(")");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		if(isView){
 			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
 			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
@@ -1467,6 +1463,7 @@ public class SQLUtils {
 		builder.append(" GROUP BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
 		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		builder.append(" ORDER BY ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_ID);
+		builder.append(", ").append(OBJECT_REPLICATION_ALIAS).append(".").append(OBJECT_REPLICATION_COL_OBJECT_VERSION);
 		return headers;
 	}
 
@@ -1807,7 +1804,7 @@ public class SQLUtils {
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(MainType mainType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ReplicationType mainType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
 		int updateOffset = 9;
 		

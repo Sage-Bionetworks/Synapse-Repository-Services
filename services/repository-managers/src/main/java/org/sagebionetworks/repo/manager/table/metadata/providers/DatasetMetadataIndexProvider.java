@@ -15,14 +15,12 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
@@ -41,42 +39,20 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	private final NodeDAO nodeDao;
 	private final NodeManager nodeManager;
-	private final ViewScopeDao viewScopeDao;
 
-	// @formatter:off
-	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET)
-			.withObjectField(
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy
-			).build();
-	// @formatter:on
+	static final DefaultColumnModel DATASET_FILE_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET)
+			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
 
 	@Autowired
-	public DatasetMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager, ViewScopeDao viewScopeDao) {
+	public DatasetMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager) {
 		super();
 		this.nodeDao = nodeDao;
 		this.nodeManager = nodeManager;
-		this.viewScopeDao = viewScopeDao;
 	}
 
 	@Override
 	public ViewObjectType getObjectType() {
 		return ViewObjectType.DATASET;
-	}
-
-	@Override
-	public Set<SubType> getSubTypesForMask(Long typeMask) {
-		return getSubTypes();
-	}
-
-	@Override
-	public boolean isFilterScopeByObjectId(Long typeMask) {
-		return true;
 	}
 
 	@Override
@@ -102,7 +78,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		return BASIC_ENTITY_DEAFULT_COLUMNS;
+		return DATASET_FILE_COLUMNS;
 	}
 
 	@Override
@@ -169,12 +145,12 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
 				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
 				.collect(Collectors.toSet());
-		return new FlatIdAndVersionFilter(MainType.ENTITY, getSubTypes(), scope);
+		return new FlatIdAndVersionFilter(ReplicationType.ENTITY, getSubTypes(), scope);
 	}
 
 	@Override
 	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
-		return new FlatIdsFilter(MainType.ENTITY, getSubTypes(), containerIds);
+		return new FlatIdsFilter(ReplicationType.ENTITY, getSubTypes(), containerIds);
 	}
 
 	Set<SubType> getSubTypes() {

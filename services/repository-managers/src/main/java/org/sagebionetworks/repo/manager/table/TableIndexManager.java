@@ -255,8 +255,8 @@ public interface TableIndexManager {
 	 * @param filter
 	 * @param provider
 	 */
-	void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, ViewScopeType scopeType,
-			List<ColumnModel> currentSchema, ViewFilter filter, MetadataIndexProvider provider);
+	void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType,
+			List<ColumnModel> currentSchema, ViewFilter filter);
 
 	/**
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.

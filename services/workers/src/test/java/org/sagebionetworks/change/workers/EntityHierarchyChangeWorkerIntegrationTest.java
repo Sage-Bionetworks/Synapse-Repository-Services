@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -60,7 +60,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	Folder folder;
 	Folder child;
 	
-	private MainType viewObjectType;
+	private ReplicationType viewObjectType;
 	
 	@Before
 	public void before(){
@@ -88,7 +88,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		id = entityManager.createEntity(adminUser, child, null);
 		child = entityManager.getEntity(adminUser, id, Folder.class);
 		
-		viewObjectType = MainType.ENTITY;
+		viewObjectType = ReplicationType.ENTITY;
 	}
 	
 	@After

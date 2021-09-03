@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -108,7 +108,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	ObjectDataDTO waitForObjectReplication(MainType objectType, Long objectId, String etag, long maxWaitMS)
+	ObjectDataDTO waitForObjectReplication(ReplicationType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException;
 
 	/**

@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
@@ -31,6 +34,12 @@ public interface ViewFilter {
 	 * Builder to build a new filter from the existing filter.
 	 * @return
 	 */
-	Builder newBuilder();
+	ViewFilterBuilder newBuilder();
+	
+	/**
+	 * Get the limit ObjectIds applied to this filter, if it exists.
+	 * @return
+	 */
+	Optional<Set<Long>> getLimitObjectIds();
 	
 }

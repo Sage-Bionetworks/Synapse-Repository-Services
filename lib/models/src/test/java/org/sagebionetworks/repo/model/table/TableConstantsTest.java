@@ -45,8 +45,4 @@ public class TableConstantsTest {
 		assertTrue(TableConstants.isReservedColumnName("row_benefactor"));
 	}
 	
-	@Test
-	public void testJoinEnumForSQL() {
-		assertEquals("'A','B','C'", TableConstants.joinEnumForSQL(TestEnum.values()));
-	}
 }

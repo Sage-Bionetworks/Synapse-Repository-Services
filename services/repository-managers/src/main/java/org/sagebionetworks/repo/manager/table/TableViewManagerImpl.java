@@ -435,7 +435,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
 			MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-			ViewFilter filter = provider.getViewFilter(viewId.getId());
+			ViewFilter originalFilter = provider.getViewFilter(viewId.getId());
 			
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
@@ -447,7 +447,8 @@ public class TableViewManagerImpl implements TableViewManager {
 					// no point in continuing if the table is no longer available.
 					return;
 				}
-				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, filter,  MAX_ROWS_PER_TRANSACTION);
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, originalFilter,  MAX_ROWS_PER_TRANSACTION);
+				ViewFilter deltaFilter = originalFilter.newBuilder().addLimitObjectids(rowsIdsWithChanges).build();
 				// Are thrashing on the same Ids?
 				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 						previousPageRowIdsWithChanges);
@@ -460,7 +461,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, scopeType, currentSchema, filter, provider);
+					indexManager.updateViewRowsInTransaction(viewId, scopeType, currentSchema, deltaFilter);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}

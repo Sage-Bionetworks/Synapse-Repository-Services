@@ -37,7 +37,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.MainType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -77,7 +77,7 @@ public class ReplicationManagerTest {
 	List<ChangeMessage> changes;
 	
 	private ViewObjectType viewObjectType;
-	private MainType mainType;
+	private ReplicationType mainType;
 	
 	Long firstParentId;
 	List<Long> parentIds;
@@ -152,7 +152,7 @@ public class ReplicationManagerTest {
 		nowMS = 101L;
 		
 		viewObjectType = ViewObjectType.ENTITY;
-		mainType = MainType.ENTITY;
+		mainType = ReplicationType.ENTITY;
 	}
 	
 	@Test

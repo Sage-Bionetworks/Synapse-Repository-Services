@@ -92,42 +92,6 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testIsFilterScopeByObjectIdWithFileMask() {
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-
-		// Call under test
-		assertFalse(provider.isFilterScopeByObjectId(viewTypeMask));
-	}
-
-	@Test
-	public void testIsFilterScopeByObjectIdWithProjectMask() {
-		Long viewTypeMask = ViewTypeMask.Project.getMask();
-
-		// Call under test
-		assertTrue(provider.isFilterScopeByObjectId(viewTypeMask));
-	}
-
-	@Test
-	public void testIsFilterScopeByObjectIdWithMixedMask() {
-		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Project.getMask();
-
-		// Call under test
-		assertFalse(provider.isFilterScopeByObjectId(viewTypeMask));
-	}
-	
-	@Test
-	public void testIsFilterScopeByObjectIdWithNullMask() {
-		Long viewTypeMask = null;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> { 
-			// Call under test
-			provider.isFilterScopeByObjectId(viewTypeMask);
-		}).getMessage();
-		
-		assertEquals("viewTypeMask is required.", message);
-	}
-
-	@Test
 	public void testGetSubTypesForMaskEmpty() {
 		Long viewTypeMask = 0L;
 

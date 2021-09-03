@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -19,20 +18,18 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.MainType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
-import org.sagebionetworks.table.cluster.view.filter.HierarchyFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,35 +51,10 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 
 	// @formatter:off
 	static final DefaultColumnModel BASIC_ENTITY_DEAFULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
-			.withObjectField(
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy
-			).build();
+			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS).build();
 
 	static final DefaultColumnModel FILE_VIEW_DEFAULT_COLUMNS = DefaultColumnModel.builder(OBJECT_TYPE)
-			.withObjectField(
-					ObjectField.id, 
-					ObjectField.name, 
-					ObjectField.createdOn, 
-					ObjectField.createdBy,
-					ObjectField.etag, 
-					ObjectField.type, 
-					ObjectField.currentVersion, 
-					ObjectField.parentId,
-					ObjectField.benefactorId, 
-					ObjectField.projectId, 
-					ObjectField.modifiedOn, 
-					ObjectField.modifiedBy,
-					ObjectField.dataFileHandleId, 
-					ObjectField.dataFileSizeBytes, 
-					ObjectField.dataFileMD5Hex
-			).build();
-	// @formatter:on
+			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
 
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;
@@ -202,7 +174,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		return ColumnType.ENTITYID;
 	}
 
-	@Override
 	public Set<SubType> getSubTypesForMask(Long typeMask) {
 		ValidateArgument.required(typeMask, "viewTypeMask");
 		Set<SubType> typesFilter = new HashSet<>();
@@ -212,15 +183,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			}
 		}
 		return typesFilter;
-	}
-
-	@Override
-	public boolean isFilterScopeByObjectId(Long typeMask) {
-		ValidateArgument.required(typeMask, "viewTypeMask");
-		if (ViewTypeMask.Project.getMask() == typeMask) {
-			return true;
-		}
-		return false;
 	}
 
 	@Override
@@ -246,11 +208,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	public ViewFilter getViewFilter(ViewScopeType type, Set<Long> scope) {
 		Set<SubType> subTypes = getSubTypesForMask(type.getTypeMask());
 		if (ViewTypeMask.Project.getMask() == type.getTypeMask()) {
-			return new FlatIdsFilter(MainType.ENTITY, Sets.newHashSet(SubType.project), scope);
+			return new FlatIdsFilter(ReplicationType.ENTITY, Sets.newHashSet(SubType.project), scope);
 		}else {
 			try {
 				Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-				return new HierarchyFilter(MainType.ENTITY, subTypes, allContainers);
+				return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
 			} catch (LimitExceededException e) {
 				throw new IllegalStateException(e);
 			}
