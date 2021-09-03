@@ -166,19 +166,19 @@
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-jdk15on</artifactId>
-				<version>1.55</version>
+				<version>${bouncycastle.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcpkix-jdk15on</artifactId>
-				<version>1.55</version>
+				<version>${bouncycastle.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-ext-jdk15on</artifactId>
-				<version>1.55</version>
+				<version>${bouncycastle.version}</version>
 			</dependency>
 			<!-- OAuth support -->
 			<dependency>
@@ -436,7 +436,7 @@
 				<!-- jsoup HTML parser library @ https://jsoup.org/ -->
 				<groupId>org.jsoup</groupId>
 				<artifactId>jsoup</artifactId>
-				<version>1.7.2</version>
+				<version>${jsoup.version}</version>
 			</dependency>
 			<!-- Synapse internal dependencies -->
 			<dependency>
@@ -1054,6 +1054,8 @@
 		<junit.platform.version>1.4.1</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
+		<jsoup.version>1.14.2</jsoup.version>
+		<bouncycastle.version>1.67</bouncycastle.version>
 	</properties>
 
 	<distributionManagement>
