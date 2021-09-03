@@ -2,33 +2,34 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.sqs.model.Message;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AsynchJobQueuePublisherImplTest {
 	
-	private static long MAX_WAIT = 1000*60;
+	private static long MAX_WAIT = 1000*60*2;
 	
 	@Autowired
-	AsynchJobQueuePublisher asynchJobQueuePublisher;
+	private AsynchJobQueuePublisher asynchJobQueuePublisher;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		// Start with empty queues
 		asynchJobQueuePublisher.emptyAllQueues();
@@ -56,20 +57,13 @@ public class AsynchJobQueuePublisherImplTest {
 
 	/**
 	 * @return
-	 * @throws InterruptedException 
+	 * @throws Exception 
 	 */
-	public Message waitForOneMessage() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		while(true){
+	public Message waitForOneMessage() throws Exception {
+		return TimeUtils.waitFor(MAX_WAIT, 1000L, () -> {
 			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION);
-			if(message != null){
-				return message;
-			}else{
-				assertTrue("Timed out waiting for message",System.currentTimeMillis() - start < MAX_WAIT);
-				System.out.println("Waiting for message...");
-				Thread.sleep(1000L);
-			}
-		}
+			return new Pair<>(message != null, message);
+		});
 	}
 
 }
