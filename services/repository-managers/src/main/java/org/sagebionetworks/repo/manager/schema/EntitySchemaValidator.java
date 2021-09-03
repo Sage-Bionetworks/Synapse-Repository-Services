@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.schema;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
