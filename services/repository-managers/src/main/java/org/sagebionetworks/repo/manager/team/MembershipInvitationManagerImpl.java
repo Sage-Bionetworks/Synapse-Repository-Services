@@ -177,7 +177,7 @@ public class MembershipInvitationManagerImpl implements MembershipInvitationMana
 		}
 		
 		if (acceptInvitationEndpoint == null) {
-			acceptInvitationEndpoint = ServiceConstants.ACCEPT_INVITATION_ENDPOINT;
+			acceptInvitationEndpoint = ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT;
 		}
 		
 		if (emailQuarantineDao.isQuarantined(invitation.getInviteeEmail())) {

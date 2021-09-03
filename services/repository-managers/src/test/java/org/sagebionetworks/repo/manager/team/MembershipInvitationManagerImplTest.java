@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -452,24 +453,30 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testSendInvitationEmailToSynapseUser() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
-		testSendInvitationEmailToSynapseUserHelper(mis, "First Last");
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", "https://synapse.org/#acceptInvitationEndpoint:");
 	}
 	
 	@Test
 	public void testSendInvitationEmailToSynapseUserWithUserName() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		userProfile.setFirstName(null).setLastName(null);
-		testSendInvitationEmailToSynapseUserHelper(mis, "username");
+		testSendInvitationEmailToSynapseUserHelper(mis, "username", "https://synapse.org/#acceptInvitationEndpoint:");
 	}
 
 	@Test
 	public void testSendInvitationEmailToSynapseUserWithNullCreatedOn() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		mis.setCreatedOn(null);
-		testSendInvitationEmailToSynapseUserHelper(mis, "First Last");
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", "https://synapse.org/#acceptInvitationEndpoint:");
+	}
+	
+	@Test
+	public void testSendInvitationEmailToSynapseUserWithDefaultAcceptEndpoint() throws Exception {
+		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
+		testSendInvitationEmailToSynapseUserHelper(mis, "First Last", null);
 	}
 
-	private void testSendInvitationEmailToSynapseUserHelper(MembershipInvitation mis, String expectedSender) throws UnsupportedEncodingException, IOException {
+	private void testSendInvitationEmailToSynapseUserHelper(MembershipInvitation mis, String expectedSender, String acceptInvitationEndpoint) throws UnsupportedEncodingException, IOException {
 		Team team = new Team();
 		team.setName("test team");
 		team.setId(TEAM_ID);
@@ -481,8 +488,6 @@ public class MembershipInvitationManagerImplTest {
 		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
 		when(mockFileHandleManager.createCompressedFileFromString(any(), any(), any(), any())).thenReturn(new S3FileHandle().setId(fileHandleId));
 		
-		
-		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		
 		// Call under test
@@ -496,7 +501,7 @@ public class MembershipInvitationManagerImplTest {
 		
 		assertTrue(body.contains(team.getName()));
 		assertTrue(body.contains(mis.getMessage()));
-		assertTrue(body.contains(acceptInvitationEndpoint));
+		assertTrue(body.contains(acceptInvitationEndpoint == null ? ServiceConstants.ACCEPT_INVITATION_ENDPOINT : acceptInvitationEndpoint));
 		
 		MessageToUser expectedMessage = new MessageToUser();
 		expectedMessage.setFileHandleId(fileHandleId);
@@ -539,6 +544,38 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(teamName));
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
+		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
+		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
+	}
+	
+	@Test
+	public void testSendInvitationEmailToEmailWithDefaultAcceptEndpoint() throws Exception {
+		Team team = new Team();
+		String teamName = "Test team";
+		team.setName(teamName);
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		when(mockPrincipalAliasDao.getUserName(anyLong())).thenReturn(userProfile.getUserName());
+		when(mockUserProfileManager.getUserProfile(anyString())).thenReturn(userProfile);
+		
+		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = null;
+		
+		// Call under test
+		membershipInvitationManagerImpl.sendInvitationEmailToEmail(userInfo, mis, acceptInvitationEndpoint);
+		
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest = argument.getValue();
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertNotNull(mimeMessage.getSubject());
+		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
+		assertTrue(body.contains(teamName));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT));
 		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
 		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
 	}
