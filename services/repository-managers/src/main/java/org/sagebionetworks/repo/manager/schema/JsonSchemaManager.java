@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.Iterator;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
@@ -126,15 +128,6 @@ public interface JsonSchemaManager {
 	ListJsonSchemaVersionInfoResponse listSchemaVersions(ListJsonSchemaVersionInfoRequest request);
 
 	/**
-	 * A validation schema is a self-contained representation of a schema.
-	 * Specifically, each external '$ref' in the schema is loaded into the local
-	 * '$defs' map. Each '$ref' is then changed to reference the local '$defs' map.
-	 * @param id
-	 * @return
-	 */
-	JsonSchema getValidationSchema(String id);
-
-	/**
 	 * Bind a JSON schema to an object.
 	 * @param createdBy
 	 * @param $id
@@ -166,5 +159,33 @@ public interface JsonSchemaManager {
 	 */
 	void deleteSchemaById(UserInfo user, String $id);
 
+	/**
+	 * Creates a validation JSON schema for the given versionId, indexes it in the validation schema index,
+	 * and sends out notifications to entities bound to it.
+	 * @param versionId
+	 * @return
+	 */
+	JsonSchema createOrUpdateValidationSchemaIndex(String versionId);
 
+	/**
+	 * Gets the validation schema for the given $id
+	 * @param versionId
+	 * @return
+	 */
+	JsonSchema getValidationSchema(String $id);
+	
+	/**
+	 * Gets an iterator of the version IDs of all the schemas that reference the given schemaId
+	 * and recursively the schemas that reference those schemas.
+	 * @param schemaId
+	 * @return
+	 */
+	Iterator<String> getVersionIdsOfDependantsIterator(String schemaId);
+
+	/**
+	 * Sends update notifications to all schemas that reference the given schema associated to the versionId
+	 * and recursively to all the schemas that reference those schemas.
+	 * @param versionId
+	 */
+	void sendUpdateNotificationsForDependantSchemas(String versionId);
 }

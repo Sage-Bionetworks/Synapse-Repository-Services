@@ -72,6 +72,7 @@
     <import resource="classpath:file-scanner-spb.xml" />
     <import resource="classpath:file-archival-spb.xml"/>
     <import resource="classpath:download-list-workers-spb.xml" />
+    <import resource="classpath:validation-schema-index-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -107,6 +108,8 @@
 		<ref bean="entityHierarchyChangeWorkerTrigger" />
 		<ref bean="objectReplicationWorkerTrigger" />
 		<ref bean="objectReplicationReconciliationWorkerTrigger" />
+		<ref bean="validationSchemaIndexTrigger" />
+		<ref bean="broadcastDependantSchemaChangeTrigger" />
 		<!-- worker profiler -->
 		<ref bean="jobIntervalProcessorTrigger" />
 		<ref bean="idGeneratorCleanuSynchTrigger" />

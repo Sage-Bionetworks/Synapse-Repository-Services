@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
+import org.sagebionetworks.repo.model.dbo.schema.ValidationJsonSchemaIndexDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -53,9 +54,11 @@ import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.id.OrganizationName;
 import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -72,6 +75,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
 	
+	private static final long PAGE_SIZE_LIMIT = 10000L;
 
 	@Autowired
 	private OrganizationDao organizationDao;
@@ -84,6 +88,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	
 	@Autowired
 	private NodeDAO nodeDao;
+	
+	@Autowired
+	private ValidationJsonSchemaIndexDao validationIndexDao;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -224,15 +231,15 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 				.withDependencies(dependencies);
 		JsonSchemaVersionInfo info = jsonSchemaDao.createNewSchemaVersion(newVersionRequest);
 		
-		// If the semantic version is null, notify the entities bound to it, because
-		// schemas with no semantic version are mutable.
-		if (info.getSemanticVersion() == null) {
-			sendUpdateNotifications(info.getSchemaId());
+		JsonSchema validationSchema = null;
+		if (Boolean.TRUE.equals(request.getDryRun())) {
+			validationSchema = buildValidationSchema(info.get$id());
+		} else {
+			// update the validation schema index and send notifications
+			// for bound entities and for dependant schemas
+			validationSchema = createOrUpdateValidationSchemaIndex(info.getVersionId());
+			transactionalMessenger.sendMessageAfterCommit(info.getVersionId(), ObjectType.JSON_SCHEMA_DEPENDANT, ChangeType.UPDATE);
 		}
-
-		// Ensure we can create the validation schema
-		JsonSchema validationSchema = getValidationSchema(schemaId.toString());
-
 		CreateSchemaResponse response = new CreateSchemaResponse();
 		response.setNewVersionInfo(info);
 		response.setValidationSchema(validationSchema);
@@ -244,7 +251,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		return response;
 	}
 	
-	private void sendUpdateNotifications(String schemaId) {
+	private void sendObjectBindingUpdateNotifications(String schemaId) {
 		// Send update notifications to entities bound to the schema
 		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(schemaId);
 		while(objectIds.hasNext()) {
@@ -436,13 +443,14 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	}
 
 	/**
-	 * Get the validation schema for the given $id.
-	 * 
+	 * Builds the validation schema for the given $id.
+	 * A validation schema is a self-contained representation of a schema.
+	 * Specifically, each external '$ref' in the schema is loaded into the local
+	 * '$defs' map. Each '$ref' is then changed to reference the local '$defs' map.
 	 * @param id
 	 * @return
 	 */
-	@Override
-	public JsonSchema getValidationSchema(String $id) {
+	JsonSchema buildValidationSchema(String $id) {
 		ValidateArgument.required($id, "$id");
 		Deque<String> visitedStack = new ArrayDeque<String>();
 		return getValidationSchema(visitedStack, $id);
@@ -549,5 +557,48 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public void clearBoundSchema(Long objectId, BoundObjectType objectType) {
 		jsonSchemaDao.clearBoundSchema(objectId, objectType);
 	}
-
+	
+	@Override
+	public JsonSchema createOrUpdateValidationSchemaIndex(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
+		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
+		JsonSchema schema = buildValidationSchema(info.get$id());
+		validationIndexDao.createOrUpdate(versionId, schema);
+		if (info.getSemanticVersion() == null) {
+			sendObjectBindingUpdateNotifications(info.getSchemaId());
+		}
+		return schema;
+	}
+	
+	@Override
+	public void sendUpdateNotificationsForDependantSchemas(String versionId) {
+		ValidateArgument.required(versionId, "versionId");
+		JsonSchemaVersionInfo info = jsonSchemaDao.getVersionInfo(versionId);
+		String schemaId = info.getSchemaId();
+		Iterator<String> versionIds = getVersionIdsOfDependantsIterator(schemaId);
+		while (versionIds.hasNext()) {
+			// send ChangeType.UPDATE so createOrUpdateValidationSchemaIndex doesn't re-send dependant notifications
+			transactionalMessenger.sendMessageAfterCommit(versionIds.next(), 
+					ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
+		}
+	}
+	
+	@Override
+	public JsonSchema getValidationSchema(String $id) {
+		ValidateArgument.required($id, "$id");
+		String versionId = getSchemaVersionId($id);
+		try {
+			return validationIndexDao.getValidationSchema(versionId);
+		} catch (NotFoundException e) {
+			return createOrUpdateValidationSchemaIndex(versionId);
+		}
+	}
+	
+	@Override
+	public Iterator<String> getVersionIdsOfDependantsIterator(String schemaId) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return new PaginationIterator<String>((long limit, long offset) -> {
+			return jsonSchemaDao.getNextPageForVersionIdsOfDependants(schemaId, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
 }

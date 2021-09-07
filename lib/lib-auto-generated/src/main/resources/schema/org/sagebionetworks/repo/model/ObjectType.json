@@ -135,6 +135,14 @@
             "description": "TODO: Auto-generated description"
         },
         {
+        	"name": "JSON_SCHEMA",
+        	"description": "A JSON schema."
+        },
+        {
+        	"name": "JSON_SCHEMA_DEPENDANT",
+        	"description": "A JSON schema that references other schemas."
+        },
+        {
             "name": "DATASET",
             "description": "A dataset is a view of a list of entities."
         }

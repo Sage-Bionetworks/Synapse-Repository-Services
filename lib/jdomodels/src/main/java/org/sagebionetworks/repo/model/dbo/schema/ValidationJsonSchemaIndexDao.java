@@ -19,7 +19,8 @@ public interface ValidationJsonSchemaIndexDao {
 	void delete(String versionId);
 
 	/**
-	 * Gets the validation schema for the given versionId
+	 * Gets the validation schema for the given versionId,
+	 * throws NotFoundException if does not exist
 	 * @param versionId
 	 * @return
 	 */

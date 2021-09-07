@@ -6,9 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
@@ -24,7 +21,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -40,10 +36,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
-import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -52,19 +44,14 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
-import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -72,13 +59,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.Lists;
-
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class JsonSchemaWorkerIntegrationTest {
 
-	public static final long MAX_WAIT_MS = 1000 * 60;
+	public static final long MAX_WAIT_MS = 1000 * 80;
 
 	@Autowired
 	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
@@ -565,10 +550,11 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 	
-	@Disabled
 	@Test
 	public void testValidationSchemaIndexWithReindexingAndRevalidation() throws Exception {
-		// PLFM-6870: Validate that the index reindexes and also triggers revalidation on reindex
+		// PLFM-6870: Validate that when a schema is changed, the validation schema index is re-indexed for
+		// all schemas that reference the changed schema as well as these schemas that reference those schemas,
+		// and that this also triggers revalidation of entities
 		
 		// child schema, key property of type string
 		JsonSchema child = new JsonSchema();

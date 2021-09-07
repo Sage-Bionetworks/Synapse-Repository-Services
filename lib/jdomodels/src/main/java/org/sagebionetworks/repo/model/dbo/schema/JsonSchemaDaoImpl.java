@@ -47,6 +47,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
@@ -80,6 +81,8 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	public static final int MAX_SCHEMA_NAME_CHARS = 250;
 	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
 	private static final long PAGE_SIZE_LIMIT = 10000L;
+	
+	public static final String GET_DEPENDANT_VERSIONS_SQL = DDLUtilsImpl.loadSQLFromClasspath("sql/GetDependantVersionIds.sql");
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -557,14 +560,12 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	}
 	
 	@Override
-	public List<Long> getVersionIdsOfDependants(String versionId) {
-		ValidateArgument.required(versionId, "versionId");
-		return jdbcTemplate.queryForList("SELECT " + COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID + " FROM " 
-				+ TABLE_JSON_SCHEMA_DEPENDENCY + " WHERE "
-				+ COL_JSON_SCHEMA_DEPENDENCY_DEPENDS_ON_VERSION_ID + " = ? ORDER BY "
-				+ COL_JSON_SCHEMA_DEPENDENCY_VERSION_ID, Long.class, versionId);
+	public List<String> getNextPageForVersionIdsOfDependants(String schemaId, long limit, long offset) {
+		ValidateArgument.required(schemaId, "schemaId");
+		return jdbcTemplate.queryForList(GET_DEPENDANT_VERSIONS_SQL, 
+				String.class, schemaId, limit, offset);
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public JsonSchemaObjectBinding bindSchemaToObject(BindSchemaRequest request) {

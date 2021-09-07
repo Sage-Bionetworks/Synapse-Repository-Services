@@ -166,14 +166,14 @@ public interface JsonSchemaDao {
 	 * @return
 	 */
 	List<Long> getNextPageForEntitiesBoundToSchema(String schemaId, long limit, long offset);
-
+	
 	/**
-	 * Gets a list of the JSON schema versionIds that has the given versionId as a dependency
-	 * 
-	 * @param versionId
+	 * Gets a list of the schema version ids that depend on the given schemaId, limited to the given limit,
+	 * starting at the given offset of the query. Intended to implement the pagination provider.
+	 * @param schemaId
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	List<Long> getVersionIdsOfDependants(String versionId);
-
-
+	List<String> getNextPageForVersionIdsOfDependants(String schemaId, long limit, long offset);
 }
