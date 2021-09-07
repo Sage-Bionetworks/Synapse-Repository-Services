@@ -1,8 +1,12 @@
 package org.sagebionetworks.table.cluster.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,5 +80,23 @@ public class HierarchicaFilterTest {
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
+	}
+	
+	@Test
+	public void testGetLimitedObjectIds() {
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		Optional<Set<Long>> optional = filter.getLimitObjectIds();
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(limitObjectIds, optional.get());
+	}
+	
+	@Test
+	public void testGetLimitedObjectIdswithNull() {
+		limitObjectIds = null;
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		Optional<Set<Long>> optional = filter.getLimitObjectIds();
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
 	}
 }

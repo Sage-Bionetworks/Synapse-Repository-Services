@@ -2,9 +2,13 @@ package org.sagebionetworks.table.cluster.filter;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -84,5 +88,23 @@ public class FlatIdAndVersionFilterTest {
 		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
+	}
+	
+	@Test
+	public void testGetLimitedObjectIds() {
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		Optional<Set<Long>> optional = filter.getLimitObjectIds();
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(limitObjectIds, optional.get());
+	}
+	
+	@Test
+	public void testGetLimitedObjectIdswithNull() {
+		limitObjectIds = null;
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		Optional<Set<Long>> optional = filter.getLimitObjectIds();
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
 	}
 }
