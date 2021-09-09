@@ -1074,7 +1074,7 @@ public class DownloadListManagerImplTest {
 		long limit = 100L;
 		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean(), anyLong()))
 				.thenReturn(count);
-		when(mockNodeDao.getDatasetItems(any())).thenReturn(Collections.emptyList());
+		when(mockNodeDao.getDatasetItems(any())).thenReturn(null);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		// Call under test
