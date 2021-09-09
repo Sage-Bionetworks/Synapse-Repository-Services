@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -30,7 +30,7 @@ public interface ReplicationManager {
 	 * @param objectId   The identifier of the object
 	 * 
 	 */
-	void replicate(ViewObjectType objectType, String objectId);
+	void replicate(ReplicationType replicationType, String objectId);
 	
 	/**
 	 * Reconcile the view with the given id

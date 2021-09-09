@@ -15,6 +15,8 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
+import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -47,7 +49,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 	private ConnectionFactory connectionFactory;
 
-	private MetadataIndexProviderFactory metadataIndexProviderFactory;
+	private ObjectDataProviderFactory objectDataProviderFactory;
 
 	private TableManagerSupport tableManagerSupport;
 
@@ -57,12 +59,12 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 	@Autowired
 	public ReplicationManagerImpl(ConnectionFactory connectionFactory,
-			MetadataIndexProviderFactory metadataIndexProviderFactory, 
+			ObjectDataProviderFactory objectDataProviderFactory, 
 			TableManagerSupport tableManagerSupport,
 			ReplicationMessageManager replicationMessageManager, 
 			Clock clock) {
 		this.connectionFactory = connectionFactory;
-		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
+		this.objectDataProviderFactory = objectDataProviderFactory;
 		this.tableManagerSupport = tableManagerSupport;
 		this.replicationMessageManager = replicationMessageManager;
 		this.clock = clock;
@@ -77,14 +79,14 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	@Override
 	public void replicate(List<ChangeMessage> messages) throws RecoverableMessageException {
 
-		Map<ViewObjectType, ReplicationDataGroup> data = groupByObjectType(messages);
+		Map<ReplicationType, ReplicationDataGroup> data = groupByObjectType(messages);
 
-		for (Entry<ViewObjectType, ReplicationDataGroup> groupEntry : data.entrySet()) {
+		for (Entry<ReplicationType, ReplicationDataGroup> groupEntry : data.entrySet()) {
 
-			ViewObjectType objectType = groupEntry.getKey();
+			ReplicationType replicationType = groupEntry.getKey();
 			ReplicationDataGroup groupData = groupEntry.getValue();
 
-			MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+			ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(replicationType);
 
 			List<ObjectDataDTO> objectData = provider.getObjectData(groupData.getCreateOrUpdateIds(),
 					MAX_ANNOTATION_CHARS);
@@ -97,7 +99,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			// make all changes in an index as a transaction
 			for (TableIndexDAO indexDao : indexDaos) {
 				// apply the change to this index.
-				replicateInIndex(indexDao, objectType.getMainType(), objectData, groupData.getAllIds());
+				replicateInIndex(indexDao, replicationType, objectData, groupData.getAllIds());
 			}
 
 		}
@@ -109,11 +111,11 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * 
 	 */
 	@Override
-	public void replicate(ViewObjectType objectType, String objectId) {
+	public void replicate(ReplicationType objectType, String objectId) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(objectId, "objectId");
 
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(objectType);
 
 		Long id = KeyFactory.stringToKey(objectId);
 
@@ -125,7 +127,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 
 		TableIndexDAO indexDao = connectionFactory.getConnection(IdAndVersion.parse(objectId));
 
-		replicateInIndex(indexDao, objectType.getMainType(), objectDTOs, ids);
+		replicateInIndex(indexDao, objectType, objectDTOs, ids);
 	}
 
 	@Override
@@ -154,7 +156,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			return;
 		}
 
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
+		ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(objectType.getMainType());
 
 		// Determine which parents are in the trash
 		Set<Long> trashedParents = getTrashedContainers(expiredContainerIds, provider);
@@ -167,13 +169,13 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		indexDao.setContainerSynchronizationExpiration(objectType.getMainType(), expiredContainerIds, newExpirationDateMs);
 	}
 	
-	Map<ViewObjectType, ReplicationDataGroup> groupByObjectType(List<ChangeMessage> messages) {
-		Map<ViewObjectType, ReplicationDataGroup> data = new HashMap<>();
+	Map<ReplicationType, ReplicationDataGroup> groupByObjectType(List<ChangeMessage> messages) {
+		Map<ReplicationType, ReplicationDataGroup> data = new HashMap<>();
 
 		for (ChangeMessage message : messages) {
 			// Skip messages that do not map to a view object type
-			ViewObjectType.map(message.getObjectType()).ifPresent(viewObjectType -> {
-				ReplicationDataGroup group = data.computeIfAbsent(viewObjectType, ReplicationDataGroup::new);
+			ReplicationType.matchType(message.getObjectType()).ifPresent(r->{
+				ReplicationDataGroup group = data.computeIfAbsent(r, ReplicationDataGroup::new);
 
 				Long id = KeyFactory.stringToKey(message.getObjectId());
 
@@ -182,7 +184,6 @@ public class ReplicationManagerImpl implements ReplicationManager {
 				} else {
 					group.addForCreateOrUpdate(id);
 				}
-
 			});
 		}
 
@@ -195,7 +196,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param containerIds
 	 * @return
 	 */
-	Set<Long> getTrashedContainers(List<Long> containerIds, MetadataIndexProvider provider) {
+	Set<Long> getTrashedContainers(List<Long> containerIds, ObjectDataProvider provider) {
 		// find the sub-set that is available.
 		Set<Long> availableIds = provider.getAvailableContainers(containerIds);
 		Set<Long> inTrash = new HashSet<Long>();
@@ -214,7 +215,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException
 	 */
-	void findChildrenDeltas(TableIndexDAO indexDao, MetadataIndexProvider provider, List<Long> parentIds,
+	void findChildrenDeltas(TableIndexDAO indexDao, ObjectDataProvider provider, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		// Find the parents out-of-synch.
 		Set<Long> outOfSynchParentIds = compareCheckSums(indexDao, provider, parentIds, trashedParents);
@@ -235,15 +236,15 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param isParentInTrash
 	 * @return
 	 */
-	List<ChangeMessage> findChangesForParentId(TableIndexDAO firstIndex, MetadataIndexProvider provider,
+	List<ChangeMessage> findChangesForParentId(TableIndexDAO firstIndex, ObjectDataProvider provider,
 			Long outOfSynchParentId, boolean isParentInTrash) {
 
-		ViewObjectType viewObjectType = provider.getObjectType();
+		ReplicationType replicationType = provider.getReplicationType();
 
 		List<ChangeMessage> changes = new LinkedList<>();
 
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
-				firstIndex.getObjectChildren(viewObjectType.getMainType(), outOfSynchParentId));
+				firstIndex.getObjectChildren(replicationType, outOfSynchParentId));
 
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
@@ -253,21 +254,21 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			// find the create/updates
 			for (IdAndEtag test : truthChildren) {
 				if (!replicaChildren.contains(test)) {
-					changes.add(createChange(viewObjectType.getObjectType(), test.getId(), ChangeType.UPDATE));
+					changes.add(createChange(replicationType.getObjectType(), test.getId(), ChangeType.UPDATE));
 				}
 				truthIds.add(test.getId());
 			}
 			// find the deletes
 			for (IdAndEtag test : replicaChildren) {
 				if (!truthIds.contains(test.getId())) {
-					changes.add(createChange(viewObjectType.getObjectType(), test.getId(), ChangeType.DELETE));
+					changes.add(createChange(replicationType.getObjectType(), test.getId(), ChangeType.DELETE));
 				}
 			}
 		} else {
 			// the parent is the the trash so setup the delete of any children
 			// that appear in the replica.
 			for (IdAndEtag toDelete : replicaChildren) {
-				changes.add(createChange(viewObjectType.getObjectType(), toDelete.getId(), ChangeType.DELETE));
+				changes.add(createChange(replicationType.getObjectType(), toDelete.getId(), ChangeType.DELETE));
 			}
 		}
 		return changes;
@@ -301,10 +302,10 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param trashedParents
 	 * @return
 	 */
-	Set<Long> compareCheckSums(TableIndexDAO indexDao, MetadataIndexProvider provider, List<Long> parentIds,
+	Set<Long> compareCheckSums(TableIndexDAO indexDao, ObjectDataProvider provider, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = provider.getSumOfChildCRCsForEachContainer(parentIds);
-		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(provider.getObjectType().getMainType(), parentIds);
+		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(provider.getReplicationType(), parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for (Long parentId : parentIds) {

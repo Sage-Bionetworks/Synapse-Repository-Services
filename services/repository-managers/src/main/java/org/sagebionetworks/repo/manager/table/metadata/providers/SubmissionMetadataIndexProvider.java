@@ -113,11 +113,6 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return submissionDao.getSubmissionData(objectIds, maxAnnotationChars);
-	}
-
-	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) {
 		// The submissions are not hierarchical, so the scope cannot be expanded
 		return scope;
@@ -174,21 +169,6 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit) {
 		// Always reconcile on the scope
 		return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-	}
-
-	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return evaluationDao.getAvailableEvaluations(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return submissionDao.getSubmissionIdAndEtag(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return submissionDao.getSumOfSubmissionCRCsForEachEvaluation(containerIds);
 	}
 
 	@Override

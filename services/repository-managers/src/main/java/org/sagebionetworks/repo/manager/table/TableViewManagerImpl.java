@@ -248,7 +248,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			// save the changes. validation of updated values will occur in this call
 			provider.updateAnnotations(user, objectId, userAnnotations);	
 			// Replicate the change
-			replicationManager.replicate(objectType, objectId);
+			replicationManager.replicate(objectType.getMainType(), objectId);
 			
 		}
 	}

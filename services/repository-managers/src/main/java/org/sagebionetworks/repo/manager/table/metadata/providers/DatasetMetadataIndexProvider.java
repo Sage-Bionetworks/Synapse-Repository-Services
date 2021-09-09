@@ -81,11 +81,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
-	}
-
-	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException {
 		// The datasets are not hierarchical, so the scope cannot be expanded
@@ -116,21 +111,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public boolean canUpdateAnnotation(ColumnModel model) {
 		return true;
-	}
-
-	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return nodeDao.getAvailableNodes(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return nodeDao.getChildren(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return nodeDao.getSumOfChildCRCsForEachParent(containerIds);
 	}
 
 	@Override

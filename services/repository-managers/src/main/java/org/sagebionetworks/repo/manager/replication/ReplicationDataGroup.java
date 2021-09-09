@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 
 /**
  * DTO to represent a group of object ids to be added to the replication index
@@ -14,11 +15,11 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
  */
 public class ReplicationDataGroup {
 
-	private ViewObjectType objectType;
+	private ReplicationType objectType;
 	private List<Long> allIds;
 	private List<Long> createOrUpdateIds;
 
-	public ReplicationDataGroup(ViewObjectType objectType) {
+	public ReplicationDataGroup(ReplicationType objectType) {
 		this.objectType = objectType;
 		this.allIds = new ArrayList<>();
 		this.createOrUpdateIds = new ArrayList<>();
@@ -33,7 +34,7 @@ public class ReplicationDataGroup {
 		allIds.add(id);
 	}
 
-	public ViewObjectType getObjectType() {
+	public ReplicationType getObjectType() {
 		return objectType;
 	}
 

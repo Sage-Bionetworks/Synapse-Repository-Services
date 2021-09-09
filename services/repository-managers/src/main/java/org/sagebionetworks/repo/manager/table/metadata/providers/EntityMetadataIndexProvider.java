@@ -67,11 +67,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
-	}
-
-	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException {
 		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
@@ -119,21 +114,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			// all other views reconcile one the view's scope.
 			return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
 		}
-	}
-
-	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return nodeDao.getAvailableNodes(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return nodeDao.getChildren(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return nodeDao.getSumOfChildCRCsForEachParent(containerIds);
 	}
 
 	@Override

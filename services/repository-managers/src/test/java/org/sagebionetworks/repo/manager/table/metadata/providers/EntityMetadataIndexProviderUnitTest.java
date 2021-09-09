@@ -201,55 +201,6 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testcreateViewOverLimitMessageFileView() {
-		int limit = 10;
-		// call under test
-		String message = provider.createViewOverLimitMessage(ViewTypeMask.File.getMask(), limit);
-		assertEquals(
-				"The view's scope exceeds the maximum number of " + limit + " projects and/or folders. "
-						+ "Note: The sub-folders of each project and folder in the scope count towards the limit.",
-				message);
-	}
-
-	@Test
-	public void testcreateViewOverLimitMessageFileAndTableView() {
-		int limit = 10;
-		// call under test
-		String message = provider
-				.createViewOverLimitMessage(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table), limit);
-		assertEquals(
-				"The view's scope exceeds the maximum number of " + limit + " projects and/or folders. "
-						+ "Note: The sub-folders of each project and folder in the scope count towards the limit.",
-				message);
-	}
-
-	@Test
-	public void testcreateViewOverLimitMessageProjectView() {
-		int limit = 10;
-		// call under test
-		String message = provider.createViewOverLimitMessage(ViewTypeMask.Project.getMask(), limit);
-		assertEquals("The view's scope exceeds the maximum number of " + limit + " projects.", message);
-	}
-
-	@Test
-	public void testGetObjectData() {
-
-		List<ObjectDataDTO> expected = Collections.singletonList(mockData);
-
-		List<Long> objectIds = ImmutableList.of(1L, 2L, 3L);
-
-		int maxAnnotationChars = 5;
-
-		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(expected);
-
-		// Call under test
-		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
-
-		assertEquals(expected, result);
-		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars);
-	}
-
-	@Test
 	public void testGetAnnotations() {
 		String objectId = "syn123";
 
@@ -391,50 +342,6 @@ public class EntityMetadataIndexProviderUnitTest {
 
 		assertEquals(expected, result);
 		verifyZeroInteractions(mockNodeDao);
-	}
-
-	@Test
-	public void testGetAvaliableContainers() {
-
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-		Set<Long> expectedIds = ImmutableSet.of(1L);
-
-		when(mockNodeDao.getAvailableNodes(any())).thenReturn(expectedIds);
-
-		// Call under test
-		Set<Long> result = provider.getAvailableContainers(containerIds);
-
-		assertEquals(expectedIds, result);
-		verify(mockNodeDao).getAvailableNodes(containerIds);
-	}
-
-	@Test
-	public void testGetChildren() {
-
-		Long containerId = 1L;
-		List<IdAndEtag> expected = ImmutableList.of(mockIdAndEtag, mockIdAndEtag);
-
-		when(mockNodeDao.getChildren(anyLong())).thenReturn(expected);
-
-		// Call under test
-		List<IdAndEtag> result = provider.getChildren(containerId);
-
-		assertEquals(expected, result);
-		verify(mockNodeDao).getChildren(containerId);
-	}
-
-	@Test
-	public void testGetSumOfChildCRCsForEachContainer() {
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-
-		Map<Long, Long> expected = ImmutableMap.of(1L, 10L, 2L, 30L);
-
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(expected);
-
-		Map<Long, Long> result = provider.getSumOfChildCRCsForEachContainer(containerIds);
-
-		assertEquals(expected, result);
-		verify(mockNodeDao).getSumOfChildCRCsForEachParent(containerIds);
 	}
 	
 	@Test

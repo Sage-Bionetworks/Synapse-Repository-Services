@@ -653,7 +653,7 @@ public class TableViewManagerImplTest {
 		
 		// this should trigger an update
 		verify(mockMetadataIndexProvider).updateAnnotations(eq(userInfo), eq("syn111"), any(Annotations.class));
-		verify(mockReplicationManager).replicate(objectType, "syn111");
+		verify(mockReplicationManager).replicate(objectType.getMainType(), "syn111");
 	}
 	
 	@Test
@@ -753,7 +753,7 @@ public class TableViewManagerImplTest {
 		// this should trigger an update
 		verify(mockMetadataIndexProvider).canUpdateAnnotation(skipModel);
 		verify(mockMetadataIndexProvider).updateAnnotations(eq(userInfo), eq("syn111"), annotationsCaptor.capture());
-		verify(mockReplicationManager).replicate(objectType, "syn111");
+		verify(mockReplicationManager).replicate(objectType.getMainType(), "syn111");
 		
 		Map<String, AnnotationsValue> annotations = annotationsCaptor.getValue().getAnnotations();
 		
