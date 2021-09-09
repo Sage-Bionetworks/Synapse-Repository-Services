@@ -342,20 +342,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#
-	 * getAllContainerIdsForViewScope(java.lang.String)
-	 */
-	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		// Lookup the scope for this view.
-		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
-		return getAllContainerIdsForScope(scope, scopeType);
-	}
-
 	@Override
 	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
@@ -366,17 +352,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 
 		return getContainerIds(scope, scopeType, true);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#
-	 * getAllContainerIdsForScope(java.util.Set)
-	 */
-	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
-		return getContainerIds(scope, scopeType, false);
 	}
 
 	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
@@ -587,6 +562,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// The table is in an invalid state if the last applied change etag does not
 		// match any of the change etags in the tables history.
 		return !tableTruthDao.isEtagInTablesChangeHistory(idAndVersion.getId().toString(), lastChangeEtag.get());
+	}
+
+	@Override
+	public Set<Long> getViewScope(IdAndVersion idAndVersion) {
+		return viewScopeDao.getViewScope(idAndVersion.getId());
 	}
 
 }

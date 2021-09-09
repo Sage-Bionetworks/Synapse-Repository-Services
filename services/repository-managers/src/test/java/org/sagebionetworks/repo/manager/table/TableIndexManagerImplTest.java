@@ -817,6 +817,9 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+		
+		verify(mockManagerSupport).getViewScopeType(tableId);
+		verify(mockManagerSupport).getViewScope(tableId);
 	}
 
 	@Test

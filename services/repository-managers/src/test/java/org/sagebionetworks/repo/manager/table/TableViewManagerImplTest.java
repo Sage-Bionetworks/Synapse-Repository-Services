@@ -1102,7 +1102,7 @@ public class TableViewManagerImplTest {
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
 		// call under test
-		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
+		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
 		verify(mockFileProvider).createFileOutputStream(mockFile);
@@ -1131,7 +1131,7 @@ public class TableViewManagerImplTest {
 	
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		}).getCause();
 		assertEquals(exception, cause);
 		
@@ -1145,7 +1145,7 @@ public class TableViewManagerImplTest {
 		idAndVersion = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		});
 	}
 	
@@ -1154,7 +1154,7 @@ public class TableViewManagerImplTest {
 		scopeType = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		});
 	}
 	
@@ -1163,24 +1163,15 @@ public class TableViewManagerImplTest {
 		viewSchema = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		});
 	}
-	
-	@Test
-	public void testCreateViewSnapshotAndUploadToS3NullScope() throws IOException {
-		scopeIds = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema, scopeIds);
-		});
-	}
+
 	
 	@Test
 	public void testCreateSnapshot() throws IOException {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType)).thenReturn(scopeIds);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupWriter();

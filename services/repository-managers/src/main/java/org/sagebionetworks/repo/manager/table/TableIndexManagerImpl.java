@@ -457,8 +457,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(viewId, "viewId");
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
+		Set<Long> scope = tableManagerSupport.getViewScope(idAndVersion);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scope, nextPageToken);
 	}
 	
 	@Override
