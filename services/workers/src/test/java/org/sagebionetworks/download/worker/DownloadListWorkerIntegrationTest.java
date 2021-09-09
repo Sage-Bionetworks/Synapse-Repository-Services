@@ -150,7 +150,7 @@ public class DownloadListWorkerIntegrationTest {
 	@Test
 	public void testAddToDownloadListDatasetItems() throws Exception {
 		// create file in a project with read access
-		Node file = createFileHierarchy(ACCESS_TYPE.READ);
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ);
 		// add file to a data set
 		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(file.getId())
 				.setVersionNumber(file.getVersionNumber()));
@@ -203,14 +203,14 @@ public class DownloadListWorkerIntegrationTest {
 	 * 
 	 * @return
 	 */
-	public Node createFileHierarchy(ACCESS_TYPE accessType) {
+	public Node createFileHierarchy(ACCESS_TYPE... accessTypes) {
 		Node project = nodeDaoHelper.create((n) -> {
 			n.setNodeType(EntityType.project);
 			n.setName("project");
 		});
 		aclHelper.create((a) -> {
 			a.setId(project.getId());
-			a.getResourceAccess().add(createResourceAccess(user.getId(), accessType));
+			a.getResourceAccess().add(createResourceAccess(user.getId(), accessTypes));
 		});
 		FileHandle fh = fileHandleDaoHelper.create((f) -> {
 			f.setFileName("someFile");
