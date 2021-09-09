@@ -184,12 +184,14 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
 	
+	
 	/**
-	 * Validate the view type mask
-	 * 
-	 * @param viewTypeMask The mask for the view, can be null
+	 * Validate the scope and type.
+	 * @param typeMask
+	 * @param scopeIds
+	 * @param maxContainersPerView
 	 */
-	void validateTypeMask(Long viewTypeMask);
+	void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView);
 		
 	/**
 	 * Get the view filter for the given view.
@@ -204,6 +206,8 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	 * @param containerIds
 	 * @return
 	 */
-	ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds);
+	ViewFilter getViewFilter(Long typeMask, Set<Long> containerIds);
+
+
 
 }

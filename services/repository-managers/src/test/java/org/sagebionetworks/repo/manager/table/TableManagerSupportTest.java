@@ -614,20 +614,9 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.validateScope(scopeType, scope);
 		
-		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).validateScopeAndType(scopeType.getTypeMask(), scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
-	@Test
-	public void testValidateScopeSizeNullScope() throws LimitExceededException {
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		// The scope can be null.
-		scope = null;
-		// call under test
-		manager.validateScope(scopeType, scope);
-
-		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
-	}
 	
 	@Test
 	public void testGetViewStateNumber() throws LimitExceededException{

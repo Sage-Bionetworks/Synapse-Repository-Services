@@ -500,7 +500,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewScopeType, scope);
+		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), scope);
 		
 		if(filter.isEmpty()) {
 			results.setResults(Collections.emptyList());

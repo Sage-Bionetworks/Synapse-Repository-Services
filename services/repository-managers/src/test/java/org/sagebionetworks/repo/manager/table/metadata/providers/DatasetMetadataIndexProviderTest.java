@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -53,14 +54,13 @@ public class DatasetMetadataIndexProviderTest {
 		viewId = 123L;
 		items = Arrays.asList(new DatasetItem().setEntityId("syn11").setVersionNumber(2L),
 				new DatasetItem().setEntityId("syn22").setVersionNumber(3L));
-		
-		scope = items.stream().map(i -> new IdVersionPair()
-				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
-				.collect(Collectors.toSet());
+
+		scope = items.stream().map(i -> new IdVersionPair().setId(KeyFactory.stringToKey(i.getEntityId()))
+				.setVersion(i.getVersionNumber())).collect(Collectors.toSet());
 		subTypes = Sets.newHashSet(SubType.file);
-		
+
 		viewScopeType = new ViewScopeType(ViewObjectType.DATASET, 0L);
-		containerIds = Sets.newHashSet(1L,2L,3L);
+		containerIds = Sets.newHashSet(1L, 2L, 3L);
 	}
 
 	@Test
@@ -81,15 +81,36 @@ public class DatasetMetadataIndexProviderTest {
 		when(mockNodeDao.getDatasetItems(viewId)).thenReturn(items);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewId);
-		ViewFilter expected  = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		ViewFilter expected = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		assertEquals(filter, expected);
 	}
-	
+
 	@Test
 	public void testGetViewFilterWithTypeAndScope() {
 		// call under test
-		ViewFilter filter = provider.getViewFilter(viewScopeType, containerIds);
-		ViewFilter expected  = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, containerIds);
+		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), containerIds);
+		ViewFilter expected = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, containerIds);
 		assertEquals(filter, expected);
+	}
+
+	@Test
+	public void testValidateScopeAndTypeWithUnderLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 3;
+		// call under test
+		provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+	}
+	
+	@Test
+	public void testValidateScopeAndTypeWithOverLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 1;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+		}).getMessage();
+		assertEquals("Maximum of 1 items in a dataset exceeded.", message);
 	}
 }

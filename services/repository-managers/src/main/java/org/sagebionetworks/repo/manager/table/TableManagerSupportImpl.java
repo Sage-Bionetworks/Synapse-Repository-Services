@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -546,13 +547,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ViewObjectType objectType = scopeType.getObjectType();
 
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-
-		provider.validateTypeMask(scopeType.getTypeMask());
-
-		if (scopeIds != null && !scopeIds.isEmpty()) {
-			// Validation is built into getAllContainerIdsForScope() call
-			getAllContainerIdsForScope(scopeIds, scopeType);
-		}
+		provider.validateScopeAndType(scopeType.getTypeMask(), scopeIds, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 
 	@Override

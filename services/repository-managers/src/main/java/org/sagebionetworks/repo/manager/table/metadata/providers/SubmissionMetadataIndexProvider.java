@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -191,19 +192,21 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public void validateTypeMask(Long viewTypeMask) {
-		// Nothing to validate, the mask is not used
-	}
-
-	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
+	@Override
+	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
+		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
+			throw new IllegalArgumentException(String.format(SCOPE_SIZE_LIMITED_EXCEEDED, maxContainersPerView));
+		}
+	}
+	
 }

@@ -843,7 +843,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(schema, results.getResults());
 		
 		Set<Long> expectedScope = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
-		verify(mockMetadataProvider).getViewFilter(scopeType, expectedScope);
+		verify(mockMetadataProvider).getViewFilter(scopeType.getTypeMask(), expectedScope);
 		verify(mockFilter).isEmpty();
 
 	}

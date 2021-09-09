@@ -46,6 +46,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionMetadataIndexProviderUnitTest {
@@ -76,7 +77,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 
 	@Mock
 	private IdAndEtag mockIdAndEtag;
-	
+
 	@Mock
 	private SubmissionStatus mockSubmissionStatus;
 
@@ -166,7 +167,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		verify(mockSubmissionStatus).getSubmissionAnnotations();
 	}
-	
+
 	@Test
 	public void testGetAnnotationsWithNoUser() {
 		mockUser = null;
@@ -176,10 +177,10 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.getAnnotations(mockUser, objectId);
 		}).getMessage();
-		
+
 		assertEquals("The user is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testGetAnnotationsWithNoObjectId() {
 		String objectId = null;
@@ -188,7 +189,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.getAnnotations(mockUser, objectId);
 		}).getMessage();
-		
+
 		assertEquals("The object id is required.", errorMessage);
 	}
 
@@ -196,13 +197,13 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	public void testUpdateAnnotations() {
 		String objectId = "syn123";
 		String etag = "etag";
-		
+
 		Annotations updatedAnnotations = Mockito.mock(Annotations.class);
 
 		when(updatedAnnotations.getEtag()).thenReturn(etag);
-		
+
 		when(mockSubmissionManager.getSubmissionStatus(any(), any())).thenReturn(mockSubmissionStatus);
-		
+
 		when(mockSubmissionManager.updateSubmissionStatus(any(), any())).thenReturn(mockSubmissionStatus);
 
 		// Call under test
@@ -211,40 +212,40 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		// Verify that we sync the etag from the input annotations before saving
 		verify(mockSubmissionStatus).setEtag(etag);
-		
+
 		verify(mockSubmissionStatus).setSubmissionAnnotations(updatedAnnotations);
 		verify(mockSubmissionManager).updateSubmissionStatus(mockUser, mockSubmissionStatus);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoUser() {
-		when(mockAnnotations.getEtag()).thenReturn("etag");		
+		when(mockAnnotations.getEtag()).thenReturn("etag");
 		String objectId = "syn123";
-		
+
 		mockUser = null;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The user is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoObjectId() {
 		when(mockAnnotations.getEtag()).thenReturn("etag");
-		
+
 		String objectId = null;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The object id is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoAnnotations() {
 		String objectId = "syn123";
@@ -254,21 +255,21 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The annotations is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoEtag() {
 		when(mockAnnotations.getEtag()).thenReturn(null);
-		
-		String objectId = "syn123";		
+
+		String objectId = "syn123";
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The annotations etag is required.", errorMessage);
 	}
 
@@ -301,20 +302,13 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		// Call under test
 		DefaultColumnModel model = provider.getDefaultColumnModel(mockViewTypeMask);
 
-		List<ObjectField> expectedFields = ImmutableList.of(
-				ObjectField.id,
-				ObjectField.name, 
-				ObjectField.createdOn, 
-				ObjectField.createdBy,
-				ObjectField.etag, 
-				ObjectField.modifiedOn,
-				ObjectField.projectId
-		);
-		
+		List<ObjectField> expectedFields = ImmutableList.of(ObjectField.id, ObjectField.name, ObjectField.createdOn,
+				ObjectField.createdBy, ObjectField.etag, ObjectField.modifiedOn, ObjectField.projectId);
+
 		assertNotNull(model);
 		assertEquals(expectedFields, model.getDefaultFields());
 		assertEquals(SubmissionField.values().length, model.getCustomFields().size());
-		
+
 		for (SubmissionField field : SubmissionField.values()) {
 			boolean present = model.findCustomFieldByColumnName(field.getColumnName()).isPresent();
 			assertTrue(present);
@@ -391,4 +385,24 @@ public class SubmissionMetadataIndexProviderUnitTest {
 
 	}
 
+	@Test
+	public void testValidateScopeAndTypeWithUnderLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 3;
+		// call under test
+		provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+	}
+
+	@Test
+	public void testValidateScopeAndTypeWithOverLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 1;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+		}).getMessage();
+		assertEquals("The view's scope exceeds the maximum number of 1 evaluations.", message);
+	}
 }
