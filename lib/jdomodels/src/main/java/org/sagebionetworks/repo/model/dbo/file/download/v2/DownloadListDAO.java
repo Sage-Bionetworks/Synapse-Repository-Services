@@ -156,11 +156,9 @@ public interface DownloadListDAO {
 	 * 
 	 * @param userId
 	 * @param items
-	 * @param useVersion When true, the current version of the file will be used.
-	 * 					 When false, the version number will be null.
 	 * @param limit		 Limit the number of files that can be added.
 	 * @return The total number of files added.
 	 */
-	Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, boolean useVersion, long limit);
+	Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, long limit);
 
 }

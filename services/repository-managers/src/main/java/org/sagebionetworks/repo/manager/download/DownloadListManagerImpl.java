@@ -403,10 +403,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion, long limit) {
 		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		Long parentIdKey = KeyFactory.stringToKey(parentId);
-		List<DatasetItem> items = nodeDao.getDatasetItems(parentIdKey);
-		if (items != null) { // it is null if parentId is not a dataset
+		if (nodeDao.getNodeTypeById(parentId).equals(EntityType.dataset)) {
+			List<DatasetItem> items = nodeDao.getDatasetItems(parentIdKey);
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
-					.addDatasetItemsToDownloadList(userInfo.getId(), items, useVersion, limit));
+					.addDatasetItemsToDownloadList(userInfo.getId(), items, limit));
 		} else {
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
 					.addChildrenToDownloadList(userInfo.getId(), parentIdKey, useVersion, limit));

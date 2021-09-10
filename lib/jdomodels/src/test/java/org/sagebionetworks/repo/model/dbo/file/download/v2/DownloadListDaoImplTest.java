@@ -2072,13 +2072,12 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testAddDatasetItemsToDownloadListWithUseVersionTrue() {
+	public void testAddDatasetItemsToDownloadList() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 3;
 		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
 		assertEquals(3, files.size());
-		boolean useVersion = true;
 		// add the first 2 of 3 files to the dataset
 		List<DatasetItem> items = Arrays.asList(
 				new DatasetItem().setEntityId(files.get(0).getId())
@@ -2093,45 +2092,12 @@ public class DownloadListDaoImplTest {
 		});
 		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
-		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, useVersion, limit);
+		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(2L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
 				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L),
 				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L)
-		);
-		compareIdAndVersionToListItem(userOneIdLong, expected,
-				downloadListDao.getDBODownloadListItems(userOneIdLong));
-	}
-	
-	@Test
-	public void testAddDatasetItemsToDownloadListWithUseVersionFalse() {
-		int numberOfProject = 1;
-		int foldersPerProject = 1;
-		int filesPerFolder = 3;
-		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
-		assertEquals(3, files.size());
-		boolean useVersion = false;
-		// add the first 2 of 3 files to the dataset
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(files.get(0).getId())
-				.setVersionNumber(files.get(0).getVersionNumber()),
-				new DatasetItem().setEntityId(files.get(1).getId())
-				.setVersionNumber(files.get(1).getVersionNumber()));
-		Node dataset = nodeDaoHelper.create(n -> {
-			n.setName("aDataset");
-			n.setParentId(files.get(0).getParentId());
-			n.setNodeType(EntityType.dataset);
-			n.setItems(items);
-		});
-		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
-		// call under test
-		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, useVersion, limit);
-		assertEquals(2L, count);
-		
-		List<DownloadListItem> expected = Arrays.asList(
-				new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(null),
-				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(null)
 		);
 		compareIdAndVersionToListItem(userOneIdLong, expected,
 				downloadListDao.getDBODownloadListItems(userOneIdLong));
@@ -2146,7 +2112,6 @@ public class DownloadListDaoImplTest {
 		limit = 1;
 		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
 		assertEquals(3, files.size());
-		boolean useVersion = true;
 		// add the first 2 of 3 files to the dataset
 		List<DatasetItem> items = Arrays.asList(
 				new DatasetItem().setEntityId(files.get(0).getId())
@@ -2161,7 +2126,7 @@ public class DownloadListDaoImplTest {
 		});
 		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
-		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, useVersion, limit);
+		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(1L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(
@@ -2183,7 +2148,6 @@ public class DownloadListDaoImplTest {
 				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L)
 		);
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
-		boolean useVersion = true;
 		// add all files (2) to the dataset
 		List<DatasetItem> items = Arrays.asList(
 				new DatasetItem().setEntityId(files.get(0).getId())
@@ -2198,7 +2162,7 @@ public class DownloadListDaoImplTest {
 		});
 		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
-		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, useVersion, limit);
+		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		// only adds 1 now because the other file was already there
 		assertEquals(1L, count);
 		
@@ -2222,7 +2186,6 @@ public class DownloadListDaoImplTest {
 				new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(1L)
 		);
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
-		boolean useVersion = true;
 		// add all files (2) to the dataset
 		List<DatasetItem> items = Arrays.asList(
 				new DatasetItem().setEntityId(files.get(0).getId())
@@ -2237,7 +2200,7 @@ public class DownloadListDaoImplTest {
 		});
 		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
-		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, useVersion, limit);
+		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(2L, count);
 		
 		List<DownloadListItem> expected = Arrays.asList(

@@ -11,7 +11,7 @@
 			"$ref": "org.sagebionetworks.repo.model.table.Query"
 		},
 		"parentId": {
-			"description": "The synID of a folder or project to add all of the children files to the user's download list.  This parameter should be excluded when adding files from a query. Note: This is not recursive.",
+			"description": "The synID of a folder, project, or dataset to add all of the children files to the user's download list.  This parameter should be excluded when adding files from a query. Note: This is not recursive.",
 			"type": "string"
 		},
 		"useVersionNumber": {

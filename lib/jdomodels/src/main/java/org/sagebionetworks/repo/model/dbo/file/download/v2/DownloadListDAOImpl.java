@@ -726,7 +726,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	@WriteTransaction
 	@Override
-	public Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, boolean useVersion, long limit) {
+	public Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, long limit) {
 		createOrUpdateDownloadList(userId);
 		String sql = "INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " ("
 				+ COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + ", " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", "
@@ -739,10 +739,9 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				ps.setLong(1, userId);
 				ps.setLong(2, KeyFactory.stringToKey(itemsArray[i].getEntityId()));
-				long version = useVersion ? itemsArray[i].getVersionNumber() : -1;
-				ps.setLong(3, version);
+				ps.setLong(3, itemsArray[i].getVersionNumber());
 			}
-
+			
 			@Override
 			public int getBatchSize() {
 				return itemsArray.length;

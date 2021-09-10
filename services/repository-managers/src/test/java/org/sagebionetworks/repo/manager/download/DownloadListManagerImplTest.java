@@ -1074,7 +1074,7 @@ public class DownloadListManagerImplTest {
 		long limit = 100L;
 		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean(), anyLong()))
 				.thenReturn(count);
-		when(mockNodeDao.getDatasetItems(any())).thenReturn(null);
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.folder);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		// Call under test
@@ -1089,20 +1089,21 @@ public class DownloadListManagerImplTest {
 	public void testAddToDownloadListWithDatasetAsParentId() {
 		Long count = 2L;
 		String parentId = "syn123";
-		boolean useVersion = false;
 		long limit = 100L;
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123"),
-				new DatasetItem().setEntityId("syn234"));
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("123"),
+				new DatasetItem().setEntityId("234"));
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.dataset);
 		when(mockNodeDao.getDatasetItems(any())).thenReturn(items);
-		when(mockDownloadListDao.addDatasetItemsToDownloadList(any(), any(), anyBoolean(), anyLong()))
+		when(mockDownloadListDao.addDatasetItemsToDownloadList(any(), any(), anyLong()))
 				.thenReturn(count);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		// Call under test
-		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, useVersion, limit);
+		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, true, limit);
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
-		verify(mockDownloadListDao).addDatasetItemsToDownloadList(userOne.getId(), items, useVersion, limit);
+		verify(mockNodeDao).getDatasetItems(123L);
+		verify(mockDownloadListDao).addDatasetItemsToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 
