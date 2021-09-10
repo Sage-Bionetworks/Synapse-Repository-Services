@@ -63,7 +63,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	
 	@Override
 	public Optional<Set<Long>> getLimitObjectIds() {
-		return Optional.of(limitObjectIds);
+		return Optional.ofNullable(limitObjectIds);
 	}
 
 	@Override

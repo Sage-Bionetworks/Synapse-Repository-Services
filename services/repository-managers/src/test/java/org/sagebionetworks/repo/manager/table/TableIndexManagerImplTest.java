@@ -774,9 +774,13 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForContainerIsEmpty() {
+	public void testGetPossibleAnnotationDefinitionsWithEmptyFilter() {
+		
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(true);
+		
 		String token = nextPageToken.toToken();
-		containerIds = new HashSet<>();
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
 				token);
@@ -785,6 +789,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
 		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(any(), anyLong(), anyLong());
+		verify(mockFilter).isEmpty();
 	}
 
 	@Test
@@ -802,15 +807,19 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getViewScopeType(tableId)).thenReturn(scopeType);
 
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId.getId(), tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+		
+		verify(mockManagerSupport).getViewScopeType(tableId);
+		verify(mockManagerSupport).getViewScope(tableId);
 	}
 
 	@Test
@@ -825,24 +834,30 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+		
+		Set<Long> expectedScope = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
+		verify(mockMetadataProvider).getViewFilter(scopeType.getTypeMask(), expectedScope);
+		verify(mockFilter).isEmpty();
+
 	}
 
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		scope.setViewEntityType(null);
 
@@ -858,10 +873,10 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsWithCustomFields() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 		
 		when(mockFilter.newBuilder()).thenReturn(mockFilterBuilder);
 		when(mockFilterBuilder.addExcludeAnnotationKeys(any())).thenReturn(mockFilterBuilder);

@@ -457,8 +457,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(viewId, "viewId");
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
+		Set<Long> scope = tableManagerSupport.getViewScope(idAndVersion);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scope, nextPageToken);
 	}
 	
 	@Override
@@ -481,8 +481,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scopeSet, nextPageToken);
 	}
 	
 	
@@ -494,19 +493,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType,
-			Set<Long> containerIds, String nextPageToken) {
-		ValidateArgument.required(containerIds, "containerIds");
+			Set<Long> scope, String nextPageToken) {
+		ValidateArgument.required(scope, "scope");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
 		
-		if(containerIds.isEmpty()){
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
+		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), scope);
+		
+		if(filter.isEmpty()) {
 			results.setResults(Collections.emptyList());
 			results.setNextPageToken(null);
 			return results;
 		}
-		
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewScopeType, containerIds);
 		
 		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewScopeType.getTypeMask());
 		

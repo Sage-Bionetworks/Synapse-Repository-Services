@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -112,11 +113,6 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return submissionDao.getSubmissionData(objectIds, maxAnnotationChars);
-	}
-
-	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) {
 		// The submissions are not hierarchical, so the scope cannot be expanded
 		return scope;
@@ -176,34 +172,21 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return evaluationDao.getAvailableEvaluations(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return submissionDao.getSubmissionIdAndEtag(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return submissionDao.getSumOfSubmissionCRCsForEachEvaluation(containerIds);
-	}
-
-	@Override
-	public void validateTypeMask(Long viewTypeMask) {
-		// Nothing to validate, the mask is not used
-	}
-
-	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
+	@Override
+	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
+		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
+			throw new IllegalArgumentException(String.format(SCOPE_SIZE_LIMITED_EXCEEDED, maxContainersPerView));
+		}
+	}
+	
 }

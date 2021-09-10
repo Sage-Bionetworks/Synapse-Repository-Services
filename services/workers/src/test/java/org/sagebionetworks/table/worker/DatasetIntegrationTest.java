@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -106,54 +106,81 @@ public class DatasetIntegrationTest {
 	public void testQueryDataset()
 			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 
-		String fileId = entityManager.createEntity(userInfo,
-				new FileEntity().setName("afile").setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()),
-				null);
+		int numberOfVersions = 3;
+		String fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		String fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		String fileThree = createFileWithMultipleVersions(3, stringColumn.getName(), numberOfVersions);
 
-		Annotations annos = entityManager.getAnnotations(userInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "one", AnnotationsValueType.STRING);
-		entityManager.updateAnnotations(userInfo, fileId, annos);
 
-		FileEntity file = entityManager.getEntity(userInfo, fileId, FileEntity.class);
-		file.setVersionComment("comment 2");
-		file.setVersionLabel("v2");
-		final long fileIdLong = KeyFactory.stringToKey(file.getId());
-		boolean newVersion = true;
-		String activityId = null;
-		entityManager.updateEntity(userInfo, file, newVersion, activityId);
-
-		// change the annotation for the new version
-		annos = entityManager.getAnnotations(userInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "two", AnnotationsValueType.STRING);
-		entityManager.updateAnnotations(userInfo, fileId, annos);
-
-		file = entityManager.getEntity(userInfo, fileId, FileEntity.class);
-		assertEquals(2L, file.getVersionNumber());
-
-		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(),
-				MAX_WAIT);
-
-		// add both the first and second version of the file to the dataset.s
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(file.getId()).setVersionNumber(2L));
+		// add one version from each file
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo).setVersionNumber(2L),
+				new DatasetItem().setEntityId(fileThree).setVersionNumber(3L)
+				);
 
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
 				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
 		
-		final String fileEtag = file.getEtag();
 		
 		// call under test
 		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC",
 				(QueryResultBundle result) -> {
 					List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-					assertEquals(2, rows.size());
+					assertEquals(3, rows.size());
 					// one
-					assertEquals(new Row().setRowId(fileIdLong).setVersionNumber(1L).setEtag(fileEtag)
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne)).setVersionNumber(1L).setEtag("")
 							.setValues(Arrays.asList("one")), rows.get(0));
 					// two
-					assertEquals(new Row().setRowId(fileIdLong).setVersionNumber(2L).setEtag(fileEtag)
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo)).setVersionNumber(2L).setEtag("")
+							.setValues(Arrays.asList("two")), rows.get(0));
+					// three
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo)).setVersionNumber(3L).setEtag("")
 							.setValues(Arrays.asList("two")), rows.get(0));
 				}, MAX_WAIT);
+	}
+	
+	
+	/**
+	 * Create File entity with multiple versions using the annotations for each version.
+	 * 
+	 * @param annotationVersion
+	 * @return
+	 */
+	public String createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
+		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
+		for(int i=1; i <= numberOfVersions; i++) {
+			Annotations annos = new Annotations();
+			AnnotationsV2TestUtils.putAnnotations(annos, annotationKey, "v-"+i, AnnotationsValueType.STRING);
+			annotations.add(annos);
+		}
+		
+		// create the entity
+		String fileId = null;
+		int version = 1;
+		for(Annotations annos: annotations) {
+			if(fileId == null) {
+				// create the entity
+				fileId = entityManager.createEntity(userInfo,
+						new FileEntity().setName("afile-"+fileNumber).setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()),
+						null);
+			}else {
+				// create a new version for the entity
+				FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+				entity.setVersionComment("c-"+version);
+				entity.setVersionLabel("v-"+version);
+				boolean newVersion = true;
+				String activityId = null;
+				entityManager.updateEntity(userInfo, entity, newVersion, activityId);
+			}
+			// get the ID and etag
+			FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+			annos.setId(entity.getId());
+			annos.setEtag(entity.getEtag());
+			entityManager.updateAnnotations(userInfo, fileId, annos);
+			version++;
+		}
+		return fileId;
 	}
 
 }

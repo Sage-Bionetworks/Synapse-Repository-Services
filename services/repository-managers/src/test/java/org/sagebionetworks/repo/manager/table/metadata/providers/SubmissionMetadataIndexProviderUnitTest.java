@@ -6,12 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +44,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionMetadataIndexProviderUnitTest {
@@ -76,7 +75,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 
 	@Mock
 	private IdAndEtag mockIdAndEtag;
-	
+
 	@Mock
 	private SubmissionStatus mockSubmissionStatus;
 
@@ -122,35 +121,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testcreateViewOverLimitMessageFileView() {
-		int limit = 10;
-
-		// call under test
-		String message = provider.createViewOverLimitMessage(mockViewTypeMask, limit);
-
-		assertEquals("The view's scope exceeds the maximum number of " + limit + " evaluations.", message);
-
-	}
-
-	@Test
-	public void testGetObjectData() {
-
-		List<ObjectDataDTO> expected = Collections.singletonList(mockData);
-
-		List<Long> objectIds = ImmutableList.of(1L, 2L, 3L);
-
-		int maxAnnotationChars = 5;
-
-		when(mockSubmissionDao.getSubmissionData(any(), anyInt())).thenReturn(expected);
-
-		// Call under test
-		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
-
-		assertEquals(expected, result);
-		verify(mockSubmissionDao).getSubmissionData(objectIds, maxAnnotationChars);
-	}
-
-	@Test
 	public void testGetAnnotations() {
 		String objectId = "syn123";
 
@@ -166,7 +136,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		verify(mockSubmissionStatus).getSubmissionAnnotations();
 	}
-	
+
 	@Test
 	public void testGetAnnotationsWithNoUser() {
 		mockUser = null;
@@ -176,10 +146,10 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.getAnnotations(mockUser, objectId);
 		}).getMessage();
-		
+
 		assertEquals("The user is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testGetAnnotationsWithNoObjectId() {
 		String objectId = null;
@@ -188,7 +158,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.getAnnotations(mockUser, objectId);
 		}).getMessage();
-		
+
 		assertEquals("The object id is required.", errorMessage);
 	}
 
@@ -196,13 +166,13 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	public void testUpdateAnnotations() {
 		String objectId = "syn123";
 		String etag = "etag";
-		
+
 		Annotations updatedAnnotations = Mockito.mock(Annotations.class);
 
 		when(updatedAnnotations.getEtag()).thenReturn(etag);
-		
+
 		when(mockSubmissionManager.getSubmissionStatus(any(), any())).thenReturn(mockSubmissionStatus);
-		
+
 		when(mockSubmissionManager.updateSubmissionStatus(any(), any())).thenReturn(mockSubmissionStatus);
 
 		// Call under test
@@ -211,40 +181,40 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		verify(mockSubmissionManager).getSubmissionStatus(mockUser, KeyFactory.stringToKey(objectId).toString());
 		// Verify that we sync the etag from the input annotations before saving
 		verify(mockSubmissionStatus).setEtag(etag);
-		
+
 		verify(mockSubmissionStatus).setSubmissionAnnotations(updatedAnnotations);
 		verify(mockSubmissionManager).updateSubmissionStatus(mockUser, mockSubmissionStatus);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoUser() {
-		when(mockAnnotations.getEtag()).thenReturn("etag");		
+		when(mockAnnotations.getEtag()).thenReturn("etag");
 		String objectId = "syn123";
-		
+
 		mockUser = null;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The user is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoObjectId() {
 		when(mockAnnotations.getEtag()).thenReturn("etag");
-		
+
 		String objectId = null;
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The object id is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoAnnotations() {
 		String objectId = "syn123";
@@ -254,21 +224,21 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The annotations is required.", errorMessage);
 	}
-	
+
 	@Test
 	public void testUpdateAnnotationsWithNoEtag() {
 		when(mockAnnotations.getEtag()).thenReturn(null);
-		
-		String objectId = "syn123";		
+
+		String objectId = "syn123";
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			provider.updateAnnotations(mockUser, objectId, mockAnnotations);
 		}).getMessage();
-		
+
 		assertEquals("The annotations etag is required.", errorMessage);
 	}
 
@@ -301,20 +271,13 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		// Call under test
 		DefaultColumnModel model = provider.getDefaultColumnModel(mockViewTypeMask);
 
-		List<ObjectField> expectedFields = ImmutableList.of(
-				ObjectField.id,
-				ObjectField.name, 
-				ObjectField.createdOn, 
-				ObjectField.createdBy,
-				ObjectField.etag, 
-				ObjectField.modifiedOn,
-				ObjectField.projectId
-		);
-		
+		List<ObjectField> expectedFields = ImmutableList.of(ObjectField.id, ObjectField.name, ObjectField.createdOn,
+				ObjectField.createdBy, ObjectField.etag, ObjectField.modifiedOn, ObjectField.projectId);
+
 		assertNotNull(model);
 		assertEquals(expectedFields, model.getDefaultFields());
 		assertEquals(SubmissionField.values().length, model.getCustomFields().size());
-		
+
 		for (SubmissionField field : SubmissionField.values()) {
 			boolean present = model.findCustomFieldByColumnName(field.getColumnName()).isPresent();
 			assertTrue(present);
@@ -337,51 +300,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testGetAvaliableContainers() {
-
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-		Set<Long> expectedIds = ImmutableSet.of(1L);
-
-		when(mockEvaluationDao.getAvailableEvaluations(any())).thenReturn(expectedIds);
-
-		// Call under test
-		Set<Long> result = provider.getAvailableContainers(containerIds);
-
-		assertEquals(expectedIds, result);
-
-		verify(mockEvaluationDao).getAvailableEvaluations(containerIds);
-	}
-
-	@Test
-	public void testGetChildren() {
-
-		Long containerId = 1L;
-		List<IdAndEtag> expected = ImmutableList.of(mockIdAndEtag, mockIdAndEtag);
-
-		when(mockSubmissionDao.getSubmissionIdAndEtag(anyLong())).thenReturn(expected);
-
-		// Call under test
-		List<IdAndEtag> result = provider.getChildren(containerId);
-
-		assertEquals(expected, result);
-		verify(mockSubmissionDao).getSubmissionIdAndEtag(containerId);
-	}
-
-	@Test
-	public void testGetSumOfChildCRCsForEachContainer() {
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-
-		Map<Long, Long> expected = ImmutableMap.of(1L, 10L, 2L, 30L);
-
-		when(mockSubmissionDao.getSumOfSubmissionCRCsForEachEvaluation(any())).thenReturn(expected);
-
-		Map<Long, Long> result = provider.getSumOfChildCRCsForEachContainer(containerIds);
-
-		assertEquals(expected, result);
-		verify(mockSubmissionDao).getSumOfSubmissionCRCsForEachEvaluation(containerIds);
-	}
-
-	@Test
 	public void testGetBenefactorObjectType() {
 
 		// Call under test
@@ -391,4 +309,24 @@ public class SubmissionMetadataIndexProviderUnitTest {
 
 	}
 
+	@Test
+	public void testValidateScopeAndTypeWithUnderLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 3;
+		// call under test
+		provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+	}
+
+	@Test
+	public void testValidateScopeAndTypeWithOverLimit() {
+		Long typeMask = 0L;
+		Set<Long> scopeIds = Sets.newHashSet(1L, 2L);
+		int maxContainersPerView = 1;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
+		}).getMessage();
+		assertEquals("The view's scope exceeds the maximum number of 1 evaluations.", message);
+	}
 }

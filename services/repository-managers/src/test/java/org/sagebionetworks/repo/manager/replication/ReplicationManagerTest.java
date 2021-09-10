@@ -29,17 +29,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
+import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
@@ -55,28 +54,27 @@ import com.google.common.collect.Sets;
 public class ReplicationManagerTest {
 	
 	@Mock
-	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
+	private ObjectDataProviderFactory mockObjectDataProviderFactory;
 	@Mock
-	ConnectionFactory mockConnectionFactory;
+	private ConnectionFactory mockConnectionFactory;
 	@Mock
-	TableIndexDAO mockIndexDao;
+	private TableIndexDAO mockIndexDao;
 	@Mock
-	ReplicationMessageManager mockReplicationMessageManager;
+	private ReplicationMessageManager mockReplicationMessageManager;
 	@Mock
-	Clock clock;
+	private Clock clock;
 	
 	@InjectMocks
-	ReplicationManagerImpl manager;
+	private ReplicationManagerImpl manager;
 	
 	@Mock
-	TransactionStatus transactionStatus;
+	private TransactionStatus transactionStatus;
 	
 	@Mock
-	MetadataIndexProvider mockMetadataIndexProvider;
+	private ObjectDataProvider mockObjectDataProvider;
 	
-	List<ChangeMessage> changes;
+	private List<ChangeMessage> changes;
 	
-	private ViewObjectType viewObjectType;
 	private ReplicationType mainType;
 	
 	Long firstParentId;
@@ -151,18 +149,17 @@ public class ReplicationManagerTest {
 		expiredContainers = Lists.newArrayList(firstParentId);
 		nowMS = 101L;
 		
-		viewObjectType = ViewObjectType.ENTITY;
 		mainType = ReplicationType.ENTITY;
 	}
 	
 	@Test
 	public void testGroupByObjectType() {		
 		// Call under test
-		Map<ViewObjectType, ReplicationDataGroup> result = manager.groupByObjectType(changes);
+		Map<ReplicationType, ReplicationDataGroup> result = manager.groupByObjectType(changes);
 		
 		assertEquals(1, result.size());
 
-		ReplicationDataGroup group = result.get(viewObjectType);
+		ReplicationDataGroup group = result.get(mainType);
 		assertNotNull(group);
 		
 		List<Long> expectedAllIds = ImmutableList.of(111L, 222L, 333L);
@@ -185,11 +182,11 @@ public class ReplicationManagerTest {
 		changes.add(message);
 		
 		// Call under test
-		Map<ViewObjectType, ReplicationDataGroup> result = manager.groupByObjectType(changes);
+		Map<ReplicationType, ReplicationDataGroup> result = manager.groupByObjectType(changes);
 		
 		assertEquals(1, result.size());
 
-		ReplicationDataGroup group = result.get(viewObjectType);
+		ReplicationDataGroup group = result.get(mainType);
 		assertNotNull(group);
 		
 		List<Long> expectedAllIds = ImmutableList.of(111L, 222L, 333L);
@@ -206,8 +203,8 @@ public class ReplicationManagerTest {
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Collections.singletonList(mockIndexDao));
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
 		
 		setupDaoWriteTransaction();
 		
@@ -215,8 +212,8 @@ public class ReplicationManagerTest {
 		manager.replicate(changes);
 		
 		verify(mockConnectionFactory).getAllConnections();
-		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(viewObjectType);
-		verify(mockMetadataIndexProvider).getObjectData(ImmutableList.of(111L, 222L), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
+		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
+		verify(mockObjectDataProvider).getObjectData(ImmutableList.of(111L, 222L), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
 		verify(mockIndexDao).deleteObjectData(mainType, ImmutableList.of(111L,222L,333L));
 		verify(mockIndexDao).addObjectData(mainType, entityData);
 	}
@@ -235,8 +232,8 @@ public class ReplicationManagerTest {
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
 		
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
 		
 		// Call under test.
 		assertThrows(IllegalArgumentException.class, () -> {
@@ -259,8 +256,8 @@ public class ReplicationManagerTest {
 		// set a benefactor ID to be null;
 		entityData.get(0).setBenefactorId(null);
 		
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
 		
 		// Call under test.
 		assertThrows(RecoverableMessageException.class, () -> {
@@ -279,17 +276,17 @@ public class ReplicationManagerTest {
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
 
 		when(mockConnectionFactory.getConnection(any())).thenReturn(mockIndexDao);
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
 		
 		setupDaoWriteTransaction();
 
 		// call under test
-		manager.replicate(viewObjectType, entityId);
+		manager.replicate(mainType, entityId);
 		
 		verify(mockConnectionFactory).getConnection(ideAndVersion);
-		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(viewObjectType);
-		verify(mockMetadataIndexProvider).getObjectData(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
+		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
+		verify(mockObjectDataProvider).getObjectData(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
 		verify(mockIndexDao).deleteObjectData(mainType, Collections.singletonList(123L));
 		verify(mockIndexDao).addObjectData(mainType, entityData);
 	}
@@ -299,13 +296,13 @@ public class ReplicationManagerTest {
 	
 	@Test
 	public void testCompareCheckSums(){
-		when(mockMetadataIndexProvider.getObjectType()).thenReturn(viewObjectType);
-		when(mockMetadataIndexProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
+		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
+		when(mockObjectDataProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
 		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
 		// see before() for test setup.
 		Set<Long> trashedParents = Sets.newHashSet(3L, 6L);
 		// call under test
-		Set<Long> results = manager.compareCheckSums(mockIndexDao, mockMetadataIndexProvider, parentIds, trashedParents);
+		Set<Long> results = manager.compareCheckSums(mockIndexDao, mockObjectDataProvider, parentIds, trashedParents);
 		assertNotNull(results);
 		// 1 is in the truth but not replica
 		assertTrue(results.contains(1L));
@@ -320,14 +317,14 @@ public class ReplicationManagerTest {
 		// 6 is in the trash and missing from the replica
 		assertFalse(results.contains(6L));
 		
-		verify(mockMetadataIndexProvider).getSumOfChildCRCsForEachContainer(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(viewObjectType.getMainType(), parentIds);
+		verify(mockObjectDataProvider).getSumOfChildCRCsForEachContainer(parentIds);
+		verify(mockIndexDao).getSumOfChildCRCsForEachParent(mainType, parentIds);
 	}
 	
 	@Test
 	public void testCreateChange(){
 		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
-		ObjectType objectType = viewObjectType.getObjectType();
+		ObjectType objectType = mainType.getObjectType();
 		ChangeMessage message = manager.createChange(objectType, idAndEtag.getId(), ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
@@ -339,14 +336,14 @@ public class ReplicationManagerTest {
 	
 	@Test
 	public void testFindChangesForParentIdParentNotInTrash(){
-		when(mockMetadataIndexProvider.getObjectType()).thenReturn(viewObjectType);
-		when(mockMetadataIndexProvider.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(viewObjectType.getMainType(), firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
+		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		// see before() for setup.
 		boolean parentInTrash = false;		
 		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockMetadataIndexProvider, firstParentId, parentInTrash);
+		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, firstParentId, parentInTrash);
 		assertNotNull(result);
 		assertEquals(3, result.size());
 		// two should be updated.
@@ -362,20 +359,20 @@ public class ReplicationManagerTest {
 		assertEquals(""+replicaFour.getId(), message.getObjectId());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		
-		verify(mockIndexDao).getObjectChildren(viewObjectType.getMainType(), firstParentId);
-		verify(mockMetadataIndexProvider).getChildren(firstParentId);
+		verify(mockIndexDao).getObjectChildren(mainType, firstParentId);
+		verify(mockObjectDataProvider).getChildren(firstParentId);
 	}
 	
 	@Test
 	public void testFindChangesForParentIdParentInTrash(){
-		when(mockMetadataIndexProvider.getObjectType()).thenReturn(viewObjectType);
 		// setup some differences between the truth and replica.
 		Long parentId = 999L;
 		boolean parentInTrash = true;
-		when(mockIndexDao.getObjectChildren(viewObjectType.getMainType(), parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
+		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
+		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
 		
 		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockMetadataIndexProvider, parentId, parentInTrash);
+		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, parentId, parentInTrash);
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		// all children should be deleted.
@@ -387,26 +384,26 @@ public class ReplicationManagerTest {
 		assertEquals(""+replicaTwo.getId(), message.getObjectId());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		
-		verify(mockIndexDao).getObjectChildren(viewObjectType.getMainType(), parentId);
+		verify(mockIndexDao).getObjectChildren(mainType, parentId);
 		// since the parent is in the trash this call should not be made
-		verify(mockMetadataIndexProvider, never()).getChildren(parentId);
+		verify(mockObjectDataProvider, never()).getChildren(parentId);
 	}
 	
 	@Test
 	public void testPLFM_5352BenefactorDoesNotMatch() {
-		when(mockMetadataIndexProvider.getObjectType()).thenReturn(viewObjectType);
-		when(mockMetadataIndexProvider.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(viewObjectType.getMainType(), firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
+		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		// setup some differences between the truth and replica.
 		Long parentId = firstParentId;
 		boolean parentInTrash = false;
 		// The benefactor does not match
 		replicaOne.setBenefactorId(truthOne.getBenefactorId()+1);
-		when(mockIndexDao.getObjectChildren(viewObjectType.getMainType(), parentId)).thenReturn(Lists.newArrayList(replicaOne));
+		when(mockIndexDao.getObjectChildren(mainType, parentId)).thenReturn(Lists.newArrayList(replicaOne));
 		
 		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockMetadataIndexProvider, parentId, parentInTrash);
+		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, parentId, parentInTrash);
 		assertNotNull(result);
 		assertEquals(3, result.size());
 		// first should be updated
@@ -420,22 +417,22 @@ public class ReplicationManagerTest {
 	
 	@Test
 	public void testFindDeltas() throws Exception{
-		when(mockMetadataIndexProvider.getObjectType()).thenReturn(viewObjectType);
-		when(mockMetadataIndexProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
+		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
+		when(mockObjectDataProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
 		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
-		when(mockMetadataIndexProvider.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(viewObjectType.getMainType(), firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		// see before() for test setup.
 		// call under test
-		manager.findChildrenDeltas(mockIndexDao, mockMetadataIndexProvider, parentIds, trashedParents);
+		manager.findChildrenDeltas(mockIndexDao, mockObjectDataProvider, parentIds, trashedParents);
 		
-		verify(mockMetadataIndexProvider).getSumOfChildCRCsForEachContainer(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(viewObjectType.getMainType(), parentIds);
+		verify(mockObjectDataProvider).getSumOfChildCRCsForEachContainer(parentIds);
+		verify(mockIndexDao).getSumOfChildCRCsForEachParent(mainType, parentIds);
 		
 		// four parents are out-of-synch
-		verify(mockIndexDao, times(4)).getObjectChildren(eq(viewObjectType.getMainType()), anyLong());
+		verify(mockIndexDao, times(4)).getObjectChildren(eq(mainType), anyLong());
 		// three non-trashed parents are out-of-synch
-		verify(mockMetadataIndexProvider, times(3)).getChildren(anyLong());
+		verify(mockObjectDataProvider, times(3)).getChildren(anyLong());
 		// four batches should be set.
 		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(any());
 	}
@@ -443,9 +440,9 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testGetTrashedContainers(){
-		when(mockMetadataIndexProvider.getAvailableContainers(parentIds)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
+		when(mockObjectDataProvider.getAvailableContainers(parentIds)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
 		// call under test
-		Set<Long> results = manager.getTrashedContainers(parentIds, mockMetadataIndexProvider);
+		Set<Long> results = manager.getTrashedContainers(parentIds, mockObjectDataProvider);
 		assertEquals(trashedParents, results);
 	}
 

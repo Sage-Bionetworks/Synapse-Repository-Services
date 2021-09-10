@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
@@ -82,11 +81,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars);
-	}
-
-	@Override
 	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
 			throws LimitExceededException {
 		// The datasets are not hierarchical, so the scope cannot be expanded
@@ -120,26 +114,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return nodeDao.getAvailableNodes(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return nodeDao.getChildren(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return nodeDao.getSumOfChildCRCsForEachParent(containerIds);
-	}
-
-	@Override
-	public void validateTypeMask(Long viewTypeMask) {
-		// not currently using the view type mask
-	}
-
-	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		List<DatasetItem> items = nodeDao.getDatasetItems(viewId);
 		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
@@ -149,13 +123,21 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
 		return new FlatIdsFilter(ReplicationType.ENTITY, getSubTypes(), containerIds);
 	}
 
 	Set<SubType> getSubTypes() {
 		// currently only files are supported.
 		return Sets.newHashSet(SubType.file);
+	}
+
+	@Override
+	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
+		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
+			throw new IllegalArgumentException(
+					String.format("Maximum of %,d items in a dataset exceeded.", maxContainersPerView));
+		}
 	}
 
 }

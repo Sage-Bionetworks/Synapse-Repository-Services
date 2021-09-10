@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -341,20 +342,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#
-	 * getAllContainerIdsForViewScope(java.lang.String)
-	 */
-	@Override
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		// Lookup the scope for this view.
-		Set<Long> scope = viewScopeDao.getViewScope(idAndVersion.getId());
-		return getAllContainerIdsForScope(scope, scopeType);
-	}
-
 	@Override
 	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
@@ -365,17 +352,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 
 		return getContainerIds(scope, scopeType, true);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#
-	 * getAllContainerIdsForScope(java.util.Set)
-	 */
-	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType) {
-		return getContainerIds(scope, scopeType, false);
 	}
 
 	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
@@ -546,13 +522,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ViewObjectType objectType = scopeType.getObjectType();
 
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-
-		provider.validateTypeMask(scopeType.getTypeMask());
-
-		if (scopeIds != null && !scopeIds.isEmpty()) {
-			// Validation is built into getAllContainerIdsForScope() call
-			getAllContainerIdsForScope(scopeIds, scopeType);
-		}
+		provider.validateScopeAndType(scopeType.getTypeMask(), scopeIds, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 
 	@Override
@@ -592,6 +562,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// The table is in an invalid state if the last applied change etag does not
 		// match any of the change etags in the tables history.
 		return !tableTruthDao.isEtagInTablesChangeHistory(idAndVersion.getId().toString(), lastChangeEtag.get());
+	}
+
+	@Override
+	public Set<Long> getViewScope(IdAndVersion idAndVersion) {
+		return viewScopeDao.getViewScope(idAndVersion.getId());
 	}
 
 }
