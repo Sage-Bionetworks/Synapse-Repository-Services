@@ -24,7 +24,6 @@ public class TableRowChangeBackfillWorker implements ProgressingRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback) throws Exception {
-		
 		try {
 			tableEntityManager.backfillTableRowChangesBatch(BATCH_SIZE);
 		} catch (Throwable e) {

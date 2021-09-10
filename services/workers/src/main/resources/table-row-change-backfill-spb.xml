@@ -27,7 +27,7 @@
 								<property name="progressingRunner" ref="tableRowChangeBackfillWorker" />
 								<property name="semaphoreLockKey" value="tableRowChangeBackfillWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockTimeoutSec" value="1800" />
+								<property name="semaphoreLockTimeoutSec" value="900" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
