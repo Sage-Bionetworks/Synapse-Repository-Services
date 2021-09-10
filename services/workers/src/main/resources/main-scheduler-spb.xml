@@ -73,6 +73,7 @@
     <import resource="classpath:file-archival-spb.xml"/>
     <import resource="classpath:download-list-workers-spb.xml" />
     <import resource="classpath:validation-schema-index-spb.xml" />
+    <import resource="classpath:table-row-change-backfill-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -140,6 +141,7 @@
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
 		<ref bean="fileHandleRestoreRequestWorkerTrigger"/>
+		<ref bean="tableRowChangeBackfillWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
