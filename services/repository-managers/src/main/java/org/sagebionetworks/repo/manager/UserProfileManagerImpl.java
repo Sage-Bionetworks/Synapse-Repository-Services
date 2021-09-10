@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -210,12 +211,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Override
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
-			int limit, int offset) throws DatastoreException,
+													   int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		if (authorizationManager.isAnonymousUser(userInfo)) {
 			return PaginatedResults.createWithLimitAndOffset(Collections.EMPTY_LIST, (long)limit,(long)offset);
 		}
-		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
+		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset, sortBy, sortDirection);
 	}
 
 	@Override

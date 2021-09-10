@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -225,9 +226,9 @@ public class UserProfileManagerImplUnitTest {
 	public void testGetFavoriteAsAnonymous() throws Exception {
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
 		assertTrue(
-			userProfileManager.getFavorites(userInfo, 10, 0).getResults().isEmpty()
+			userProfileManager.getFavorites(userInfo, 10, 0, SortBy.FAVORITED_ON, org.sagebionetworks.repo.model.favorite.SortDirection.ASC).getResults().isEmpty()
 		);
-		verify(mockFavoriteDAO, never()).getFavoritesEntityHeader(anyString(), anyInt(), anyInt());
+		verify(mockFavoriteDAO, never()).getFavoritesEntityHeader(anyString(), anyInt(), anyInt(), any(SortBy.class), any(org.sagebionetworks.repo.model.favorite.SortDirection.class));
 	}
 	
 	/* Tests moved and mocked from UserProfileManagerImplTest */

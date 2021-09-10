@@ -1,0 +1,11 @@
+{
+	"type": "string",
+	"enum": [{
+		"name": "FAVORITED_ON",
+		"description": "TODO: Auto-generated description"
+	},
+	{
+		"name": "NAME",
+		"description": "TODO: Auto-generated description"
+	}]
+}

@@ -35,6 +35,8 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
+import org.sagebionetworks.repo.model.favorite.SortBy;
+import org.sagebionetworks.repo.model.favorite.SortDirection;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,13 +60,16 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	private static final String ORDER_BY_PARAM_NAME = "orderByParam";
+	private static final String DIRECTION_PARAM_NAME = "directionParam";
+
 	private static final String TRASH_FOLDER_ID = StackConfigurationSingleton.singleton().getTrashFolderEntityId();
 
 	private static final String SELECT_GET_FAVORITES_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 															+ " FROM " + TABLE_FAVORITE 
 															+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
 															+ " ORDER BY " + COL_FAVORITE_NODE_ID 
-															+ " LIMIT :" + LIMIT_PARAM_NAME 
+															+ " LIMIT :" + LIMIT_PARAM_NAME
 															+ " OFFSET :" + OFFSET_PARAM_NAME;
 	private static final String COUNT_FAVORITES_SQL = "SELECT COUNT(" + COL_FAVORITE_PRINCIPAL_ID +")"
 														+ "FROM "+ TABLE_FAVORITE +" f, "+ TABLE_NODE +" n "
@@ -75,7 +80,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 														+ " FROM " + TABLE_FAVORITE 
 														+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
 														+ " AND " + COL_FAVORITE_NODE_ID + "= :" + COL_FAVORITE_NODE_ID;
-	private static final String SELECT_FAVORITES_HEADERS_SQL = "SELECT n."+ COL_NODE_ID +", n."+ COL_NODE_NAME 
+	private static final String SELECT_FAVORITES_HEADERS_SQL_BASE = "SELECT n."+ COL_NODE_ID +", n."+ COL_NODE_NAME
 																+", n."+ COL_NODE_TYPE +", r."+ COL_REVISION_NUMBER
 																+", r."+ COL_REVISION_LABEL + ", n." + COL_NODE_CURRENT_REV + " "+
 																"FROM "+ TABLE_FAVORITE +" f, "+ TABLE_NODE +" n, "+ TABLE_REVISION +" r " +
@@ -83,9 +88,8 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
 																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
 																"AND n."+ COL_NODE_CURRENT_REV +" = r."+ COL_REVISION_NUMBER +" " +
-																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID +" " +
-																"ORDER BY " + COL_FAVORITE_NODE_ID +" " +
-																"LIMIT :" + LIMIT_PARAM_NAME +" " +
+																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID +" ";
+	private static final String SELECT_FAVORITES_HEADERS_SQL_LIMIT_OFFSET = " LIMIT :" + LIMIT_PARAM_NAME +" " +
 																"OFFSET :" + OFFSET_PARAM_NAME;
 
 
@@ -176,10 +180,39 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		return basicDao.getCount(DBOFavorite.class);
 	}
 
+	private String getOrderByClause(SortBy sortBy, SortDirection sortDirection) {
+		String orderByClause = " ORDER BY ";
+		switch (sortBy) {
+			case FAVORITED_ON:
+				orderByClause += "f." + COL_FAVORITE_CREATED_ON;
+				break;
+			case NAME:
+				orderByClause += "n." + COL_NODE_NAME;
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid value for sortBy specified: " + sortBy);
+		}
+
+		switch (sortDirection) {
+			case ASC:
+				orderByClause += " ASC ";
+				break;
+			case DESC:
+				orderByClause += " DESC ";
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid value for sortDirection specified: " + sortBy);
+		}
+
+		return orderByClause;
+	}
+
 	@Override
 	public PaginatedResults<EntityHeader> getFavoritesEntityHeader(
-			String principalId, int limit, int offset)
+			String principalId, int limit, int offset, SortBy sortBy, SortDirection sortDirection)
 			throws DatastoreException, InvalidModelException, NotFoundException {
+
+		String sql = SELECT_FAVORITES_HEADERS_SQL_BASE + getOrderByClause(sortBy, sortDirection) + SELECT_FAVORITES_HEADERS_SQL_LIMIT_OFFSET;
 		if(principalId == null) throw new IllegalArgumentException("Principal id can not be null");
 		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
 		// get one page of favorites
@@ -189,18 +222,15 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<EntityHeader> favoritesHeaders = null;
-		favoritesHeaders = namedJdbcTemplate.query(SELECT_FAVORITES_HEADERS_SQL, params, new RowMapper<EntityHeader>() {
-			@Override
-			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-				EntityHeader header = new EntityHeader();
-				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-				header.setName(rs.getString(COL_NODE_NAME));
-				header.setType(EntityTypeUtils.getEntityTypeClassName(EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
-				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
-				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
-				header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV)); // this will always be true, we don't retrieve/store versions in favorites
-				return header;
-			}
+		favoritesHeaders = namedJdbcTemplate.query(sql, params, (rs, rowNum) -> {
+			EntityHeader header = new EntityHeader();
+			header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+			header.setName(rs.getString(COL_NODE_NAME));
+			header.setType(EntityTypeUtils.getEntityTypeClassName(EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
+			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			header.setIsLatestVersion(rs.getLong(COL_REVISION_NUMBER) == rs.getLong(COL_NODE_CURRENT_REV)); // this will always be true, we don't retrieve/store versions in favorites
+			return header;
 		});
 
 		// return the page of objects, along with the total result count

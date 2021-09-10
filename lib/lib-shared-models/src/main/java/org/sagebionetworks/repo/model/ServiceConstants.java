@@ -94,6 +94,8 @@ public class ServiceConstants {
 	 * this was a reasonable choice.
 	 */
 	public static final String SORT_BY_PARAM = "sort";
+	public static final String SORT_DIRECTION_PARAM = "sortDirection";
+
 	/**
 	 * Default value for the sort parameter, which is to not sort
 	 */
