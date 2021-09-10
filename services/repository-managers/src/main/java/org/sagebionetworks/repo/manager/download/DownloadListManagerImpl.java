@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
@@ -71,6 +72,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -129,11 +131,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private FileHandlePackageManager fileHandlePackageManager;
 	private FileHandleManager fileHandleManager;
 	private FileProvider fileProvider;
+	private NodeDAO nodeDao;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
 			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager,
-			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider) {
+			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider,
+			NodeDAO nodeDao) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
@@ -141,6 +145,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		this.fileHandlePackageManager = fileHandlePackageManager;
 		this.fileHandleManager = fileHandleManager;
 		this.fileProvider = fileProvider;
+		this.nodeDao = nodeDao;
 	}
 
 	@WriteTransaction
@@ -397,8 +402,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	AddToDownloadListResponse addToDownloadList(UserInfo userInfo, String parentId, boolean useVersion, long limit) {
 		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
-				.addChildrenToDownloadList(userInfo.getId(), KeyFactory.stringToKey(parentId), useVersion, limit));
+		Long parentIdKey = KeyFactory.stringToKey(parentId);
+		if (nodeDao.getNodeTypeById(parentId).equals(EntityType.dataset)) {
+			List<DatasetItem> items = nodeDao.getDatasetItems(parentIdKey);
+			return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
+					.addDatasetItemsToDownloadList(userInfo.getId(), items, limit));
+		} else {
+			return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
+					.addChildrenToDownloadList(userInfo.getId(), parentIdKey, useVersion, limit));
+		}
 	}
 
 	/**
