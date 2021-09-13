@@ -104,7 +104,7 @@ public class AccessApprovalController {
 	/**
 	 * Retrieving a page of AccessorGroup.
 	 * This service is only available for ACT.
-	 * ACT can filter on AccessRequirementId, submitterId, and expiredOn by setting
+	 * ACT can filter on AccessRequirementId, submitterId, accessorId and expiredOn by setting
 	 * the associated fields in AccessorGroupRequest.
 	 * 
 	 * @param userId

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -192,9 +194,33 @@ public class AccessApprovalManagerImplUnitTest {
 		AccessorGroupRequest request = new AccessorGroupRequest();
 		List<AccessorGroup> result = new LinkedList<AccessorGroup>();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
+		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
 		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
 		assertEquals(result, response.getResults());
+	}
+	
+	@Test
+	public void testListAccessorGroup() {
+		
+		AccessorGroupRequest request = new AccessorGroupRequest()
+				.setAccessorId("123")
+				.setSubmitterId("456")
+				.setAccessRequirementId("789")
+				.setExpireBefore(new Date())
+				.setNextPageToken(null);
+		
+		List<AccessorGroup> expected = Collections.emptyList();
+		NextPageToken expectedToken = new NextPageToken(request.getNextPageToken());
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		when(mockAccessApprovalDAO.listAccessorGroup(any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(expected);
+		
+		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
+		
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockAccessApprovalDAO).listAccessorGroup(request.getAccessRequirementId(), request.getSubmitterId(), request.getAccessorId(), request.getExpireBefore(), expectedToken.getLimitForQuery(), expectedToken.getOffset());
+		
+		assertEquals(expected, response.getResults());
 	}
 
 	@Test
