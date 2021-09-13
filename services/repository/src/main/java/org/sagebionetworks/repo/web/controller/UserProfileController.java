@@ -446,12 +446,14 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = "CREATED_ON") SortBy sortBy,
-			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = "DESC") org.sagebionetworks.repo.model.favorite.SortDirection sortDirection
-			)
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = "FAVORITED_ON") String sortBy,
+			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = "DESC") String sortDirection
+	)
 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sortBy, sortDirection);
+		SortBy sortByEnum = SortBy.valueOf(sortBy.toUpperCase());
+		org.sagebionetworks.repo.model.favorite.SortDirection sortDirectionEnum = org.sagebionetworks.repo.model.favorite.SortDirection.valueOf(sortDirection.toUpperCase());
+		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sortByEnum, sortDirectionEnum);
 	}
 
 	public static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {
