@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -50,6 +53,20 @@ public class SubmissionUtils {
 		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
 		dbo.setEtag(UUID.randomUUID().toString());
 		return dbo;
+	}
+	
+	public static List<DBOSubmissionAccessorChange> createDBOSubmissionAccessorChanges(Submission dto) {
+		if (dto.getAccessorChanges() == null || dto.getAccessorChanges().isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		return dto.getAccessorChanges().stream().map(accessorChange -> {
+			DBOSubmissionAccessorChange dbo = new DBOSubmissionAccessorChange();
+			dbo.setSubmissionId(dto.getId());
+			dbo.setAccessorId(accessorChange.getUserId());
+			dbo.setAccessType(accessorChange.getType().name());
+			return dbo;
+		}).collect(Collectors.toList());		
 	}
 
 	public static DBOSubmissionStatus getDBOStatus(Submission dto) {

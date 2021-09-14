@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,10 +14,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -41,7 +42,7 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -49,7 +50,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.ImmutableList;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOSubmissionDAOImplTest {
 
@@ -98,7 +99,7 @@ public class DBOSubmissionDAOImplTest {
 		return accessRequirement;
 	}
 
-	@Before
+	@BeforeEach
 	public void before() {
 		// create a user
 		user1 = new UserGroup();
@@ -144,7 +145,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete = new ArrayList<String>();
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		for (String id: dtosToDelete) {
 			submissionDao.delete(id);
@@ -401,9 +402,11 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(ImmutableList.of(dto4InfoWithAccessorChanges), actual);
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetByIdNotFound() {
-		submissionDao.getSubmission("0");
+		assertThrows(NotFoundException.class, () -> {			
+			submissionDao.getSubmission("0");
+		});
 	}
 
 	@Test
@@ -411,34 +414,29 @@ public class DBOSubmissionDAOImplTest {
 		assertNull(submissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
 	}
 
-	@Test (expected = IllegalTransactionStateException.class)
+	@Test
 	public void testGetForUpdateWithoutTransaction() {
-		submissionDao.getForUpdate("0");
+		assertThrows(IllegalTransactionStateException.class, () -> {			
+			submissionDao.getForUpdate("0");
+		});
 	}
 
 	@Test
 	public void testAddOrderByClause() {
 		String query = "";
-		assertEquals("case null order",
-				"", DBOSubmissionDAOImpl.addOrderByClause(null, null, query));
-		assertEquals("case order by created on null asc",
-				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, null, query));
-		assertEquals("case order by created on asc",
-				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, true, query));
-		assertEquals("case order by created on desc",
-				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON DESC",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, false, query));
-		assertEquals("case order by modified on null asc",
-				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, null, query));
-		assertEquals("case order by modified on asc",
-				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, true, query));
-		assertEquals("case order by modified on desc",
-				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
-				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, false, query));
+		assertEquals("", DBOSubmissionDAOImpl.addOrderByClause(null, null, query), "case null order");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, null, query), "case order by created on null asc");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, true, query), "case order by created on asc");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON DESC",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, false, query), "case order by created on desc");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, null, query), "case order by modified on null asc");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, true, query), "case order by modified on asc");
+		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
+				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, false, query), "case order by modified on desc");
 	}
 
 	@Test

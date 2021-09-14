@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,14 +20,15 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
- * DBO that stores the accessor changes for a given submission
+ * DBO for storing the accessor changes for a given submission
  */
 public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBOSubmissionAccessorChange, DBOSubmissionAccessorChange> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			// This is a sub-table of submission, so its backup ID is the submission id.
-			new FieldColumn("submisionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID, true).withIsBackupId(true),
-			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID, true)
+			new FieldColumn("submissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID, true).withIsBackupId(true),
+			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID, true),
+			new FieldColumn("accessType", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE)
 		};
 	
 	private static final TableMapping<DBOSubmissionAccessorChange> TABLE_MAPPING = new TableMapping<DBOSubmissionAccessorChange>() {
@@ -36,6 +38,7 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 			DBOSubmissionAccessorChange dbo = new DBOSubmissionAccessorChange();
 			dbo.setSubmissionId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID));
 			dbo.setAccessorId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID));
+			dbo.setAccessType(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE));
 			return dbo;
 		}
 
@@ -65,6 +68,7 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 	
 	private String submissionId;
 	private String accessorId;
+	private String accessType;
 
 	public DBOSubmissionAccessorChange() {
 	}
@@ -84,6 +88,14 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 	public void setAccessorId(String accessorId) {
 		this.accessorId = accessorId;
 	}
+	
+	public String getAccessType() {
+		return accessType;
+	}
+	
+	public void setAccessType(String accessType) {
+		this.accessType = accessType;
+	}
 
 	@Override
 	public TableMapping<DBOSubmissionAccessorChange> getTableMapping() {
@@ -92,8 +104,7 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGE;
 	}
 
 	@Override
@@ -118,7 +129,7 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessorId, submissionId);
+		return Objects.hash(accessType, accessorId, submissionId);
 	}
 
 	@Override
@@ -133,7 +144,8 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 			return false;
 		}
 		DBOSubmissionAccessorChange other = (DBOSubmissionAccessorChange) obj;
-		return Objects.equals(accessorId, other.accessorId) && Objects.equals(submissionId, other.submissionId);
+		return Objects.equals(accessType, other.accessType) && Objects.equals(accessorId, other.accessorId)
+				&& Objects.equals(submissionId, other.submissionId);
 	}
 
 }

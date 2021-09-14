@@ -319,6 +319,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGE",
+			"description": "The list of accessor changes for a data access submission"
+		},
+		{
 			"name": "DATA_ACCESS_NOTIFICATIONS",
 			"description": "Data access revocation and renewal notifications"
 		},

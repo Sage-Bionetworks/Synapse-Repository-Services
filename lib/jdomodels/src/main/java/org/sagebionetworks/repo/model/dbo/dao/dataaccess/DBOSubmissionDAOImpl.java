@@ -304,9 +304,11 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		SubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
 		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(toCreate);
 		DBOSubmissionSubmitter submitter = SubmissionUtils.createDBOSubmissionSubmitter(toCreate, idGenerator);
+		List<DBOSubmissionAccessorChange> accessorChanges = SubmissionUtils.createDBOSubmissionAccessorChanges(toCreate);
 		basicDao.createNew(dboSubmission);
 		basicDao.createNew(status);
 		basicDao.createOrUpdate(submitter);
+		basicDao.createBatch(accessorChanges);
 		return getSubmissionStatus(toCreate.getId());
 	}
 
