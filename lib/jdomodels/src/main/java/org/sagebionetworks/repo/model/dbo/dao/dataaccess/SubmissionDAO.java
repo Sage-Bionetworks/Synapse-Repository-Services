@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.util.TemporaryCode;
 
 public interface SubmissionDAO {
 
@@ -128,4 +129,10 @@ public interface SubmissionDAO {
 	
 	// For testing
 	void truncateAll();
+	
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Migration to normalize accessor changes for submission (See PLFM-6917)")
+	void backFillAccessorChangesIfNeeded(Submission submission);
+	
+	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Migration to normalize accessor changes for submission (See PLFM-6917)")
+	Long countAccessorChanges(String submissionId);
 }

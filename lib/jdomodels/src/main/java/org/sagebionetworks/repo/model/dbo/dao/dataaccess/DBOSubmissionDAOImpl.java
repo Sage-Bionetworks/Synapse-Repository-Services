@@ -36,6 +36,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -302,7 +303,12 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		basicDao.createNew(dboSubmission);
 		basicDao.createNew(status);
 		basicDao.createOrUpdate(submitter);
-		basicDao.createBatch(accessorChanges);
+		
+		// Needed for testing migration 
+		if (!accessorChanges.isEmpty()) {
+			basicDao.createBatch(accessorChanges);
+		}
+		
 		return getSubmissionStatus(toCreate.getId());
 	}
 
@@ -439,5 +445,28 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_DATA_ACCESS_SUBMISSION);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void backFillAccessorChangesIfNeeded(Submission submission) {
+		List<AccessorChange> accessorChanges = submission.getAccessorChanges();
+		
+		if (accessorChanges == null || accessorChanges.isEmpty()) {
+			return;
+		}
+		
+		Long currentCount = countAccessorChanges(submission.getId());
+		
+		if (currentCount > 0L) {
+			return;
+		}
+		
+		basicDao.createBatch(SubmissionUtils.createDBOSubmissionAccessorChanges(submission));
+	}
+	
+	@Override
+	public Long countAccessorChanges(String submissionId) {
+		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + " WHERE " + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID + "=?", Long.class, submissionId);
 	}
 }
