@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.worker.TestHelper;
@@ -101,22 +102,28 @@ public class DatasetIntegrationTest {
 		}
 	}
 
-	@Disabled
+//	@Disabled
 	@Test
 	public void testQueryDataset()
 			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 
 		int numberOfVersions = 3;
-		String fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
-		String fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
-		String fileThree = createFileWithMultipleVersions(3, stringColumn.getName(), numberOfVersions);
-
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileThree = createFileWithMultipleVersions(3, stringColumn.getName(), numberOfVersions);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()),
+				fileTwo.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileThree.getId()),
+				fileThree.getEtag(), MAX_WAIT);
 
 		// add one version from each file
 		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne).setVersionNumber(1L),
-				new DatasetItem().setEntityId(fileTwo).setVersionNumber(2L),
-				new DatasetItem().setEntityId(fileThree).setVersionNumber(3L)
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L),
+				new DatasetItem().setEntityId(fileThree.getId()).setVersionNumber(3L)
 				);
 
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
@@ -129,14 +136,14 @@ public class DatasetIntegrationTest {
 					List<Row> rows = result.getQueryResult().getQueryResults().getRows();
 					assertEquals(3, rows.size());
 					// one
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne)).setVersionNumber(1L).setEtag("")
-							.setValues(Arrays.asList("one")), rows.get(0));
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag())
+							.setValues(Arrays.asList("v-1")), rows.get(0));
 					// two
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo)).setVersionNumber(2L).setEtag("")
-							.setValues(Arrays.asList("two")), rows.get(0));
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag())
+							.setValues(Arrays.asList("v-2")), rows.get(1));
 					// three
-					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo)).setVersionNumber(3L).setEtag("")
-							.setValues(Arrays.asList("two")), rows.get(0));
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileThree.getId())).setVersionNumber(3L).setEtag(fileThree.getEtag())
+							.setValues(Arrays.asList("v-3")), rows.get(2));
 				}, MAX_WAIT);
 	}
 	
@@ -147,7 +154,7 @@ public class DatasetIntegrationTest {
 	 * @param annotationVersion
 	 * @return
 	 */
-	public String createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
+	public FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
 		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
 		for(int i=1; i <= numberOfVersions; i++) {
 			Annotations annos = new Annotations();
@@ -180,7 +187,7 @@ public class DatasetIntegrationTest {
 			entityManager.updateAnnotations(userInfo, fileId, annos);
 			version++;
 		}
-		return fileId;
+		return entityManager.getEntity(userInfo, fileId, FileEntity.class);
 	}
 
 }

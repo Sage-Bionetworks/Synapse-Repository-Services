@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +57,9 @@ public class SubmissionObjectProviderTest {
 		when(mockSubmissionDao.getSubmissionData(any(), anyInt())).thenReturn(expected);
 
 		// Call under test
-		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
+		Iterator<ObjectDataDTO> iterator = provider.getObjectData(objectIds, maxAnnotationChars);
+		List<ObjectDataDTO> result = new ArrayList<ObjectDataDTO>();
+		iterator.forEachRemaining(result::add);
 
 		assertEquals(expected, result);
 		verify(mockSubmissionDao).getSubmissionData(objectIds, maxAnnotationChars);

@@ -2996,7 +2996,7 @@ public class NodeDAOImplTest {
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
-		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
 		file.setNodeType(EntityType.file);
 		file.setParentId(project.getId());
 		file.setFileHandleId(fileHandle.getId());
@@ -3022,8 +3022,10 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
+		long limit = 100;
+		long offset = 0;
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
@@ -3094,14 +3096,42 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
+		long limit = 100;
+		long offset = 0;
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(0, fileDto.getAnnotations().size());
+	}
+	
+	@Test
+	public void testGetEntityDTOsWithMultipleVersionsAndPaginated() throws Exception {
+		int numberVersions = 3;
+		String one = createNodeWithMultipleVersions(numberVersions);
+		String two = createNodeWithMultipleVersions(numberVersions);
+		
+		List<Long> ids = KeyFactory.stringToKey(Arrays.asList(one, two));
+		// call under test
+		long limit = 3;
+		long offset = 1;
+		int maxAnnotationChars = 10;
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		// 0
+		assertEquals(ids.get(0), results.get(0).getId());
+		assertEquals(2L, results.get(0).getVersion());
+		// 1
+		assertEquals(ids.get(0), results.get(1).getId());
+		assertEquals(3L, results.get(1).getVersion());
+		// 2
+		assertEquals(ids.get(1), results.get(2).getId());
+		assertEquals(1L, results.get(2).getVersion());
 	}
 	
 

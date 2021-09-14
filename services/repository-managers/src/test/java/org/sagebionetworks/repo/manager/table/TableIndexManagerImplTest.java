@@ -59,7 +59,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -86,6 +88,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -2117,6 +2120,101 @@ public class TableIndexManagerImplTest {
 			manager.refreshViewBenefactors(viewId);
 		});
 	}
+
+	@Test
+	public void testUpdateObjectReplication() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L),
+				new ObjectDataDTO().setId(0L).setVersion(2L),
+				new ObjectDataDTO().setId(1L).setVersion(1L),
+				new ObjectDataDTO().setId(1L).setVersion(2L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+
+		// call under test
+		manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+
+		// batch one
+		verify(mockIndexDao).deleteObjectData(type, Arrays.asList(0L,1L));
+		verify(mockIndexDao).addObjectData(type, toUpdate.subList(0, 3));
+		// batch two
+		verify(mockIndexDao).deleteObjectData(type, Arrays.asList(1L));
+		verify(mockIndexDao).addObjectData(type, toUpdate.subList(3, 4));
+	}
+	
+	
+	/**
+	 * A failure with a batch greater than one needs to be retried.
+	 */
+	@Test
+	public void testUpdateObjectReplicationWithExceptionBatchGreaterThanOne() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L),
+				new ObjectDataDTO().setId(0L).setVersion(2L),
+				new ObjectDataDTO().setId(1L).setVersion(1L),
+				new ObjectDataDTO().setId(1L).setVersion(2L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+		
+		DataIntegrityViolationException e = new DataIntegrityViolationException("something is wrong!");
+		doThrow(e).when(mockIndexDao).addObjectData(any(), any());
+		
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+		});
+		assertEquals(thrown.getCause(), e);
+	}
+	
+	/**
+	 * Failure on a single object is permanent.
+	 */
+	@Test
+	public void testUpdateObjectReplicationWithExceptionBatchOfOne() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+		
+		DataIntegrityViolationException e = new DataIntegrityViolationException("something is wrong!");
+		doThrow(e).when(mockIndexDao).addObjectData(any(), any());
+		
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+		});
+		assertEquals(thrown.getCause(), e);
+	}
+	
+	@Test
+	public void testDeleteObjectData() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<Long> toDeleteIds = Arrays.asList(1L,2L,3L);
+
+		setupExecuteInWriteTransaction();
+
+		// call under test
+		manager.deleteObjectData(type, toDeleteIds);
+
+		verify(mockIndexDao).deleteObjectData(type, toDeleteIds);
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {

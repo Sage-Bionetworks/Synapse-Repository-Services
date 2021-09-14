@@ -150,6 +150,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
+	public static final String SQL_SELECT_ENTITY_DTO = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetEntityDTOs.sql");
+	
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -279,8 +282,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String JOIN_NODE_REVISION = TABLE_NODE+" N"+
 			" JOIN "+TABLE_REVISION+" R"+
 			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_NODE_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")";
-	private static final String JOIN_NODE_REVISION_FILES = JOIN_NODE_REVISION+ " LEFT JOIN "
-			+ TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + " )";
 	
 	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
 			ENTITY_HEADER_SELECT+
@@ -361,17 +362,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
 	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
-	
-	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N." + COL_NODE_ID + ", N." + COL_NODE_CURRENT_REV + ", N."
-			+ COL_NODE_CREATED_BY + ", N." + COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N." + COL_NODE_NAME
-			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
-			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
-			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_USER_ANNOS_JSON
-			+ ", F." + COL_FILES_CONTENT_SIZE 
-			+", F." + COL_FILES_BUCKET_NAME
-			+", F." + COL_FILES_CONTENT_MD5
-			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
-			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
 	
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
@@ -1752,13 +1742,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids,final int maxAnnotationSize) {
+	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids,final int maxAnnotationSize, long limit, long offset) {
 		ValidateArgument.required(ids, "ids");
 		if(ids.isEmpty()){
 			return Collections.emptyList();
 		}
-		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
+		Map<String, Object> parameters = new HashMap<String, Object>(3);
 		parameters.put(NODE_IDS_LIST_PARAM_NAME, ids);
+		parameters.put("limit", limit);
+		parameters.put("offset", offset);
 		return namedParameterJdbcTemplate.query(SQL_SELECT_ENTITY_DTO , parameters, new RowMapper<ObjectDataDTO>() {
 
 			@Override
@@ -1766,9 +1758,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					throws SQLException {
 				ObjectDataDTO dto = new ObjectDataDTO();
 				long entityId = rs.getLong(COL_NODE_ID);
-				long objectVersion = rs.getLong(COL_NODE_CURRENT_REV);
+				long version = rs.getLong(COL_REVISION_NUMBER);
 				dto.setId(entityId);
-				dto.setVersion(objectVersion);
+				dto.setVersion(version);
 				dto.setCurrentVersion(rs.getLong(COL_NODE_CURRENT_REV));
 				dto.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				dto.setCreatedOn(new Date(rs.getLong(COL_NODE_CREATED_ON)));
@@ -1806,7 +1798,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(userAnnoJson != null){
 					try {
 						Annotations annos = EntityFactory.createEntityFromJSONString(userAnnoJson, Annotations.class);
-						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, objectVersion, annos, maxAnnotationSize));
+						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, version, annos, maxAnnotationSize));
 					} catch (JSONObjectAdapterException e) {
 						throw new DatastoreException(e);
 					}

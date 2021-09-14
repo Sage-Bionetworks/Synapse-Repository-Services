@@ -4,6 +4,7 @@ package org.sagebionetworks.table.cluster.view.filter;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 /**
@@ -41,5 +42,11 @@ public interface ViewFilter {
 	 * @return
 	 */
 	Optional<Set<Long>> getLimitObjectIds();
+	
+	/**
+	 * Get the ReplicationType of this filter.
+	 * @return
+	 */
+	ReplicationType getReplicationType();
 	
 }

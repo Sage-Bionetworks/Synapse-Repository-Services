@@ -65,6 +65,11 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	public Optional<Set<Long>> getLimitObjectIds() {
 		return Optional.ofNullable(limitObjectIds);
 	}
+	
+	@Override
+	public ReplicationType getReplicationType() {
+		return mainType;
+	}
 
 	@Override
 	public int hashCode() {
