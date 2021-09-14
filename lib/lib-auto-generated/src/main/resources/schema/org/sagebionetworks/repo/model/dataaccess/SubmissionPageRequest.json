@@ -15,7 +15,7 @@
 		},
 		"accessorId": {
 			"type": "string",
-			"description": "Optional filter by the id of an accessor in the submission."
+			"description": "Optional filter by the id of an accessor in the submission. Note that the submitter is an accessor."
 		},
 		"orderBy":{
 			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionOrder",

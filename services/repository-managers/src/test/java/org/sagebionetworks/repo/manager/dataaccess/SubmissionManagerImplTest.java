@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -872,19 +873,17 @@ public class SubmissionManagerImplTest {
 		request.setFilterBy(SubmissionState.SUBMITTED);
 		request.setOrderBy(SubmissionOrder.CREATED_ON);
 		request.setIsAscending(true);
+		request.setAccessorId("123");
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<Submission> list = new LinkedList<Submission>();
-		when(mockSubmissionDao.getSubmissions(accessRequirementId,
-				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
-				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
+		when(mockSubmissionDao.getSubmissions(any(), any(), any(), any(), anyBoolean(), anyLong(), anyLong())).thenReturn(list);
 		// call under test
 		SubmissionPage page = manager.listSubmission(mockUser, request);
 		assertNotNull(page);
 		assertEquals(page.getResults(), list);
 
-		verify(mockSubmissionDao).getSubmissions(accessRequirementId,
-				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
-				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockSubmissionDao).getSubmissions(request.getAccessRequirementId(),
+				request.getFilterBy(), request.getAccessorId(), request.getOrderBy(), request.getIsAscending(), NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 
 	@Test
@@ -912,7 +911,7 @@ public class SubmissionManagerImplTest {
 			// method under test
 			manager.listInfoForApprovedSubmissions(mockUser, request);
 		});
-		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
+		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), any(), anyLong(), anyLong());
 	}
 	
 	@Test
@@ -927,7 +926,7 @@ public class SubmissionManagerImplTest {
 			// method under test
 			manager.listInfoForApprovedSubmissions(mockUser, request);
 		});
-		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), anyLong(), anyLong());
+		verify(mockSubmissionDao, never()).getSubmissions(any(), any(), any(), any(), any(), anyLong(), anyLong());
 	}
 
 	@Test

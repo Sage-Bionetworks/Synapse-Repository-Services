@@ -9,9 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +51,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -180,22 +183,30 @@ public class DBOSubmissionDAOImplTest {
 	private Submission createSubmission(){
 		return createSubmission(accessRequirement, this.researchProject, System.currentTimeMillis());
 	}
+	
+	private Submission createSubmission(String submitter){
+		return createSubmission(accessRequirement, this.researchProject, System.currentTimeMillis(), submitter);
+	}
 		
 	private Submission createSubmission(AccessRequirement accessRequirement, ResearchProject researchProject, long modifiedOn){
+		return createSubmission(accessRequirement, researchProject, modifiedOn, user1.getId());
+	}
+	
+	private Submission createSubmission(AccessRequirement accessRequirement, ResearchProject researchProject, long modifiedOn, String submitter){
 		Submission dto = new Submission();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setRequestId(request.getId());
 		AccessorChange change = new AccessorChange();
 		change.setType(AccessType.GAIN_ACCESS);
-		change.setUserId(user1.getId());
-		dto.setAccessorChanges(Arrays.asList(change));
+		change.setUserId(submitter);
+		dto.setAccessorChanges(new ArrayList<>(Arrays.asList(change)));
 		dto.setAttachments(Arrays.asList("1"));
 		dto.setDucFileHandleId("2");
 		dto.setIrbFileHandleId("3");
 		dto.setIsRenewalSubmission(false);
-		dto.setSubmittedBy(user1.getId());
+		dto.setSubmittedBy(submitter);
 		dto.setSubmittedOn(new Date());
-		dto.setModifiedBy(user1.getId());
+		dto.setModifiedBy(submitter);
 		dto.setModifiedOn(new Date(modifiedOn));
 		dto.setResearchProjectSnapshot(researchProject);
 		dto.setState(SubmissionState.SUBMITTED);
@@ -293,31 +304,108 @@ public class DBOSubmissionDAOImplTest {
 		submissionDao.delete(dto1.getId());
 		submissionDao.delete(dto2.getId());
 	}
-
+	
 	@Test
-	public void testListSubmissions() {
+	public void testListSubmissionsNoFilters() {
 		Submission dto1 = createSubmission();
 		Submission dto2 = createSubmission();
+		Submission dto3 = createSubmission(user2.getId());
+		
 		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
+		
+		Set<Submission> expected = ImmutableSet.of(dto1, dto2, dto3);
+		
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, null, null, null, 10L, 0L);
+
+		assertEquals(expected, new HashSet<Submission>(submissions));
+
+	}
+
+	@Test
+	public void testListSubmissionsByState() {
+		Submission dto1 = createSubmission();
+		Submission dto2 = createSubmission();
+		Submission dto3 = createSubmission(user2.getId());
+		
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
+		
+		List<Submission> expected = Arrays.asList(dto1, dto2, dto3);
 
 		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
-				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
+				SubmissionState.SUBMITTED, null, SubmissionOrder.CREATED_ON,
 				true, 10L, 0L);
-		assertNotNull(submissions);
-		assertEquals(2, submissions.size());
-		assertEquals(dto1, submissions.get(0));
-		assertEquals(dto2, submissions.get(1));
-
-		assertEquals(new HashSet<Submission>(submissions),
-				new HashSet<Submission>(submissionDao.getSubmissions(
-				accessRequirement.getId().toString(), null, null, null, 10L, 0L)));
+		
+		assertEquals(expected, submissions);
 
 		submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
-				SubmissionState.APPROVED, SubmissionOrder.MODIFIED_ON,
+				SubmissionState.APPROVED, null, SubmissionOrder.MODIFIED_ON,
 				false, 10L, 0L);
-		assertNotNull(submissions);
-		assertEquals(0, submissions.size());
+		
+		assertEquals(Collections.emptyList(), submissions);
+	}
+	
+	@Test
+	public void testListSubmissionsByAccessor() {
+		Submission dto1 = createSubmission();
+		Submission dto2 = createSubmission();
+		Submission dto3 = createSubmission(user2.getId());
+		
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
+		
+		List<Submission> expected = Arrays.asList(dto1, dto2);
+
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		
+		assertEquals(expected, submissions);
+
+	}
+	
+	@Test
+	public void testListSubmissionsByAccessorWithMultipleAccessors() {
+		Submission dto1 = createSubmission();
+		
+		Submission dto2 = createSubmission();
+		dto2.getAccessorChanges().add(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(user2.getId()));
+		
+		Submission dto3 = createSubmission(user2.getId());
+		dto3.getAccessorChanges().add(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(user1.getId()));
+		
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
+		
+		List<Submission> expected = Arrays.asList(dto2, dto3);
+
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, user2.getId(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		
+		assertEquals(expected, submissions);
+
+	}
+	
+	@Test
+	public void testListSubmissionsByAccessorAndState() {
+		Submission dto1 = createSubmission();
+		Submission dto2 = createSubmission();
+		
+		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
+		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
+		
+		List<Submission> expected = Arrays.asList(dto1, dto2);
+
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), SubmissionState.SUBMITTED, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		
+		assertEquals(expected, submissions);
+		
+		submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), SubmissionState.APPROVED, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		
+		assertEquals(Collections.emptyList(), submissions);
+
 	}
 	
 	private static SubmissionInfo createSubmissionInfo(ResearchProject rp, long modifiedOn, Submission submission, boolean includeAccessorChqnges) {
