@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,8 +28,8 @@ public class SubmissionObjectProvider implements ObjectDataProvider {
 	}
 
 	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return submissionDao.getSubmissionData(objectIds, maxAnnotationChars);
+	public Iterator<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
+		return submissionDao.getSubmissionData(objectIds, maxAnnotationChars).iterator();
 	}
 
 	@Override

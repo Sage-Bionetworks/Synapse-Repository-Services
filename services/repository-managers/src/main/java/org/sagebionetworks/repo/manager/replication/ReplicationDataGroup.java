@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 
 /**
@@ -16,30 +15,29 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 public class ReplicationDataGroup {
 
 	private ReplicationType objectType;
-	private List<Long> allIds;
+	private List<Long> toDelete;
 	private List<Long> createOrUpdateIds;
 
 	public ReplicationDataGroup(ReplicationType objectType) {
 		this.objectType = objectType;
-		this.allIds = new ArrayList<>();
+		this.toDelete = new ArrayList<>();
 		this.createOrUpdateIds = new ArrayList<>();
 	}
 
 	public void addForCreateOrUpdate(Long id) {
-		addForDelete(id);
 		createOrUpdateIds.add(id);
 	}
 
 	public void addForDelete(Long id) {
-		allIds.add(id);
+		toDelete.add(id);
 	}
 
 	public ReplicationType getObjectType() {
 		return objectType;
 	}
 
-	public List<Long> getAllIds() {
-		return allIds;
+	public List<Long> getToDeleteIds() {
+		return toDelete;
 	}
 
 	public List<Long> getCreateOrUpdateIds() {
@@ -48,7 +46,7 @@ public class ReplicationDataGroup {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(allIds, createOrUpdateIds, objectType);
+		return Objects.hash(createOrUpdateIds, objectType, toDelete);
 	}
 
 	@Override
@@ -56,15 +54,12 @@ public class ReplicationDataGroup {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof ReplicationDataGroup)) {
 			return false;
 		}
 		ReplicationDataGroup other = (ReplicationDataGroup) obj;
-		return Objects.equals(allIds, other.allIds) && Objects.equals(createOrUpdateIds, other.createOrUpdateIds)
-				&& objectType == other.objectType;
+		return Objects.equals(createOrUpdateIds, other.createOrUpdateIds) && objectType == other.objectType
+				&& Objects.equals(toDelete, other.toDelete);
 	}
 
 }

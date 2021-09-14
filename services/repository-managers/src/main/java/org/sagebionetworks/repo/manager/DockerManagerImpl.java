@@ -76,7 +76,7 @@ public class DockerManagerImpl implements DockerManager {
 	 * 
 	 * @param userInfo
 	 * @param service
-	 * @param scope optional parameter used to authenticate access to docker repositories.
+	 * @param parentIds optional parameter used to authenticate access to docker repositories.
 	 *			pass null if the docker client only needs to check login credentials
 	 * @return
 	 */

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +24,7 @@ public interface ObjectDataProvider {
 	 *                           to that size
 	 * @return
 	 */
-	List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars);
+	Iterator<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars);
 
 	/**
 	 * Returns the sub-set of available containers, a container is available if it

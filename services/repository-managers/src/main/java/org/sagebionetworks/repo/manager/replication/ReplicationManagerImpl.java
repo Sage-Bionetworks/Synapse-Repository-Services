@@ -1,20 +1,19 @@
 package org.sagebionetworks.repo.manager.replication;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
+import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -23,8 +22,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -56,18 +55,22 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	private ReplicationMessageManager replicationMessageManager;
 
 	private Clock clock;
+	
+	final private TableIndexConnectionFactory indexConnectionFactory;
 
 	@Autowired
 	public ReplicationManagerImpl(ConnectionFactory connectionFactory,
 			ObjectDataProviderFactory objectDataProviderFactory, 
 			TableManagerSupport tableManagerSupport,
 			ReplicationMessageManager replicationMessageManager, 
-			Clock clock) {
+			Clock clock,
+			TableIndexConnectionFactory indexConnectionFactory) {
 		this.connectionFactory = connectionFactory;
 		this.objectDataProviderFactory = objectDataProviderFactory;
 		this.tableManagerSupport = tableManagerSupport;
 		this.replicationMessageManager = replicationMessageManager;
 		this.clock = clock;
+		this.indexConnectionFactory = indexConnectionFactory;
 	}
 
 	/**
@@ -80,30 +83,32 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	public void replicate(List<ChangeMessage> messages) throws RecoverableMessageException {
 
 		Map<ReplicationType, ReplicationDataGroup> data = groupByObjectType(messages);
-
-		for (Entry<ReplicationType, ReplicationDataGroup> groupEntry : data.entrySet()) {
-
-			ReplicationType replicationType = groupEntry.getKey();
-			ReplicationDataGroup groupData = groupEntry.getValue();
-
-			ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(replicationType);
-
-			List<ObjectDataDTO> objectData = provider.getObjectData(groupData.getCreateOrUpdateIds(),
-					MAX_ANNOTATION_CHARS);
-
-			validateEntityDtos(objectData);
-
-			// Get the connections
-			List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
-
-			// make all changes in an index as a transaction
-			for (TableIndexDAO indexDao : indexDaos) {
-				// apply the change to this index.
-				replicateInIndex(indexDao, replicationType, objectData, groupData.getAllIds());
-			}
-
+		
+		for (ReplicationDataGroup group : data.values()) {
+			
+			updateReplicationTables(group);
 		}
 
+	}
+
+	/**
+	 * Update the replication tables within a single transaction that removes rows to be deleted
+	 * and creates or updates rows from the provided group.
+	 * 
+	 * @param replicationType
+	 * @param toDelete
+	 * @param objectData
+	 */
+	void updateReplicationTables(ReplicationDataGroup group) {
+		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
+		
+		indexManager.deleteObjectData(group.getObjectType(), group.getToDeleteIds());
+		
+		ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(group.getObjectType());
+		Iterator<ObjectDataDTO> objectData = provider.getObjectData(group.getCreateOrUpdateIds(),
+				MAX_ANNOTATION_CHARS);
+		
+		indexManager.updateObjectReplication(group.getObjectType(), objectData);
 	}
 
 	/**
@@ -111,23 +116,14 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * 
 	 */
 	@Override
-	public void replicate(ReplicationType objectType, String objectId) {
-		ValidateArgument.required(objectType, "objectType");
+	public void replicate(ReplicationType replicationType, String objectId) {
+		ValidateArgument.required(replicationType, "objectType");
 		ValidateArgument.required(objectId, "objectId");
-
-		ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(objectType);
-
-		Long id = KeyFactory.stringToKey(objectId);
-
-		List<Long> ids = Collections.singletonList(id);
-
-		List<ObjectDataDTO> objectDTOs = provider.getObjectData(ids, MAX_ANNOTATION_CHARS);
-
-		// Connect only to the index for this table
-
-		TableIndexDAO indexDao = connectionFactory.getConnection(IdAndVersion.parse(objectId));
-
-		replicateInIndex(indexDao, objectType, objectDTOs, ids);
+		
+		ReplicationDataGroup group = new ReplicationDataGroup(replicationType);
+		group.addForCreateOrUpdate(KeyFactory.stringToKey(objectId));
+		 
+		updateReplicationTables(group);
 	}
 
 	@Override
@@ -355,25 +351,5 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			return null;
 		});
 	}
-	
-	/**
-	 * Validate the given list of DTOs
-	 * 
-	 * @param indexDaos
-	 * @throws RecoverableMessageException
-	 */
-	static void validateEntityDtos(List<ObjectDataDTO> dtos) throws RecoverableMessageException {
-		for (ObjectDataDTO dto : dtos) {
-			// See PLFM-4497.
-			if (dto.getBenefactorId() == null) {
-				if (dtos.size() > 1) {
-					throw new RecoverableMessageException(
-							"Null benefactor found for batch.  Will retry each entry in the batch.");
-				} else {
-					throw new IllegalArgumentException(
-							"Single null benefactor found for: " + dto.getId() + ".  Will not retry.");
-				}
-			}
-		}
-	}
+
 }

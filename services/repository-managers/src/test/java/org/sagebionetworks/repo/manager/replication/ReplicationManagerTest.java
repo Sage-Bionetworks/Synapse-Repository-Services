@@ -18,17 +18,23 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
+import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -63,6 +69,10 @@ public class ReplicationManagerTest {
 	private ReplicationMessageManager mockReplicationMessageManager;
 	@Mock
 	private Clock clock;
+	@Mock
+	private TableIndexConnectionFactory mockIndexConnectionFactory;
+	@Mock
+	private TableIndexManager mockTableIndexManager;
 	
 	@InjectMocks
 	private ReplicationManagerImpl manager;
@@ -72,6 +82,9 @@ public class ReplicationManagerTest {
 	
 	@Mock
 	private ObjectDataProvider mockObjectDataProvider;
+	
+	@Captor
+	private ArgumentCaptor<Iterator<ObjectDataDTO>> iteratorCaptor;
 	
 	private List<ChangeMessage> changes;
 	
@@ -162,10 +175,10 @@ public class ReplicationManagerTest {
 		ReplicationDataGroup group = result.get(mainType);
 		assertNotNull(group);
 		
-		List<Long> expectedAllIds = ImmutableList.of(111L, 222L, 333L);
+		List<Long> expectedDeleteIds = ImmutableList.of(333L);
 		List<Long> expectedCreateOrUpdateIds = ImmutableList.of(111L, 222L);
 		
-		assertEquals(expectedAllIds, group.getAllIds());
+		assertEquals(expectedDeleteIds, group.getToDeleteIds());
 		assertEquals(expectedCreateOrUpdateIds, group.getCreateOrUpdateIds());
 	}
 	
@@ -189,110 +202,64 @@ public class ReplicationManagerTest {
 		ReplicationDataGroup group = result.get(mainType);
 		assertNotNull(group);
 		
-		List<Long> expectedAllIds = ImmutableList.of(111L, 222L, 333L);
+		List<Long> expectedDeleteIds = ImmutableList.of(333L);
 		List<Long> expectedCreateOrUpdateIds = ImmutableList.of(111L, 222L);
 		
-		assertEquals(expectedAllIds, group.getAllIds());
+		assertEquals(expectedDeleteIds, group.getToDeleteIds());
 		assertEquals(expectedCreateOrUpdateIds, group.getCreateOrUpdateIds());
 	}
 	
 	@Test
-	public void testRun() throws RecoverableMessageException, Exception{
+	public void testReplicateChanges() throws RecoverableMessageException, Exception{
 		
-		int count = 5;
+		int count = 2;
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
 		
-		when(mockConnectionFactory.getAllConnections()).thenReturn(Collections.singletonList(mockIndexDao));
-		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
-		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
+		List<Long> expectedDeleteIds = ImmutableList.of(333L);
+		List<Long> expectedCreateOrUpdateIds = ImmutableList.of(111L, 222L);
 		
-		setupDaoWriteTransaction();
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData.iterator());
 		
 		// call under test
 		manager.replicate(changes);
 		
-		verify(mockConnectionFactory).getAllConnections();
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
-		verify(mockObjectDataProvider).getObjectData(ImmutableList.of(111L, 222L), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteObjectData(mainType, ImmutableList.of(111L,222L,333L));
-		verify(mockIndexDao).addObjectData(mainType, entityData);
-	}
-
-	
-	/**
-	 * If a single entity is replicated with a null benefactor, then the worker should fail with no-retry.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testPLFM_4497Single() throws Exception{
-		int count = 1;
-		List<ObjectDataDTO> entityData = createEntityDtos(count);
-
-		// set a benefactor ID to be null;
-		entityData.get(0).setBenefactorId(null);
-		
-		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
-		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
-		
-		// Call under test.
-		assertThrows(IllegalArgumentException.class, () -> {
-			manager.replicate(changes);
-		});
-	}
-	
-	
-	/**
-	 * Given a batch of entities to replicate, if a single entity in the batch
-	 * has a null benefactor, then the entire batch should be retried. Batches
-	 * will be retried as individuals.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testPLFM_4497Batch() throws Exception{
-		int count = 2;
-		List<ObjectDataDTO> entityData = createEntityDtos(count);
-		// set a benefactor ID to be null;
-		entityData.get(0).setBenefactorId(null);
-		
-		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
-		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
-		
-		// Call under test.
-		assertThrows(RecoverableMessageException.class, () -> {
-			manager.replicate(changes);
-		});
-
+		verify(mockObjectDataProvider).getObjectData(expectedCreateOrUpdateIds, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
+		verify(mockTableIndexManager).deleteObjectData(mainType, expectedDeleteIds);
+		verify(mockTableIndexManager).updateObjectReplication(eq(mainType), iteratorCaptor.capture());
+		List<ObjectDataDTO> actualList = ImmutableList.copyOf(iteratorCaptor.getValue());
+		assertEquals(entityData, actualList);
 	}
 	
 	@Test
 	public void testReplicateSingle() {
 		String entityId = "syn123";
-		IdAndVersion ideAndVersion = IdAndVersion.parse(entityId);
 		List<Long> entityids = Collections.singletonList(KeyFactory.stringToKey(entityId));
 		
 		int count = 1;
 		List<ObjectDataDTO> entityData = createEntityDtos(count);
-
-		when(mockConnectionFactory.getConnection(any())).thenReturn(mockIndexDao);
-		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
-		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData);
 		
-		setupDaoWriteTransaction();
+		List<Long> expectedDeleteIds = Collections.emptyList();
+
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData.iterator());
+
 
 		// call under test
 		manager.replicate(mainType, entityId);
 		
-		verify(mockConnectionFactory).getConnection(ideAndVersion);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
 		verify(mockObjectDataProvider).getObjectData(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).deleteObjectData(mainType, Collections.singletonList(123L));
-		verify(mockIndexDao).addObjectData(mainType, entityData);
+		verify(mockTableIndexManager).deleteObjectData(mainType, expectedDeleteIds);
+		verify(mockTableIndexManager).updateObjectReplication(eq(mainType), iteratorCaptor.capture());
+		List<ObjectDataDTO> actualList = ImmutableList.copyOf(iteratorCaptor.getValue());
+		assertEquals(entityData, actualList);
 	}
-	
-
-
 	
 	@Test
 	public void testCompareCheckSums(){
@@ -446,14 +413,6 @@ public class ReplicationManagerTest {
 		assertEquals(trashedParents, results);
 	}
 
-	
-	private void setupDaoWriteTransaction() {
-		doAnswer(invocation -> {
-			TransactionCallback<?> callback = (TransactionCallback<?>) invocation.getArguments()[0];
-			callback.doInTransaction(transactionStatus);
-			return null;
-		}).when(mockIndexDao).executeInWriteTransaction(any());
-	}
 	
 	/**
 	 * Test helper

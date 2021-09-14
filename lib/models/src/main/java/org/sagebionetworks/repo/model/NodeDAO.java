@@ -531,7 +531,7 @@ public interface NodeDAO {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids, int maxAnnotationChars);
+	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids, int maxAnnotationChars, long limit, long offest);
 
 	/**
 	 * 

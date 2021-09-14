@@ -199,7 +199,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	/**
-	 * Update an Entity using data form a view.
+	 * Update an Entity using data from a view.
 	 * 
 	 * NOTE: Each entity is updated in a separate transaction to prevent locking the
 	 * entity tables for long periods of time. This also prevents deadlock.

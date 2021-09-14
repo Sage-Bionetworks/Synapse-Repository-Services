@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -54,7 +56,11 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 
+import com.google.common.collect.Iterators;
+
 public class TableIndexManagerImpl implements TableIndexManager {
+	public static final int BATCH_SIZE = 10_000;
+
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
@@ -797,6 +803,53 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(viewId, "viewId");
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
 		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
+	}
+	
+	@Override
+	public void updateObjectReplication(ReplicationType replicationType, Iterator<ObjectDataDTO> objectData) {
+		updateObjectReplication(replicationType, objectData, BATCH_SIZE);
+	}
+	
+	void updateObjectReplication(ReplicationType replicationType, Iterator<ObjectDataDTO> objectData, int batchSize) {
+
+		Iterators.partition(objectData, batchSize).forEachRemaining(batch -> {
+			try {
+				List<Long> distinctIdsInBatch = batch.stream().map(i -> i.getId()).distinct().collect(Collectors.toList());
+				tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+					/*
+					 * We delete all rows for all objects of the given type. This ensures that any
+					 * deleted annotations or versions are also removed from the replication tables.
+					 */
+					tableIndexDao.deleteObjectData(replicationType, distinctIdsInBatch);
+
+					/*
+					 * Add back all of the remaining data in batches.
+					 */
+					tableIndexDao.addObjectData(replicationType, batch);
+					return null;
+				});
+			}catch(Exception e) {
+				// The fix for PLFM-4497 is to retry failed batches as individuals.
+				if(batch.size() > 1) {
+					// throwing a RecoverableMessageException will result in an attempt to update each object separately.
+					throw new RecoverableMessageException(e);
+				}else {
+					
+					throw new IllegalArgumentException(e);
+				}
+			}
+
+		});
+	}
+		
+	@Override
+	public void deleteObjectData(ReplicationType objectType, List<Long> toDeleteIds) {
+		if(toDeleteIds != null && !toDeleteIds.isEmpty()) {
+			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+				tableIndexDao.deleteObjectData(objectType, toDeleteIds);
+				return null;
+			});
+		}
 	}
 
 }

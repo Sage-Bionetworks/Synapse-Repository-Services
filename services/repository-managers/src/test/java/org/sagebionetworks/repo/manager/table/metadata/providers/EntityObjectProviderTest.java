@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,18 +46,22 @@ public class EntityObjectProviderTest {
 	public void testGetObjectData() {
 
 		List<ObjectDataDTO> expected = Collections.singletonList(mockData);
+		List<ObjectDataDTO> empty = Collections.emptyList();
 
 		List<Long> objectIds = ImmutableList.of(1L, 2L, 3L);
 
 		int maxAnnotationChars = 5;
 
-		when(mockNodeDao.getEntityDTOs(any(), anyInt())).thenReturn(expected);
+		when(mockNodeDao.getEntityDTOs(any(), anyInt(), anyLong(), anyLong())).thenReturn(expected, empty);
 
 		// Call under test
-		List<ObjectDataDTO> result = provider.getObjectData(objectIds, maxAnnotationChars);
+		Iterator<ObjectDataDTO> iterator = provider.getObjectData(objectIds, maxAnnotationChars);
+		List<ObjectDataDTO> result = new ArrayList<ObjectDataDTO>();
+		iterator.forEachRemaining(result::add);
 
 		assertEquals(expected, result);
-		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars);
+		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars, EntityObjectProvider.PAGE_SIZE, 0L);
+		verify(mockNodeDao).getEntityDTOs(objectIds, maxAnnotationChars, EntityObjectProvider.PAGE_SIZE, EntityObjectProvider.PAGE_SIZE);
 	}
 	
 	@Test

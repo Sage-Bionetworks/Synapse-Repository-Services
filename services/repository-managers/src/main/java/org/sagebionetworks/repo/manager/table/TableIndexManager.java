@@ -6,10 +6,11 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
-import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -264,5 +265,21 @@ public interface TableIndexManager {
 	 * @param viewId
 	 */
 	void refreshViewBenefactors(IdAndVersion viewId);
+
+	/**
+	 * Update the object replication for the given object data.
+	 * @param objectType
+	 * @param allIds The IDs of all rows that will be updated.
+	 * @param objectData
+	 */
+	void updateObjectReplication(ReplicationType objectType, Iterator<ObjectDataDTO> objectData);
+
+	/**
+	 * Delete the object replication data for the given objectIds.
+	 * 
+	 * @param objectType
+	 * @param toDeleteIds
+	 */
+	void deleteObjectData(ReplicationType objectType, List<Long> toDeleteIds);
 
 }
