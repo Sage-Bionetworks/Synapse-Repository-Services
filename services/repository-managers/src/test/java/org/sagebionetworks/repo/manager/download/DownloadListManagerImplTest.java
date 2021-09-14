@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
@@ -107,6 +108,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -157,6 +159,8 @@ public class DownloadListManagerImplTest {
 	private JSONObject mockDetails;
 	@Mock
 	private CSVWriter mockCSVWriter;
+	@Mock
+	private NodeDAO mockNodeDao;
 	@Captor
 	private ArgumentCaptor<Iterator<DownloadListItemResult>>  iteratorCaptor;
 	@Captor
@@ -1070,6 +1074,7 @@ public class DownloadListManagerImplTest {
 		long limit = 100L;
 		when(mockDownloadListDao.addChildrenToDownloadList(any(), anyLong(), anyBoolean(), anyLong()))
 				.thenReturn(count);
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.folder);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
 		// Call under test
@@ -1077,6 +1082,28 @@ public class DownloadListManagerImplTest {
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).addChildrenToDownloadList(userOne.getId(), 123L, useVersion, limit);
+		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testAddToDownloadListWithDatasetAsParentId() {
+		Long count = 2L;
+		String parentId = "syn123";
+		long limit = 100L;
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("123"),
+				new DatasetItem().setEntityId("234"));
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.dataset);
+		when(mockNodeDao.getDatasetItems(any())).thenReturn(items);
+		when(mockDownloadListDao.addDatasetItemsToDownloadList(any(), any(), anyLong()))
+				.thenReturn(count);
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		// Call under test
+		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, true, limit);
+		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
+		assertEquals(expected, response);
+		verify(mockNodeDao).getDatasetItems(123L);
+		verify(mockDownloadListDao).addDatasetItemsToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 

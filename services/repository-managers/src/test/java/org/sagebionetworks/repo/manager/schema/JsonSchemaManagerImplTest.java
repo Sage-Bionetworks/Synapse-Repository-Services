@@ -876,6 +876,7 @@ public class JsonSchemaManagerImplTest {
 				.withDependencies(new ArrayList<SchemaDependency>());
 		verify(mockSchemaDao).createNewSchemaVersion(expectedNewSchemaRequest);
 		verify(managerSpy, never()).createOrUpdateValidationSchemaIndex(any());
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
 		verify(managerSpy).buildValidationSchema(versionInfo.get$id());
 		verify(managerSpy).validateSchema(schema);
 		verify(mockSchemaDao).deleteSchemaVersion(versionInfo.getVersionId());
@@ -1698,6 +1699,7 @@ public class JsonSchemaManagerImplTest {
 		JsonSchema result = managerSpy.createOrUpdateValidationSchemaIndex(versionId);
 		verify(mockValidationIndexDao).createOrUpdate(versionId, validationSchema);
 		verify(mockSchemaDao, never()).getObjectIdsBoundToSchemaIterator(any());
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
 		assertEquals(result, validationSchema);
 	}
 	

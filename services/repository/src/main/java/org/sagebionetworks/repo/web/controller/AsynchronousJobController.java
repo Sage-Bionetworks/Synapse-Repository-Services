@@ -99,6 +99,7 @@ public class AsynchronousJobController {
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
 	 */
+	@Deprecated
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_CANCEL, method = RequestMethod.GET)

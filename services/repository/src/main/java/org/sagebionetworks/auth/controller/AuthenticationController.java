@@ -4,8 +4,6 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.authorize;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;

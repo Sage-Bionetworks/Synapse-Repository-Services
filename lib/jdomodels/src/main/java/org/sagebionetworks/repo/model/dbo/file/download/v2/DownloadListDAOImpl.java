@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -721,6 +722,32 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		params.addValue("synId", KeyFactory.stringToKey(item.getFileEntityId()));
 		params.addValue("version", item.getVersionNumber());
 		return namedJdbcTemplate.queryForObject(sql, params, JSON_OBJECT_MAPPER);
+	}
+
+	@WriteTransaction
+	@Override
+	public Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, long limit) {
+		createOrUpdateDownloadList(userId);
+		String sql = "INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " ("
+				+ COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + ", " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", "
+				+ COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER + ", " + COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + ") "
+				+ "VALUES(?, ?, ?, NOW(3))";
+		items = items.subList(0, Math.min((int)limit, items.size()));
+		DatasetItem[] itemsArray = items.toArray(new DatasetItem[items.size()]);
+		int[] updates = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, userId);
+				ps.setLong(2, KeyFactory.stringToKey(itemsArray[i].getEntityId()));
+				ps.setLong(3, itemsArray[i].getVersionNumber());
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return itemsArray.length;
+			}
+		});
+		return (long)IntStream.of(updates).sum();
 	}
 
 }

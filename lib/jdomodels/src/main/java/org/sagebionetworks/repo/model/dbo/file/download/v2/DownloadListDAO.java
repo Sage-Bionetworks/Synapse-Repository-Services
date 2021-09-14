@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 
 public interface DownloadListDAO {
 
@@ -148,5 +149,16 @@ public interface DownloadListDAO {
 	 * @return
 	 */
 	JSONObject getItemManifestDetails(DownloadListItem item);
+
+
+	/**
+	 * Adds all of the files in the list of dataset items to the user's download list.
+	 * 
+	 * @param userId
+	 * @param items
+	 * @param limit		 Limit the number of files that can be added.
+	 * @return The total number of files added.
+	 */
+	Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, long limit);
 
 }

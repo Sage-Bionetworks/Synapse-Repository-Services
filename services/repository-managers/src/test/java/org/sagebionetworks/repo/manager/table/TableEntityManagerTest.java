@@ -112,7 +112,6 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.AmazonServiceException;
@@ -2001,8 +2000,9 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testBackFillTableRowChanges() throws IOException {
+	public void testBackFillTableRowChangesBatch() throws IOException {
 		
+		int batchSize = 10;
 		int pageSize = 10;
 		
 		List<TableRowChange> changePage = createChange(tableId, pageSize);
@@ -2012,21 +2012,20 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
 		
 		// Call under test
-		manager.backFillTableRowChanges();
+		manager.backfillTableRowChangesBatch(batchSize);
 		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
 		verify(mockTruthDao, times(pageSize)).getRowSet(any());
 		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
 		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
 	}
 	
 	@Test
-	public void testBackFillTableRowChangesWithFileRefs() throws IOException {
+	public void testBackFillTableRowChangesBatchWithFileRefs() throws IOException {
 		
-		int pageSize = 10;
+		int batchSize = 10;
 		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		List<TableRowChange> changePage = createChange(tableId, batchSize);
 		
 		SparseRowDto row = new SparseRowDto();
 		row.setValues(Collections.singletonMap(String.valueOf(ColumnType.FILEHANDLEID.ordinal()), "123"));
@@ -2038,55 +2037,20 @@ public class TableEntityManagerTest {
 		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
 		
 		// Call under test
-		manager.backFillTableRowChanges();
+		manager.backfillTableRowChangesBatch(batchSize);
 		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
-		verify(mockTruthDao, times(pageSize)).getRowSet(any());
-		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), true);
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
+		verify(mockTruthDao, times(batchSize)).getRowSet(any());
+		verify(mockColumModelManager, times(batchSize)).getAndValidateColumnModels(rowDto.getColumnIds());
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), true);
 	}
 	
 	@Test
-	public void testBackFillTableRowChangesAndMultiplePages() throws IOException {
+	public void testBackFillTableRowChangesBatchWithAmazonS3NotFound() throws IOException {
 		
-		int totalPages = 11;
-		int pageSize = 1000;
+		int batchSize = 10;
 		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
-		
-		// Creates another 10 pages (e.g. leads to two batches, one with 10K and one with 1K)
-		List<List<TableRowChange>> otherPages = new ArrayList<>();
-		
-		for (int i=0; i<totalPages - 1; i++) {
-			otherPages.add(createChange(tableId, pageSize));
-		}
-		
-		// Final empty list to avoid infinite loop
-		otherPages.add(Collections.emptyList());
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, (List<TableRowChange>[]) otherPages.toArray(new List[otherPages.size()]));
-		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
-		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		
-		// Call under test
-		manager.backFillTableRowChanges();
-		
-		for (int i=0; i < totalPages + 1; i++) {
-			verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, i * 1000);
-		}
-		
-		verify(mockTruthDao, times(totalPages * pageSize)).getRowSet(any());
-		verify(mockColumModelManager, times(totalPages * pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTruthDao, times((int)Math.ceil((totalPages * pageSize)/10_000D))).updateRowChangeHasFileRefsBatch(anyList(), eq(false));
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesWithAmazonS3NotFound() throws IOException {
-		
-		int pageSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		List<TableRowChange> changePage = createChange(tableId, batchSize);
 		
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		
@@ -2096,21 +2060,20 @@ public class TableEntityManagerTest {
 		doThrow(ex).when(mockTruthDao).getRowSet(any());
 		
 		// Call under test
-		manager.backFillTableRowChanges();
+		manager.backfillTableRowChangesBatch(batchSize);
 		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
-		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
+		verify(mockTruthDao, times(batchSize)).getRowSet(any());
 		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), false);
 	}
 	
 	@Test
-	public void testBackFillTableRowChangesWithNotFound() throws IOException {
+	public void testBackFillTableRowChangesBatchWithNotFound() throws IOException {
+
+		int batchSize = 10;
 		
-		int pageSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		List<TableRowChange> changePage = createChange(tableId, batchSize);
 		
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		
@@ -2119,41 +2082,20 @@ public class TableEntityManagerTest {
 		doThrow(ex).when(mockTruthDao).getRowSet(any());
 		
 		// Call under test
-		manager.backFillTableRowChanges();
+		manager.backfillTableRowChangesBatch(batchSize);
 		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 0);
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(1000, 1000);
-		verify(mockTruthDao, times(pageSize)).getRowSet(any());
+		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
+		verify(mockTruthDao, times(batchSize)).getRowSet(any());
 		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
+		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), false);
 	}
 	
 	@Test
-	public void testBackFillTableRowChangesWithAmazonServiceException() throws IOException {
+	public void testBackFillTableRowChangesBatchWithOtherAmazonException() throws IOException {
 		
-		int pageSize = 10;
+		int batchSize = 10;
 		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		
-		AmazonServiceException ex = new AmazonServiceException("Something wrong");
-		ex.setErrorType(ErrorType.Service);
-		
-		doThrow(ex).when(mockTruthDao).getRowSet(any());
-		
-		assertThrows(RecoverableMessageException.class, () -> {			
-			// Call under test
-			manager.backFillTableRowChanges();
-		});
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesWithOtherAmazonException() throws IOException {
-		
-		int pageSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		List<TableRowChange> changePage = createChange(tableId, batchSize);
 		
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		
@@ -2164,18 +2106,18 @@ public class TableEntityManagerTest {
 		
 		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
 			// Call under test
-			manager.backFillTableRowChanges();
+			manager.backfillTableRowChangesBatch(batchSize);
 		});
 		
 		assertEquals(ex, result);
 	}
 	
 	@Test
-	public void testBackFillTableRowChangesWithIOException() throws IOException {
+	public void testBackFillTableRowChangesBatchWithIOException() throws IOException {
 		
-		int pageSize = 10;
+		int batchSize = 10;
 		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
+		List<TableRowChange> changePage = createChange(tableId, batchSize);
 		
 		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
 		
@@ -2185,7 +2127,7 @@ public class TableEntityManagerTest {
 		
 		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			manager.backFillTableRowChanges();
+			manager.backfillTableRowChangesBatch(batchSize);
 		});
 		
 		assertEquals(ex, result.getCause());

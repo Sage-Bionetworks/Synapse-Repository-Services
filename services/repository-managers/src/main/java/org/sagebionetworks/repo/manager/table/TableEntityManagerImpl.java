@@ -1,10 +1,16 @@
 package org.sagebionetworks.repo.manager.table;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -31,7 +37,6 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.migration.TableRowChangeBackfillResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -74,22 +79,14 @@ import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
@@ -1040,19 +1037,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	}
 	
 	@Override
-	public TableRowChangeBackfillResponse backFillTableRowChanges() {
-		// Iterator over all the changes that have the null hasFileRefs
-		PaginationIterator<TableRowChange> it = new PaginationIterator<>((limit, offset) -> tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset), PAGE_SIZE_LIMIT);
+	public void backfillTableRowChangesBatch(long batchSize) {
 		
-		Long count = 0L;
+		List<Long> trueBatch = new ArrayList<>();
+		List<Long> falseBatch = new ArrayList<>();
 		
-		int batchSize = 10_000;
+		List<TableRowChange> batch = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(batchSize, 0);
 		
-		List<Long> trueBatch = new ArrayList<>(batchSize);
-		List<Long> falseBatch = new ArrayList<>(batchSize);
-		
-		while (it.hasNext()) {
-			TableRowChange changeMetadata = it.next();
+		for (TableRowChange changeMetadata : batch) {
 			
 			boolean hasFileRefs = false;
 			
@@ -1068,8 +1060,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			} catch (AmazonServiceException e) {
 				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
 					hasFileRefs = false;
-				} else if (ErrorType.Service.equals(e.getErrorType())) {
-					throw new RecoverableMessageException(e);
 				} else {
 					throw e;
 				}
@@ -1080,19 +1070,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			} else {
 				falseBatch.add(changeMetadata.getId());
 			}
-			
-			if (trueBatch.size() + falseBatch.size() >= batchSize) {
-				if (!trueBatch.isEmpty()) {
-					tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
-					trueBatch.clear();
-				}
-				if (!falseBatch.isEmpty()) {
-					tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
-					falseBatch.clear();
-				}
-			}
-			
-			count++;
 		}
 		
 		if (!trueBatch.isEmpty()) {
@@ -1103,7 +1080,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
 		}
 
-		return new TableRowChangeBackfillResponse().setUpdatedCount(count);
 	}
 
 }

@@ -60,6 +60,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 	}
 
 	@Override
+	@Deprecated
 	public void cancelJob(Long userId, String jobId) throws NotFoundException {
 		if (userId == null) {
 			throw new IllegalArgumentException("UserId cannot be null");
