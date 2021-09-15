@@ -1388,6 +1388,22 @@ public class DownloadListManagerImplTest {
 
 		verifyNoMoreInteractions(mockTableQueryManager, mockDownloadListDao);
 	}
+	
+	@Test
+	public void testAddQueryResultsToDownloadListWithNullQuery() throws Exception {
+		Query query = new Query().setSql(null);
+		boolean userVersion = true;
+		long maxQueryPageSize = 10L;
+		long usersDownloadListCapacity = 100L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query, userVersion, maxQueryPageSize,
+					usersDownloadListCapacity);
+		}).getMessage();
+		assertEquals("query.sql is required.", message);
+
+		verifyNoMoreInteractions(mockTableQueryManager, mockDownloadListDao);
+	}
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithTableUnavailable() throws Exception {

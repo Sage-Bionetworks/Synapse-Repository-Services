@@ -425,6 +425,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	AddToDownloadListResponse addQueryResultsToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
 			final Query query, final boolean useVersion, long maxQueryPageSize, long usersDownloadListCapacity) {
+		ValidateArgument.required(query, "query");
+		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
 			IdAndVersion idAndVersion = IdAndVersion.parse(model.getTableName());
