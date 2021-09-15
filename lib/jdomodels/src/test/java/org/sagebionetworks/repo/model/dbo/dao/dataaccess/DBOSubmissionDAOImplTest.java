@@ -317,6 +317,7 @@ public class DBOSubmissionDAOImplTest {
 		
 		Set<Submission> expected = ImmutableSet.of(dto1, dto2, dto3);
 		
+		// Call under test
 		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, null, null, null, 10L, 0L);
 
 		assertEquals(expected, new HashSet<Submission>(submissions));
@@ -341,6 +342,7 @@ public class DBOSubmissionDAOImplTest {
 		
 		assertEquals(expected, submissions);
 
+		// Call under test
 		submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
 				SubmissionState.APPROVED, null, SubmissionOrder.MODIFIED_ON,
 				false, 10L, 0L);
@@ -352,6 +354,7 @@ public class DBOSubmissionDAOImplTest {
 	public void testListSubmissionsByAccessor() {
 		Submission dto1 = createSubmission();
 		Submission dto2 = createSubmission();
+		// Another submission whose submitter and accessor is another user
 		Submission dto3 = createSubmission(user2.getId());
 		
 		dtosToDelete.add( submissionDao.createSubmission(dto1).getSubmissionId() );
@@ -359,8 +362,12 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
 		
 		List<Submission> expected = Arrays.asList(dto1, dto2);
+		
+		// We set the accessor filter to the submitter since createSubmission() automatically adds the submitter as an accessor
+		String accessorId = dto1.getSubmittedBy();
 
-		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		// Call under test
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, accessorId, SubmissionOrder.CREATED_ON, true, 10L, 0L);
 		
 		assertEquals(expected, submissions);
 
@@ -381,8 +388,11 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
 		
 		List<Submission> expected = Arrays.asList(dto2, dto3);
+		
+		String accessorId = user2.getId();
 
-		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, user2.getId(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		// Call under test
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), null, accessorId, SubmissionOrder.CREATED_ON, true, 10L, 0L);
 		
 		assertEquals(expected, submissions);
 
@@ -397,8 +407,12 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 		
 		List<Submission> expected = Arrays.asList(dto1, dto2);
+		
+		// We set the accessor filter to the submitter since createSubmission() automatically adds the submitter as an accessor
+		String accessorId = dto1.getSubmittedBy();
 
-		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), SubmissionState.SUBMITTED, dto1.getSubmittedBy(), SubmissionOrder.CREATED_ON, true, 10L, 0L);
+		// Call under test
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(), SubmissionState.SUBMITTED, accessorId, SubmissionOrder.CREATED_ON, true, 10L, 0L);
 		
 		assertEquals(expected, submissions);
 		
