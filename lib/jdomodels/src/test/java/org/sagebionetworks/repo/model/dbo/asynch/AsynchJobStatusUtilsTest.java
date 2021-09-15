@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -131,6 +132,24 @@ public class AsynchJobStatusUtilsTest {
 		// Should be truncated
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getProgressMessage().length());
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getErrorMessage().length());
+	}
+	
+	
+	/**
+	 * Test for PLFM-6906
+	 */
+	@Test
+	public void testCreateDTOFromDBOWithUnknownType() {
+		
+		status.setJobState(AsynchJobState.PROCESSING);
+		status.setResponseBody(responseBody);
+		
+		requestBody.setConcreteType("not.a.real.class");
+		assertThrows(IllegalArgumentException.class, ()->{
+			DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
+			// call under test
+			AsynchJobStatusUtils.createDTOFromDBO(dbo);
+		});
 	}
 
 }
