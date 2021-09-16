@@ -249,6 +249,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBOSubmissionStatus());
+		list.add(new DBOSubmissionAccessorChange());
 		return list;
 	}
 

@@ -1054,6 +1054,13 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG = 						"ETAG";
 	
+	// DataAccessSubmissionSubmitter
+	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES = 					"schema/DataAccessSubmissionAccessorChanges-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES = 				"DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID = 		"SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID = 		"ACCESSOR_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE = 		"ACCESS_TYPE";
+	
 	// OAuth related tables, columns etc,
 	public static final String DDL_OAUTH_SECTOR_IDENTIFIER = 							"schema/OAuthSectorIdentifier-ddl.sql";
 	public static final String TABLE_OAUTH_SECTOR_IDENTIFIER = 							"OAUTH_SECTOR_IDENTIFIER";

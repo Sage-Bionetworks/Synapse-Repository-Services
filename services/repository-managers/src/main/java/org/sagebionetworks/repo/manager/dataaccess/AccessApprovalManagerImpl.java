@@ -157,7 +157,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
 		List<AccessorGroup> groups = accessApprovalDAO.listAccessorGroup(
-				request.getAccessRequirementId(), request.getSubmitterId(), 
+				request.getAccessRequirementId(), request.getSubmitterId(), request.getAccessorId(),
 				request.getExpireBefore(), nextPageToken.getLimitForQuery(),
 				nextPageToken.getOffset());
 		AccessorGroupResponse response = new AccessorGroupResponse();

@@ -139,6 +139,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final String SUBMITTER_ID_COND =
 			" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID;
 	
+	private static final String ACCESSOR_ID_COND =
+			" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
+	
 	private static final String EXPIRED_ON_COND =
 			" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <> "+DEFAULT_NOT_EXPIRED
 			+" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <= :"+COL_ACCESS_APPROVAL_EXPIRED_ON;
@@ -313,17 +316,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 
 	@Override
-	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
+	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, String accessorId, Date expireBefore,
 			long limit, long offset) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
 		if (expireBefore != null) {
 			params.addValue(COL_ACCESS_APPROVAL_EXPIRED_ON, expireBefore.getTime());
 		}
 		params.addValue(LIMIT_PARAM, limit);
 		params.addValue(OFFSET_PARAM, offset);
-		String query = buildAccessorGroupQuery(accessRequirementId, submitterId, expireBefore);
+		String query = buildAccessorGroupQuery(accessRequirementId, submitterId, accessorId, expireBefore);
 		return namedJdbcTemplate.query(query, params, new RowMapper<AccessorGroup>(){
 
 			@Override
@@ -346,13 +350,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return Arrays.asList(accessors);
 	}
 
-	public static String buildAccessorGroupQuery(String accessRequirementId, String submitterId, Date expireBefore) {
+	public static String buildAccessorGroupQuery(String accessRequirementId, String submitterId, String accessorId, Date expireBefore) {
 		String query = SELECT_ACCESSOR_GROUP_PREFIX;
 		if (accessRequirementId != null) {
 			query+= REQUIREMENT_ID_COND;
 		}
 		if (submitterId != null) {
 			query+= SUBMITTER_ID_COND;
+		}
+		if (accessorId != null) {
+			query+= ACCESSOR_ID_COND;
 		}
 		if (expireBefore != null) {
 			query+= EXPIRED_ON_COND;

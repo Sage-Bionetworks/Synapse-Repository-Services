@@ -277,7 +277,7 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testListAccessorListAndRevokeGroup() {
 		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
-				individualGroup.getId(), null, 10L, 0L);
+				individualGroup.getId(), null, null, 10L, 0L);
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
 
@@ -286,8 +286,10 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
 		accessApproval2.setSubmitterId(individualGroup.getId());
 		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+		
 		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
-				individualGroup.getId(), null, 10L, 0L);
+				individualGroup.getId(), null, null, 10L, 0L);
+		
 		assertNotNull(result);
 		assertEquals(1, result.size());
 		AccessorGroup group = result.get(0);
@@ -304,7 +306,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApprovalDAO.revokeBatch(Long.valueOf(individualGroup2.getId()), accessors);
 		
 		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
-				individualGroup.getId(), null, 10L, 0L);
+				individualGroup.getId(), null, null, 10L, 0L);
 		
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
@@ -323,6 +325,51 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(individualGroup2.getId(), approval2.getModifiedBy());
 		
 	}
+	
+	@Test
+	public void testListAccessorGroupByAccessorId() {
+		// Will set both the submitter and the accessor to the first parameter
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+				
+		String accessorId = individualGroup2.getId();
+		
+		List<AccessorGroup> expected = Arrays.asList(new AccessorGroup()
+				.setAccessorIds(Arrays.asList(accessApproval2.getAccessorId()))
+				.setAccessRequirementId(accessRequirement.getId().toString())
+				.setSubmitterId(accessApproval2.getSubmitterId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED))
+		);
+		
+		// Call under test
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(), null, accessorId, null, 10L, 0L);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListAccessorGroupByNullAccessorId() {
+		// Will set both the submitter and the accessor to the first parameter
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval));
+				
+		List<AccessorGroup> expected = Arrays.asList(new AccessorGroup()
+				.setAccessorIds(Arrays.asList(accessApproval.getAccessorId()))
+				.setAccessRequirementId(accessRequirement.getId().toString())
+				.setSubmitterId(accessApproval.getSubmitterId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED))
+		);
+		
+		String accessorId = null;
+		
+		// Call under test
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(), null, accessorId, null, 10L, 0L);
+		
+		assertEquals(expected, result);
+	}
 
 	@Test
 	public void testConvertToList() {
@@ -340,7 +387,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
-				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null));
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, null));
 		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
@@ -349,7 +396,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
-				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null));
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null, null));
 		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
@@ -358,7 +405,16 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
-				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null));
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null, null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND ACCESSOR_ID = :ACCESSOR_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, "3", null));
 		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
@@ -368,7 +424,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
-				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, new Date()));
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, new Date()));
 	}
 	
 	@Test
