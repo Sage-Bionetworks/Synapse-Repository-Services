@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -17,13 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageBatchResult;
-import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 
 /**
  * Basic implementation of the message syndication.
@@ -150,31 +150,34 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	 * @param results
 	 * @return
 	 */
-	public List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResult results){
-		// Convert the results
-		List<PublishResult> prList = new LinkedList<PublishResult>();
+	List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResult results) {
+		// Convert the results, the results returned in the SendMessageBatchResult#getSuccessful and SendMessageBatchResult#getFailed
+		// might be out of order so we first need to map their ids (which are set to the index in the list)
+		Map<Integer, Boolean> successMap = new HashMap<>(list.size());
 		// record success
-		if(results.getSuccessful() != null){
-			for(SendMessageBatchResultEntry smbre: results.getSuccessful()){
-				PublishResult pr = new PublishResult();
-				int index = Integer.parseInt(smbre.getId());
-				ChangeMessage cm = list.get(index);
-				pr.setChangeNumber(cm.getChangeNumber());
-				pr.setSuccess(true);
-				prList.add(pr);
-			}
+		if(results.getSuccessful() != null) {
+			results.getSuccessful().forEach(batchEntry -> {
+				successMap.put(Integer.parseInt(batchEntry.getId()), true);
+			});
 		}
 		// record failures
-		if(results.getFailed() != null){
-			for(BatchResultErrorEntry bree: results.getFailed()){
-				PublishResult pr = new PublishResult();
-				int index = Integer.parseInt(bree.getId());
-				ChangeMessage cm = list.get(index);
-				pr.setChangeNumber(cm.getChangeNumber());
-				pr.setSuccess(false);
-				prList.add(pr);
-			}
+		if(results.getFailed() != null) {
+			results.getFailed().forEach(batchEntry -> {
+				successMap.put(Integer.parseInt(batchEntry.getId()), false);
+			});
 		}
+
+		// Builds the publish result list using the original list order (the element index is used as the id in the successMap)
+		List<PublishResult> prList = new LinkedList<PublishResult>();
+		
+		for (int i = 0; i < list.size(); i++) {
+			ChangeMessage changeMessage = list.get(i);
+			prList.add(new PublishResult()
+					.setChangeNumber(changeMessage.getChangeNumber())
+					.setSuccess(successMap.get(i))
+			);
+		}
+		
 		return prList;
 	}
 	
