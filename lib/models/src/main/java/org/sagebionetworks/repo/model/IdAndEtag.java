@@ -9,7 +9,6 @@ import java.util.Objects;
 public class IdAndEtag {
 
 	Long id;
-	Long version;
 	String etag;
 	Long benefactorId;
 	
@@ -42,9 +41,8 @@ public class IdAndEtag {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorId, etag, id, version);
+		return Objects.hash(benefactorId, etag, id);
 	}
-
 
 	@Override
 	public boolean equals(Object obj) {
@@ -56,14 +54,12 @@ public class IdAndEtag {
 		}
 		IdAndEtag other = (IdAndEtag) obj;
 		return Objects.equals(benefactorId, other.benefactorId) && Objects.equals(etag, other.etag)
-				&& Objects.equals(id, other.id) && Objects.equals(version, other.version);
+				&& Objects.equals(id, other.id);
 	}
-
 
 	@Override
 	public String toString() {
-		return "IdAndEtag [id=" + id + ", version=" + version + ", etag=" + etag + ", benefactorId=" + benefactorId
-				+ "]";
+		return "IdAndEtag [id=" + id + ", etag=" + etag + ", benefactorId=" + benefactorId + "]";
 	}
 		
 }
