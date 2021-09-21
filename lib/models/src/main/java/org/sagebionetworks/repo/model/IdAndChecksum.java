@@ -29,7 +29,7 @@ public class IdAndChecksum {
 	/**
 	 * @param checksum the checksum to set
 	 */
-	public IdAndChecksum withhecksum(Long checksum) {
+	public IdAndChecksum withChecksum(Long checksum) {
 		this.checksum = checksum;
 		return this;
 	}

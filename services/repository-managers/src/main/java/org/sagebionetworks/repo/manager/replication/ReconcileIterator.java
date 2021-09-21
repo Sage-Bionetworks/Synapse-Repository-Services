@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.replication;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -22,7 +21,7 @@ public class ReconcileIterator implements Iterator<ChangeMessage> {
 	private final Iterator<IdAndChecksum> replication;
 	private final ObjectType objectType;
 
-	Iterator<ChangeMessage> currentBatch;
+	private Iterator<ChangeMessage> currentBatch;
 
 	public ReconcileIterator(ObjectType objectType, Iterator<IdAndChecksum> truth,
 			Iterator<IdAndChecksum> replication) {
@@ -56,58 +55,56 @@ public class ReconcileIterator implements Iterator<ChangeMessage> {
 		return currentBatch.next();
 	}
 
-	private Optional<IdAndChecksum> truthNext() {
+	private IdAndChecksum truthNext() {
 		if (truth.hasNext()) {
-			return Optional.of(truth.next());
+			return truth.next();
 		} else {
-			return Optional.empty();
+			return null;
 		}
 	}
 
-	private Optional<IdAndChecksum> replicationNext() {
+	private IdAndChecksum replicationNext() {
 		if (replication.hasNext()) {
-			return Optional.of(replication.next());
+			return replication.next();
 		} else {
-			return Optional.empty();
+			return null;
 		}
 	}
 
 	private Iterator<ChangeMessage> findNextBatch() {
 		List<ChangeMessage> results = new ArrayList<>();
-		Optional<IdAndChecksum> t = truthNext();
-		Optional<IdAndChecksum> r = replicationNext();
+		IdAndChecksum truthItem = truthNext();
+		IdAndChecksum replicationItem = replicationNext();
 		while (true) {
-			if (t.isPresent()) {
-				if (!r.isPresent()) {
+			if (truthItem != null) {
+				if (replicationItem == null) {
 					// object missing from replication
-					results.add(newChange(ChangeType.CREATE, t.get().getId()));
+					results.add(newChange(ChangeType.CREATE, truthItem.getId()));
 					return results.iterator();
 				} else {
-					// both t and r exist
-					IdAndChecksum fromT = t.get();
-					IdAndChecksum fromR = r.get();
-					if (fromT.equals(fromR)) {
+					// both truth and replication exist
+					if (truthItem.equals(replicationItem)) {
 						// we have a match so move both to next
-						t = truthNext();
-						r = replicationNext();
+						truthItem = truthNext();
+						replicationItem = replicationNext();
 						continue;
 					} else {
 						// t != r
-						if (fromT.getId().equals(fromR.getId())) {
+						if (truthItem.getId().equals(replicationItem.getId())) {
 							// Same ID but different checksums so send an update
-							results.add(newChange(ChangeType.UPDATE, t.get().getId()));
+							results.add(newChange(ChangeType.UPDATE, truthItem.getId()));
 							return results.iterator();
 						}else {
 							// different IDs
-							if(fromT.getId() > fromR.getId()) {
-								results.add(newChange(ChangeType.DELETE, r.get().getId()));
-								r = replicationNext();
-								// we must continue because we are not done with t.
+							if(truthItem.getId() > replicationItem.getId()) {
+								results.add(newChange(ChangeType.DELETE, replicationItem.getId()));
+								replicationItem = replicationNext();
+								// we must continue because we are not done with truthItem.
 								continue;
 							}else {
-								results.add(newChange(ChangeType.CREATE, t.get().getId()));
-								t = truthNext();
-								// we must continue because we are not done with r.
+								results.add(newChange(ChangeType.CREATE, truthItem.getId()));
+								truthItem = truthNext();
+								// we must continue because we are not done with repItem.
 								continue;
 							}
 						}
@@ -115,8 +112,8 @@ public class ReconcileIterator implements Iterator<ChangeMessage> {
 				}
 			} else {
 				// truth is exhausted
-				if(r.isPresent()) {
-					results.add(newChange(ChangeType.DELETE, r.get().getId()));
+				if(replicationItem != null) {
+					results.add(newChange(ChangeType.DELETE, replicationItem.getId()));
 					return results.iterator();
 				}else {
 					// both truth and replication are exhausted, so we are done.

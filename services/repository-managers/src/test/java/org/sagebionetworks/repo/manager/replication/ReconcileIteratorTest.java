@@ -22,12 +22,12 @@ public class ReconcileIteratorTest {
 	@Test
 	public void testIteratorWithNoDeltas() {
 		List<IdAndChecksum> truth = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L)
 		);
 		List<IdAndChecksum> rep = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L)
 		);
 
 		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
@@ -40,8 +40,8 @@ public class ReconcileIteratorTest {
 	@Test
 	public void testIteratorWithEmptyReplication() {
 		List<IdAndChecksum> truth = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L)
 		);
 		List<IdAndChecksum> rep = Collections.emptyList();
 
@@ -59,8 +59,8 @@ public class ReconcileIteratorTest {
 	public void testIteratorWithEmptyTruth() {
 		List<IdAndChecksum> truth = Collections.emptyList();
 		List<IdAndChecksum> rep = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L)
 		);
 
 		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
@@ -76,12 +76,12 @@ public class ReconcileIteratorTest {
 	@Test
 	public void testIteratorWithWeave() {
 		List<IdAndChecksum> truth = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(3L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(3L).withChecksum(0L)
 		);
 		List<IdAndChecksum> rep = Arrays.asList(
-				new IdAndChecksum().withId(2L).withhecksum(0L),
-				new IdAndChecksum().withId(4L).withhecksum(0L)
+				new IdAndChecksum().withId(2L).withChecksum(0L),
+				new IdAndChecksum().withId(4L).withChecksum(0L)
 		);
 
 		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
@@ -99,14 +99,14 @@ public class ReconcileIteratorTest {
 	@Test
 	public void testIteratorWithSameIdsButDifferntChecksum() {
 		List<IdAndChecksum> truth = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L),
-				new IdAndChecksum().withId(3L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L),
+				new IdAndChecksum().withId(3L).withChecksum(0L)
 		);
 		List<IdAndChecksum> rep = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(55L),
-				new IdAndChecksum().withId(2L).withhecksum(0L),
-				new IdAndChecksum().withId(3L).withhecksum(55L)
+				new IdAndChecksum().withId(1L).withChecksum(55L),
+				new IdAndChecksum().withId(2L).withChecksum(0L),
+				new IdAndChecksum().withId(3L).withChecksum(55L)
 		);
 
 		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
@@ -122,16 +122,16 @@ public class ReconcileIteratorTest {
 	@Test
 	public void testIteratorWithSameRunWithNoMatches() {
 		List<IdAndChecksum> truth = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(2L).withhecksum(0L),
-				new IdAndChecksum().withId(3L).withhecksum(0L),
-				new IdAndChecksum().withId(4L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L),
+				new IdAndChecksum().withId(3L).withChecksum(0L),
+				new IdAndChecksum().withId(4L).withChecksum(0L)
 		);
 		List<IdAndChecksum> rep = Arrays.asList(
-				new IdAndChecksum().withId(1L).withhecksum(0L),
-				new IdAndChecksum().withId(5L).withhecksum(0L),
-				new IdAndChecksum().withId(6L).withhecksum(0L),
-				new IdAndChecksum().withId(7L).withhecksum(0L)
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(5L).withChecksum(0L),
+				new IdAndChecksum().withId(6L).withChecksum(0L),
+				new IdAndChecksum().withId(7L).withChecksum(0L)
 		);
 
 		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
@@ -144,6 +144,35 @@ public class ReconcileIteratorTest {
 				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("5"),
 				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("6"),
 				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("7")
+		);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testIteratorWithSameRunReversed() {
+		List<IdAndChecksum> truth = Arrays.asList(
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(5L).withChecksum(0L),
+				new IdAndChecksum().withId(6L).withChecksum(0L),
+				new IdAndChecksum().withId(7L).withChecksum(0L)
+		);
+		List<IdAndChecksum> rep = Arrays.asList(
+				new IdAndChecksum().withId(1L).withChecksum(0L),
+				new IdAndChecksum().withId(2L).withChecksum(0L),
+				new IdAndChecksum().withId(3L).withChecksum(0L),
+				new IdAndChecksum().withId(4L).withChecksum(0L)
+		);
+
+		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
+		// Call under test
+		new ReconcileIterator(ObjectType.ENTITY, truth.iterator(), rep.iterator()).forEachRemaining(results::add);
+		List<ChangeMessage> expected = Arrays.asList(
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("2"),
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("3"),
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.DELETE).setObjectId("4"),
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.CREATE).setObjectId("5"),
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.CREATE).setObjectId("6"),
+				new ChangeMessage().setObjectType(ObjectType.ENTITY).setChangeType(ChangeType.CREATE).setObjectId("7")
 		);
 		assertEquals(expected, results);
 	}
