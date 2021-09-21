@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Objects;
+
 /**
  * Data transfer object to capture an objects Id and etag.
  * 
@@ -7,6 +9,7 @@ package org.sagebionetworks.repo.model;
 public class IdAndEtag {
 
 	Long id;
+	Long version;
 	String etag;
 	Long benefactorId;
 	
@@ -39,46 +42,28 @@ public class IdAndEtag {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
+		return Objects.hash(benefactorId, etag, id, version);
 	}
 
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof IdAndEtag)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		IdAndEtag other = (IdAndEtag) obj;
-		if (benefactorId == null) {
-			if (other.benefactorId != null)
-				return false;
-		} else if (!benefactorId.equals(other.benefactorId))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		return true;
+		return Objects.equals(benefactorId, other.benefactorId) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Objects.equals(version, other.version);
 	}
 
 
 	@Override
 	public String toString() {
-		return "IdAndEtag [id=" + id + ", etag=" + etag + ", benefactorId=" + benefactorId + "]";
+		return "IdAndEtag [id=" + id + ", version=" + version + ", etag=" + etag + ", benefactorId=" + benefactorId
+				+ "]";
 	}
 		
 }
