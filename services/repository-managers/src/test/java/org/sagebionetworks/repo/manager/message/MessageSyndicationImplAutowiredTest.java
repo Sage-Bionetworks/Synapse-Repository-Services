@@ -1,16 +1,16 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.message.PublishResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
@@ -32,25 +32,25 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageSyndicationImplAutowiredTest {
 	
 	public static final long MAX_WAIT = 10*1000; //ten seconds
 	
 	@Autowired
-	MessageSyndication messageSyndication;
+	private MessageSyndication messageSyndication;
 	
 	@Autowired
-	AmazonSQS awsSQSClient;
+	private AmazonSQS awsSQSClient;
 	
 	@Autowired
-	DBOChangeDAO changeDAO;
+	private DBOChangeDAO changeDAO;
 	
 	private String queueName = StackConfigurationSingleton.singleton().getStack()+"-"+StackConfigurationSingleton.singleton().getStackInstance()+"-test-syndication";
 	private String queueUrl;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		// Create the queue if it does not exist
 		CreateQueueResult cqr = awsSQSClient.createQueue(new CreateQueueRequest(queueName));
@@ -106,7 +106,7 @@ public class MessageSyndicationImplAutowiredTest {
 	}
 	
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(changeDAO != null){
 			changeDAO.deleteAllChanges();
