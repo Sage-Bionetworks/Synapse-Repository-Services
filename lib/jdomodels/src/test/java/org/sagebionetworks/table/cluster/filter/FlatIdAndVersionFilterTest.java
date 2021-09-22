@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,7 +20,6 @@ import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import com.google.common.collect.Sets;
 
@@ -51,11 +51,11 @@ public class FlatIdAndVersionFilterTest {
 		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope);
 		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 				+ " AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)", filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		assertEquals(3, paramters.getValues().size());
-		assertEquals(mainType.name(), paramters.getValue("mainType"));
-		assertEquals(expectedSubTypes, paramters.getValue("subTypes"));
-		assertEqualsParams(expectedScope, (List<Long[]>) paramters.getValue("scopePairs"));
+		Map<String, Object> paramters = filter.getParameters();
+		assertEquals(3, paramters.size());
+		assertEquals(mainType.name(), paramters.get("mainType"));
+		assertEquals(expectedSubTypes, paramters.get("subTypes"));
+		assertEqualsParams(expectedScope, (List<Long[]>) paramters.get("scopePairs"));
 	}
 
 	@Test
@@ -67,13 +67,13 @@ public class FlatIdAndVersionFilterTest {
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds) "
 						+ "AND A.ANNO_KEY NOT IN (:excludeKeys) AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
 				filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		assertEquals(5, paramters.getValues().size());
-		assertEquals(mainType.name(), paramters.getValue("mainType"));
-		assertEquals(expectedSubTypes, paramters.getValue("subTypes"));
-		assertEquals(limitObjectIds, paramters.getValue("limitObjectIds"));
-		assertEquals(excludeKeys, paramters.getValue("excludeKeys"));
-		assertEqualsParams(expectedScope, (List<Long[]>) paramters.getValue("scopePairs"));
+		Map<String, Object> paramters = filter.getParameters();
+		assertEquals(5, paramters.size());
+		assertEquals(mainType.name(), paramters.get("mainType"));
+		assertEquals(expectedSubTypes, paramters.get("subTypes"));
+		assertEquals(limitObjectIds, paramters.get("limitObjectIds"));
+		assertEquals(excludeKeys, paramters.get("excludeKeys"));
+		assertEqualsParams(expectedScope, (List<Long[]>) paramters.get("scopePairs"));
 	}
 
 	public void assertEqualsParams(List<Long[]> one, List<Long[]> two) {

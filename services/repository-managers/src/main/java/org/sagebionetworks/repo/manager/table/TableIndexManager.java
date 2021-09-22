@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.replication.TruthAndReplicationSynchronization;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -44,7 +45,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  * @author John
  * 
  */
-public interface TableIndexManager {
+public interface TableIndexManager extends TruthAndReplicationSynchronization{
 
 
 

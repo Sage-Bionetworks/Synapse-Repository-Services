@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -850,6 +851,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				return null;
 			});
 		}
+	}
+	
+	@Override
+	public Iterator<IdAndChecksum> streamOverViewIds(long checksumSalt, ViewFilter filter) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public Long calculateViewChecksum(long checksumSalt, ViewFilter filter) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

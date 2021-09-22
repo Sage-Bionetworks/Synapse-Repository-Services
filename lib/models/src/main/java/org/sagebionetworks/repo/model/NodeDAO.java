@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
 import java.util.Collection;
 import java.util.List;
@@ -680,5 +681,7 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<DatasetItem> getDatasetItems(Long datasetId);
+
+	public List<IdAndChecksum> getViewIdsAndChecksum(ViewFilter filter, long limit, long offset);
 
 }

@@ -1,33 +1,29 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
 /**
- * ViewFilter defined by a flat list of objectId and version pairs.
- * 
+ * ViewFitler defined by a flat list of objectIds.
+ *
  */
-public class FlatIdAndVersionFilter extends AbstractViewFilter {
+public class FlatIdsFilter extends AbstractViewFilter {
 	
-	private final Set<IdVersionPair> scope;
+	protected final Set<Long> scope;
 
-	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
+	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		this(mainType, subTypes, null, null, scope);
 	}
-	
-	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-			Set<String> excludeKeys, Set<IdVersionPair> scope) {
+
+	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
+			Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		this.scope = scope;
-		List<Long[]> pairedList = scope.stream().map(i-> new Long[] {i.getId(), i.getVersion()}).collect(Collectors.toList());
-		this.params.addValue("scopePairs", pairedList);
+		this.params.put("flatIds", scope);
 	}
-
 
 	@Override
 	public boolean isEmpty() {
@@ -36,7 +32,7 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 
 	@Override
 	public String getFilterSql() {
-		return super.getFilterSql()+" AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)";
+		return super.getFilterSql()+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
 
 	@Override
@@ -44,7 +40,6 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 	}
 
-	
 	
 	@Override
 	public int hashCode() {
@@ -62,34 +57,35 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		if (!super.equals(obj)) {
 			return false;
 		}
-		if (!(obj instanceof FlatIdAndVersionFilter)) {
+		if (!(obj instanceof FlatIdsFilter)) {
 			return false;
 		}
-		FlatIdAndVersionFilter other = (FlatIdAndVersionFilter) obj;
+		FlatIdsFilter other = (FlatIdsFilter) obj;
 		return Objects.equals(scope, other.scope);
 	}
 
+
 	@Override
 	public String toString() {
-		return "FlatIdAndVersionFilter [scope=" + scope + ", mainType=" + mainType + ", subTypes=" + subTypes
+		return "FlatIdsFilter [scope=" + scope + ", mainType=" + mainType + ", subTypes=" + subTypes
 				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
 	}
 
 
 	public static class Builder extends AbstractBuilder {
 		
-		Set<IdVersionPair> scope;
+		 Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys, Set<IdVersionPair> scope) {
+				Set<String> excludeKeys,  Set<Long> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys);
 			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+			return new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		}
-		
+
 	}
 }

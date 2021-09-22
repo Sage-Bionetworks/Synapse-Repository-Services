@@ -999,10 +999,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyMap();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 
 		//additional param
-		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
+		param.put(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(annotationNames, filter.getFilterSql());
 		return namedTemplate.query(sql,param, resultSet -> {
 			Map<String, Long> result = new HashMap<>();
@@ -1057,7 +1057,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// which is used for query row size estimation
 		validateMaxListLengthInAnnotationReplication(filter, currentSchema);
 				
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
@@ -1077,7 +1077,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		StringBuilder builder = new StringBuilder();
 		
@@ -1143,10 +1143,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
-		param.addValue(P_OFFSET, offset);
+		param.put(P_LIMIT, limit);
+		param.put(P_OFFSET, offset);
 		
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql());
 		
@@ -1370,9 +1370,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, filter.getFilterSql());
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
+		param.put(P_LIMIT, limit);
 		
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);

@@ -6,21 +6,22 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.map.HashedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import com.google.common.collect.Sets;
 
-public class HierarchicaFilterTest {
+public class FlatIdsFilterTest {
 
 	private ReplicationType mainType;
 	private Set<SubType> subTypes;
@@ -42,49 +43,49 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testFilter() {
 		// call under test
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, scope);
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
-						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) "
+						+ "AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("parentIds", scope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		Map<String, Object> paramters = filter.getParameters();
+		Map<String, Object> expected = new HashedMap<>();
+		expected.put("mainType", mainType.name());
+		expected.put("subTypes", expectedSubTypes);
+		expected.put("flatIds", scope);
+		assertEquals(expected, paramters);
 	}
 
 	@Test
 	public void testFilterBuilder() {
 		// call under test
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope).newBuilder()
+		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
-						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
+						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("limitObjectIds", limitObjectIds);
-		expected.addValue("excludeKeys", excludeKeys);
-		expected.addValue("parentIds", scope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		Map<String, Object> paramters = filter.getParameters();
+		Map<String, Object> expected = new HashedMap<>();
+		expected.put("mainType", mainType.name());
+		expected.put("subTypes", expectedSubTypes);
+		expected.put("limitObjectIds", limitObjectIds);
+		expected.put("excludeKeys", excludeKeys);
+		expected.put("flatIds", scope);
+		assertEquals(expected, paramters);
 	}
 	
 	@Test
 	public void testBuilderWithAllFields() {
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
 	}
 	
 	@Test
 	public void testGetLimitedObjectIds() {
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertTrue(optional.isPresent());
@@ -94,7 +95,7 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetLimitedObjectIdswithNull() {
 		limitObjectIds = null;
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());

@@ -26,7 +26,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		ValidateArgument.required(scope, "scope");
 		this.parentIds = scope;
-		this.params.addValue("parentIds", scope);
+		this.params.put("parentIds", scope);
 	}
 
 	@Override
