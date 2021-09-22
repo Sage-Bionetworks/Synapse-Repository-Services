@@ -123,37 +123,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
 	private static final String SEPARATOR = ",";
+	
 	private static final String ACCESSOR_LIST = "ACCESSOR_LIST";
-
-	private static final String SELECT_ACCESSOR_GROUP_PREFIX = "SELECT "
-				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
-				+ COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
-				+ COL_ACCESS_APPROVAL_EXPIRED_ON+", "
-				+ "GROUP_CONCAT(DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" SEPARATOR '"+SEPARATOR+"') AS "+ACCESSOR_LIST
-			+ " FROM "+TABLE_ACCESS_APPROVAL
-			+ " WHERE "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
-	
-	private static final String REQUIREMENT_ID_COND =
-			" AND "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-	
-	private static final String SUBMITTER_ID_COND =
-			" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID;
-	
-	private static final String ACCESSOR_ID_COND =
-			" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
-	
-	private static final String EXPIRED_ON_COND =
-			" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <> "+DEFAULT_NOT_EXPIRED
-			+" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <= :"+COL_ACCESS_APPROVAL_EXPIRED_ON;
-	
-	private static final String SELECT_ACCESSOR_GROUP_POSTFIX = " GROUP BY "
-				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
-				+ COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
-				+ COL_ACCESS_APPROVAL_EXPIRED_ON
-			+ " ORDER BY "+COL_ACCESS_APPROVAL_EXPIRED_ON
-			+ " LIMIT :"+LIMIT_PARAM
-			+ " OFFSET :"+OFFSET_PARAM;
-	
+		
 	private static final String SQL_SELECT_APPROVED_IDS = "SELECT " + COL_ACCESS_APPROVAL_ID 
 			+ " FROM " + TABLE_ACCESS_APPROVAL
 			+ " WHERE " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
@@ -349,24 +321,53 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		String[] accessors = accessorList.split(SEPARATOR);
 		return Arrays.asList(accessors);
 	}
-
+	
 	public static String buildAccessorGroupQuery(String accessRequirementId, String submitterId, String accessorId, Date expireBefore) {
-		String query = SELECT_ACCESSOR_GROUP_PREFIX;
+		String query = "SELECT "
+				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", "
+				+ COL_ACCESS_APPROVAL_SUBMITTER_ID + ", "
+				+ COL_ACCESS_APPROVAL_EXPIRED_ON + ","
+				+ " GROUP_CONCAT(DISTINCT " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " SEPARATOR '" + SEPARATOR + "') AS " + ACCESSOR_LIST
+				+ " FROM " + TABLE_ACCESS_APPROVAL
+				+ " WHERE " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
+		
+		String queryFilter = "";
+		
 		if (accessRequirementId != null) {
-			query+= REQUIREMENT_ID_COND;
+			queryFilter += " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :" + COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 		}
+		
 		if (submitterId != null) {
-			query+= SUBMITTER_ID_COND;
+			queryFilter += " AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID;
 		}
-		if (accessorId != null) {
-			query+= ACCESSOR_ID_COND;
-		}
+		
 		if (expireBefore != null) {
-			query+= EXPIRED_ON_COND;
+			queryFilter += " AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <> "+DEFAULT_NOT_EXPIRED
+					+" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <= :"+COL_ACCESS_APPROVAL_EXPIRED_ON;
 		}
-		return query+=SELECT_ACCESSOR_GROUP_POSTFIX;
+		
+		// When filtering by accessor id we still want to return all the accessors in a group (defined by the requirement, submitter pair)
+		// so we filter on all the groups the accessor is part of
+		if (accessorId != null) {
+			queryFilter += " AND (" + COL_ACCESS_APPROVAL_REQUIREMENT_ID +", " + COL_ACCESS_APPROVAL_SUBMITTER_ID +") IN"
+					+ " (SELECT DISTINCT " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", "+ COL_ACCESS_APPROVAL_SUBMITTER_ID 
+					+ " FROM " + TABLE_ACCESS_APPROVAL
+					+ " WHERE " + COL_ACCESS_APPROVAL_ACCESSOR_ID + " =:" + COL_ACCESS_APPROVAL_ACCESSOR_ID + queryFilter + ")";
+		}
+		
+		query += queryFilter;
+		
+		query += " GROUP BY " 
+				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", "
+				+ COL_ACCESS_APPROVAL_SUBMITTER_ID + ", "
+				+ COL_ACCESS_APPROVAL_EXPIRED_ON
+				+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON
+				+ " LIMIT :" + LIMIT_PARAM
+				+ " OFFSET :" + OFFSET_PARAM;
+		
+		return query;
 	}
-
+	
 	@Override
 	public Set<String> getRequirementsUserHasApprovals(String userId, List<String> accessRequirementIds) {
 		if (accessRequirementIds.isEmpty()) {
