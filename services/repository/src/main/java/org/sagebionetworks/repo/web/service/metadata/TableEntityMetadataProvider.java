@@ -42,6 +42,10 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 	@Override
 	public void entityCreated(UserInfo userInfo, TableEntity entity) {
 		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
+		
+		if (entity.getIsSearchEnabled() != null && entity.getIsSearchEnabled()) {
+			// TODO create a transaction that enables search
+		}
 	}
 
 	@Override
@@ -60,6 +64,9 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 		}
 		if(entity.getVersionComment() == null) {
 			entity.setVersionComment(TableConstants.IN_PROGRESS);
+		}
+		if(entity.getIsSearchEnabled() == null) {
+			entity.setIsSearchEnabled(false);
 		}
 	}
 }

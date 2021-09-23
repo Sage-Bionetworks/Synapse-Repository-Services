@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
@@ -57,7 +58,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("items", COL_REVISION_ITEMS),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
 		new FieldColumn("reference", COL_REVISION_REF_BLOB),
-		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON)
+		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON),
+		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED)
 		};
 
 	@Override
@@ -105,6 +107,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] entityPropertyAnnotations;
 	private byte[] reference;
 	private String userAnnotationsJSON;
+	private Boolean isSearchEnabled;
 	// used for migration only
 
 	public Long getOwner() {
@@ -191,6 +194,14 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public void setUserAnnotationsJSON(String userAnnotationsJSON) {
 		this.userAnnotationsJSON = userAnnotationsJSON;
 	}
+	
+	public Boolean getIsSearchEnabled() {
+		return isSearchEnabled;
+	}
+	
+	public void setIsSearchEnabled(Boolean isSearchEnabled) {
+		this.isSearchEnabled = isSearchEnabled;
+	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -233,19 +244,20 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof DBORevision)) {
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
 		}
 		DBORevision other = (DBORevision) obj;
 		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
-				&& Objects.equals(comment, other.comment)
-				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
-				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(items, other.items)
-				&& Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
+				&& Objects.equals(comment, other.comment) && Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(isSearchEnabled, other.isSearchEnabled)
+				&& Objects.equals(items, other.items) && Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
 				&& Arrays.equals(reference, other.reference) && Objects.equals(revisionNumber, other.revisionNumber)
-				&& Arrays.equals(scopeIds, other.scopeIds)
-				&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
+				&& Arrays.equals(scopeIds, other.scopeIds) && Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
 	@Override
@@ -256,18 +268,17 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(reference);
 		result = prime * result + Arrays.hashCode(scopeIds);
-		result = prime * result + Objects.hash(activityId, comment, fileHandleId, items, label, modifiedBy, modifiedOn,
+		result = prime * result + Objects.hash(activityId, comment, fileHandleId, isSearchEnabled, items, label, modifiedBy, modifiedOn,
 				owner, revisionNumber, userAnnotationsJSON);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
-				+ ", label=" + label + ", comment=" + comment + ", modifiedBy=" + modifiedBy + ", modifiedOn="
-				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds)
-				+ ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations="
-				+ Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference)
-				+ ", userAnnotationsJSON=" + userAnnotationsJSON + "]";
+		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId + ", label=" + label
+				+ ", comment=" + comment + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId
+				+ ", columnModelIds=" + Arrays.toString(columnModelIds) + ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items
+				+ ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference)
+				+ ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + "]";
 	}
 }
