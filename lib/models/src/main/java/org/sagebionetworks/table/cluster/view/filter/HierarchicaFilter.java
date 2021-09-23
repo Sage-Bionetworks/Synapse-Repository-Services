@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * ViewFilter for a scope defined by a hierarchy of par
+ * ViewFilter for a scope defined by a hierarchy of parentIds
  *
  */
 public class HierarchicaFilter extends AbstractViewFilter {

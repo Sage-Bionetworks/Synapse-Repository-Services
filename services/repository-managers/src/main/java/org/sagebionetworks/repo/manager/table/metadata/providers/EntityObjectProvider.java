@@ -57,9 +57,10 @@ public class EntityObjectProvider implements ObjectDataProvider {
 
 	@Override
 	public Iterator<IdAndChecksum> streamOverViewIds(long checksumSalt, ViewFilter filter) {
-		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
-			return nodeDao.getViewIdsAndChecksum(filter, limit, offset);
-		}, PAGE_SIZE);
+//		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
+//			return nodeDao.getViewIdsAndChecksum(filter, limit, offset);
+//		}, PAGE_SIZE);
+		return null;
 	}
 
 	@Override

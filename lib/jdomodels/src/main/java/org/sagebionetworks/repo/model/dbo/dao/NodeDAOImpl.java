@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -121,7 +122,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -154,6 +154,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	public static final String SQL_SELECT_ENTITY_DTO = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetEntityDTOs.sql");
+	
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetIdAndChecksumParentId.sql");
 	
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
@@ -2161,9 +2164,34 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<IdAndChecksum> getViewIdsAndChecksum(ViewFilter filter, long limit, long offset) {
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
+			Long offset) {
+		ValidateArgument.required(parentIds, "parentIds");
+		ValidateArgument.required(subTypes, "subTypes");
+		if(subTypes.isEmpty()) {
+			throw new IllegalArgumentException("Must provide at least one sub-type");
+		}
+		if(parentIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		String sql = SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("salt", salt);
+		params.addValue("parentIds", parentIds);
+		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
+	}
+
+	@Override
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit,
+			Long offset) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 
 }

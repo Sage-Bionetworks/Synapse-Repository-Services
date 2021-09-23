@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
@@ -682,6 +683,24 @@ public interface NodeDAO {
 	 */
 	public List<DatasetItem> getDatasetItems(Long datasetId);
 
-	public List<IdAndChecksum> getViewIdsAndChecksum(ViewFilter filter, long limit, long offset);
+	/**
+	 * Get a single page of IdAndChecksums for children of the given parents.
+	 * @param parentIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit, Long offset);
+	
+	/**
+	 * Get a single page of IdAndChecksums for the given objectIds.
+	 * @param objectIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit, Long offset);
 
 }
