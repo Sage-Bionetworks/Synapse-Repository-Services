@@ -349,6 +349,55 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(expected, result);
 	}
 	
+	// Test for https://sagebionetworks.jira.com/browse/PLFM-6939, a group with the same submitter and requirement but multiple accessors,
+	// when filtering by a specific accessor the result should include all the accessors
+	@Test
+	public void testListAccessorGroupByAccessorIdWithMultipleAccessors() {
+		// Will set both the submitter and the accessor to the first parameter
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup, accessRequirement);
+		
+		accessApproval2.setAccessorId(individualGroup2.getId());
+		
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+				
+		String accessorId = individualGroup2.getId();
+		
+		List<AccessorGroup> expected = Arrays.asList(new AccessorGroup()
+				// Both the accessors should be included in the group
+				.setAccessorIds(Arrays.asList(accessApproval.getAccessorId(), accessApproval2.getAccessorId()))
+				.setAccessRequirementId(accessRequirement.getId().toString())
+				.setSubmitterId(accessApproval2.getSubmitterId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED))
+		);
+		
+		// Call under test
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(), null, accessorId, null, 10L, 0L);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testListAccessorGroupByAccessorIdNoMatch() {
+		// Will set both the submitter and the accessor to the first parameter
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup, accessRequirement);
+		
+		accessApproval2.setAccessorId(individualGroup2.getId());
+		
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+				
+		// A non matching accessor
+		String accessorId = individualGroup2.getId() + 1;
+		
+		List<AccessorGroup> expected = Collections.emptyList();
+		
+		// Call under test
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(), null, accessorId, null, 10L, 0L);
+		
+		assertEquals(expected, result);
+	}
+	
 	@Test
 	public void testListAccessorGroupByNullAccessorId() {
 		// Will set both the submitter and the accessor to the first parameter
@@ -409,7 +458,7 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
-				+ " AND ACCESSOR_ID = :ACCESSOR_ID"
+				+ " AND (REQUIREMENT_ID, SUBMITTER_ID) IN (SELECT DISTINCT REQUIREMENT_ID, SUBMITTER_ID FROM ACCESS_APPROVAL WHERE ACCESSOR_ID =:ACCESSOR_ID)"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
