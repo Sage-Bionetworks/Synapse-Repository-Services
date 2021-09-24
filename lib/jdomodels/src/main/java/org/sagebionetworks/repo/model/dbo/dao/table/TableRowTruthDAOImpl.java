@@ -235,7 +235,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		changeDBO.setTransactionId(transactionId);
 		changeDBO.setHasFileRefs(hasFileRefs);
-		
 		basicDao.createNew(changeDBO);
 		return key;
 	}
@@ -265,6 +264,31 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setHasFileRefs(false);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
+	}
+	
+	@Override
+	public void appendSearchEnabledChange(Long userId, String tableId, long transactionId) {
+		long coutToReserver = 1;
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
+		changeDBO.setCreatedBy(userId);
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setRowCount(0L);
+		changeDBO.setChangeType(TableChangeType.SEARCH.name());
+		changeDBO.setTransactionId(transactionId);
+		changeDBO.setHasFileRefs(false);
+		changeDBO.setIsSearchEnabled(true);
+		
+		// We do not store anything to S3 as it is just a boolean
+		changeDBO.setKeyNew(null);
+		changeDBO.setBucket(null);
+		
+		basicDao.createNew(changeDBO);
 	}
 
 	/**

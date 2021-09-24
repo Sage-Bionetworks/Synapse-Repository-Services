@@ -437,6 +437,20 @@ public class TableRowTruthDAOImplTest {
 		SparseChangeSetDto copy = tableRowTruthDao.getRowSet(tableId, versionNumber);
 		assertEquals(changeSet.writeToDto(), copy);
 	}
+	
+	@Test
+	public void testAppendEnableSearchChangeToTable() {
+		Long userId = Long.parseLong(creatorUserGroupId);
+		Long transactionId = tableTransactionDao.startTransaction(tableId, userId);
+		tableRowTruthDao.appendSearchEnabledChange(userId, tableId, transactionId);
+		
+		TableRowChange rowChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		
+		assertEquals(TableChangeType.SEARCH, rowChange.getChangeType());
+		assertTrue(rowChange.getIsSearchEnabled());
+		assertNull(rowChange.getBucket());
+		assertNull(rowChange.getKeyNew());
+	}
 
 	@Test
 	public void testHasAtLeastOneChangeOfType() throws IOException {

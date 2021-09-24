@@ -550,6 +550,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_TYPE			= "CHANGE_TYPE";
 	public static final String COL_TABLE_ROW_TRX_ID			= "TRX_ID";
 	public static final String COL_TABLE_ROW_HAS_FILE_REFS	= "HAS_FILE_REFS";
+	public static final String COL_TABLE_ROW_SEARCH_ENABLED	= "SEARCH_ENABLED";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// Tracks view scope.

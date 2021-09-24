@@ -603,6 +603,18 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 	}
 	
+	@Override
+	@WriteTransaction
+	public void setSearchEnabled(UserInfo userInfo, String tableId) {
+		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
+		
+		tableManagerSupport.touchTable(userInfo, tableId);
+		tableRowTruthDao.appendSearchEnabledChange(userInfo.getId(), tableId, transactionId);
+		
+		// Trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
+	}
+	
 	/**
 	 * Note: This method should only be called while holding an exclusive lock on the table.
 	 * @param userInfo

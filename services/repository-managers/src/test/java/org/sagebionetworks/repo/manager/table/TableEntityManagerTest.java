@@ -2133,6 +2133,21 @@ public class TableEntityManagerTest {
 		assertEquals(ex, result.getCause());
 	}
 	
+	@Test
+	public void testSetSearchEnabled() throws Exception {
+		
+		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
+		
+		// Call under test
+		manager.setSearchEnabled(user, tableId);
+		
+		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockTruthDao).appendSearchEnabledChange(user.getId(), tableId, transactionId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);		
+		
+	}
+	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId

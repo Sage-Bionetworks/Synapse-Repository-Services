@@ -32,6 +32,7 @@ public class TableRowChangeUtils {
 		dto.setChangeType(TableChangeType.valueOf(dbo.getChangeType()));
 		dto.setTransactionId(dbo.getTransactionId());
 		dto.setHasFileRefs(dbo.getHasFileRefs());
+		dto.setIsSearchEnabled(dbo.getIsSearchEnabled());
 		return dto;
 	}
 
@@ -56,6 +57,7 @@ public class TableRowChangeUtils {
 		dbo.setChangeType(dto.getChangeType().name());
 		dbo.setTransactionId(dto.getTransactionId());
 		dbo.setHasFileRefs(dto.getHasFileRefs());
+		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
 		return dbo;
 	}
 

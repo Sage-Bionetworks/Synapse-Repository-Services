@@ -194,6 +194,13 @@ public interface TableEntityManager {
 	 * @param id
 	 */
 	void setTableSchema(UserInfo userInfo, List<String> columnIds, String id);
+	
+	/**
+	 * Creates a new table transaction to enable full text search on a table
+	 * @param userInfo
+	 * @param tableId
+	 */
+	void setSearchEnabled(UserInfo userInfo, String tableId);
 
 	/**
 	 * Mark a table as deleted. This occurs when a table is moved to the trash. The

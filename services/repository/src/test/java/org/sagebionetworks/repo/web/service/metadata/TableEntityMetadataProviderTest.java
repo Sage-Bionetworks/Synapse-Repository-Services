@@ -1,15 +1,19 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -18,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class TableEntityMetadataProviderTest  {
 	
 	@Mock
@@ -32,7 +37,7 @@ public class TableEntityMetadataProviderTest  {
 	
 	UserInfo userInfo;	
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		MockitoAnnotations.initMocks(this);
 		
@@ -62,6 +67,16 @@ public class TableEntityMetadataProviderTest  {
 		// call under test
 		provider.entityCreated(userInfo, table);
 		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verifyNoMoreInteractions(tableEntityManager);
+	}
+	
+	@Test
+	public void testCreateWithSearchEnabled(){
+		// call under test
+		table.setIsSearchEnabled(true);
+		provider.entityCreated(userInfo, table);
+		verify(tableEntityManager).setSearchEnabled(userInfo, entityId);
+		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
 	}
 	
 	@Test
@@ -72,12 +87,15 @@ public class TableEntityMetadataProviderTest  {
 		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNewVersion(){
 		boolean wasNewVersionCreated = true;
-		// call under test
-		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			provider.entityUpdated(userInfo, table, wasNewVersionCreated);
+		});
+		
+		verifyZeroInteractions(tableEntityManager);
 	}
 	
 	@Test
