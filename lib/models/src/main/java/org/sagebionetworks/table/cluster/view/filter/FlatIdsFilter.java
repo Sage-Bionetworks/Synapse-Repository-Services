@@ -22,7 +22,7 @@ public class FlatIdsFilter extends AbstractViewFilter {
 			Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		this.scope = scope;
-		this.params.addValue("flatIds", scope);
+		this.params.put("flatIds", scope);
 	}
 
 	@Override
@@ -34,12 +34,21 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	public String getFilterSql() {
 		return super.getFilterSql()+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
+	
+	@Override
+	public String getObjectIdFilterSql() {
+		// this filter includes all version of the objects.
+		return super.getFilterSql()+ " AND R.OBJECT_ID IN (:flatIds)";
+	}
 
 	@Override
 	public Builder newBuilder() {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 	}
 
+	public Set<Long> getScope(){
+		return scope;
+	}
 	
 	@Override
 	public int hashCode() {
@@ -88,4 +97,5 @@ public class FlatIdsFilter extends AbstractViewFilter {
 		}
 
 	}
+
 }

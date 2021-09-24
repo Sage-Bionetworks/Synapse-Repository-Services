@@ -6,17 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.map.HashedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import com.google.common.collect.Sets;
 
@@ -47,12 +48,15 @@ public class FlatIdsFilterTest {
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) "
 						+ "AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("flatIds", scope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		assertEquals(
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:flatIds)",
+				filter.getObjectIdFilterSql());
+		Map<String, Object> paramters = filter.getParameters();
+		Map<String, Object> expected = new HashedMap<>();
+		expected.put("mainType", mainType.name());
+		expected.put("subTypes", expectedSubTypes);
+		expected.put("flatIds", scope);
+		assertEquals(expected, paramters);
 	}
 
 	@Test
@@ -65,14 +69,14 @@ public class FlatIdsFilterTest {
 						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
 						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
-		MapSqlParameterSource paramters = filter.getParameters();
-		MapSqlParameterSource expected = new MapSqlParameterSource();
-		expected.addValue("mainType", mainType.name());
-		expected.addValue("subTypes", expectedSubTypes);
-		expected.addValue("limitObjectIds", limitObjectIds);
-		expected.addValue("excludeKeys", excludeKeys);
-		expected.addValue("flatIds", scope);
-		assertEquals(expected.getValues(), paramters.getValues());
+		Map<String, Object> paramters = filter.getParameters();
+		Map<String, Object> expected = new HashedMap<>();
+		expected.put("mainType", mainType.name());
+		expected.put("subTypes", expectedSubTypes);
+		expected.put("limitObjectIds", limitObjectIds);
+		expected.put("excludeKeys", excludeKeys);
+		expected.put("flatIds", scope);
+		assertEquals(expected, paramters);
 	}
 	
 	@Test

@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -73,6 +74,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.IdAndAlias;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -152,6 +154,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	public static final String SQL_SELECT_ENTITY_DTO = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetEntityDTOs.sql");
+	
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetIdAndChecksumParentId.sql");
+	
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetIdAndChecksumObjectIds.sql");
 	
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
@@ -2156,6 +2164,55 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format("View '%s' not found", datasetId), e);
 		}
+	}
+
+	@Override
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
+			Long offset) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(parentIds, "parentIds");
+		ValidateArgument.required(subTypes, "subTypes");
+		if(subTypes.isEmpty()) {
+			throw new IllegalArgumentException("Must provide at least one sub-type");
+		}
+		if(parentIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
+		String sql = SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("salt", salt);
+		params.addValue("parentIds", parentIds);
+		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
+	}
+
+	@Override
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit,
+			Long offset) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(objectIds, "objectIds");
+		if(objectIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
+		String sql = SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("salt", salt);
+		params.addValue("objectIds", objectIds);
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
 	}
 
 }

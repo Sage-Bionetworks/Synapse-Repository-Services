@@ -8,6 +8,7 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -560,5 +561,15 @@ public interface TableIndexDAO {
 	 * @param viewId
 	 */
 	void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType);
+
+	/**
+	 * Get a single page of IdAndChecksums from the replication table using the provided filter.
+	 * @param salt
+	 * @param filter
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
 
 }

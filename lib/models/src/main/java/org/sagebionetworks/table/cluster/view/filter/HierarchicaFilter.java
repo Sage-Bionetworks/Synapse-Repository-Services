@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * ViewFilter for a scope defined by a hierarchy of par
+ * ViewFilter for a scope defined by a hierarchy of parentIds
  *
  */
 public class HierarchicaFilter extends AbstractViewFilter {
@@ -26,7 +26,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		ValidateArgument.required(scope, "scope");
 		this.parentIds = scope;
-		this.params.addValue("parentIds", scope);
+		this.params.put("parentIds", scope);
 	}
 
 	@Override
@@ -37,6 +37,12 @@ public class HierarchicaFilter extends AbstractViewFilter {
 	@Override
 	public String getFilterSql() {
 		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
+	}
+	
+	@Override
+	public String getObjectIdFilterSql() {
+		// this filter includes all versions of each object.
+		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds)";
 	}
 	
 	public Set<Long> getParentIds() {

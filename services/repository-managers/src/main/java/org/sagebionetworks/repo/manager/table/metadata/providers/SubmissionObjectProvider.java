@@ -8,9 +8,11 @@ import java.util.Set;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,5 +53,12 @@ public class SubmissionObjectProvider implements ObjectDataProvider {
 	public ReplicationType getReplicationType() {
 		return ReplicationType.SUBMISSION;
 	}
+
+	@Override
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	
 }

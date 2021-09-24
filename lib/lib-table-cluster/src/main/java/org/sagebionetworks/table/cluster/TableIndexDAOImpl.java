@@ -65,6 +65,7 @@ import javax.sql.DataSource;
 
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -119,6 +120,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
 	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
+	private static String GET_ID_AND_CHECKSUMS_SQL_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/GetIdAndChecksumsTemplate.sql");
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		ObjectDataDTO dto = new ObjectDataDTO();
@@ -999,10 +1001,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyMap();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 
 		//additional param
-		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
+		param.put(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(annotationNames, filter.getFilterSql());
 		return namedTemplate.query(sql,param, resultSet -> {
 			Map<String, Long> result = new HashMap<>();
@@ -1057,7 +1059,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// which is used for query row size estimation
 		validateMaxListLengthInAnnotationReplication(filter, currentSchema);
 				
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
@@ -1077,7 +1079,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		StringBuilder builder = new StringBuilder();
 		
@@ -1143,10 +1145,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
-		param.addValue(P_OFFSET, offset);
+		param.put(P_LIMIT, limit);
+		param.put(P_OFFSET, offset);
 		
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql());
 		
@@ -1370,9 +1372,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, filter.getFilterSql());
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
+		param.put(P_LIMIT, limit);
 		
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);
@@ -1415,6 +1417,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
 		template.update(sql, mainType.name());
+	}
+
+	@Override
+	public List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(filter, "filter");
+		if(filter.isEmpty()) {
+			return Collections.emptyList();
+		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
+		String sql = String.format(GET_ID_AND_CHECKSUMS_SQL_TEMPLATE, filter.getObjectIdFilterSql());
+		Map<String, Object> params = filter.getParameters();
+		params.put("salt", salt);
+		params.put("limit", limit);
+		params.put("offset", offset);
+		
+		return namedTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
 	}
 	
 }

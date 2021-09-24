@@ -5,11 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.replication.TruthAndReplicationSynchronization;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 
-public interface ObjectDataProvider {
+public interface ObjectDataProvider extends TruthAndReplicationSynchronization{
 
 	/**
 	 * Fetch the {@link ObjectDataDTO} for the objects with the given ids, the DTO

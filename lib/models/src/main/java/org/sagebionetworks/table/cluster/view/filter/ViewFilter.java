@@ -1,11 +1,12 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ReplicationType;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.sagebionetworks.repo.model.table.SubType;
 
 /**
  * Abstraction for an immutable filter that defines the rows of a view.
@@ -23,13 +24,19 @@ public interface ViewFilter {
 	 * The SQL parameters for all bindings the filter SQL.
 	 * @return
 	 */
-	MapSqlParameterSource getParameters();
+	Map<String, Object> getParameters();
 	
 	/**
 	 * The SQL that defines this view's filter.
 	 * @return
 	 */
 	String getFilterSql();
+	
+	/**
+	 * The filter the defines the objectIds associated with this filter.
+	 * @return
+	 */
+	String getObjectIdFilterSql();
 	
 	/**
 	 * Builder to build a new filter from the existing filter.
@@ -49,4 +56,9 @@ public interface ViewFilter {
 	 */
 	ReplicationType getReplicationType();
 	
+	/**
+	 * Get the sub-types for this filter.
+	 * @return
+	 */
+	Set<SubType> getSubTypes();
 }
