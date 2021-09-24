@@ -5,7 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -14,7 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,12 +25,7 @@ import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
-import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
-import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -119,89 +114,49 @@ public class EntityObjectProviderTest {
 	}
 
 	@Test
-	public void testStreamOverIdsAndChecksumsWithHierarchyFilter() {
+	public void testStreamOverIdsAndChecksumsWithParentIds() {
 		Long salt = 123L;
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 		Set<Long> parentId = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, parentId);
 
 		List<IdAndChecksum> all = buildIdsAndChecksum(4);
-		List<IdAndChecksum> pageOne = all.subList(0, 3);
-		List<IdAndChecksum> pageTwo = all.subList(3, 4);
 
-		when(mockNodeDao.getIdsAndChecksumsForChildren(any(), any(), any(), any(), any())).thenReturn(pageOne, pageTwo,
+		when(mockNodeDao.getIdsAndChecksumsForChildren(any(), any(), any(), any(), any())).thenReturn(all,
 				Collections.emptyList());
 
-		int pageSize = 3;
 		// call under test
-		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksums(salt, filter, pageSize);
+		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksumsForChildren(salt, parentId, subTypes);
 		List<IdAndChecksum> allResults = new ArrayList<IdAndChecksum>();
 		resultsIt.forEachRemaining(i -> allResults.add(i));
 		assertEquals(all, allResults);
 		
-		verify(mockNodeDao, times(3)).getIdsAndChecksumsForChildren(any(), any(), any(), any(), any());
-		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes), eq(3L), eq(0L));
-		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes), eq(3L), eq(3L));
-		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes), eq(3L), eq(6L));
+		long pageSize = EntityObjectProvider.PAGE_SIZE;
+		verify(mockNodeDao, times(2)).getIdsAndChecksumsForChildren(any(), any(), any(), any(), any());
+		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(0L));
+		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(pageSize));
 	}
 	
 	@Test
-	public void testStreamOverIdsAndChecksumsWithFlatFilter() {
+	public void testStreamOverIdsAndChecksumsWithObjectIds() {
 		Long salt = 123L;
 		Set<Long> scope = Sets.newHashSet(1L, 2L, 3L);
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		FlatIdsFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
 
 		List<IdAndChecksum> all = buildIdsAndChecksum(4);
-		List<IdAndChecksum> pageOne = all.subList(0, 3);
-		List<IdAndChecksum> pageTwo = all.subList(3, 4);
 
-		when(mockNodeDao.getIdsAndChecksumsForObjects(any(), any(), any(), any())).thenReturn(pageOne, pageTwo,
+		when(mockNodeDao.getIdsAndChecksumsForObjects(any(), any(), any(), any())).thenReturn(all,
 				Collections.emptyList());
 
-		int pageSize = 3;
 		// call under test
-		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksums(salt, filter, pageSize);
+		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksumsForObjects(salt, scope);
 		List<IdAndChecksum> allResults = new ArrayList<IdAndChecksum>();
 		resultsIt.forEachRemaining(i -> allResults.add(i));
 		assertEquals(all, allResults);
 		
-		verify(mockNodeDao, times(3)).getIdsAndChecksumsForObjects(any(), any(), any(), any());
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(scope), eq(3L), eq(0L));
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(scope), eq(3L), eq(3L));
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(scope), eq(3L), eq(6L));
-	}
-	
-	@Test
-	public void testStreamOverIdsAndChecksumsWithFlatIdAndVersionFilter() {
-		Long salt = 123L;
-		Set<IdVersionPair> scope = Sets.newHashSet(
-				new IdVersionPair().setId(1L).setVersion(3L),
-				new IdVersionPair().setId(2L).setVersion(4L),
-				new IdVersionPair().setId(3L).setVersion(5L)
-		);
-		Set<Long> objectIds = scope.stream().map(i->i.getId()).collect(Collectors.toSet());
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
-
-		List<IdAndChecksum> all = buildIdsAndChecksum(4);
-		List<IdAndChecksum> pageOne = all.subList(0, 3);
-		List<IdAndChecksum> pageTwo = all.subList(3, 4);
-
-		when(mockNodeDao.getIdsAndChecksumsForObjects(any(), any(), any(), any())).thenReturn(pageOne, pageTwo,
-				Collections.emptyList());
-
-		int pageSize = 3;
-		// call under test
-		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksums(salt, filter, pageSize);
-		List<IdAndChecksum> allResults = new ArrayList<IdAndChecksum>();
-		resultsIt.forEachRemaining(i -> allResults.add(i));
-		assertEquals(all, allResults);
+		long pageSize = EntityObjectProvider.PAGE_SIZE;
 		
-		verify(mockNodeDao, times(3)).getIdsAndChecksumsForObjects(any(), any(), any(), any());
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(objectIds), eq(3L), eq(0L));
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(objectIds), eq(3L), eq(3L));
-		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(objectIds), eq(3L), eq(6L));
+		verify(mockNodeDao, times(2)).getIdsAndChecksumsForObjects(any(), any(), any(), any());
+		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(scope), eq(pageSize), eq(0L));
+		verify(mockNodeDao).getIdsAndChecksumsForObjects(eq(salt), eq(scope), eq(pageSize), eq(pageSize));
 	}
 
 	/**

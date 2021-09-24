@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.replication.TruthAndReplicationSynchronization;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.SubType;
 
-public interface ObjectDataProvider extends TruthAndReplicationSynchronization{
+public interface ObjectDataProvider {
 
 	/**
 	 * Fetch the {@link ObjectDataDTO} for the objects with the given ids, the DTO
@@ -35,8 +36,7 @@ public interface ObjectDataProvider extends TruthAndReplicationSynchronization{
 	 * @return The
 	 */
 	Set<Long> getAvailableContainers(List<Long> containerIds);
-	
-	
+
 	/**
 	 * For each container id (e.g. ids that are allowed in the scope of the view)
 	 * get the sum of CRCs of their children.
@@ -52,14 +52,14 @@ public interface ObjectDataProvider extends TruthAndReplicationSynchronization{
 	 * @return Map.key = containerId and map.value = sum of children CRCs
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
-	
+
 	/**
 	 * Get the replication type for this provider.
+	 * 
 	 * @return
 	 */
 	ReplicationType getReplicationType();
-	
-	
+
 	/**
 	 * For the given container id return the <id, etag, benefactor> of the direct
 	 * children
@@ -68,5 +68,35 @@ public interface ObjectDataProvider extends TruthAndReplicationSynchronization{
 	 * @return The list of children metadata including the id, etag and benefactor
 	 */
 	List<IdAndEtag> getChildren(Long containerId);
-	
+
+	/**
+	 * Provide a stream of IdAndChecksum data for the given parentIds and subTypes
+	 * ordered by the IDs ascending. The checksum must include all version of the
+	 * objects that match the condition. See the following pusdo-sql:
+	 * </p>
+	 * <code>SELECT ID, SUM(CRC32(CONCAT(salt','-',ETAG,'-',VERSION,'-',BENEFACTOR_ID))) AS CHECK_SUM ... GROUP BY ID ORDER BY ID ASC</code>
+	 * 
+	 * @param parentIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes);
+
+	/**
+	 * Provide a stream of IdAndChecksum data for the given objectIds ordered by the
+	 * IDs ascending. The checksum must include all version of the objects that
+	 * match the condition. See the following pusdo-sql:
+	 * </p>
+	 * <code>SELECT ID, SUM(CRC32(CONCAT(salt','-',ETAG,'-',VERSION,'-',BENEFACTOR_ID))) AS CHECK_SUM ... GROUP BY ID ORDER BY ID ASC</code>
+	 * 
+	 * @param objectIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds);
+
 }

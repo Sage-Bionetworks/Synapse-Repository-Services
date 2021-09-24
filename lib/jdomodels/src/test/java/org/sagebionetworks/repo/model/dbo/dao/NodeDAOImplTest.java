@@ -4890,9 +4890,6 @@ public class NodeDAOImplTest {
 				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
 				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
 		);
-
-		// this file should not be included.
-		Long fileIdNotIncluded =KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()));
 		
 		Set<Long> objectIds = idsInOne.stream().collect(Collectors.toSet());
 	
