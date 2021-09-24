@@ -3139,6 +3139,24 @@ public class TableWorkerIntegrationTest {
 					assertEquals(3, queryResult.getQueryResults().getRows().size());
 				});
 	}
+	
+	@Test
+	public void testEnableSearch() throws Exception {
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setSearchEnabled(adminUserInfo, tableId);
+		
+		TableStatus status = waitForTableProcessing(tableId);
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+	}
 
 	/**
 	 * Create a string of the given size.

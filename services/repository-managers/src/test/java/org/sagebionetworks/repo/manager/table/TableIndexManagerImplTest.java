@@ -84,6 +84,7 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -1022,6 +1023,18 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
 		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, newColumn, false);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null, false);
+	}
+	
+	public void testApplyChangeToIndexSearch() throws NotFoundException, IOException {
+		long changeNumber = 123L;
+		
+		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber);
+		
+		// call under test
+		manager.applyChangeToIndex(tableId, mockChange);
+		
+		verify(mockIndexDao).addSearchColumn(tableId);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
 	}
 
 	@Test
@@ -2215,6 +2228,11 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteObjectData(type, toDeleteIds);
 	}
 	
+	@Test
+	public void testApplySearchChangeToIndex() {
+		
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
@@ -2274,6 +2292,17 @@ public class TableIndexManagerImplTest {
 		testChange.setChangeType(TableChangeType.COLUMN);
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
+		testChange.setChangeData(change);
+		return testChange;
+	}
+	
+	public TableChangeMetaData setupMockSearchChange(long changeNumber) {
+		TestTableChangeMetaData<SearchChange> testChange = new TestTableChangeMetaData<>();
+		testChange.setChangeNumber(changeNumber);
+		testChange.seteTag("etag-" + changeNumber);
+		testChange.setChangeType(TableChangeType.SEARCH);
+		SearchChange searchChange = new SearchChange(true);
+		ChangeData<SearchChange> change = new ChangeData<SearchChange>(changeNumber, searchChange);
 		testChange.setChangeData(change);
 		return testChange;
 	}

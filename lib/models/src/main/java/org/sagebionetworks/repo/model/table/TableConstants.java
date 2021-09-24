@@ -31,6 +31,7 @@ public class TableConstants {
 	
 	public static final String ROW_ETAG = "ROW_ETAG";
 	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";
+	public static final String ROW_SEARCH_CONTENT = "ROW_SEARCH_CONTENT";
 	
 	/**
 	 * FileHandle IDs 
@@ -59,7 +60,7 @@ public class TableConstants {
 	 * ROW_VERSION
 	 */
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_SEARCH_CONTENT));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and

@@ -110,6 +110,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -1766,6 +1767,15 @@ public class TableEntityManagerTest {
 		assertNotNull(schemaChange);
 		assertEquals(1L, schemaChange.getChangeNumber());
 		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
+		
+		// three
+		TableChangeMetaData metaThree = results.get(2);
+		assertEquals(new Long(2), metaThree.getChangeNumber());
+		assertEquals(TableChangeType.SEARCH, metaThree.getChangeType());
+		// load the row.
+		ChangeData<SearchChange> searchChange = metaThree.loadChangeData(SearchChange.class);
+		assertNotNull(searchChange);
+		assertEquals(2L, searchChange.getChangeNumber());
 	}
 	
 	@Test
@@ -2164,6 +2174,7 @@ public class TableEntityManagerTest {
 			change.setRowVersion(new Long(i));
 			change.setChangeType(TableChangeType.values()[i%enumLenght]);
 			change.setKeyNew("someKey"+i);
+			change.setIsSearchEnabled(true);
 			results.add(change);
 		}
 		return results;

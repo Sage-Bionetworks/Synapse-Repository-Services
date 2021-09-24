@@ -73,6 +73,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.model.TableChange;
@@ -957,6 +958,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 				List<ColumnChangeDetails> details = getSchemaChangeForVersion(wrapped.getTableId(),
 						wrapped.getRowVersion());
 				tableChange = new SchemaChange(details);
+				break;
+			case SEARCH:
+				tableChange = new SearchChange(wrapped.getIsSearchEnabled());
 				break;
 			default:
 				throw new IllegalStateException("Unknown type: " + wrapped.getChangeType());

@@ -49,6 +49,7 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.PaginationIterator;
@@ -666,6 +667,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		case COLUMN:
 			applySchemaChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SchemaChange.class));
 			break;
+		case SEARCH:
+			applySearchChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SearchChange.class));
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown type: "+changeMetadata.getChangeType());
 		}
@@ -709,6 +713,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
+	}
+	
+	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
+		if (loadChangeData.getChange().isEnabled()) {
+			// This will make sure that the table is properly created
+			updateTableSchema(idAndVersion, false, Collections.emptyList());
+			tableIndexDao.addSearchColumn(idAndVersion);
+		}
+		
+		// set the new max version for the index
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
 	}
 	
 	@Override

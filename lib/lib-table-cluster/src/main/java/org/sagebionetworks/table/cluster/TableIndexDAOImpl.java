@@ -192,11 +192,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					+ " t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :" + OBJECT_TYPE_PARAM_NAME
 					+ " AND t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
-
-	/**
-	 * The MD5 used for tables with no schema.
-	 */
-	public static final String EMPTY_SCHEMA_MD5 = TableModelUtils.createSchemaMD5Hex(new LinkedList<String>());
 	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
@@ -361,7 +356,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
 		} catch (Exception e) {
 			// Spring throws this when the table is empty
-			return EMPTY_SCHEMA_MD5;
+			return TableModelUtils.EMPTY_SCHEMA_MD5;
 		}
 	}
 	
@@ -1438,6 +1433,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return namedTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
+	}
+	
+	@Override
+	public void addSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateSearchColumnSql(idAndVersion);
+		template.update(sql);
 	}
 	
 }

@@ -571,5 +571,11 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
+	
+	/**
+	 * Adds a special SEARCH_CONTENT FT column to the table index 
+	 * @param idAndVersion
+	 */
+	void addSearchColumn(IdAndVersion idAndVersion);
 
 }
