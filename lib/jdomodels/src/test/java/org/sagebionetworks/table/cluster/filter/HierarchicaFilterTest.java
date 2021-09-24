@@ -48,6 +48,9 @@ public class HierarchicaFilterTest {
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
+		assertEquals(
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.PARENT_ID IN (:parentIds)",
+				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("mainType", mainType.name());

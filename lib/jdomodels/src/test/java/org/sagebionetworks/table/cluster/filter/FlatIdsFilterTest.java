@@ -48,6 +48,9 @@ public class FlatIdsFilterTest {
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) "
 						+ "AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
+		assertEquals(
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:flatIds)",
+				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		Map<String, Object> expected = new HashedMap<>();
 		expected.put("mainType", mainType.name());
