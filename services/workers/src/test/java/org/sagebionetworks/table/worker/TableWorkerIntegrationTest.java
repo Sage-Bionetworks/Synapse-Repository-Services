@@ -3157,6 +3157,42 @@ public class TableWorkerIntegrationTest {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
 		});
 	}
+	
+	@Test
+	public void testEnableSearchWithData() throws Exception {
+		createSchemaOneOfEachType();
+		headers = TableModelUtils.getIds(schema);
+		
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		table.setColumnIds(headers);
+		
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setSearchEnabled(adminUserInfo, tableId);
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+				
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+	}
 
 	/**
 	 * Create a string of the given size.
