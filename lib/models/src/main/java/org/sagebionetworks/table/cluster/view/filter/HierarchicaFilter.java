@@ -39,6 +39,12 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
 	
+	@Override
+	public String getObjectIdFilterSql() {
+		// this filter includes all versions of each object.
+		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds)";
+	}
+	
 	public Set<Long> getParentIds() {
 		return parentIds;
 	}

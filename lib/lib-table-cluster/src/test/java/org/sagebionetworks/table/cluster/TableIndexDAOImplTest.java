@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -4273,5 +4274,211 @@ public class TableIndexDAOImplTest {
 		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
 		// call under test
 		assertEquals(v2, tableIndexDAO.getObjectDataForCurrentVersion(mainType, objectId));
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithFlatIdAndVersionFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		ObjectDataDTO v1 = oneVersion.get(0);
+		ObjectDataDTO v2 = twoVersion.get(1);
+		ObjectDataDTO v3 = threeVersion.get(0);
+		
+		// call under test
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2, v3));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<IdVersionPair> scope = Sets.newHashSet(
+				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
+				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion()),
+				new IdVersionPair().setId(v3.getId()).setVersion(v3.getVersion())
+		);
+		
+		ViewFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithHierarchyFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(1L);
+		
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, parentIds);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithFlatFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(objectIdOne, objectIdTwo, objectIdThree);
+		
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithEmptyFilter() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Collections.emptySet();
+		
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertTrue(page.isEmpty());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullFilter() {
+		ViewFilter filter = null;
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("filter is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullSalt() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = null;
+		Long limit = 2L;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullLimit() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = null;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullOffset() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
 	}
 }

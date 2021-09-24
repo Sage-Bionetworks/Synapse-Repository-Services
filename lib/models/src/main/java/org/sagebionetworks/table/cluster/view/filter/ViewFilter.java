@@ -33,6 +33,12 @@ public interface ViewFilter {
 	String getFilterSql();
 	
 	/**
+	 * The filter the defines the objectIds associated with this filter.
+	 * @return
+	 */
+	String getObjectIdFilterSql();
+	
+	/**
 	 * Builder to build a new filter from the existing filter.
 	 * @return
 	 */

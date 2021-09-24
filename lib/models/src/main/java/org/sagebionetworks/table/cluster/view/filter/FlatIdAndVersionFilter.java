@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.SubType;
 public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	
 	private final Set<IdVersionPair> scope;
+	private final Set<Long> objectIds;
 
 	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
 		this(mainType, subTypes, null, null, scope);
@@ -26,6 +27,8 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		this.scope = scope;
 		List<Long[]> pairedList = scope.stream().map(i-> new Long[] {i.getId(), i.getVersion()}).collect(Collectors.toList());
 		this.params.put("scopePairs", pairedList);
+		this.objectIds = scope.stream().map(i->i.getId()).collect(Collectors.toSet());
+		this.params.put("objectIds", objectIds);
 	}
 
 
@@ -38,6 +41,12 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	public String getFilterSql() {
 		return super.getFilterSql()+" AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)";
 	}
+	
+	@Override
+	public String getObjectIdFilterSql() {
+		// This filter includes all versions for each object.
+		return super.getFilterSql()+" AND R.OBJECT_ID IN (:objectIds)";
+	}
 
 	@Override
 	public Builder newBuilder() {
@@ -46,6 +55,10 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 
 	public Set<IdVersionPair> getScope(){
 		return scope;
+	}
+	
+	public Set<Long> getObjectIds(){
+		return objectIds;
 	}
 	
 	@Override
@@ -94,4 +107,5 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		}
 		
 	}
+
 }

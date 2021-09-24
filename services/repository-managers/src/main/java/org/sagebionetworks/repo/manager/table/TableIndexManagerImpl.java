@@ -51,6 +51,8 @@ import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -855,9 +857,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter) {
-		// TODO Auto-generated method stub
-		return null;
+		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
+			return tableIndexDao.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}, BATCH_SIZE);
 	}
-
 
 }

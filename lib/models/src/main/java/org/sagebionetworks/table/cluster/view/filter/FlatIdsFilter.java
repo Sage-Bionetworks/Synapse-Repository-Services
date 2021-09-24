@@ -34,6 +34,12 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	public String getFilterSql() {
 		return super.getFilterSql()+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
+	
+	@Override
+	public String getObjectIdFilterSql() {
+		// this filter includes all version of the objects.
+		return super.getFilterSql()+ " AND R.OBJECT_ID IN (:flatIds)";
+	}
 
 	@Override
 	public Builder newBuilder() {
@@ -91,4 +97,5 @@ public class FlatIdsFilter extends AbstractViewFilter {
 		}
 
 	}
+
 }

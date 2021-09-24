@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -84,9 +83,8 @@ public class EntityObjectProvider implements ObjectDataProvider {
 			};
 		}else if( filter instanceof FlatIdAndVersionFilter) {
 			FlatIdAndVersionFilter flat = (FlatIdAndVersionFilter) filter;
-			Set<Long> objectIds = flat.getScope().stream().map(i->i.getId()).collect(Collectors.toSet());
 			provider = (long limit, long offset) -> {
-				return nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+				return nodeDao.getIdsAndChecksumsForObjects(salt, flat.getObjectIds(), limit, offset);
 			};
 		}else {
 			throw new IllegalStateException("Unknown filter types: "+filter.getClass().getName());
