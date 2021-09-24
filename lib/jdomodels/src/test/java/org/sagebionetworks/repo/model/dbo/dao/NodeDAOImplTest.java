@@ -4754,7 +4754,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetViewIdsAndChecksumWithHierachyFilter() throws Exception {
+	public void testGetIdsAndChecksumsForChildren() throws Exception {
 		Node projectOne = nodeDaoHelper.create(n -> {
 			n.setName("project-one");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
@@ -4804,5 +4804,158 @@ public class NodeDAOImplTest {
 		assertEquals(idsInTwo.get(2), results.get(1).getId());
 		// all files should have a checksum
 		assertEquals(2, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptyParentIds() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Collections.emptySet();
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptySubTypes() throws Exception {
+		Set<SubType> subTypes = Collections.emptySet();
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("Must provide at least one sub-type", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullSalt() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(123L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullLimit() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = null;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullOffset() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = 100L;
+		Long offset = null;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjects() throws Exception {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectOne.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+
+		// this file should not be included.
+		Long fileIdNotIncluded =KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()));
+		
+		Set<Long> objectIds = idsInOne.stream().collect(Collectors.toSet());
+	
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(idsInOne.get(1), results.get(0).getId());
+		assertEquals(idsInOne.get(2), results.get(1).getId());
+		// all files should have a checksum
+		assertEquals(2, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithEmptyObjects() throws Exception {
+		Set<Long> objectIds = Collections.emptySet();
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullSalt() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullLimit() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = null;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullOffset() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = 100L;
+		Long offset = null;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
 	}
 }

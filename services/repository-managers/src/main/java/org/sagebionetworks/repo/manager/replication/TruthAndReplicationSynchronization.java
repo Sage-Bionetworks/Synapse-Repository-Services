@@ -15,19 +15,10 @@ public interface TruthAndReplicationSynchronization {
 	/**
 	 * Stream over the view ID and checksums for all items defined by the given view filter.
 	 * Note: It is expected that the items are ordered by ID ascending.
-	 * @param checksumSalt Each run will receive a new random salt that is passed to both sides of the synch.
+	 * @param salt Each run will receive a new random salt that is passed to both sides of the synch.
 	 * @param filter
 	 * @return
 	 */
-	Iterator<IdAndChecksum> streamOverViewIds(long checksumSalt, ViewFilter filter);
-	
-	/**
-	 * Calculate a single checksum for all items defined by the given view filter.
-	 * 
-	 * @param checksumSalt Each run will receive a new random salt that is passed to both sides of the synch.
-	 * @param filter
-	 * @return
-	 */
-	Long calculateViewChecksum(long checksumSalt, ViewFilter filter);
+	Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter);
 	
 }

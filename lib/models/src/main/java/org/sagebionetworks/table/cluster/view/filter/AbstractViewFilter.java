@@ -51,6 +51,11 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	}
 	
 	@Override
+	public Set<SubType> getSubTypes(){
+		return subTypes;
+	}
+	
+	@Override
 	public String getFilterSql() {
 		StringBuilder builder = new StringBuilder(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)");
 		if(params.containsKey("limitObjectIds")) {

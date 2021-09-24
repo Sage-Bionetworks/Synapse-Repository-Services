@@ -158,6 +158,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetIdAndChecksumParentId.sql");
 	
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetIdAndChecksumObjectIds.sql");
+	
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -2166,6 +2169,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
 			Long offset) {
+		ValidateArgument.required(salt, "salt");
 		ValidateArgument.required(parentIds, "parentIds");
 		ValidateArgument.required(subTypes, "subTypes");
 		if(subTypes.isEmpty()) {
@@ -2174,6 +2178,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(parentIds.isEmpty()) {
 			return Collections.emptyList();
 		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
 		String sql = SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID;
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("salt", salt);
@@ -2189,9 +2196,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit,
 			Long offset) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(objectIds, "objectIds");
+		if(objectIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
+		String sql = SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("salt", salt);
+		params.addValue("objectIds", objectIds);
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
 	}
-
 
 }

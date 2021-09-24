@@ -44,7 +44,9 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 	}
 
-	
+	public Set<IdVersionPair> getScope(){
+		return scope;
+	}
 	
 	@Override
 	public int hashCode() {

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.SubType;
 
 /**
  * Abstraction for an immutable filter that defines the rows of a view.
@@ -49,4 +50,9 @@ public interface ViewFilter {
 	 */
 	ReplicationType getReplicationType();
 	
+	/**
+	 * Get the sub-types for this filter.
+	 * @return
+	 */
+	Set<SubType> getSubTypes();
 }

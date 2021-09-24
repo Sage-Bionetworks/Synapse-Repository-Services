@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.model.IdAndChecksum;
@@ -11,17 +12,22 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.PaginationProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EntityObjectProvider implements ObjectDataProvider {
-	
+
 	public static final int PAGE_SIZE = 10_000;
 	private final NodeDAO nodeDao;
-	
+
 	@Autowired
 	public EntityObjectProvider(NodeDAO nodeDao) {
 		super();
@@ -34,7 +40,7 @@ public class EntityObjectProvider implements ObjectDataProvider {
 			return nodeDao.getEntityDTOs(objectIds, maxAnnotationChars, limit, offset);
 		}, PAGE_SIZE);
 	}
-	
+
 	@Override
 	public Set<Long> getAvailableContainers(List<Long> containerIds) {
 		return nodeDao.getAvailableNodes(containerIds);
@@ -54,19 +60,38 @@ public class EntityObjectProvider implements ObjectDataProvider {
 	public ReplicationType getReplicationType() {
 		return ReplicationType.ENTITY;
 	}
-
+	
 	@Override
-	public Iterator<IdAndChecksum> streamOverViewIds(long checksumSalt, ViewFilter filter) {
-//		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
-//			return nodeDao.getViewIdsAndChecksum(filter, limit, offset);
-//		}, PAGE_SIZE);
-		return null;
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter) {
+		return streamOverIdsAndChecksums(salt, filter, PAGE_SIZE);
 	}
 
-	@Override
-	public Long calculateViewChecksum(long checksumSalt, ViewFilter filter) {
-		// TODO Auto-generated method stub
-		return null;
+	Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter, int pageSize) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(filter, "filter");
+		
+		PaginationProvider<IdAndChecksum> provider = null;
+		if (filter instanceof HierarchicaFilter) {
+			HierarchicaFilter hierarchy = (HierarchicaFilter) filter;
+			provider = (long limit, long offset) -> {
+				return nodeDao.getIdsAndChecksumsForChildren(salt, hierarchy.getParentIds(),
+						hierarchy.getSubTypes(), limit, offset);
+			};
+		}else if( filter instanceof FlatIdsFilter) {
+			FlatIdsFilter flat = (FlatIdsFilter) filter;
+			provider = (long limit, long offset) -> {
+				return nodeDao.getIdsAndChecksumsForObjects(salt, flat.getScope(), limit, offset);
+			};
+		}else if( filter instanceof FlatIdAndVersionFilter) {
+			FlatIdAndVersionFilter flat = (FlatIdAndVersionFilter) filter;
+			Set<Long> objectIds = flat.getScope().stream().map(i->i.getId()).collect(Collectors.toSet());
+			provider = (long limit, long offset) -> {
+				return nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+			};
+		}else {
+			throw new IllegalStateException("Unknown filter types: "+filter.getClass().getName());
+		}
+		return new PaginationIterator<IdAndChecksum>(provider, pageSize);
 	}
 
 }

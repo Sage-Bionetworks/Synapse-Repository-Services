@@ -40,6 +40,9 @@ public class FlatIdsFilter extends AbstractViewFilter {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 	}
 
+	public Set<Long> getScope(){
+		return scope;
+	}
 	
 	@Override
 	public int hashCode() {

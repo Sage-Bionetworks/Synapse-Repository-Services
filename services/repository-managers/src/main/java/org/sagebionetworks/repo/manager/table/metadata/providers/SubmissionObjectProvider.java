@@ -55,15 +55,10 @@ public class SubmissionObjectProvider implements ObjectDataProvider {
 	}
 
 	@Override
-	public Iterator<IdAndChecksum> streamOverViewIds(long checksumSalt, ViewFilter filter) {
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
-	public Long calculateViewChecksum(long checksumSalt, ViewFilter filter) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 	
 }
