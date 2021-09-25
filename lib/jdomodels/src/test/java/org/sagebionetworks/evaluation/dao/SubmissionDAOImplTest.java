@@ -265,11 +265,6 @@ public class SubmissionDAOImplTest {
     
     @AfterEach
     public void tearDown() throws DatastoreException, NotFoundException  {
-//    	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID, SUBMISSION_4_ID}) {
-//    		try {
-//    			submissionDAO.delete(id);
-//    		} catch (NotFoundException e)  {};
-//    	}
     	submissionDAO.truncateAll();
 			
     	if (submissionTeam!=null) {
