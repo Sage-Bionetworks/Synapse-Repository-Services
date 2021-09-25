@@ -13,16 +13,18 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
+import org.sagebionetworks.util.PaginationIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SubmissionObjectProvider implements ObjectDataProvider {
-	
+
+	public static final int PAGE_SIZE = 10_000;
+
 	private final SubmissionDAO submissionDao;
 	private final EvaluationDAO evaluationDao;
-	
+
 	@Autowired
 	public SubmissionObjectProvider(SubmissionDAO submissionDao, EvaluationDAO evaluationDao) {
 		super();
@@ -58,14 +60,14 @@ public class SubmissionObjectProvider implements ObjectDataProvider {
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds,
 			Set<SubType> subTypes) {
-		// TODO Auto-generated method stub
-		return null;
+		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
+			return submissionDao.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		}, PAGE_SIZE);
 	}
 
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds) {
-		// TODO Auto-generated method stub
-		return null;
+		throw new UnsupportedOperationException("All submission views are hierarchical");
 	}
 
 }
