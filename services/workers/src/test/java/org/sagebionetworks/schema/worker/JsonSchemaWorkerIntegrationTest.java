@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
@@ -544,6 +545,67 @@ public class JsonSchemaWorkerIntegrationTest {
 		assertEquals(folderJson.getJSONArray("bazKey").getString(0), "baz");
 		// fooKey is defined as a single in the schema, it will become a single
 		assertEquals(folderJson.getString("fooKey"), "foo");
+		
+		// clean up
+		entityManager.clearBoundSchema(adminUserInfo, projectId);
+		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
+	@Test
+	public void testGetEntityJsonWithBoundSchemaContainingReference() throws Exception {
+		// PLFM-6934
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		
+		// child schema, key property of with enum
+		JsonSchema child = new JsonSchema();
+		child.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + "child");
+		child.setType(Type.string);
+		child.set_enum(Arrays.asList("Alabama", "Alaska"));
+		
+		// reference to child schema
+		JsonSchema refToChild = new JsonSchema();
+		refToChild.set$ref(child.get$id());
+		
+		// parent contains a reference to the child
+		JsonSchema parent = new JsonSchema();
+		parent.set$id(organizationName + JsonSchemaConstants.PATH_DELIMITER + "parent");
+		Map<String, JsonSchema> parentProps = new HashMap<>();
+		parentProps.put("state", refToChild);
+		parent.setProperties(parentProps);
+		parent.setRequired(Arrays.asList("state"));
+
+		// create the schemas
+		registerSchema(child);
+		CreateSchemaResponse createResponse = registerSchema(parent);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		boolean sendNotificationMessages = false;
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		
+		folderJson.put("state", Arrays.asList("Alabama"));
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		// wait till it is valid
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+		
+		// call under test
+		// should not be an array
+		folderJson = entityManager.getEntityJson(folderId);
+		assertEquals("Alabama", folderJson.getString("state"));
 		
 		// clean up
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
