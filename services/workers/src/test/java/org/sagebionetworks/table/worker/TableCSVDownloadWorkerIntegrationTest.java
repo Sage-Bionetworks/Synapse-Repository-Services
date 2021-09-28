@@ -406,6 +406,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		Query query = new Query();
 		query.setSql(sql);
 		while(true){
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			try {
 				RowSet results = tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, options).getQueryResult().getQueryResults();
 				if(expectedRowCount != null) {
@@ -421,7 +422,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+
 			Thread.sleep(1000);
 		}
 	}
