@@ -247,15 +247,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			+ " and ra." + COL_RESOURCE_ACCESS_GROUP_ID + " in (:" + COL_RESOURCE_ACCESS_GROUP_ID + ") " + " and at."
 			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
-	private static final String SELECT_SUBMISSION_ID_AND_ETAG = "SELECT s." + COL_SUBMISSION_ID + ", r."
-			+ COL_SUBSTATUS_ETAG + BUNDLES_BY_EVALUATION_SQL;
-
-	private static final String SELECT_SUM_CRC_SUBMISSIONS = "SELECT " + COL_SUBMISSION_EVAL_ID + ","
-			+ " SUM(CRC32(CONCAT(s." + COL_SUBMISSION_ID + ",'-', r." + COL_SUBSTATUS_ETAG + "))) AS " + CRC + " FROM "
-			+ TABLE_SUBMISSION + " s INNER JOIN " + TABLE_SUBSTATUS + " r" + " ON (s." + COL_SUBMISSION_ID + " = r."
-			+ COL_SUBSTATUS_SUBMISSION_ID + ") " + " WHERE s." + COL_SUBMISSION_EVAL_ID + " IN (:" + EVAL_ID + ")"
-			+ " GROUP BY " + COL_SUBMISSION_EVAL_ID;
-
 	private static final String SELECT_SUBMISSION_DATA = "SELECT" + " s." + COL_SUBMISSION_ID + ", s."
 			+ COL_SUBMISSION_NAME + ", r." + COL_SUBSTATUS_ETAG + ", s." + COL_SUBMISSION_EVAL_ID + " AS "
 			+ SubmissionField.evaluationid.getColumnAlias() + ", s." + COL_SUBMISSION_EVAL_ROUND_ID + " AS "
@@ -766,45 +757,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				Long.class);
 
 		return count > 0;
-	}
-
-	@Override
-	public List<IdAndEtag> getSubmissionIdAndEtag(Long evaluationId) {
-		ValidateArgument.required(evaluationId, "evaluationId");
-
-		MapSqlParameterSource param = new MapSqlParameterSource(EVAL_ID, evaluationId);
-
-		List<IdAndEtag> result = new ArrayList<>();
-
-		namedJdbcTemplate.query(SELECT_SUBMISSION_ID_AND_ETAG, param, (ResultSet rs) -> {
-			Long id = rs.getLong(COL_SUBMISSION_ID);
-			String etag = rs.getString(COL_SUBSTATUS_ETAG);
-
-			result.add(new IdAndEtag(id, etag, evaluationId));
-		});
-
-		return result;
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfSubmissionCRCsForEachEvaluation(List<Long> evaluationIds) {
-		ValidateArgument.required(evaluationIds, "evaluationIds");
-
-		if (evaluationIds.isEmpty()) {
-			return Collections.emptyMap();
-		}
-
-		MapSqlParameterSource param = new MapSqlParameterSource(EVAL_ID, evaluationIds);
-
-		Map<Long, Long> result = new HashMap<>(evaluationIds.size());
-
-		namedJdbcTemplate.query(SELECT_SUM_CRC_SUBMISSIONS, param, (ResultSet rs) -> {
-			Long evaluationId = rs.getLong(COL_SUBMISSION_EVAL_ID);
-			Long sumCRC = rs.getLong(CRC);
-			result.put(evaluationId, sumCRC);
-		});
-
-		return result;
 	}
 
 	@Override

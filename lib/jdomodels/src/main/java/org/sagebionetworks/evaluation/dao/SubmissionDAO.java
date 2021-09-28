@@ -199,20 +199,6 @@ public interface SubmissionDAO {
 	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId, String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
-	/**
-	 * @param evaluationId The id of an evaluation
-	 * @return The list of {@link IdAndEtag} of the submissions associated with the
-	 *         evaluation with the given id
-	 */
-	List<IdAndEtag> getSubmissionIdAndEtag(Long evaluationId);
-
-	/**
-	 * 
-	 * @param evaluationIds The list of evaluation id
-	 * @return For each of the evaluation id, computes the sum of the CRC for each
-	 *         submission in the evaluation
-	 */
-	Map<Long, Long> getSumOfSubmissionCRCsForEachEvaluation(List<Long> evaluationIds);
 
 	/**
 	 * @param submissionIds

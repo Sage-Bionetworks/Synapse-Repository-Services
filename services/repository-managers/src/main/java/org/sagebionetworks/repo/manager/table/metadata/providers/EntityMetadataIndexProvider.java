@@ -1,27 +1,20 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -67,27 +60,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
-		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return scope;
-		}
-
-		// Expand the scope to include all sub-folders
-		return nodeDao.getAllContainerIds(scope, containerLimit);
-	}
-
-	@Override
-	public String createViewOverLimitMessage(Long viewTypeMask, int containerLimit) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return String.format(SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, containerLimit);
-		} else {
-			return String.format(SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, containerLimit);
-		}
-	}
-
-	@Override
 	public boolean canUpdateAnnotation(ColumnModel model) {
 		// No additional field is indexed, so all the annotations can be updated
 		return true;
@@ -101,19 +73,6 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String objectId, Annotations annotations) {
 		nodeManager.updateUserAnnotations(userInfo, objectId, annotations);
-	}
-
-	@Override
-	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
-		if (ViewTypeMask.Project.getMask() == viewTypeMask) {
-			// project views reconcile with root.
-			Long rootId = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
-			return Collections.singleton(rootId);
-		} else {
-			// all other views reconcile one the view's scope.
-			return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-		}
 	}
 
 	@Override

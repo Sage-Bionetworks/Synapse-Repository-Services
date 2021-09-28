@@ -303,4 +303,18 @@ public interface TableIndexManager {
 	 */
 	Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter);
 
+	/**
+	 * Is the synchronization lock for the given view expires?
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	boolean isViewSynchronizeLockExpired(ReplicationType type, IdAndVersion idAndVersion);
+
+	/**
+	 * Reset the synchronized lock for the given view.
+	 * @param idAndVersion
+	 */
+	void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion);
+
 }

@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -21,12 +22,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.SubType;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SubmissionObjectProviderTest {
@@ -66,47 +68,49 @@ public class SubmissionObjectProviderTest {
 	}
 	
 	@Test
-	public void testGetAvaliableContainers() {
+	public void testStreamOverIdsAndChecksumsWithParentIds() {
+		Long salt = 123L;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentId = Sets.newHashSet(1L, 2L, 3L);
 
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-		Set<Long> expectedIds = ImmutableSet.of(1L);
+		List<IdAndChecksum> all = buildIdsAndChecksum(4);
 
-		when(mockEvaluationDao.getAvailableEvaluations(any())).thenReturn(expectedIds);
+		when(mockSubmissionDao.getIdAndChecksumsPage(any(), any(), any(), any(), any())).thenReturn(all,
+				Collections.emptyList());
 
-		// Call under test
-		Set<Long> result = provider.getAvailableContainers(containerIds);
-
-		assertEquals(expectedIds, result);
-
-		verify(mockEvaluationDao).getAvailableEvaluations(containerIds);
+		// call under test
+		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksumsForChildren(salt, parentId, subTypes);
+		List<IdAndChecksum> allResults = new ArrayList<IdAndChecksum>();
+		resultsIt.forEachRemaining(i -> allResults.add(i));
+		assertEquals(all, allResults);
+		
+		long pageSize = EntityObjectProvider.PAGE_SIZE;
+		verify(mockSubmissionDao, times(2)).getIdAndChecksumsPage(any(), any(), any(), any(), any());
+		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(0L));
+		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(pageSize));
 	}
-
+	
 	@Test
-	public void testGetChildren() {
-
-		Long containerId = 1L;
-		List<IdAndEtag> expected = ImmutableList.of(mockIdAndEtag, mockIdAndEtag);
-
-		when(mockSubmissionDao.getSubmissionIdAndEtag(anyLong())).thenReturn(expected);
-
-		// Call under test
-		List<IdAndEtag> result = provider.getChildren(containerId);
-
-		assertEquals(expected, result);
-		verify(mockSubmissionDao).getSubmissionIdAndEtag(containerId);
+	public void teststreamOverIdsAndChecksumsForObjects() {
+		Long salt = 123L;
+		Set<Long> ids = Sets.newHashSet(1L, 2L, 3L);
+		String message = assertThrows(UnsupportedOperationException.class, ()->{
+			provider.streamOverIdsAndChecksumsForObjects(salt, ids);
+		}).getMessage();
+		assertEquals("All submission views are hierarchical", message);
 	}
-
-	@Test
-	public void testGetSumOfChildCRCsForEachContainer() {
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-
-		Map<Long, Long> expected = ImmutableMap.of(1L, 10L, 2L, 30L);
-
-		when(mockSubmissionDao.getSumOfSubmissionCRCsForEachEvaluation(any())).thenReturn(expected);
-
-		Map<Long, Long> result = provider.getSumOfChildCRCsForEachContainer(containerIds);
-
-		assertEquals(expected, result);
-		verify(mockSubmissionDao).getSumOfSubmissionCRCsForEachEvaluation(containerIds);
+	
+	/**
+	 * Helper to create a list of List<IdAndChecksum> of the given size.
+	 * 
+	 * @param size
+	 * @return
+	 */
+	public List<IdAndChecksum> buildIdsAndChecksum(int size) {
+		List<IdAndChecksum> results = new ArrayList<>();
+		for (int i = 0; i < size; i++) {
+			results.add(new IdAndChecksum().withId(new Long(i)).withChecksum(new Long(i + 1)));
+		}
+		return results;
 	}
 }

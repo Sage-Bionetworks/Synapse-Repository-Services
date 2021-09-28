@@ -979,34 +979,6 @@ public class SubmissionDAOImplTest {
 
 	}
 	
-	@Test
-	public void testGetSubmissionIdAndEtag() {
-
-		String subId1 = submissionDAO.create(submission);
-		createSubmissionStatus(subId1, SubmissionStatusEnum.SCORED);
-		String etag1 = submissionStatusDAO.get(subId1).getEtag();
-		String subId2 = submissionDAO.create(submission2);
-		createSubmissionStatus(subId2, SubmissionStatusEnum.SCORED);
-		String etag2 = submissionStatusDAO.get(subId2).getEtag();
-		String subId3 = submissionDAO.create(submission3);
-		createSubmissionStatus(subId3, SubmissionStatusEnum.SCORED);
-		String etag3 = submissionStatusDAO.get(subId3).getEtag();
-		
-		Long evaluationId = Long.valueOf(evalId);
-		
-		List<IdAndEtag> expected = ImmutableList.of(
-			new IdAndEtag(Long.valueOf(subId1), etag1, evaluationId),
-			new IdAndEtag(Long.valueOf(subId2), etag2, evaluationId),
-			new IdAndEtag(Long.valueOf(subId3), etag3, evaluationId)
-		);
-		
-		// Call under test
-		List<IdAndEtag> result = submissionDAO.getSubmissionIdAndEtag(evaluationId);
-		
-		assertEquals(expected, result);
-		
-	}
-	
 	private Submission createScoredSubmission(String evaluationId) {
 		Submission one = submissionDaoHelper.create(s->{
 			s.setEvaluationId(evaluationId);
@@ -1114,67 +1086,6 @@ public class SubmissionDAOImplTest {
 			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
 		}).getMessage();
 		assertEquals("offset is required.", message);
-	}
-	
-	@Test
-	public void testGetSubmissionIdAndEtagWithNullInput() {
-		
-		Long evaluationId = null;
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			submissionDAO.getSubmissionIdAndEtag(evaluationId);
-			
-		}).getMessage();
-		
-		assertEquals("evaluationId is required.", errorMessage);
-		
-	}
-	
-	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluation() {
-		Long evaluationId1 = Long.valueOf(evalId);
-		Long evaluationId2 = Long.valueOf(evalId2);
-		
-		// Creates 3 submissions for evalId
-		submissionDAO.create(submission);
-		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
-		submissionDAO.create(submission2);
-		createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
-		submissionDAO.create(submission3);
-		createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
-		
-		List<Long> ids = ImmutableList.of(evaluationId1, evaluationId2);
-		
-		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
-		
-		assertEquals(1L, result.size());
-		assertNotNull(result.get(evaluationId1));
-	}
-
-	
-	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluationWithNullInput() {
-		
-		List<Long> ids = null;
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
-		}).getMessage();
-		
-		assertEquals("evaluationIds is required.", errorMessage);
-		
-	}
-	
-	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluationWithEmptyInput() {
-		
-		List<Long> ids = Collections.emptyList();
-		
-		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
-		
-		assertTrue(result.isEmpty());
-		
 	}
 
 	@Test

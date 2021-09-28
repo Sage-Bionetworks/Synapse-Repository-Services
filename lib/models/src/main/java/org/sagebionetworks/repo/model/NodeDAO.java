@@ -585,21 +585,7 @@ public interface NodeDAO {
 	 */
 	public String lookupChild(String parentId, String entityName);
 
-	/**
-	 * For each parent, get the sum of CRCs of their children.
-	 *   
-	 * @return Map.key = parentId and map.value = sum of children CRCs.
-	 * 
-	 */
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
-	
-	/**
-	 * Get the Id and Etag of all of the children for the given parentId.
-	 * @param parentId
-	 * @return
-	 */
-	public List<IdAndEtag> getChildren(long parentId);
-	
+
 	/**
 	 * Touch the node and change the etag, modified on, and modified by.
 	 * 

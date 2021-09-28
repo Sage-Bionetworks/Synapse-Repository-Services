@@ -1,17 +1,10 @@
 package org.sagebionetworks.repo.manager.replication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +31,6 @@ import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -50,7 +41,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -261,157 +251,6 @@ public class ReplicationManagerTest {
 		assertEquals(entityData, actualList);
 	}
 	
-	@Test
-	public void testCompareCheckSums(){
-		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
-		when(mockObjectDataProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
-		// see before() for test setup.
-		Set<Long> trashedParents = Sets.newHashSet(3L, 6L);
-		// call under test
-		Set<Long> results = manager.compareCheckSums(mockIndexDao, mockObjectDataProvider, parentIds, trashedParents);
-		assertNotNull(results);
-		// 1 is in the truth but not replica
-		assertTrue(results.contains(1L));
-		// 2 is the same in the truth and replica
-		assertFalse(results.contains(2L));
-		// 3 three is in the trash and the replica
-		assertTrue(results.contains(3L));
-		// 4 is in both but does not match
-		assertTrue(results.contains(5L));
-		// 5 is in the replica but not the truth.
-		assertTrue(results.contains(5L));
-		// 6 is in the trash and missing from the replica
-		assertFalse(results.contains(6L));
-		
-		verify(mockObjectDataProvider).getSumOfChildCRCsForEachContainer(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(mainType, parentIds);
-	}
-	
-	@Test
-	public void testCreateChange(){
-		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
-		ObjectType objectType = mainType.getObjectType();
-		ChangeMessage message = manager.createChange(objectType, idAndEtag.getId(), ChangeType.DELETE);
-		assertNotNull(message);
-		assertEquals(""+idAndEtag.getId(), message.getObjectId());
-		assertEquals(objectType, message.getObjectType());
-		assertEquals(ChangeType.DELETE, message.getChangeType());
-		assertNotNull(message.getChangeNumber());
-		assertNotNull(message.getTimestamp());
-	}
-	
-	@Test
-	public void testFindChangesForParentIdParentNotInTrash(){
-		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
-		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
-		
-		// see before() for setup.
-		boolean parentInTrash = false;		
-		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, firstParentId, parentInTrash);
-		assertNotNull(result);
-		assertEquals(3, result.size());
-		// two should be updated.
-		ChangeMessage message = result.get(0);
-		assertEquals(""+truthTwo.getId(), message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-		// three should be created/updated
-		message = result.get(1);
-		assertEquals(""+truthThree.getId(), message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-		// four should be deleted
-		message = result.get(2);
-		assertEquals(""+replicaFour.getId(), message.getObjectId());
-		assertEquals(ChangeType.DELETE, message.getChangeType());
-		
-		verify(mockIndexDao).getObjectChildren(mainType, firstParentId);
-		verify(mockObjectDataProvider).getChildren(firstParentId);
-	}
-	
-	@Test
-	public void testFindChangesForParentIdParentInTrash(){
-		// setup some differences between the truth and replica.
-		Long parentId = 999L;
-		boolean parentInTrash = true;
-		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
-		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
-		
-		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, parentId, parentInTrash);
-		assertNotNull(result);
-		assertEquals(2, result.size());
-		// all children should be deleted.
-		ChangeMessage message = result.get(0);
-		assertEquals(""+replicaOne.getId(), message.getObjectId());
-		assertEquals(ChangeType.DELETE, message.getChangeType());
-		// three should be created/updated
-		message = result.get(1);
-		assertEquals(""+replicaTwo.getId(), message.getObjectId());
-		assertEquals(ChangeType.DELETE, message.getChangeType());
-		
-		verify(mockIndexDao).getObjectChildren(mainType, parentId);
-		// since the parent is in the trash this call should not be made
-		verify(mockObjectDataProvider, never()).getChildren(parentId);
-	}
-	
-	@Test
-	public void testPLFM_5352BenefactorDoesNotMatch() {
-		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
-		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
-		
-		// setup some differences between the truth and replica.
-		Long parentId = firstParentId;
-		boolean parentInTrash = false;
-		// The benefactor does not match
-		replicaOne.setBenefactorId(truthOne.getBenefactorId()+1);
-		when(mockIndexDao.getObjectChildren(mainType, parentId)).thenReturn(Lists.newArrayList(replicaOne));
-		
-		// call under test
-		List<ChangeMessage> result = manager.findChangesForParentId(mockIndexDao, mockObjectDataProvider, parentId, parentInTrash);
-		assertNotNull(result);
-		assertEquals(3, result.size());
-		// first should be updated
-		ChangeMessage message = result.get(0);
-		assertEquals(""+replicaOne.getId(), message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-		message = result.get(1);
-		assertEquals(""+replicaTwo.getId(), message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-	}
-	
-	@Test
-	public void testFindDeltas() throws Exception{
-		when(mockObjectDataProvider.getReplicationType()).thenReturn(mainType);
-		when(mockObjectDataProvider.getSumOfChildCRCsForEachContainer(any())).thenReturn(truthCRCs);
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
-		when(mockObjectDataProvider.getChildren(any())).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getObjectChildren(any(), any())).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
-		// see before() for test setup.
-		// call under test
-		manager.findChildrenDeltas(mockIndexDao, mockObjectDataProvider, parentIds, trashedParents);
-		
-		verify(mockObjectDataProvider).getSumOfChildCRCsForEachContainer(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(mainType, parentIds);
-		
-		// four parents are out-of-synch
-		verify(mockIndexDao, times(4)).getObjectChildren(eq(mainType), anyLong());
-		// three non-trashed parents are out-of-synch
-		verify(mockObjectDataProvider, times(3)).getChildren(anyLong());
-		// four batches should be set.
-		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(any());
-	}
-	
-
-	@Test
-	public void testGetTrashedContainers(){
-		when(mockObjectDataProvider.getAvailableContainers(parentIds)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
-		// call under test
-		Set<Long> results = manager.getTrashedContainers(parentIds, mockObjectDataProvider);
-		assertEquals(trashedParents, results);
-	}
 
 	
 	/**

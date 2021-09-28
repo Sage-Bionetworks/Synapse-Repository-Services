@@ -114,9 +114,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 
 	private static final String SQL_ETAG_FOR_UPDATE_FORMAT = "SELECT %s FROM %s WHERE ID = ? FOR UPDATE";
-	
-	private static final String SQL_SELECT_AVAILABLE = "SELECT " + COL_EVALUATION_ID 
-			+ " FROM " + TABLE_EVALUATION + " WHERE " + COL_EVALUATION_ID + " IN (:" + ID + ")";
 
 	private static final String SELECT_ALL_ROUNDS_FOR_EVALUATION = "SELECT * FROM " + TABLE_EVALUATION_ROUND +
 			" WHERE " + COL_EVALUATION_ROUND_EVALUATION_ID + "= :" + DBOConstants.PARAM_EVALUATION_ROUND_EVALUATION_ID +
@@ -276,25 +273,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			// name is not in use
 			return null;
 		}
-	}
-
-	@Override
-	public Set<Long> getAvailableEvaluations(List<Long> ids) {
-		ValidateArgument.required(ids, "ids");
-		
-		if (ids.isEmpty()) {
-			return Collections.emptySet();
-		}
-		
-		MapSqlParameterSource param = new MapSqlParameterSource(ID, ids);
-		
-		Set<Long> result = new HashSet<>(ids.size());
-		
-		namedJdbcTemplate.query(SQL_SELECT_AVAILABLE, param, (ResultSet rs) -> {
-			result.add(rs.getLong(COL_EVALUATION_ID));
-		});
-		
-		return result;
 	}
 
 

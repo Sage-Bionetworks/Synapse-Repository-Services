@@ -3,7 +3,6 @@ package org.sagebionetworks.evaluation.dao;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationRound;
@@ -53,12 +52,6 @@ public interface EvaluationDAO {
 	 * @param id the id of the object to be deleted
 	 */
 	void delete(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * @param ids
-	 * @return The subset of evaluation ids that still exists
-	 */
-	Set<Long> getAvailableEvaluations(List<Long> ids);
 
 	/**
 	 * Creates a new evaluation round

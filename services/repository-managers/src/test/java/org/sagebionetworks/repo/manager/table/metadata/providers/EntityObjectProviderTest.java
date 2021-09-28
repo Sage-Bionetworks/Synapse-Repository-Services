@@ -70,50 +70,6 @@ public class EntityObjectProviderTest {
 	}
 
 	@Test
-	public void testGetAvaliableContainers() {
-
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-		Set<Long> expectedIds = ImmutableSet.of(1L);
-
-		when(mockNodeDao.getAvailableNodes(any())).thenReturn(expectedIds);
-
-		// Call under test
-		Set<Long> result = provider.getAvailableContainers(containerIds);
-
-		assertEquals(expectedIds, result);
-		verify(mockNodeDao).getAvailableNodes(containerIds);
-	}
-
-	@Test
-	public void testGetChildren() {
-
-		Long containerId = 1L;
-		List<IdAndEtag> expected = ImmutableList.of(mockIdAndEtag, mockIdAndEtag);
-
-		when(mockNodeDao.getChildren(anyLong())).thenReturn(expected);
-
-		// Call under test
-		List<IdAndEtag> result = provider.getChildren(containerId);
-
-		assertEquals(expected, result);
-		verify(mockNodeDao).getChildren(containerId);
-	}
-
-	@Test
-	public void testGetSumOfChildCRCsForEachContainer() {
-		List<Long> containerIds = ImmutableList.of(1L, 2L);
-
-		Map<Long, Long> expected = ImmutableMap.of(1L, 10L, 2L, 30L);
-
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(expected);
-
-		Map<Long, Long> result = provider.getSumOfChildCRCsForEachContainer(containerIds);
-
-		assertEquals(expected, result);
-		verify(mockNodeDao).getSumOfChildCRCsForEachParent(containerIds);
-	}
-
-	@Test
 	public void testStreamOverIdsAndChecksumsWithParentIds() {
 		Long salt = 123L;
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
