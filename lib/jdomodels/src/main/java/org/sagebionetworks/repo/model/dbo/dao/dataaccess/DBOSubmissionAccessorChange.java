@@ -36,8 +36,8 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 		@Override
 		public DBOSubmissionAccessorChange mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOSubmissionAccessorChange dbo = new DBOSubmissionAccessorChange();
-			dbo.setSubmissionId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID));
-			dbo.setAccessorId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID));
+			dbo.setSubmissionId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID));
+			dbo.setAccessorId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID));
 			dbo.setAccessType(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE));
 			return dbo;
 		}
@@ -66,26 +66,26 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 	
 	private static final MigratableTableTranslation<DBOSubmissionAccessorChange, DBOSubmissionAccessorChange> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
-	private String submissionId;
-	private String accessorId;
+	private Long submissionId;
+	private Long accessorId;
 	private String accessType;
 
 	public DBOSubmissionAccessorChange() {
 	}
 
-	public String getSubmissionId() {
+	public Long getSubmissionId() {
 		return submissionId;
 	}
 
-	public void setSubmissionId(String submissionId) {
+	public void setSubmissionId(Long submissionId) {
 		this.submissionId = submissionId;
 	}
 
-	public String getAccessorId() {
+	public Long getAccessorId() {
 		return accessorId;
 	}
 
-	public void setAccessorId(String accessorId) {
+	public void setAccessorId(Long accessorId) {
 		this.accessorId = accessorId;
 	}
 	
@@ -146,6 +146,12 @@ public class DBOSubmissionAccessorChange implements MigratableDatabaseObject<DBO
 		DBOSubmissionAccessorChange other = (DBOSubmissionAccessorChange) obj;
 		return Objects.equals(accessType, other.accessType) && Objects.equals(accessorId, other.accessorId)
 				&& Objects.equals(submissionId, other.submissionId);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOSubmissionAccessorChange [submissionId=" + submissionId + ", accessorId=" + accessorId + ", accessType=" + accessType
+				+ "]";
 	}
 
 }

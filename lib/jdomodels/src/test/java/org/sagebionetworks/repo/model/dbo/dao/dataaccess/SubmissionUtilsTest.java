@@ -56,9 +56,9 @@ public class SubmissionUtilsTest {
 
 		List<DBOSubmissionAccessorChange> expected = dto.getAccessorChanges().stream().map(c -> {
 			DBOSubmissionAccessorChange add = new DBOSubmissionAccessorChange();
-			add.setAccessorId(c.getUserId());
+			add.setAccessorId(Long.valueOf(c.getUserId()));
 			add.setAccessType(c.getType().name());
-			add.setSubmissionId(dto.getId());
+			add.setSubmissionId(Long.valueOf(dto.getId()));
 			return add;
 		}).collect(Collectors.toList());
 		
