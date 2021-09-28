@@ -1025,6 +1025,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null, false);
 	}
 	
+	@Test
 	public void testApplyChangeToIndexSearch() throws NotFoundException, IOException {
 		long changeNumber = 123L;
 		
@@ -2226,13 +2227,7 @@ public class TableIndexManagerImplTest {
 		manager.deleteObjectData(type, toDeleteIds);
 
 		verify(mockIndexDao).deleteObjectData(type, toDeleteIds);
-	}
-	
-	@Test
-	public void testApplySearchChangeToIndex() {
-		
-	}
-	
+	}	
 
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {

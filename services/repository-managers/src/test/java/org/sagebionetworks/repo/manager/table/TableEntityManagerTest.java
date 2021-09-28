@@ -2174,7 +2174,7 @@ public class TableEntityManagerTest {
 			change.setRowVersion(new Long(i));
 			change.setChangeType(TableChangeType.values()[i%enumLenght]);
 			change.setKeyNew("someKey"+i);
-			change.setIsSearchEnabled(true);
+			change.setIsSearchEnabled(TableChangeType.SEARCH == change.getChangeType() ? true : null);
 			results.add(change);
 		}
 		return results;
