@@ -1265,7 +1265,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
-			final long newExpirationDateMS) {
+			final Long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(toSet, "toSet");
 		if(toSet.isEmpty()){
