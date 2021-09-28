@@ -267,7 +267,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 	
 	@Override
-	public void appendSearchEnabledChange(Long userId, String tableId, long transactionId) {
+	public void appendSearchChange(Long userId, String tableId, long transactionId, boolean searchEnabled) {
 		long coutToReserver = 1;
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		
@@ -282,7 +282,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.SEARCH.name());
 		changeDBO.setTransactionId(transactionId);
 		changeDBO.setHasFileRefs(false);
-		changeDBO.setIsSearchEnabled(true);
+		changeDBO.setIsSearchEnabled(searchEnabled);
 		
 		// We do not store anything to S3 as it is just a boolean
 		changeDBO.setKeyNew(null);

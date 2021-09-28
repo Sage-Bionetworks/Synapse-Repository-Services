@@ -36,15 +36,12 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 		if(wasNewVersionCreated) {
 			throw new IllegalArgumentException("A table version can only be created by creating a table snapshot.");
 		}
-		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
+		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled() != null ? entity.getIsSearchEnabled() : false);
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, TableEntity entity) {
-		if (entity.getIsSearchEnabled() != null && entity.getIsSearchEnabled()) {
-			tableEntityManager.setSearchEnabled(userInfo, entity.getId());
-		}
-		tableEntityManager.setTableSchema(userInfo, entity.getColumnIds(), entity.getId());
+		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled() != null ? entity.getIsSearchEnabled() : false);
 	}
 
 	@Override

@@ -2088,11 +2088,17 @@ public class SQLUtils {
 		}
 	}
 	
-	public static String generateSearchColumnSql(IdAndVersion id) {
+	public static String generateAddSearchColumnSql(IdAndVersion id) {
 		String tableName = getTableNameForId(id, TableType.INDEX);
 		
 		return "ALTER TABLE " + tableName + " ADD COLUMN `" + ROW_SEARCH_CONTENT + "` MEDIUMTEXT NULL,"
 				+ " ADD FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (`" + ROW_SEARCH_CONTENT + "`)";
+	}
+	
+	public static String generateRemoveSearchColumnSql(IdAndVersion id) {
+		String tableName = getTableNameForId(id, TableType.INDEX);
+		
+		return "ALTER TABLE " + tableName + " DROP COLUMN `" + ROW_SEARCH_CONTENT + "`";
 	}
 
 }

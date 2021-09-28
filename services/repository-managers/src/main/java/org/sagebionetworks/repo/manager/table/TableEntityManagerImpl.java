@@ -586,13 +586,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void setTableSchema(final UserInfo userInfo, final List<String> newSchema, final String tableId) {
+	public void tableUpdated(final UserInfo userInfo, final List<String> newSchema, final String tableId, boolean searchEnabled) {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_SECONDS);
 			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion,
 					(ProgressCallback callbackInner) -> {
-						setTableSchemaWithExclusiveLock(callbackInner, userInfo, newSchema, tableId);
+						tableUpdatedWithExclusiveLock(callbackInner, userInfo, newSchema, tableId, searchEnabled);
 						return null;
 					});
 		} catch (LockUnavilableException e) {
@@ -603,27 +603,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	@Override
-	@WriteTransaction
-	public void setSearchEnabled(UserInfo userInfo, String tableId) {
-		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
 		
-		tableManagerSupport.touchTable(userInfo, tableId);
-		tableRowTruthDao.appendSearchEnabledChange(userInfo.getId(), tableId, transactionId);
-		
-		// Trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
-	}
-	
 	/**
 	 * Note: This method should only be called while holding an exclusive lock on the table.
 	 * @param userInfo
 	 * @param newSchema
 	 * @param tableId
 	 */
-	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
-			final String tableId) {
+	void tableUpdatedWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema, final String tableId, boolean searchEnabled) {
 		// Lookup the current schema for this table
 		List<String> oldSchema = columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
@@ -632,9 +619,43 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		changeRequest.setChanges(schemaChange);
 		changeRequest.setEntityId(tableId);
 		changeRequest.setOrderedColumnIds(newSchema);
-		// Start a transaction to change the table to the new schema.
+		// Start a transaction to change the table to the new schema and/or add the search change.
 		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
+		
+		// Will add a table schema change if needed 
 		updateTableSchema(callback, userInfo, changeRequest, transactionId);
+		// Will add a search change id needed
+		updateSearchStatus(userInfo, tableId, searchEnabled, transactionId);
+	}
+	
+	/**
+	 * Will add a search change to the given table and transaction if the search status changed
+	 * 
+	 * @param userInfo
+	 * @param tableId
+	 * @param searchEnabled
+	 */
+	void updateSearchStatus(UserInfo userInfo, String tableId, boolean searchEnabled, long transactionId) {
+		// At this point only the truth knows about the search status since the table has been created/updated already and the table might not have been built yet
+		TableRowChange lastSearchChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		
+		// No change to the search status 
+		if (lastSearchChange == null && !searchEnabled) {
+			return;
+		}
+		
+		// The search status is already up to date
+		if (lastSearchChange != null && searchEnabled == lastSearchChange.getIsSearchEnabled()) {
+			return;
+		}
+		
+		tableManagerSupport.touchTable(userInfo, tableId);
+		
+		tableRowTruthDao.appendSearchChange(userInfo.getId(), tableId, transactionId, searchEnabled);
+		
+		// Trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
+		
 	}
 
 	@Override

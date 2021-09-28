@@ -115,7 +115,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		table.setName(UUID.randomUUID().toString());
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 
 	}
 

@@ -280,7 +280,7 @@ public class TableWorkerIntegrationTest {
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 	}
 
 	@Test
@@ -1575,7 +1575,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(null);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, null, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, null, tableId, false);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		waitForConsistentQuery(adminUserInfo, sql, null, 1L, (queryResult) -> {			
@@ -1854,7 +1854,7 @@ public class TableWorkerIntegrationTest {
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(owner, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		appendRows(owner, tableId,
 				createRowSet(headers), mockProgressCallback);
 		assertThrows(UnauthorizedException.class, ()->{
@@ -1940,7 +1940,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		
 		// Add a row
 		PartialRow row = new PartialRow();
@@ -3148,10 +3148,7 @@ public class TableWorkerIntegrationTest {
 		table.setIsSearchEnabled(true);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setSearchEnabled(adminUserInfo, tableId);
-		
-		TableStatus status = waitForTableProcessing(tableId);
-		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
@@ -3172,8 +3169,7 @@ public class TableWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		
 		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setSearchEnabled(adminUserInfo, tableId);
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
 				
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
@@ -3188,6 +3184,13 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		
 		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+		
+		// Now disable search
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());

@@ -94,13 +94,13 @@ public interface TableRowTruthDAO {
 	long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes, long transactionId);
 	
 	/**
-	 * Appends a search change to enable full text search on the table
+	 * Appends a search change to enable/disable the full text search on the table
 	 * 
 	 * @param userId
 	 * @param tableId
 	 * @param transactionId
 	 */
-	void appendSearchEnabledChange(Long userId, String tableId, long transactionId);
+	void appendSearchChange(Long userId, String tableId, long transactionId, boolean searchEnabled);
 	
 	/**
 	 * Get the schema change for a given version.

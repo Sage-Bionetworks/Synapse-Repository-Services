@@ -716,10 +716,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
+		// This will make sure that the table is properly created if it does not exist
+		updateTableSchema(idAndVersion, false, Collections.emptyList());
+		
 		if (loadChangeData.getChange().isEnabled()) {
-			// This will make sure that the table is properly created
-			updateTableSchema(idAndVersion, false, Collections.emptyList());
 			tableIndexDao.addSearchColumn(idAndVersion);
+		} else {
+			tableIndexDao.removeSearchColumn(idAndVersion);
 		}
 		
 		// set the new max version for the index

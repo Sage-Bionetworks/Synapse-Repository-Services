@@ -577,5 +577,11 @@ public interface TableIndexDAO {
 	 * @param idAndVersion
 	 */
 	void addSearchColumn(IdAndVersion idAndVersion);
+	
+	/**
+	 * Removes the special SEARCH_CONTENT FT column from the table index 
+	 * @param idAndVersion
+	 */
+	void removeSearchColumn(IdAndVersion idAndVersion);
 
 }

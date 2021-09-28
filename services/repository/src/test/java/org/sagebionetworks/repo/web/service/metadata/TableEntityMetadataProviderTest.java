@@ -66,7 +66,7 @@ public class TableEntityMetadataProviderTest  {
 	public void testCreate(){
 		// call under test
 		provider.entityCreated(userInfo, table);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, false);
 		verifyNoMoreInteractions(tableEntityManager);
 	}
 	
@@ -75,8 +75,7 @@ public class TableEntityMetadataProviderTest  {
 		// call under test
 		table.setIsSearchEnabled(true);
 		provider.entityCreated(userInfo, table);
-		verify(tableEntityManager).setSearchEnabled(userInfo, entityId);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, true);
 	}
 	
 	@Test
@@ -84,7 +83,7 @@ public class TableEntityMetadataProviderTest  {
 		boolean wasNewVersionCreated = false;
 		// call under test
 		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, false);
 	}
 	
 	@Test

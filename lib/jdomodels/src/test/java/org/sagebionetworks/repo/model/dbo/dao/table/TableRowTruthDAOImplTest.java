@@ -439,15 +439,26 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testAppendEnableSearchChangeToTable() {
+	public void testAppendSearchChangeToTable() {
 		Long userId = Long.parseLong(creatorUserGroupId);
 		Long transactionId = tableTransactionDao.startTransaction(tableId, userId);
-		tableRowTruthDao.appendSearchEnabledChange(userId, tableId, transactionId);
+		
+		// Call under test
+		tableRowTruthDao.appendSearchChange(userId, tableId, transactionId, true);
 		
 		TableRowChange rowChange = tableRowTruthDao.getLastTableRowChange(tableId);
 		
 		assertEquals(TableChangeType.SEARCH, rowChange.getChangeType());
 		assertTrue(rowChange.getIsSearchEnabled());
+		assertNull(rowChange.getBucket());
+		assertNull(rowChange.getKeyNew());
+		
+		tableRowTruthDao.appendSearchChange(userId, tableId, transactionId, false);
+		
+		rowChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		
+		assertEquals(TableChangeType.SEARCH, rowChange.getChangeType());
+		assertFalse(rowChange.getIsSearchEnabled());
 		assertNull(rowChange.getBucket());
 		assertNull(rowChange.getKeyNew());
 	}

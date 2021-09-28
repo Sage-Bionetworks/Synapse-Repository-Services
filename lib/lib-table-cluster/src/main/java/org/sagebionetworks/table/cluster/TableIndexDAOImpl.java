@@ -1438,8 +1438,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void addSearchColumn(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "The id");
-		String sql = SQLUtils.generateSearchColumnSql(idAndVersion);
+		String sql = SQLUtils.generateAddSearchColumnSql(idAndVersion);
 		template.update(sql);
+	}
+	
+	@Override
+	public void removeSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateRemoveSearchColumnSql(idAndVersion);
+		template.update(sql);		
 	}
 	
 }

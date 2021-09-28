@@ -2990,10 +2990,19 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testAddSearchColumn() {
+	public void testGenerateAddSearchColumnSql() {
 		
 		String expected = "ALTER TABLE T999 ADD COLUMN `ROW_SEARCH_CONTENT` MEDIUMTEXT NULL, ADD FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (`ROW_SEARCH_CONTENT`)";
-		String sql = SQLUtils.generateSearchColumnSql(tableId);
+		String sql = SQLUtils.generateAddSearchColumnSql(tableId);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGenerateRemoveSearchColumnSql() {
+		
+		String expected = "ALTER TABLE T999 DROP COLUMN `ROW_SEARCH_CONTENT`";
+		String sql = SQLUtils.generateRemoveSearchColumnSql(tableId);
 		
 		assertEquals(expected, sql);
 	}
