@@ -62,8 +62,8 @@ public class SubmissionUtils {
 		
 		return dto.getAccessorChanges().stream().map(accessorChange -> {
 			DBOSubmissionAccessorChange dbo = new DBOSubmissionAccessorChange();
-			dbo.setSubmissionId(dto.getId());
-			dbo.setAccessorId(accessorChange.getUserId());
+			dbo.setSubmissionId(Long.valueOf(dto.getId()));
+			dbo.setAccessorId(Long.valueOf(accessorChange.getUserId()));
 			dbo.setAccessType(accessorChange.getType().name());
 			return dbo;
 		}).collect(Collectors.toList());		

@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -405,7 +404,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 	}
 
-	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
+	<T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
 		}
@@ -581,18 +580,18 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
 			List<Long> createOrUpdateIds = new LinkedList<>();
-			FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
 			String sql = getInsertOrUpdateSql(type);
 			SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 			int index = 0;
-			for(DatabaseObject<?> databaseObject: batch){
-				namedParameters[index] = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
-				Object obj = namedParameters[index].getValue(backukpIdColumn.getFieldName());
-				if(!(obj instanceof Long)) {
-					throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
-				}
-				Long id = (Long) obj;
+			for(DatabaseObject<?> databaseObject: batch) {
+				SqlParameterSource parameterSource = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
+				
+				namedParameters[index] = parameterSource;
+				
+				Long id = extractBackupId(type, parameterSource);
+				
 				createOrUpdateIds.add(id);
+				
 				index++;
 			}
 			// execute the batch
@@ -600,6 +599,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			namedTemplate.batchUpdate(sql, namedParameters);
 			return createOrUpdateIds;
 		});
+	}
+	
+	Long extractBackupId(MigrationType type, SqlParameterSource parameterSource) {
+		FieldColumn backupIdColumn = this.backupIdColumns.get(type);
+		Object obj = parameterSource.getValue(backupIdColumn.getFieldName());
+		if(!(obj instanceof Long)) {
+			throw new IllegalArgumentException("Cannot get backup ID for type : " + type);
+		}
+		return (Long) obj;
 	}
 
 	@WriteTransaction
