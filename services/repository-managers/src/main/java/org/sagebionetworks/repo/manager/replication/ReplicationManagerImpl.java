@@ -182,8 +182,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		ViewScopeType viewScopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		ViewObjectType viewObjectType = viewScopeType.getObjectType();
 		ReplicationType replicationType = viewObjectType.getMainType();
-		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
-
+		TableIndexManager indexManager = indexConnectionFactory.connectToTableIndex(idAndVersion);
+		
 		if (!indexManager.isViewSynchronizeLockExpired(replicationType, idAndVersion)) {
 			log.info(String.format("Synchronize lock for view: '%s' has not expired.  Will not synchronize.",
 					idAndVersion.toString()));
@@ -193,7 +193,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, idAndVersion.getId());
 
 		Iterators.partition(it, MAX_MESSAGE_PAGE_SIZE).forEachRemaining(page -> {
-			log.debug(String.format("Found %i objects out-of-synch between truth and replication for view: '%s'.",
+			log.info(String.format("Found %d objects out-of-synch between truth and replication for view: '%s'.",
 					page.size(), idAndVersion.toString()));
 			replicationMessageManager.pushChangeMessagesToReplicationQueue(page);
 		});
