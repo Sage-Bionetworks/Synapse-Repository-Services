@@ -902,6 +902,106 @@ public class AnnotationsTranslatorImplTest {
 		assertEquals(json.getJSONArray("key").getString(0), "foo");
 		assertEquals(json.getJSONArray("key").getString(1), "bar");
 	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithReferencedSchemaAndSingleDefined() {
+		// should not default to an array
+		JsonSchema referencedSchema = new JsonSchema();
+		referencedSchema.set$id("org-id");
+		referencedSchema.setType(Type.string);
+		JsonSchema reference = new JsonSchema();
+		reference.set$ref("#/definitions/" + referencedSchema.get$id());
+		properties.put("key", reference);
+		Map<String, JsonSchema> definitions = new HashMap<>();
+		definitions.put(referencedSchema.get$id(), referencedSchema);
+		schema.setDefinitions(definitions);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithReferencedSchemaAndArrayDefined() {
+		// should stay as an array
+		JsonSchema referencedSchema = new JsonSchema();
+		referencedSchema.set$id("org-id");
+		referencedSchema.setType(Type.array);
+		JsonSchema reference = new JsonSchema();
+		reference.set$ref("#/definitions/" + referencedSchema.get$id());
+		properties.put("key", reference);
+		Map<String, JsonSchema> definitions = new HashMap<>();
+		definitions.put(referencedSchema.get$id(), referencedSchema);
+		schema.setDefinitions(definitions);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithReferencedSchemaAndConstDefined() {
+		// should not default to an array
+		JsonSchema referencedSchema = new JsonSchema();
+		referencedSchema.set$id("org-id");
+		referencedSchema.set_const("foo");
+		JsonSchema reference = new JsonSchema();
+		reference.set$ref("#/definitions/" + referencedSchema.get$id());
+		properties.put("key", reference);
+		Map<String, JsonSchema> definitions = new HashMap<>();
+		definitions.put(referencedSchema.get$id(), referencedSchema);
+		schema.setDefinitions(definitions);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithReferencedSchemaAndEnumDefined() {
+		// should not default to an array
+		JsonSchema referencedSchema = new JsonSchema();
+		referencedSchema.set$id("org-id");
+		referencedSchema.set_enum(Arrays.asList("foo", "bar"));
+		JsonSchema reference = new JsonSchema();
+		reference.set$ref("#/definitions/" + referencedSchema.get$id());
+		properties.put("key", reference);
+		Map<String, JsonSchema> definitions = new HashMap<>();
+		definitions.put(referencedSchema.get$id(), referencedSchema);
+		schema.setDefinitions(definitions);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getString("key"), "foo");
+	}
 
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithNaNValue() {

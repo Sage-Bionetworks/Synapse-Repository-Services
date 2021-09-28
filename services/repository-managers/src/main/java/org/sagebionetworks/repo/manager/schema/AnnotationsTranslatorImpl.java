@@ -410,15 +410,18 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 				for (String key : properties.keySet()) {
 					JsonSchema typeSchema = properties.get(key);
 					if (typeSchema != null) {
-						if (typeSchema.getType() != null) {
-							if (typeSchema.getType().equals(Type.array)) {
-								result.put(key, false);
-							} else {
-								result.put(key, true);
+						// handle default typeSchema
+						handleTypeSchemaForIsSingleMap(key, typeSchema, result);
+						// handle typeSchema that is defined by reference if exists.
+						// don't bother handling if we already determined whether it is single or not
+						// above
+						String $ref = typeSchema.get$ref();
+						if ($ref != null) {
+							JsonSchema referencedSchema = subSchema.getDefinitions()
+								.get($ref.substring("#/definitions/".length()));
+							if (referencedSchema != null) {
+								handleTypeSchemaForIsSingleMap(key, referencedSchema, result);
 							}
-						} else if (typeSchema.get_enum() != null || typeSchema.get_const() != null) {
-							// if const/enum exists, we assume it is a single in our map
-							result.put(key, true);
 						}
 					}
 				}
@@ -426,6 +429,21 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		}
 		return result;
 	}
+	
+	// returns true if an entry is added to the result, false otherwise
+	void handleTypeSchemaForIsSingleMap(String key, JsonSchema typeSchema, Map<String, Boolean> result) {
+		if (typeSchema.getType() != null) {
+			if (typeSchema.getType().equals(Type.array)) {
+				result.put(key, false);
+			} else {
+				result.put(key, true);
+			}
+		} else if (typeSchema.get_enum() != null || typeSchema.get_const() != null) {
+			// if const/enum exists, we assume it is a single in our map
+			result.put(key, true);
+		}
+	}
+	
 
 	Object stringToObject(AnnotationsValueType type, String value) {
 		switch (type) {
