@@ -874,7 +874,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 
 	@Override
-	public List<IdAndChecksum> getIdAndChecksumsPage(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
+	public List<IdAndChecksum> getIdAndChecksumsPage(Long salt, Set<Long> parentIds, Long limit,
 			Long offset) {
 		ValidateArgument.required(salt, "salt");
 		ValidateArgument.required(parentIds, "parentIds");

@@ -41,7 +41,7 @@ public class SubmissionObjectProvider implements ObjectDataProvider {
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds,
 			Set<SubType> subTypes) {
 		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
-			return submissionDao.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+			return submissionDao.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		}, PAGE_SIZE);
 	}
 
