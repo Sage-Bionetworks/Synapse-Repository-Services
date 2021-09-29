@@ -210,17 +210,18 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @return
 	 */
 	Iterator<IdAndChecksum> createTruthStream(Long salt, ViewFilter filter) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(filter, "filter");
 		ObjectDataProvider provider = objectDataProviderFactory.getObjectDataProvider(filter.getReplicationType());
 		if (filter instanceof HierarchicaFilter) {
 			HierarchicaFilter hierarchy = (HierarchicaFilter) filter;
 			return provider.streamOverIdsAndChecksumsForChildren(salt, hierarchy.getParentIds(), filter.getSubTypes());
 		} else if (filter instanceof FlatIdsFilter) {
 			FlatIdsFilter flat = (FlatIdsFilter) filter;
-			return provider.streamOverIdsAndChecksumsForChildren(salt, flat.getScope(), filter.getSubTypes());
+			return provider.streamOverIdsAndChecksumsForObjects(salt, flat.getScope());
 		} else if (filter instanceof FlatIdAndVersionFilter) {
 			FlatIdAndVersionFilter flatVersion = (FlatIdAndVersionFilter) filter;
-			return provider.streamOverIdsAndChecksumsForChildren(salt, flatVersion.getObjectIds(),
-					filter.getSubTypes());
+			return provider.streamOverIdsAndChecksumsForObjects(salt, flatVersion.getObjectIds());
 		} else {
 			throw new IllegalStateException("Unknown filter types: " + filter.getClass().getName());
 		}
@@ -235,6 +236,9 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 */
 	Iterator<ChangeMessage> createReconcileIterator(TableIndexManager indexManager, ViewObjectType viewObjectType,
 			Long viewId) {
+		ValidateArgument.required(indexManager, "indexManager");
+		ValidateArgument.required(viewObjectType, "viewObjectType");
+		ValidateArgument.required(viewId, "viewId");
 		long salt = RANDOM.nextLong();
 		MetadataIndexProvider metadataProvider = indexProviderFactory.getMetadataIndexProvider(viewObjectType);
 		ViewFilter filter = metadataProvider.getViewFilter(viewId);
@@ -244,9 +248,9 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	}
 	
 	@Override
-	public boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, Long viewId) {
-		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
-		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, viewId);
+	public boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, IdAndVersion viewId) {
+		TableIndexManager indexManager = indexConnectionFactory.connectToTableIndex(viewId);
+		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, viewId.getId());
 		return it.hasNext();
 	}
 

@@ -422,7 +422,6 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
-
 			Thread.sleep(1000);
 		}
 	}

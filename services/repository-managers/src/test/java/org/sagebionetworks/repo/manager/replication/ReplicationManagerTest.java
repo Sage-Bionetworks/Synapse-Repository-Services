@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.replication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -32,6 +34,7 @@ import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
@@ -46,7 +49,10 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
+import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
+import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.transaction.TransactionStatus;
@@ -69,6 +75,8 @@ public class ReplicationManagerTest {
 	private TableManagerSupport mockTableManagerSupport;
 	@Mock
 	private MetadataIndexProviderFactory mockIndexProviderFactory;
+	@Mock
+	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
 	private LoggerProvider mockLoggerProvider;
 	@Mock
@@ -342,12 +350,12 @@ public class ReplicationManagerTest {
 	}
 
 	@Test
-	public void testCreateTruthStream() {
-		
+	public void testCreateTruthStreamWithHierarchicaFilter() {
+
 		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
 		Iterator<IdAndChecksum> it = Arrays.asList(new IdAndChecksum().withId(33L)).iterator();
 		when(mockObjectDataProvider.streamOverIdsAndChecksumsForChildren(any(), any(), any())).thenReturn(it);
-		
+
 		Long salt = 123L;
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 		Set<Long> scope = Sets.newHashSet(99L);
@@ -355,11 +363,184 @@ public class ReplicationManagerTest {
 		// call under test
 		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
 		assertEquals(result, it);
-		
+
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(ReplicationType.ENTITY);
 		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForChildren(salt, scope, subTypes);
 	}
 
+	@Test
+	public void testCreateTruthStreamWithFlatFilter() {
+
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		Iterator<IdAndChecksum> it = Arrays.asList(new IdAndChecksum().withId(33L)).iterator();
+		when(mockObjectDataProvider.streamOverIdsAndChecksumsForObjects(any(), any())).thenReturn(it);
+
+		Long salt = 123L;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(99L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		// call under test
+		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
+		assertEquals(result, it);
+
+		verify(mockObjectDataProviderFactory).getObjectDataProvider(ReplicationType.ENTITY);
+		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, scope);
+	}
+
+	@Test
+	public void testCreateTruthStreamWithFlatIdAndVersionFilter() {
+
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		Iterator<IdAndChecksum> it = Arrays.asList(new IdAndChecksum().withId(33L)).iterator();
+		when(mockObjectDataProvider.streamOverIdsAndChecksumsForObjects(any(), any())).thenReturn(it);
+
+		Long salt = 123L;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<IdVersionPair> scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(2L));
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		// call under test
+		Iterator<IdAndChecksum> result = manager.createTruthStream(salt, filter);
+		assertEquals(result, it);
+
+		verify(mockObjectDataProviderFactory).getObjectDataProvider(ReplicationType.ENTITY);
+		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, filter.getObjectIds());
+	}
+
+	@Test
+	public void testCreateTruthStreamWithUnknownFilter() {
+		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
+		Long salt = 123L;
+		ViewFilter filter = Mockito.mock(ViewFilter.class);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.createTruthStream(salt, filter);
+		}).getMessage();
+
+		assertTrue(message.startsWith("Unknown filter types: "));
+	}
+
+	@Test
+	public void testCreateTruthStreamWithNullFilter() {
+		Long salt = 123L;
+		ViewFilter filter = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.createTruthStream(salt, filter);
+		}).getMessage();
+
+		assertEquals("filter is required.", message);
+	}
+
+	@Test
+	public void testCreateTruthStreamWithNullSalt() {
+		Long salt = null;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<IdVersionPair> scope = Sets.newHashSet(new IdVersionPair().setId(1L).setVersion(2L));
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.createTruthStream(salt, filter);
+		}).getMessage();
+
+		assertEquals("salt is required.", message);
+	}
+
+	@Test
+	public void testCreateReconcileIterator() {
+		when(mockIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(99L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+
+		Iterator<IdAndChecksum> truthStream = Arrays.asList(new IdAndChecksum().withId(1L).withChecksum(0L)).iterator();
+		doReturn(truthStream).when(managerSpy).createTruthStream(any(), any());
+
+		Iterator<IdAndChecksum> replicationStream = Arrays.asList(new IdAndChecksum().withId(1L).withChecksum(11L))
+				.iterator();
+		when(mockTableIndexManager.streamOverIdsAndChecksums(any(), any())).thenReturn(replicationStream);
+
+		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		Long viewId = 123L;
+		// call under test
+		Iterator<ChangeMessage> result = managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType,
+				viewId);
+		assertNotNull(result);
+		assertTrue(result.hasNext());
+		ChangeMessage expecedMessage = new ChangeMessage().setObjectId("1").setObjectType(ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE);
+		assertEquals(expecedMessage, result.next());
+		assertFalse(result.hasNext());
+
+		verify(mockIndexProviderFactory).getMetadataIndexProvider(viewObjectType);
+		verify(managerSpy).createTruthStream(any(), eq(filter));
+		verify(mockTableIndexManager).streamOverIdsAndChecksums(any(), eq(filter));
+	}
+
+	@Test
+	public void testCreateReconcileIteratorWithNullManager() {
+		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		mockTableIndexManager = null;
+		Long viewId = 123L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
+		}).getMessage();
+		assertEquals("indexManager is required.", message);
+	}	
+	
+	@Test
+	public void testCreateReconcileIteratorWithNulType() {
+		ViewObjectType viewObjectType = null;
+		Long viewId = 123L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
+		}).getMessage();
+		assertEquals("viewObjectType is required.", message);
+	}	
+	
+	@Test
+	public void testCreateReconcileIteratorWithNulId() {
+		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		Long viewId = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
+		}).getMessage();
+		assertEquals("viewId is required.", message);
+	}	
+
+	@Test
+	public void testIsReplicationOutOfSynchForViewWithEmpty() {
+		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		Iterator<ChangeMessage> it = Collections.emptyIterator();
+		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
+		
+		// call under test
+		assertFalse(managerSpy.isReplicationOutOfSynchForView(viewObjectType, viewId));
+		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
+	}
+	
+	@Test
+	public void testIsReplicationOutOfSynchForViewWithChanges() {
+		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		Iterator<ChangeMessage> it = changes.iterator();
+		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
+		
+		// call under test
+		assertTrue(managerSpy.isReplicationOutOfSynchForView(viewObjectType, viewId));
+		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
+	}
+	
 	/**
 	 * Helper to create a batch of ChangeMessage with the size of the given count.
 	 * 

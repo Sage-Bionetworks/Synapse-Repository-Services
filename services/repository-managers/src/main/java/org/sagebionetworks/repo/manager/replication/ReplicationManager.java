@@ -47,5 +47,5 @@ public interface ReplicationManager {
 	 * @param viewId
 	 * @return
 	 */
-	boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, Long viewId);
+	boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, IdAndVersion viewId);
 }
