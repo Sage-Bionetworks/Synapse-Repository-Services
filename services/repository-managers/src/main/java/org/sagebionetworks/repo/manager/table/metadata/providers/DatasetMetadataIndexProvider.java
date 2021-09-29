@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,8 +8,6 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,7 +16,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -78,24 +74,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		return DATASET_FILE_COLUMNS;
-	}
-
-	@Override
-	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
-		// The datasets are not hierarchical, so the scope cannot be expanded
-		return scope;
-	}
-
-	@Override
-	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException {
-		return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-	}
-
-	@Override
-	public String createViewOverLimitMessage(Long viewTypeMask, int containerLimit) {
-		return String.format("Maximum of %,d items in a dataset exceeded.", containerLimit);
 	}
 
 	@Override

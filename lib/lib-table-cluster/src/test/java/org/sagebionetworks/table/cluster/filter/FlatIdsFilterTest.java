@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.map.HashedMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -52,7 +52,7 @@ public class FlatIdsFilterTest {
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:flatIds)",
 				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
-		Map<String, Object> expected = new HashedMap<>();
+		Map<String, Object> expected = new HashMap<>();
 		expected.put("mainType", mainType.name());
 		expected.put("subTypes", expectedSubTypes);
 		expected.put("flatIds", scope);
@@ -70,7 +70,7 @@ public class FlatIdsFilterTest {
 						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
-		Map<String, Object> expected = new HashedMap<>();
+		Map<String, Object> expected = new HashMap<>();
 		expected.put("mainType", mainType.name());
 		expected.put("subTypes", expectedSubTypes);
 		expected.put("limitObjectIds", limitObjectIds);

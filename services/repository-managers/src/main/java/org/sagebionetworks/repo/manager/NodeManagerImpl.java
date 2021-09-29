@@ -860,4 +860,9 @@ public class NodeManagerImpl implements NodeManager {
 		return nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
 	}
 
+	@Override
+	public void truncateAll() {
+		nodeDao.truncateAll();
+	}
+
 }

@@ -7,6 +7,7 @@ import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +29,7 @@ public class EvaluationSubmissionObjectHelper implements DaoObjectHelper<Submiss
 		
 		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
 		submission.setEvaluationId("123");
-		submission.setUserId("123");
+		submission.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		submission.setEntityId("123");
 		submission.setVersionNumber(1L);
 		submission.setCreatedOn(new Date());

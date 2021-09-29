@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.replication.TruthAndReplicationSynchronization;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
@@ -45,13 +45,11 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  * @author John
  * 
  */
-public interface TableIndexManager extends TruthAndReplicationSynchronization{
-
-
+public interface TableIndexManager {
 
 	/**
-	 * Get the current version of the index for this table. This is the
-	 * version number of the last change set applied to index.
+	 * Get the current version of the index for this table. This is the version
+	 * number of the last change set applied to index.
 	 * 
 	 * @return
 	 */
@@ -63,81 +61,79 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	 * 
 	 * @param connection
 	 * @param versionNumber
-	 * @return True if the change set for the given version has already been
-	 *         applied ot the table.
+	 * @return True if the change set for the given version has already been applied
+	 *         ot the table.
 	 */
 	boolean isVersionAppliedToIndex(IdAndVersion tableId, long versionNumber);
 
 	/**
-	 * Apply the given change set to a table's index. Each row in a change set
-	 * must have the same version number. Each change set must be the complete
-	 * set of rows for a given version. Change sets must be applied to the index
-	 * in version number order, the first version number equal to zero and the
-	 * last version number equals to n-1.
+	 * Apply the given change set to a table's index. Each row in a change set must
+	 * have the same version number. Each change set must be the complete set of
+	 * rows for a given version. Change sets must be applied to the index in version
+	 * number order, the first version number equal to zero and the last version
+	 * number equals to n-1.
 	 * 
-	 * This method is idempotent. The latest version applied to the index is
-	 * tracked and only newer versions will actually be applied to the index
-	 * when called.
+	 * This method is idempotent. The latest version applied to the index is tracked
+	 * and only newer versions will actually be applied to the index when called.
 	 * 
 	 * This method should only be used for TableEntities and not FileViews.
 	 * 
-	 * @param rowset
-	 *            Rowset to apply.
-	 * @param currentSchema
-	 *            The current schema of the table.
-	 * @param changeSetVersionNumber
-	 *            The version number of the changeset. Note, this version number
-	 *            must match the version number of each row in the passed
-	 *            changeset.
+	 * @param rowset                 Rowset to apply.
+	 * @param currentSchema          The current schema of the table.
+	 * @param changeSetVersionNumber The version number of the changeset. Note, this
+	 *                               version number must match the version number of
+	 *                               each row in the passed changeset.
 	 */
-	void applyChangeSetToIndex(IdAndVersion tableId, SparseChangeSet rowset,
-			long changeSetVersionNumber);
+	void applyChangeSetToIndex(IdAndVersion tableId, SparseChangeSet rowset, long changeSetVersionNumber);
 
 	/**
 	 * Set the current schema of a table's index.
 	 * 
 	 * @param currentSchema
 	 */
-	List<ColumnChangeDetails> setIndexSchema(IdAndVersion tableId, boolean isTableView, List<ColumnModel> currentSchema);
-	
+	List<ColumnChangeDetails> setIndexSchema(IdAndVersion tableId, boolean isTableView,
+			List<ColumnModel> currentSchema);
+
 	/**
 	 * 
 	 * @param currentSchema
 	 */
 	boolean updateTableSchema(IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes);
-	
+
 	/**
 	 * Delete the index for this table.
 	 */
 	void deleteTableIndex(IdAndVersion tableId);
 
 	/**
-	 * Set the current version of the index and the schema MD5, both of which are used
-	 * to determine if the index is up-to-date.
+	 * Set the current version of the index and the schema MD5, both of which are
+	 * used to determine if the index is up-to-date.
 	 * 
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
 	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
-	
+
 	/**
 	 * Optimize the indices of this table. Indices are added until either all
-	 * columns have an index or the maximum number of indices per table is
-	 * reached. When a table has more columns than the maximum number of
-	 * indices, indices are assigned to columns with higher cardinality before
-	 * columns with low cardinality.
+	 * columns have an index or the maximum number of indices per table is reached.
+	 * When a table has more columns than the maximum number of indices, indices are
+	 * assigned to columns with higher cardinality before columns with low
+	 * cardinality.
 	 * 
 	 * Note: This method should be called after making all changes to a table.
 	 */
 	void optimizeTableIndices(IdAndVersion tableId);
 
 	/**
-	 * For _LIST type columns, create a separate table as an index for the multiple values in that table
+	 * For _LIST type columns, create a separate table as an index for the multiple
+	 * values in that table
+	 * 
 	 * @param tableIdAndVersion
 	 * @param schemas
 	 */
 	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
-	
+
 	/**
 	 * 
 	 * @param tableIdAndVersion
@@ -158,8 +154,8 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	void deleteTemporaryTableCopy(IdAndVersion tableId);
 
 	/**
-	 * Attempt to alter the schema of a temporary copy of a table.
-	 * This is used to validate table schema changes.
+	 * Attempt to alter the schema of a temporary copy of a table. This is used to
+	 * validate table schema changes.
 	 * 
 	 * @param progressCallback
 	 * @param tableId
@@ -168,59 +164,68 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	 */
 	void alterTempTableSchmea(IdAndVersion tableId, List<ColumnChangeDetails> changes);
 
-
 	/**
-	 * Populate a view table by coping all of the relevant data from the entity 
+	 * Populate a view table by coping all of the relevant data from the entity
 	 * replication tables.
-	 * @param callback 
+	 * 
+	 * @param callback
 	 * 
 	 * @param scopeType
 	 * @param currentSchema
 	 * @return View CRC32
 	 */
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
-	
+
 	/**
 	 * Create a snapshot of the given view.
+	 * 
 	 * @param tableId
 	 * @param scopeType
 	 * @param allContainersInScope
 	 * @param viewSchema
 	 * @param writter
 	 */
-	void createViewSnapshot(Long viewId, ViewScopeType scopeType,
-			List<ColumnModel> viewSchema, CSVWriterStream writter);	
-	
+	void createViewSnapshot(Long viewId, ViewScopeType scopeType, List<ColumnModel> viewSchema,
+			CSVWriterStream writter);
+
 	/**
-	 * Get the possible ColumnModel definitions based on annotation within a given scope.
-	 * @param scope Defined as the list of container ids for a view.
+	 * Get the possible ColumnModel definitions based on annotation within a given
+	 * scope.
+	 * 
+	 * @param scope         Defined as the list of container ids for a view.
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
 	ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken);
-	
+
 	/**
-	 * Get the possible ColumnModel definitions based on annotations for a given view.
-	 * @param viewId The id of the view to fetch annotation definitions for.
+	 * Get the possible ColumnModel definitions based on annotations for a given
+	 * view.
+	 * 
+	 * @param viewId        The id of the view to fetch annotation definitions for.
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
 	ColumnModelPage getPossibleColumnModelsForView(Long viewId, String nextPageToken);
 
 	/**
-	 * Build the index for the given table using the provided change metadata up to and
-	 * including the provided target change number.
-	 * @param progressCallback 
+	 * Build the index for the given table using the provided change metadata up to
+	 * and including the provided target change number.
+	 * 
+	 * @param progressCallback
 	 * 
 	 * @param tableId
 	 * @param iterator
 	 * @param targetChangeNumber
-	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
+	 * @throws RecoverableMessageException Will RecoverableMessageException if the
+	 *                                     index cannot be built at this time.
 	 */
-	void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
-	
+	void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion,
+			Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
+
 	/**
 	 * Populate a view table from a stream of snapshot CSV data.
+	 * 
 	 * @param idAndVersion
 	 * @param input
 	 */
@@ -240,7 +245,7 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	 * 
 	 * @param viewId The id of the view to check.
 	 * @param filter
-	 * @param limit Limit the number of rows returned. 
+	 * @param limit  Limit the number of rows returned.
 	 * @return
 	 */
 	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit);
@@ -250,15 +255,16 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	 * rowId, all data will first be deleted from the view, then copied back to the
 	 * view from the replication tables.
 	 * 
-	 * @param viewId The Id of the view.
-	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this transaction.
-	 * @param viewTypeMask The type of view this is.
-	 * @param currentSchema The current schema of the view.
+	 * @param viewId             The Id of the view.
+	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this
+	 *                           transaction.
+	 * @param viewTypeMask       The type of view this is.
+	 * @param currentSchema      The current schema of the view.
 	 * @param filter
 	 * @param provider
 	 */
-	void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType,
-			List<ColumnModel> currentSchema, ViewFilter filter);
+	void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema,
+			ViewFilter filter);
 
 	/**
 	 * Ensure the benefactor IDs for the given view snapshot are up-to-date.
@@ -269,8 +275,9 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 
 	/**
 	 * Update the object replication for the given object data.
+	 * 
 	 * @param objectType
-	 * @param allIds The IDs of all rows that will be updated.
+	 * @param allIds     The IDs of all rows that will be updated.
 	 * @param objectData
 	 */
 	void updateObjectReplication(ReplicationType objectType, Iterator<ObjectDataDTO> objectData);
@@ -282,5 +289,32 @@ public interface TableIndexManager extends TruthAndReplicationSynchronization{
 	 * @param toDeleteIds
 	 */
 	void deleteObjectData(ReplicationType objectType, List<Long> toDeleteIds);
+
+	/**
+	 * Stream over the IdAndChecksum for all objects defined by the provided filter.
+	 * The checksum must include all version of the objects that match the
+	 * condition. See the following pusdo-sql:
+	 * </p>
+	 * <code>SELECT ID, SUM(CRC32(CONCAT(salt','-',ETAG,'-',VERSION,'-',BENEFACTOR_ID))) AS CHECK_SUM ... GROUP BY ID ORDER BY ID ASC</code>
+	 * 
+	 * @param salt
+	 * @param filter
+	 * @return
+	 */
+	Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter);
+
+	/**
+	 * Is the synchronization lock for the given view expires?
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	boolean isViewSynchronizeLockExpired(ReplicationType type, IdAndVersion idAndVersion);
+
+	/**
+	 * Reset the synchronized lock for the given view.
+	 * @param idAndVersion
+	 */
+	void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion);
 
 }

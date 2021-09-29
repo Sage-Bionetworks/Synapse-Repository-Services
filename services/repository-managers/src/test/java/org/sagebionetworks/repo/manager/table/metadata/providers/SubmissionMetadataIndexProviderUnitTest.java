@@ -6,12 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -29,7 +27,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -42,8 +39,6 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,21 +98,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 		assertEquals(ColumnType.SUBMISSIONID, mapper.getIdColumnType());
 		assertEquals(ColumnType.EVALUATIONID, mapper.getParentIdColumnType());
 		assertEquals(ColumnType.EVALUATIONID, mapper.getBenefactorIdColumnType());
-	}
-
-	@Test
-	public void testGetAllContainerIdsForScope() throws Exception {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		int containerLimit = 10;
-
-		Set<Long> expected = ImmutableSet.of(1L, 2L);
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForScope(scope, mockViewTypeMask, containerLimit);
-
-		assertEquals(expected, result);
-
 	}
 
 	@Test
@@ -282,21 +262,6 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			boolean present = model.findCustomFieldByColumnName(field.getColumnName()).isPresent();
 			assertTrue(present);
 		}
-	}
-
-	@Test
-	public void testGetContainerIdsForReconciliation() throws LimitExceededException {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		int containerLimit = 10;
-
-		Set<Long> expected = ImmutableSet.of(1L, 2L);
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForReconciliation(scope, mockViewTypeMask, containerLimit);
-
-		assertEquals(expected, result);
-
 	}
 
 	@Test

@@ -424,5 +424,7 @@ public interface NodeManager {
 	 * @return
 	 */
 	public Long findFirstBoundJsonSchema(Long nodeId);
+	
+	public void truncateAll();
 
 }

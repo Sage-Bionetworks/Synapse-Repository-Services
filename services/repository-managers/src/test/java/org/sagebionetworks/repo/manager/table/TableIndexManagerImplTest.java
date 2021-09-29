@@ -126,6 +126,9 @@ public class TableIndexManagerImplTest {
 
 	@Captor
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
+	
+	@Captor
+	ArgumentCaptor<Long> longCaptor;
 
 	TableIndexManagerImpl manager;
 	TableIndexManagerImpl managerSpy;
@@ -2215,6 +2218,36 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteObjectData(type, toDeleteIds);
 	}
 	
+	@Test
+	public void testIsViewSynchronizeLockExpiredWithEmpty() {
+		ReplicationType type = ReplicationType.ENTITY;
+		when(mockIndexDao.getExpiredContainerIds(any(), any())).thenReturn(Collections.emptyList());
+		// call under test
+		assertFalse(manager.isViewSynchronizeLockExpired(type, tableId));
+		verify(mockIndexDao).getExpiredContainerIds(type, Collections.singletonList(tableId.getId()));
+	}
+	
+	@Test
+	public void testIsViewSynchronizeLockExpiredWithExpired() {
+		ReplicationType type = ReplicationType.ENTITY;
+		when(mockIndexDao.getExpiredContainerIds(any(), any())).thenReturn(Collections.singletonList(tableId.getId()));
+		// call under test
+		assertTrue(manager.isViewSynchronizeLockExpired(type, tableId));
+		verify(mockIndexDao).getExpiredContainerIds(type, Collections.singletonList(tableId.getId()));
+	}
+	
+	
+	@Test
+	public void testResetViewSynchronizeLock() {
+		ReplicationType type = ReplicationType.ENTITY;
+		long start = System.currentTimeMillis();
+		// call under test
+		manager.resetViewSynchronizeLock(type, tableId);
+		verify(mockIndexDao).setContainerSynchronizationExpiration(eq(type), eq(Lists.newArrayList(tableId.getId())), longCaptor.capture());
+		long expires = longCaptor.getValue();
+		long expectedExpires = start+TableIndexManagerImpl.SYNCHRONIZATION_FEQUENCY_MS;
+		assertTrue(expectedExpires >= expires);
+	}
 
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {

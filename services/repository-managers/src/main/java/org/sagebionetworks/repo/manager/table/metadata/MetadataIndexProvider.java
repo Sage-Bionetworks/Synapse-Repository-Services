@@ -1,18 +1,13 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -42,35 +37,6 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	 *         that are suggested for a view
 	 */
 	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
-
-
-	/**
-	 * Given the set of ids in the scope and the type mask, computes all the
-	 * containers within the scope. The result should contain the provided set of
-	 * ids
-	 * 
-	 * @param scope          The set of ids defining the scope of a view
-	 * @param viewTypeMask   The type mask
-	 * @param containerLimit The maximum number of containers allowed for a scope,
-	 *                       if there are more containers in the scope a
-	 *                       {@link LimitExceededException} should be thrown
-	 * 
-	 * @return The expanded set of ids including all the container ids in the scope
-	 * @throws LimitExceededException If there are more than containerLimit
-	 *                                containers in the scope
-	 */
-	Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException;
-
-	/**
-	 * Provide a contextualized message when a view with the given type mask exceeds
-	 * the given limit
-	 * 
-	 * @param viewTypeMask
-	 * @param containerLimit
-	 * @return
-	 */
-	String createViewOverLimitMessage(Long viewTypeMask, int containerLimit);
 
 	// Used for annotation updates from views
 
@@ -113,25 +79,6 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	boolean canUpdateAnnotation(ColumnModel model);
 
 	// Used for reconciliation
-
-	/**
-	 * In general should return the same result as
-	 * {@link #getContainerIdsForScope(Set, Long, int)} but used for reconciliation,
-	 * in some cases the containers to reconcile might differ from the containers
-	 * used for the scope computation (e.g. project views reconcile on the root
-	 * node)
-	 * 
-	 * @param scope          The set of ids defining the scope of a view
-	 * @param viewTypeMask   The type mask
-	 * @param containerLimit The maximum number of containers allowed for a scope,
-	 *                       if there are more containers in the scope a
-	 *                       {@link LimitExceededException} should be thrown
-	 * @return The set of container ids that are used for reconciliation
-	 * @throws LimitExceededException If there are more than containerLimit
-	 *                                containers in the scope
-	 */
-	Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException;
 
 	
 	/**

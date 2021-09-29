@@ -7,6 +7,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,13 +31,17 @@ public class EvaluationObjectHelper implements DaoObjectHelper<Evaluation> {
 		evaluation.setContentSource("123");
 		evaluation.setName("TestEvaluation");
 		evaluation.setCreatedOn(new Date());
-		evaluation.setOwnerId("123");
+		evaluation.setOwnerId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		
 		consumer.accept(evaluation);
 		
 		String evaluationId = evaluationDao.create(evaluation, Long.valueOf(evaluation.getOwnerId()));
 		
 		return evaluationDao.get(evaluationId);
+	}
+	
+	public void truncateAll() {
+		evaluationDao.truncateAll();
 	}
 
 }

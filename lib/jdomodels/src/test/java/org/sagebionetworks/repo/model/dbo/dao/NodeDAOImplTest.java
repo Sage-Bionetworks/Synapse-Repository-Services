@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
@@ -197,6 +196,9 @@ public class NodeDAOImplTest {
 
 	@BeforeEach
 	public void before() throws Exception {
+		
+		nodeDao.truncateAll();
+		
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 		adminUser = new UserInfo(true, creatorUserGroupId);
@@ -263,6 +265,7 @@ public class NodeDAOImplTest {
 		for (String todelete : Lists.reverse(userGroupsToDelete)) {
 			userGroupDAO.delete(todelete);
 		}
+		nodeDao.truncateAll();
 	}
 	
 	private Node privateCreateNew(String name) {
@@ -3920,102 +3923,6 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
 	}
 	
-	
-	@Test
-	public void testGetSumOfChildCRCsForEachParentEmpty(){
-		// Setup some hierarchy.
-		List<Long> parentIds = new LinkedList<Long>();
-		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testGetSumOfChildCRCsForEachParent(){
-		// Setup some hierarchy.
-		// grandparent
-		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
-		grandparent = nodeDao.createNewNode(grandparent);
-		Long grandId = KeyFactory.stringToKey(grandparent.getId());
-		toDelete.add(grandparent.getId());
-		// parent
-		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
-		parent.setParentId(grandparent.getId());
-		parent = nodeDao.createNewNode(parent);
-		Long parentId = KeyFactory.stringToKey(parent.getId());
-		toDelete.add(parent.getId());
-		// child
-		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
-		child.setParentId(parent.getId());
-		child = nodeDao.createNewNode(child);
-		Long childId = KeyFactory.stringToKey(child.getId());
-		toDelete.add(child.getId());
-		
-		Long doesNotExist = -1L;
-		List<Long> parentIds = Lists.newArrayList(grandId, parentId, childId, doesNotExist);
-		// call under test
-		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		Long crc = results.get(grandId);
-		assertNotNull(results.get(grandId));
-		assertNotNull(results.get(parentId));
-		assertEquals(null, results.get(child));
-		assertEquals(null, results.get(doesNotExist));
-	}
-	
-	@Test
-	public void testGetChildrenIdAndEtag(){
-		// Setup some hierarchy.
-		// grandparent
-		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
-		grandparent = nodeDao.createNewNode(grandparent);
-		Long grandId = KeyFactory.stringToKey(grandparent.getId());
-		toDelete.add(grandparent.getId());
-		// parent
-		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
-		parent.setParentId(grandparent.getId());
-		parent.setNodeType(EntityType.folder);
-		parent = nodeDao.createNewNode(parent);
-		Long parentId = KeyFactory.stringToKey(parent.getId());
-		toDelete.add(parent.getId());
-		
-		// add an acl for the parent
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(""+parentId, adminUser, new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
-		
-		// child
-		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
-		child.setParentId(parent.getId());
-		child.setNodeType(EntityType.file);
-		child = nodeDao.createNewNode(child);
-		Long childId = KeyFactory.stringToKey(child.getId());
-		toDelete.add(child.getId());
-		// call under test
-		List<IdAndEtag> results = nodeDao.getChildren(grandId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId), results.get(0));
-		// call under test
-		results = nodeDao.getChildren(parentId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(childId, child.getETag(), parentId), results.get(0));
-		// call under test
-		results = nodeDao.getChildren(childId);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testGetChildrenIdAndEtagDoesNotExist(){
-		Long doesNotExist = -1L;
-		// call under test
-		List<IdAndEtag> results = nodeDao.getChildren(doesNotExist);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
 	@Test
 	public void testGetAvailableNodesEmpty(){
 		List<Long> empty = new LinkedList<Long>();
@@ -4807,6 +4714,51 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetIdsAndChecksumsForChildrenWithParentInTrash() throws Exception {
+		// project one is in the trash
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(NodeDAOImpl.TRASH_FOLDER_ID.toString());
+		});
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("project_two");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectTwo.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		List<Long> idsInTwo = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId()))
+		);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(KeyFactory.stringToKey(projectOne.getId()),KeyFactory.stringToKey(projectTwo.getId()));
+	
+		Long limit = 100L;
+		Long offset = 0L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		assertEquals(idsInTwo.get(0), results.get(0).getId());
+		assertEquals(idsInTwo.get(1), results.get(1).getId());
+		assertEquals(idsInTwo.get(2), results.get(2).getId());
+		// all files should have a checksum
+		assertEquals(3, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
 	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptyParentIds() throws Exception {
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
 		Set<Long> parentIds = Collections.emptySet();
@@ -4890,9 +4842,6 @@ public class NodeDAOImplTest {
 				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
 				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
 		);
-
-		// this file should not be included.
-		Long fileIdNotIncluded =KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()));
 		
 		Set<Long> objectIds = idsInOne.stream().collect(Collectors.toSet());
 	
@@ -4907,6 +4856,52 @@ public class NodeDAOImplTest {
 		assertEquals(idsInOne.get(2), results.get(1).getId());
 		// all files should have a checksum
 		assertEquals(2, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithParentInTrash() throws Exception {
+		// project one is in the trash
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(NodeDAOImpl.TRASH_FOLDER_ID.toString());
+		});
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("project_two");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectTwo.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		List<Long> idsInTwo = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId()))
+		);
+				
+		Set<Long> objectIds = new HashSet<Long>();
+		objectIds.addAll(idsInOne);
+		objectIds.addAll(idsInTwo);
+	
+		Long limit = 100L;
+		Long offset = 0L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		assertEquals(idsInTwo.get(0), results.get(0).getId());
+		assertEquals(idsInTwo.get(1), results.get(1).getId());
+		assertEquals(idsInTwo.get(2), results.get(2).getId());
+		// all files should have a checksum
+		assertEquals(3, results.stream().filter(i-> i.getChecksum() != null).count());
 	}
 	
 	@Test

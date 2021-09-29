@@ -395,46 +395,6 @@ public class EvaluationDAOImplTest {
    }
 
     @Test
-    public void testGetAvailableEvaluations() {
-
-    	String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
-
-		toDelete.add(evalId);
-
-		Long evaluationId = Long.valueOf(evalId);
-    	List<Long> ids = ImmutableList.of(evaluationId, 100L, 200L, 300L);
-
-    	Set<Long> result = evaluationDAO.getAvailableEvaluations(ids);
-
-    	assertEquals(ImmutableSet.of(evaluationId), result);
-    }
-
-    @Test
-    public void testGetAvailableEvaluationsWithEmptyInput() {
-
-    	List<Long> ids = Collections.emptyList();
-
-    	Set<Long> result = evaluationDAO.getAvailableEvaluations(ids);
-
-    	assertEquals(Collections.emptySet(), result);
-
-    }
-
-    @Test
-    public void testGetAvailableEvaluationsWithNullInput() {
-
-    	List<Long> ids = null;
-
-    	String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-    		// Call under test
-    		evaluationDAO.getAvailableEvaluations(ids);
-    	}).getMessage();
-
-    	assertEquals("ids is required.", errorMessage);
-
-    }
-
-    @Test
 	public void testUpdatEvaluationRound_notFound(){
     	evaluationRound.setEtag("asdfasdfasdf");
     	//attempt update w/out creating

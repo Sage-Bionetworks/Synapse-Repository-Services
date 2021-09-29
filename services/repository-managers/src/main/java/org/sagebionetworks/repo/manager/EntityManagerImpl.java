@@ -720,4 +720,9 @@ public class EntityManagerImpl implements EntityManager {
 		// Find the children of this entity that the caller cannot see.
 		return entityAclManager.getNonvisibleChildren(userInfo, containerId);
 	}
+
+	@Override
+	public void truncateAll() {
+		nodeManager.truncateAll();
+	}
 }

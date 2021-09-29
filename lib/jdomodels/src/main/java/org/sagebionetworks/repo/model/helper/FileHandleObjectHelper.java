@@ -73,6 +73,9 @@ public class FileHandleObjectHelper implements DaoObjectHelper<S3FileHandle> {
 		}
 
 	}
-	
+
+	public void truncateAll() {
+		fileHandleDao.truncateTable();
+	}
 
 }

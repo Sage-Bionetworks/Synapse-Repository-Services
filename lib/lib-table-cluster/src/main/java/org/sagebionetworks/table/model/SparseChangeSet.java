@@ -31,7 +31,7 @@ public class SparseChangeSet implements TableChange {
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
 	List<SparseRow> sparseRows;
-
+	
 	/**
 	 * Create a new empty change set.
 	 * 
