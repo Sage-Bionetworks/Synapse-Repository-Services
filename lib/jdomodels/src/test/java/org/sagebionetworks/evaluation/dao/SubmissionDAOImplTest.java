@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -61,6 +62,7 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -77,6 +79,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -111,6 +114,9 @@ public class SubmissionDAOImplTest {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private DaoObjectHelper<Submission> submissionDaoHelper;
 	
     private static final String SUBMISSION_ID = "206";
     private static final String SUBMISSION_2_ID = "307";
@@ -255,17 +261,11 @@ public class SubmissionDAOImplTest {
         submission3.setContributors(scs);
         scs.add(submissionContributor);
         
-        
-        
     }
     
     @AfterEach
     public void tearDown() throws DatastoreException, NotFoundException  {
-    	for (String id : new String[]{SUBMISSION_ID, SUBMISSION_2_ID, SUBMISSION_3_ID, SUBMISSION_4_ID}) {
-    		try {
-    			submissionDAO.delete(id);
-    		} catch (NotFoundException e)  {};
-    	}
+    	submissionDAO.truncateAll();
 			
     	if (submissionTeam!=null) {
     		deleteTeam(submissionTeam);
@@ -979,92 +979,113 @@ public class SubmissionDAOImplTest {
 
 	}
 	
+	private Submission createScoredSubmission(String evaluationId) {
+		Submission one = submissionDaoHelper.create(s->{
+			s.setEvaluationId(evaluationId);
+			s.setUserId(userId);
+		});
+		createSubmissionStatus(one.getId(), SubmissionStatusEnum.SCORED);
+		return one;
+	}
+	
 	@Test
-	public void testGetSubmissionIdAndEtag() {
-
-		String subId1 = submissionDAO.create(submission);
-		createSubmissionStatus(subId1, SubmissionStatusEnum.SCORED);
-		String etag1 = submissionStatusDAO.get(subId1).getEtag();
-		String subId2 = submissionDAO.create(submission2);
-		createSubmissionStatus(subId2, SubmissionStatusEnum.SCORED);
-		String etag2 = submissionStatusDAO.get(subId2).getEtag();
-		String subId3 = submissionDAO.create(submission3);
-		createSubmissionStatus(subId3, SubmissionStatusEnum.SCORED);
-		String etag3 = submissionStatusDAO.get(subId3).getEtag();
+	public void testGetIdAndChecksumsPage() {
 		
-		Long evaluationId = Long.valueOf(evalId);
-		
-		List<IdAndEtag> expected = ImmutableList.of(
-			new IdAndEtag(Long.valueOf(subId1), etag1, evaluationId),
-			new IdAndEtag(Long.valueOf(subId2), etag2, evaluationId),
-			new IdAndEtag(Long.valueOf(subId3), etag3, evaluationId)
+		List<Long> submissions = Arrays.asList(
+			Long.parseLong(createScoredSubmission(evalId).getId()),
+			Long.parseLong(createScoredSubmission(evalId2).getId()),
+			Long.parseLong(createScoredSubmission(evalId2).getId()),
+			Long.parseLong(createScoredSubmission(evalId2).getId())
 		);
 		
-		// Call under test
-		List<IdAndEtag> result = submissionDAO.getSubmissionIdAndEtag(evaluationId);
+		Set<Long> parentIds = Sets.newHashSet(Long.parseLong(evalId2));
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
 		
-		assertEquals(expected, result);
-		
+		// call under test
+		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(submissions.get(2), page.get(0).getId());
+		assertEquals(submissions.get(3), page.get(1).getId());
+		assertEquals(2, page.stream().map(s-> s.getChecksum() != null).count());
 	}
 	
 	@Test
-	public void testGetSubmissionIdAndEtagWithNullInput() {
+	public void testGetIdAndChecksumsPageWithEmptyParentIds() {
+		Set<Long> parentIds = Collections.emptySet();
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
 		
-		Long evaluationId = null;
-
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			submissionDAO.getSubmissionIdAndEtag(evaluationId);
-			
+		// call under test
+		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		assertNotNull(page);
+		assertTrue(page.isEmpty());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsPageWithNullParentIds() {
+		Set<Long> parentIds = null;
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
 		}).getMessage();
-		
-		assertEquals("evaluationId is required.", errorMessage);
-		
+		assertEquals("parentIds is required.", message);
 	}
 	
 	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluation() {
-		Long evaluationId1 = Long.valueOf(evalId);
-		Long evaluationId2 = Long.valueOf(evalId2);
+	public void testGetIdAndChecksumsPageWithNullSalt() {
+		Set<Long> parentIds = Sets.newHashSet(Long.parseLong(evalId2));
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = null;
+		Long limit = 2L;
+		Long offset = 1L;
 		
-		// Creates 3 submissions for evalId
-		submissionDAO.create(submission);
-		createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.SCORED);
-		submissionDAO.create(submission2);
-		createSubmissionStatus(SUBMISSION_2_ID, SubmissionStatusEnum.SCORED);
-		submissionDAO.create(submission3);
-		createSubmissionStatus(SUBMISSION_3_ID, SubmissionStatusEnum.SCORED);
-		
-		List<Long> ids = ImmutableList.of(evaluationId1, evaluationId2);
-		
-		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
-		
-		assertEquals(1L, result.size());
-		assertNotNull(result.get(evaluationId1));
-	}
-	
-	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluationWithNullInput() {
-		
-		List<Long> ids = null;
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
 		}).getMessage();
-		
-		assertEquals("evaluationIds is required.", errorMessage);
-		
+		assertEquals("salt is required.", message);
 	}
 	
 	@Test
-	public void testGetSumOfSubmissionCRCsForEachEvaluationWithEmptyInput() {
+	public void testGetIdAndChecksumsPageWithNullLimit() {
+		Set<Long> parentIds = Sets.newHashSet(Long.parseLong(evalId2));
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = 123L;
+		Long limit = null;
+		Long offset = 1L;
 		
-		List<Long> ids = Collections.emptyList();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	
+	@Test
+	public void testGetIdAndChecksumsPageWithNullOffset() {
+		Set<Long> parentIds = Sets.newHashSet(Long.parseLong(evalId2));
+		Set<SubType> subTypes = Sets.newHashSet(SubType.submission);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = null;
 		
-		Map<Long, Long> result = submissionDAO.getSumOfSubmissionCRCsForEachEvaluation(ids);
-		
-		assertTrue(result.isEmpty());
-		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
 	}
 
 	@Test

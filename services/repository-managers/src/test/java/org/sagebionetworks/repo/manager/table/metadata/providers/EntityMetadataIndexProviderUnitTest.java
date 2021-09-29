@@ -5,18 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,28 +26,21 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -147,57 +133,6 @@ public class EntityMetadataIndexProviderUnitTest {
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
 
 		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testGetAllContainerIdsForScope() throws Exception {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-		int containerLimit = 10;
-
-		Set<Long> expected = ImmutableSet.of(1L, 2L, 3L, 4L);
-
-		when(mockNodeDao.getAllContainerIds(anySet(), anyInt())).thenReturn(expected);
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testGetAllContainerIdsForScopeForProject() throws Exception {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		Long viewTypeMask = ViewTypeMask.Project.getMask();
-		int containerLimit = 10;
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-
-		assertEquals(scope, result);
-		verifyZeroInteractions(mockNodeDao);
-	}
-
-	@Test
-	public void testGetAllContainerIdsForScopeExceedLimit() throws Exception {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-		int containerLimit = 10;
-
-		LimitExceededException limitEx = new LimitExceededException("Error");
-
-		doThrow(limitEx).when(mockNodeDao).getAllContainerIds(anySet(), anyInt());
-
-		LimitExceededException result = assertThrows(LimitExceededException.class, () -> {
-			// Call under test
-			provider.getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-		});
-
-		assertEquals(limitEx, result);
-
 	}
 
 	@Test
@@ -309,39 +244,6 @@ public class EntityMetadataIndexProviderUnitTest {
 		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
 
 		assertEquals(expected, model);
-	}
-
-	@Test
-	public void testGetContainerIdsForReconciliation() throws LimitExceededException {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		Long viewTypeMask = ViewTypeMask.File.getMask();
-		int containerLimit = 10;
-
-		Set<Long> expected = ImmutableSet.of(1L, 2L, 3L, 4L);
-
-		when(mockNodeDao.getAllContainerIds(anySet(), anyInt())).thenReturn(expected);
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForReconciliation(scope, viewTypeMask, containerLimit);
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testGetContainerIdsForReconciliationForProject() throws LimitExceededException {
-
-		Set<Long> scope = ImmutableSet.of(1L, 2L);
-		Long viewTypeMask = ViewTypeMask.Project.getMask();
-		int containerLimit = 10;
-
-		Set<Long> expected = ImmutableSet.of(KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID));
-
-		// Call under test
-		Set<Long> result = provider.getContainerIdsForReconciliation(scope, viewTypeMask, containerLimit);
-
-		assertEquals(expected, result);
-		verifyZeroInteractions(mockNodeDao);
 	}
 	
 	@Test

@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -33,9 +34,18 @@ public interface ReplicationManager {
 	void replicate(ReplicationType replicationType, String objectId);
 	
 	/**
-	 * Reconcile the view with the given id
+	 * Reconcile the truth with the replication for the objects in the given view.
 	 * 
 	 * @param idAndVersion
 	 */
 	void reconcile(IdAndVersion idAndVersion);
+
+	/**
+	 * Is the reconciliation synchronized for the objects in the given view?
+	 * Note: This call will be O(n) when the reconciliation is synchronized for objects in this view..
+	 * @param viewObjectType - The type of view.
+	 * @param viewId
+	 * @return
+	 */
+	boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId);
 }

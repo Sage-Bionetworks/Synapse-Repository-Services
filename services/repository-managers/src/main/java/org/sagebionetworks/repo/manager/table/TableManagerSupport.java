@@ -188,8 +188,6 @@ public interface TableManagerSupport {
 	 */
 	Long getViewStateNumber(IdAndVersion table);
 
-	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
-
 	/**
 	 * <p>
 	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the

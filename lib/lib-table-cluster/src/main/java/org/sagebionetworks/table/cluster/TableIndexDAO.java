@@ -444,7 +444,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	void setContainerSynchronizationExpiration(ReplicationType mainType, List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(ReplicationType mainType, List<Long> toSet, Long newExpirationDateMS);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.

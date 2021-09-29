@@ -76,7 +76,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndChecksum;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -194,20 +193,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
 	
-	private static final String SQL_SELECT_CHILD_CRC32 = 
-			"SELECT "+COL_NODE_PARENT_ID+","
-					+ " SUM(CRC32(CONCAT("+COL_NODE_ID
-					+",'-',"+COL_NODE_ETAG
-					+",'-',"+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
-							+ "))) AS 'CRC'"
-							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+")"
-									+ " GROUP BY "+COL_NODE_PARENT_ID;
-	
-	private static final String SQL_SELECT_CHILDREN_ID_AND_ETAG = 
-			"SELECT "+COL_NODE_ID
-			+", "+COL_NODE_ETAG
-			+", "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+")"
-			+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
 			+ " FROM "+TABLE_NODE
@@ -1970,45 +1955,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
-		ValidateArgument.required(parentIds, "parentIdS");
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(BIND_PARENT_ID , parentIds);
-		final Map<Long, Long> results = new HashMap<Long, Long>();
-		if(parentIds.isEmpty()){
-			return results;
-		}
-		namedParameterJdbcTemplate.query(SQL_SELECT_CHILD_CRC32, parameters, new RowCallbackHandler() {
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				Long id = rs.getLong(COL_NODE_PARENT_ID);
-				if(id != null){
-					Long crc = rs.getLong("CRC");
-					results.put(id, crc);
-				}
-			}
-		});
-		return results;
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(long parentId) {
-		ValidateArgument.required(parentId, "parentId");
-		return jdbcTemplate.query(SQL_SELECT_CHILDREN_ID_AND_ETAG, new RowMapper<IdAndEtag>(){
-			@Override
-			public IdAndEtag mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				Long id = rs.getLong(COL_NODE_ID);
-				String etag = rs.getString(COL_NODE_ETAG);
-				Long benefactorId = rs.getLong(3);
-				if(rs.wasNull()) {
-					benefactorId = null;
-				}
-				return new IdAndEtag(id, etag, benefactorId);
-			}}, parentId);
-	}
-
-	@Override
 	public Set<Long> getAvailableNodes(List<Long> nodeIds) {
 		ValidateArgument.required(nodeIds, "nodeIds");
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -2188,6 +2134,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		params.addValue("salt", salt);
 		params.addValue("parentIds", parentIds);
 		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
+		params.addValue("trashId", TRASH_FOLDER_ID);
 		params.addValue("limit", limit);
 		params.addValue("offset", offset);
 		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
@@ -2210,6 +2157,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("salt", salt);
 		params.addValue("objectIds", objectIds);
+		params.addValue("trashId", TRASH_FOLDER_ID);
 		params.addValue("limit", limit);
 		params.addValue("offset", offset);
 		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {

@@ -53,7 +53,6 @@ import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.PaginationIterator;
-import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -70,6 +69,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
+	
+	/**
+	 * Each container can only be re-synchronized at this frequency.
+	 */
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 1000 minutes.
 
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
@@ -878,6 +882,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
 			return tableIndexDao.getIdAndChecksumsForFilter(salt, filter, limit, offset);
 		}, BATCH_SIZE);
+	}
+	
+	@Override
+	public boolean isViewSynchronizeLockExpired(ReplicationType type, IdAndVersion idAndVersion) {
+		List<Long> expired = tableIndexDao.getExpiredContainerIds(type,
+				Collections.singletonList(idAndVersion.getId()));
+		return !expired.isEmpty();
+	}
+
+	@Override
+	public void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion) {
+		// re-set the expiration for all containers that were synchronized.
+		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
+		tableIndexDao.setContainerSynchronizationExpiration(type, Collections.singletonList(idAndVersion.getId()),
+				newExpirationDateMs);
 	}
 
 }

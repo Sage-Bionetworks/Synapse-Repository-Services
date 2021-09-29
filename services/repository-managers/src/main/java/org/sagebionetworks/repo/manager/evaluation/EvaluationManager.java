@@ -98,4 +98,6 @@ public interface EvaluationManager {
 	 * @param evaluationId
 	 */
 	void migrateSubmissionQuota(UserInfo userInfo, String evaluationId);
+
+	public void truncateAll();
 }

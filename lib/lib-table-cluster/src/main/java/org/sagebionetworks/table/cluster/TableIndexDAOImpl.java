@@ -1260,7 +1260,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
-			final long newExpirationDateMS) {
+			final Long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
 		ValidateArgument.required(toSet, "toSet");
 		if(toSet.isEmpty()){
@@ -1425,7 +1425,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(offset, "offset");
 		
 		String sql = String.format(GET_ID_AND_CHECKSUMS_SQL_TEMPLATE, filter.getObjectIdFilterSql());
-		Map<String, Object> params = filter.getParameters();
+		Map<String, Object> params = new HashMap<String, Object>(filter.getParameters());
 		params.put("salt", salt);
 		params.put("limit", limit);
 		params.put("offset", offset);

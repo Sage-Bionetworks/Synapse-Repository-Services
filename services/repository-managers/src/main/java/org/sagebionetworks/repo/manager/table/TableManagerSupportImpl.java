@@ -1,10 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.MAX_CONTAINERS_PER_VIEW;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +19,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -339,50 +335,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			 */
 			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
 			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
-		}
-	}
-
-	@Override
-	public Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-
-		Long viewId = idAndVersion.getId();
-
-		ViewScopeType scopeType = viewScopeDao.getViewScopeType(viewId);
-		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-
-		return getContainerIds(scope, scopeType, true);
-	}
-
-	private Set<Long> getContainerIds(Set<Long> scope, ViewScopeType scopeType, boolean forReconciliation) {
-		ValidateArgument.required(scope, "scope");
-		ValidateArgument.required(scopeType, "scopeType");
-
-		if (scope.isEmpty()) {
-			return Collections.emptySet();
-		}
-
-		ViewObjectType objectType = scopeType.getObjectType();
-		Long viewTypeMask = scopeType.getTypeMask();
-
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(objectType);
-
-		// Validate the given scope is under the limit.
-		if (scope.size() > MAX_CONTAINERS_PER_VIEW) {
-			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
-			throw new IllegalArgumentException(errorMessage);
-		}
-
-		try {
-			if (forReconciliation) {
-				return provider.getContainerIdsForReconciliation(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
-			} else {
-				return provider.getContainerIdsForScope(scope, viewTypeMask, MAX_CONTAINERS_PER_VIEW);
-			}
-		} catch (LimitExceededException e) {
-			// Convert the generic exception to a specific exception.
-			String errorMessage = provider.createViewOverLimitMessage(viewTypeMask, MAX_CONTAINERS_PER_VIEW);
-			throw new IllegalArgumentException(errorMessage);
 		}
 	}
 
