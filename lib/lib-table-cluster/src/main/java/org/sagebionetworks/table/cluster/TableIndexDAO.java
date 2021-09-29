@@ -114,6 +114,13 @@ public interface TableIndexDAO {
 	 *         then -1L.
 	 */
 	Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
+	
+	/**
+	 * 
+	 * @param tableId
+	 * @return The current status of the search enabled flag in the building process of the table
+	 */
+	boolean isSearchEnabled(IdAndVersion tableId);
 
 	/**
 	 * Set the max complete version for this table
@@ -123,6 +130,15 @@ public interface TableIndexDAO {
 	 */
 	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
 
+	/**
+	 * Set the max complete version for this table along with the search status
+	 * 
+	 * @param tableId
+	 * @param version
+	 * @param searchEnabled
+	 */
+	void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled);
+	
 	/**
 	 * Set the MD5 hex of the table's current schema.
 	 * 
