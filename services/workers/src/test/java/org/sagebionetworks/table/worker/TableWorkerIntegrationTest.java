@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -112,8 +113,10 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -3173,6 +3176,9 @@ public class TableWorkerIntegrationTest {
 				
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
+			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
+			assertEquals(TableChangeType.SEARCH, lastChange.getChangeType());
+			assertTrue(lastChange.getIsSearchEnabled());
 		});
 		
 		// Now add some data
@@ -3187,6 +3193,9 @@ public class TableWorkerIntegrationTest {
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
+			assertEquals(TableChangeType.ROW, lastChange.getChangeType());
+			assertNull(lastChange.getIsSearchEnabled());
 		});
 		
 		// Now disable search
@@ -3194,6 +3203,9 @@ public class TableWorkerIntegrationTest {
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
+			assertEquals(TableChangeType.SEARCH, lastChange.getChangeType());
+			assertFalse(lastChange.getIsSearchEnabled());
 		});
 	}
 
