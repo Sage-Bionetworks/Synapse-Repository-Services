@@ -568,6 +568,7 @@ public class EntityServiceImplAutowiredTest  {
 		table.setName("SampleTable");
 		table.setIsSearchEnabled(true);
 		
+		// Call under test
 		table = entityService.createEntity(adminUserId, table, null);
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		
@@ -582,10 +583,57 @@ public class EntityServiceImplAutowiredTest  {
 		table.setName("SampleTable");
 		table.setIsSearchEnabled(null);
 		
+		// Call under test
 		table = entityService.createEntity(adminUserId, table, null);
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		
 		assertFalse(table.getIsSearchEnabled());
+		
+	}
+	
+	@Test
+	public void testUpdateTableWithNullSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(false);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+		table.setIsSearchEnabled(null);
+		
+		// Call under test
+		table = entityService.updateEntity(adminUserId, table, false, null);
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+	}
+	
+	@Test
+	public void testUpdateTableWithSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(false);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+		table.setIsSearchEnabled(true);
+		
+		// Call under test
+		table = entityService.updateEntity(adminUserId, table, false, null);
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertTrue(table.getIsSearchEnabled());
 		
 	}
 }

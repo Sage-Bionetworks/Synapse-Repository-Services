@@ -94,6 +94,7 @@ public class NodeUtils {
 		}
 		rev.setItems(writeItemsToJson(dto.getItems()));
 		rev.setReference(compressReference(dto.getReference()));
+		rev.setIsSearchEnabled(dto.getIsSearchEnabled());
 	}
 	
 	/**
@@ -180,6 +181,7 @@ public class NodeUtils {
 		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		dbo.setReference(compressReference(dto.getReference()));
 		dbo.setItems(writeItemsToJson(dto.getItems()));
+		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
 		return dbo;
 	}
 	
@@ -299,6 +301,7 @@ public class NodeUtils {
 			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
 		dto.setItems(readJsonToItems(rev.getItems()));
+		dto.setIsSearchEnabled(rev.getIsSearchEnabled());
 	}
 	
 	/**

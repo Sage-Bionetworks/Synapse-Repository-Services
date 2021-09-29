@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,7 +25,10 @@ import org.springframework.stereotype.Service;
 public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<TableEntity>, TypeSpecificCreateProvider<TableEntity>, TypeSpecificUpdateProvider<TableEntity>, TypeSpecificMetadataProvider<TableEntity>, EntityValidator<TableEntity> {
 	
 	@Autowired
-	TableEntityManager tableEntityManager;		
+	private NodeManager nodeManager;
+	
+	@Autowired
+	private TableEntityManager tableEntityManager;		
 
 	@Override
 	public void entityDeleted(String deletedId) {
@@ -58,11 +62,20 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 		if(entity.getVersionLabel() == null) {
 			entity.setVersionLabel(TableConstants.IN_PROGRESS);
 		}
+		
 		if(entity.getVersionComment() == null) {
 			entity.setVersionComment(TableConstants.IN_PROGRESS);
 		}
-		if(entity.getIsSearchEnabled() == null) {
-			entity.setIsSearchEnabled(false);
+		
+		if (entity.getIsSearchEnabled() == null) {
+			if (EventType.CREATE == event.getType()) {
+				// On create we default to false
+				entity.setIsSearchEnabled(false);
+			} else if (EventType.UPDATE == event.getType()) {
+				// On update we default to the current value
+				Boolean isCurrentlyEnabled = nodeManager.getNode(entity.getId()).getIsSearchEnabled();
+				entity.setIsSearchEnabled(isCurrentlyEnabled);
+			}
 		}
 	}
 }
