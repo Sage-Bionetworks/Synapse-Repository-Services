@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,13 +26,18 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
@@ -72,6 +79,8 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	private EvaluationManager evaluationManager;
 	@Autowired
 	private SubmissionManager submissionManager;
+	@Autowired
+	private FileHandleObjectHelper fileHandleDaoHelper;
 
 	private TableIndexDAO indexDao;
 
@@ -85,6 +94,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	public void before() throws Exception {
 		evaluationManager.truncateAll();
 		entityManager.truncateAll();
+		fileHandleDaoHelper.truncateAll();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		project = new Project();
@@ -101,6 +111,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 	public void after() {
 		evaluationManager.truncateAll();
 		entityManager.truncateAll();
+		fileHandleDaoHelper.truncateAll();
 	}
 
 	@Test
@@ -168,6 +179,41 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
 	}
 
+	@Test
+	public void testReconciliationWithDataset() throws Exception {
+		ReplicationType type = ReplicationType.ENTITY;
+		FileHandle fileHandle = fileHandleDaoHelper.create((f) -> {
+			f.setCreatedBy(adminUserInfo.getId().toString());
+			f.setFileName("someFile");
+			f.setContentSize(123L);
+		});
+		// Add a folder to the project
+		String fileId = entityManager.createEntity(adminUserInfo,
+				new FileEntity().setParentId(projectId).setName("aFile").setDataFileHandleId(fileHandle.getId()), null);
+
+		// wait for the folder to replicated
+		ObjectDataDTO dto = waitForEntityDto(type, fileId);
+		assertNotNull(dto);
+		assertEquals(projectIdLong, dto.getBenefactorId());
+
+		// Simulate out-of-synch by deleting the project's replication data
+		indexDao.deleteObjectData(type, Lists.newArrayList(KeyFactory.stringToKey(fileId)));
+
+		// ensure a sycn can occur.
+		indexDao.truncateReplicationSyncExpiration();
+
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(fileId).setVersionNumber(1L));
+		Dataset dataset = createDataset(items);
+
+		// wait for reconciliation to restore the deleted data.
+		waitForEntityDto(type, fileId);
+
+		ViewObjectType viewObjectType = ViewObjectType.DATASET;
+		IdAndVersion viewId = IdAndVersion.parse(dataset.getId());
+		// the replication must be synchronized at this point.
+		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
+	}
+
 	/**
 	 * With PLFM_5352, there are cases where the benefactor can be out-of-date in
 	 * the entity replication table. The reconciliation process should detect and
@@ -215,6 +261,15 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(projectId);
 		return createView(ViewObjectType.ENTITY, view, scopeIds, viewTypeMask);
+	}
+	
+	Dataset createDataset(List<DatasetItem> items) {
+		Dataset dataset = new Dataset();
+		dataset.setName(UUID.randomUUID().toString());
+		dataset.setParentId(projectId);
+		dataset.setItems(items);
+		List<String> scopeIds = items.stream().map(i-> i.getEntityId()).collect(Collectors.toList());
+		return createView(ViewObjectType.DATASET, dataset, scopeIds, 0L);
 	}
 
 	SubmissionView createSubmissionView(List<String> scopeIds) {
