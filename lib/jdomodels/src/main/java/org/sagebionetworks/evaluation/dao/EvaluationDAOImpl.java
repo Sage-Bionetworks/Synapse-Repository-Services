@@ -30,10 +30,8 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -398,5 +396,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 					return EvaluationRoundDBOUtil.toDTO(EVALUATION_ROUND_ROW_MAPPER.mapRow(resultSet, rowNumber));
 				}
 		);
+	}
+
+	@Override
+	@WriteTransaction
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM "+TABLE_EVALUATION+" WHERE ID > 0");
 	}
 }

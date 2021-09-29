@@ -41,11 +41,11 @@ public interface ReplicationManager {
 	void reconcile(IdAndVersion idAndVersion);
 
 	/**
-	 * Is the reconciliation out-of-synch for the objects in the given view?
+	 * Is the reconciliation synchronized for the objects in the given view?
 	 * Note: This call will be O(n) when the reconciliation is synchronized for objects in this view..
 	 * @param viewObjectType - The type of view.
 	 * @param viewId
 	 * @return
 	 */
-	boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, IdAndVersion viewId);
+	boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId);
 }

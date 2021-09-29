@@ -248,10 +248,10 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	}
 	
 	@Override
-	public boolean isReplicationOutOfSynchForView(ViewObjectType viewObjectType, IdAndVersion viewId) {
+	public boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId) {
 		TableIndexManager indexManager = indexConnectionFactory.connectToTableIndex(viewId);
 		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, viewId.getId());
-		return it.hasNext();
+		return !it.hasNext();
 	}
 
 }

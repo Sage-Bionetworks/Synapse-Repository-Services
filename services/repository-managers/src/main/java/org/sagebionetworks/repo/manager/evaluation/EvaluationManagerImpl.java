@@ -441,4 +441,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		evaluationDAO.update( evaluation);
 	}
 
+	@Override
+	public void truncateAll() {
+		evaluationDAO.truncateAll();
+	}
+
 }

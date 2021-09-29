@@ -563,5 +563,7 @@ public interface EntityManager {
 	 */
 	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
 			ListValidationResultsRequest request);
+	
+	public void truncateAll();
 
 }

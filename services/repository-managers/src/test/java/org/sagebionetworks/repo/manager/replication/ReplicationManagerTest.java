@@ -516,27 +516,27 @@ public class ReplicationManagerTest {
 	}	
 
 	@Test
-	public void testIsReplicationOutOfSynchForViewWithEmpty() {
+	public void testIsReplicationSynchronizedForViewWithEmpty() {
 		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
 		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		Iterator<ChangeMessage> it = Collections.emptyIterator();
 		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
 		
 		// call under test
-		assertFalse(managerSpy.isReplicationOutOfSynchForView(viewObjectType, viewId));
+		assertTrue(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
 		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
 		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
 	}
 	
 	@Test
-	public void testIsReplicationOutOfSynchForViewWithChanges() {
+	public void testIsReplicationSynchronizedForViewWithChanges() {
 		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
 		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		Iterator<ChangeMessage> it = changes.iterator();
 		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
 		
 		// call under test
-		assertTrue(managerSpy.isReplicationOutOfSynchForView(viewObjectType, viewId));
+		assertFalse(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
 		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
 		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
 	}
