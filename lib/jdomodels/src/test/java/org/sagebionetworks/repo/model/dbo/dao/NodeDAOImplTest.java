@@ -4590,6 +4590,35 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testUpdateDataset() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		
+		Node node = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
+		assertEquals(dataset, node);
+		assertEquals(items, node.getItems());
+		
+		node.setItems(null);
+		// call under test
+		nodeDao.updateNode(node);
+		node = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
+		assertNotNull(node);
+		assertNull(node.getItems());		
+	}
+	
+	@Test
 	public void testGetDatasetItems() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");

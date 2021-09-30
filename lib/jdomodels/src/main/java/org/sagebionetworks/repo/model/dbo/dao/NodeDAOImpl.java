@@ -168,7 +168,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
 			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS + " = ?, "
-			+ COL_REVISION_REF_BLOB + " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
+			+ COL_REVISION_REF_BLOB + " = ?, "+COL_REVISION_ITEMS+" = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
 	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
 			+ COL_NODE_PARENT_ID + " = ?, " + COL_NODE_ALIAS + " = ? WHERE " + COL_NODE_ID + " = ?";
@@ -943,9 +943,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
 		byte[] newReferences = NodeUtils.compressReference(updatedNode.getReference());
+		String items = NodeUtils.writeItemsToJson(updatedNode.getItems());
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newFileHandleId, newColumns,
-				newScope, newReferences, nodeId, currentRevision);
+				newScope, newReferences, items, nodeId, currentRevision);
 	}
 	
 	@Override
