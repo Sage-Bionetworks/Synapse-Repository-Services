@@ -886,17 +886,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public boolean isViewSynchronizeLockExpired(ReplicationType type, IdAndVersion idAndVersion) {
-		List<Long> expired = tableIndexDao.getExpiredContainerIds(type,
-				Collections.singletonList(idAndVersion.getId()));
-		return !expired.isEmpty();
+		return tableIndexDao.isSynchronizationLockExpiredForObject(type,idAndVersion.getId());
 	}
 
 	@Override
 	public void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion) {
 		// re-set the expiration for all containers that were synchronized.
 		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
-		tableIndexDao.setContainerSynchronizationExpiration(type, Collections.singletonList(idAndVersion.getId()),
-				newExpirationDateMs);
+		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
 	}
 
 }

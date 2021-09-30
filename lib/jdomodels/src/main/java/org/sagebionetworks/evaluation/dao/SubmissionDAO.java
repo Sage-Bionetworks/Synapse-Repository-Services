@@ -12,9 +12,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdAndChecksum;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionDAO {
@@ -228,6 +226,6 @@ public interface SubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<IdAndChecksum> getIdAndChecksumsPage(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
+	public List<IdAndChecksum> getIdAndChecksumsPage(Long salt, Set<Long> parentIds, Long limit,
 			Long offset);
 }

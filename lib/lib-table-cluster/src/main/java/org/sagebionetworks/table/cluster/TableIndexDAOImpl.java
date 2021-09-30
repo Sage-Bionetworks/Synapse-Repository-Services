@@ -1233,58 +1233,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new IdAndEtag(id, etag, benefactorId);
 		}, mainType.name(), parentId);
 	}
-
+	
 	@Override
-	public List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> containerIds) {
-		ValidateArgument.required(containerIds, "entityContainerIds");
-		if(containerIds.isEmpty()){
-			return new LinkedList<Long>();
-		}
-		/*
-		 * An ID that does not exist, should be treated the same as an expired
-		 * ID. Therefore, start off with all of the IDs expired, so the
-		 * non-expired IDs can be removed.
-		 */
-		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
+	public boolean isSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId) {
+		ValidateArgument.required(objectId, "objectId");
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
-		param.addValue(ID_PARAM_NAME, containerIds);
+		param.addValue(ID_PARAM_NAME, objectId);
 		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
-		// remove all that are not expired.
-		expiredId.removeAll(nonExpiredIds);
-		// return the remain.
-		return new LinkedList<Long>(expiredId);
+		return nonExpiredIds.isEmpty();
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
-			final Long newExpirationDateMS) {
+	public void setSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId,
+			Long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
-		ValidateArgument.required(toSet, "toSet");
-		if(toSet.isEmpty()){
-			return;
-		}
-		template.batchUpdate(BATCH_INSERT_REPLICATION_SYNC_EXP, new BatchPreparedStatementSetter() {
-			
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				Long idToSet = toSet.get(i);
-				int index = 1;
-				ps.setString(index++, mainType.name());
-				ps.setLong(index++, idToSet);
-				ps.setLong(index++, newExpirationDateMS);
-				ps.setLong(index++, newExpirationDateMS);
-			}
-			
-			@Override
-			public int getBatchSize() {
-				return toSet.size();
-			}
-		});
-		
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(newExpirationDateMS, "newExpirationDateMS");
+		template.update(BATCH_INSERT_REPLICATION_SYNC_EXP, mainType.name(),objectId, newExpirationDateMS, newExpirationDateMS);		
 	}
+
 
 	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {

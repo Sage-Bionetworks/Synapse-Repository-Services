@@ -532,6 +532,11 @@ public class EntityServiceImplAutowiredTest  {
 		final String datsetId = dataset.getId();
 		assertEquals(scope, dataset.getItems());
 		assertEquals(schema, dataset.getColumnIds());
+		
+		// update
+		dataset.setItems(null);
+		dataset = entityService.updateEntity(adminUserId, dataset, newVersion, activityId);
+		assertNull(dataset.getItems());
 	}
 	
 	@Test
