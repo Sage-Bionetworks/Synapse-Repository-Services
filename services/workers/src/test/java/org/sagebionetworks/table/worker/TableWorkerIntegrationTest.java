@@ -3144,7 +3144,7 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testEnableSearch() throws Exception {
+	public void testEnableSearchWithEmptyTable() throws Exception {
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
 		table.setParentId(projectId);
@@ -3159,7 +3159,41 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testEnableSearchWithData() throws Exception {
+	public void testEnableSearchWithExistingData() throws Exception {
+		createSchemaOneOfEachType();
+		headers = TableModelUtils.getIds(schema);
+		
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		table.setColumnIds(headers);
+		
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, null);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testDisableSearch() throws Exception {
 		createSchemaOneOfEachType();
 		headers = TableModelUtils.getIds(schema);
 		
@@ -3173,14 +3207,7 @@ public class TableWorkerIntegrationTest {
 		
 		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
 		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
-				
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
-			assertEquals(0, queryResult.getQueryResults().getRows().size());
-			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
-			assertEquals(TableChangeType.SEARCH, lastChange.getChangeType());
-			assertTrue(lastChange.getIsSearchEnabled());
-		});
-		
+			
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		
@@ -3193,9 +3220,6 @@ public class TableWorkerIntegrationTest {
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
-			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
-			assertEquals(TableChangeType.ROW, lastChange.getChangeType());
-			assertNull(lastChange.getIsSearchEnabled());
 		});
 		
 		// Now disable search
@@ -3203,9 +3227,6 @@ public class TableWorkerIntegrationTest {
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
-			TableRowChange lastChange = tableRowTruthDAO.getLastTableRowChange(tableId);
-			assertEquals(TableChangeType.SEARCH, lastChange.getChangeType());
-			assertFalse(lastChange.getIsSearchEnabled());
 		});
 	}
 
