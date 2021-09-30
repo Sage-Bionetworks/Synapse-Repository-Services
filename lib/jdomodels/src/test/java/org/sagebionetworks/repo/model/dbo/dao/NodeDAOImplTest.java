@@ -4669,6 +4669,59 @@ public class NodeDAOImplTest {
 		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(itemsV2, fetched);
 	}
+
+	@Test
+	public void testCreateTableWithSearchFlag() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		// Call under test
+		Node table = nodeDaoHelper.create(n -> {
+			n.setName("aTable");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.table);
+			n.setIsSearchEnabled(true);
+		});
+		
+		assertTrue(table.getIsSearchEnabled());
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		
+		assertTrue(table.getIsSearchEnabled());
+	}
+	
+	@Test
+	public void testUpdateTableWithSearchFlag() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		Node table = nodeDaoHelper.create(n -> {
+			n.setName("aTable");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.table);
+		});
+		
+		assertNull(table.getIsSearchEnabled());
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		table.setIsSearchEnabled(true);
+		
+		// Call under test
+		nodeDao.updateNode(table);
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		assertTrue(table.getIsSearchEnabled());
+	}
 	
 	@Test
 	public void testGetDatasetItemsWithNotFound() {
