@@ -2624,48 +2624,24 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testReplicationExpiration() throws InterruptedException{
 		Long one = 111L;
-		Long two = 222L;
-		Long three = 333L;
-		List<Long> input = Lists.newArrayList(one,two,three);
-		// call under test
-		List<Long> expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one,two,three), expired);
+
+		// lock does not exist so it should be the same as expired.
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 		
-		// Set two and three to expire in the future
 		long now = System.currentTimeMillis();
+
+		// lock exists but expired in the past.
+		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, now-10);
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
+		
+		// setup lock to expire in the future.
 		long timeout = 4 * 1000;
 		long expires = now + timeout;
-		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(two, three), expires);
-		// set one to already be expired
-		expires = now - 1;
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(one), expires);
-		// one should still be expired.
-		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one), expired);
-		// wait for the two to expire
+		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, expires);
+		assertFalse(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
+		// wait for the lock to expire.
 		Thread.sleep(timeout+1);
-		// all three should be expired
-		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one,two,three), expired);
-	}
-	
-	@Test
-	public void testReplicationExpirationEmpty() throws InterruptedException{
-		List<Long> empty = new LinkedList<Long>();
-		// call under test
-		List<Long> results  = tableIndexDAO.getExpiredContainerIds(mainType, empty);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-		Long expires = 0L;
-		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, empty, expires);
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 	}
 	
 	@Test

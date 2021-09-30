@@ -75,7 +75,7 @@ public class SubmissionObjectProviderTest {
 
 		List<IdAndChecksum> all = buildIdsAndChecksum(4);
 
-		when(mockSubmissionDao.getIdAndChecksumsPage(any(), any(), any(), any(), any())).thenReturn(all,
+		when(mockSubmissionDao.getIdAndChecksumsPage(any(), any(), any(), any())).thenReturn(all,
 				Collections.emptyList());
 
 		// call under test
@@ -85,9 +85,9 @@ public class SubmissionObjectProviderTest {
 		assertEquals(all, allResults);
 		
 		long pageSize = EntityObjectProvider.PAGE_SIZE;
-		verify(mockSubmissionDao, times(2)).getIdAndChecksumsPage(any(), any(), any(), any(), any());
-		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(0L));
-		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(subTypes), eq(pageSize), eq(pageSize));
+		verify(mockSubmissionDao, times(2)).getIdAndChecksumsPage(any(), any(), any(), any());
+		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(pageSize), eq(0L));
+		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(pageSize), eq(pageSize));
 	}
 	
 	@Test
