@@ -40,12 +40,12 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 		if(wasNewVersionCreated) {
 			throw new IllegalArgumentException("A table version can only be created by creating a table snapshot.");
 		}
-		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled() != null ? entity.getIsSearchEnabled() : false);
+		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled());
 	}
 
 	@Override
 	public void entityCreated(UserInfo userInfo, TableEntity entity) {
-		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled() != null ? entity.getIsSearchEnabled() : false);
+		tableEntityManager.tableUpdated(userInfo, entity.getColumnIds(), entity.getId(), entity.getIsSearchEnabled());
 	}
 
 	@Override
@@ -67,15 +67,10 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 			entity.setVersionComment(TableConstants.IN_PROGRESS);
 		}
 		
-		if (entity.getIsSearchEnabled() == null) {
-			if (EventType.CREATE == event.getType()) {
-				// On create we default to false
-				entity.setIsSearchEnabled(false);
-			} else if (EventType.UPDATE == event.getType()) {
-				// On update we default to the current value
-				Boolean isCurrentlyEnabled = nodeManager.getNode(entity.getId()).getIsSearchEnabled();
-				entity.setIsSearchEnabled(isCurrentlyEnabled);
-			}
+		if (entity.getIsSearchEnabled() == null && EventType.UPDATE == event.getType()) {
+			// On update we default to the current value
+			Boolean isCurrentlyEnabled = nodeManager.getNode(entity.getId()).getIsSearchEnabled();
+			entity.setIsSearchEnabled(isCurrentlyEnabled);
 		}
 	}
 }

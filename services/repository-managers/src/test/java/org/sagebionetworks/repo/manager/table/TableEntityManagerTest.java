@@ -14,11 +14,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -46,6 +49,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
@@ -160,6 +164,8 @@ public class TableEntityManagerTest {
 	EventsCollector mockStatisticsCollector;
 	@InjectMocks
 	TableEntityManagerImpl manager;
+	
+	TableEntityManagerImpl managerSpy;
 	
 	@Captor
 	ArgumentCaptor<List<String>> stringListCaptor;
@@ -295,6 +301,8 @@ public class TableEntityManagerTest {
 		snapshotRequest.setSnapshotActivityId("987");
 		snapshotRequest.setSnapshotComment("a new comment");
 		snapshotRequest.setSnapshotLabel("a new label");
+		
+		managerSpy = Mockito.spy(manager);
 	}
 
 	void setupQueryAsStream() {
@@ -1806,128 +1814,110 @@ public class TableEntityManagerTest {
 	@Test
 	public void testTableUpdatedWithExclusiveLock() {
 		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
+		
 		List<String> newSchema = Lists.newArrayList("2","3");
-		List<ColumnChange> expectedChanges = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
 		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
+		
+		doReturn(new TableSchemaChangeResponse()).when(managerSpy).updateTableSchema(any(), any(), any(), anyLong());
+		doNothing().when(managerSpy).updateSearchStatus(any(), any(), any(), anyLong());
+		
+		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
+		changeRequest.setChanges(TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema));
+		changeRequest.setEntityId(tableId);
+		changeRequest.setOrderedColumnIds(newSchema);
+		
+		Boolean searchEnabled = true;
 		
 		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, true);
+		managerSpy.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, searchEnabled);
 		
 		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
-		verify(mockTableManagerSupport, times(2)).touchTable(user, tableId);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
-		verify(mockTruthDao).appendSchemaChangeToTable(user.getId().toString(), tableId, newSchema, expectedChanges, transactionId); 
-		verify(mockTableManagerSupport, times(2)).setTableToProcessingAndTriggerUpdate(idAndVersion);
-		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
-		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, true);
-		verifyNoMoreInteractions(mockTruthDao);
+		verify(managerSpy).updateTableSchema(mockProgressCallback, user, changeRequest, transactionId);
+		verify(managerSpy).updateSearchStatus(user, tableId, searchEnabled, transactionId);
 	}
 		
 	@Test
-	public void testTableUpdatedWithExclusiveLockAndSearchEnabled() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
-		List<String> newSchema = oldSchema;
-		List<ColumnChange> expectedChanges = Collections.emptyList();
-		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
+	public void testUpdateSearchStatusAndSearchEnabled() {
+		// Enable search and no previous search change
+		TableRowChange lastSearchChange = null;
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = true;
 		
 		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, true);
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
 		
-		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
-		verify(mockTableManagerSupport).touchTable(user, tableId);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, true);
-		verifyNoMoreInteractions(mockTruthDao);
-	}
-	
-	@Test
-	public void testTableUpdatedWithExclusiveLockAndSearchEnabledWithExistingChange() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
-		List<String> newSchema = oldSchema;
-		List<ColumnChange> expectedChanges = Collections.emptyList();
-		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
-		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(new TableRowChange().setChangeType(TableChangeType.SEARCH).setIsSearchEnabled(false));
-		
-		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, true);
-		
-		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
 		verify(mockTableManagerSupport).touchTable(user, tableId);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
-		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
-		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, true);
-		verifyNoMoreInteractions(mockTruthDao);
 	}
 	
 	@Test
-	public void testTableUpdatedWithExclusiveLockAndSearchDisabledWithExistingChange() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
-		List<String> newSchema = oldSchema;
-		List<ColumnChange> expectedChanges = Collections.emptyList();
-		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
-		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(new TableRowChange().setChangeType(TableChangeType.SEARCH).setIsSearchEnabled(true));
+	public void testUpdateSearchStatusAndSearchEnabledAndExistingChangeEnabled() {
+		// Enable search and previous search change already enabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(true);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = true;
 		
 		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, false);
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
 		
-		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
-		verify(mockTableManagerSupport).touchTable(user, tableId);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
-		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchEnabledIsNull() {
+		// No action
+		Boolean searchEnabled = null;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verifyZeroInteractions(mockTruthDao);
+		verifyZeroInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchDisabledWithNonExistingChangeDisabled() {
+		// Disable search and previous search change already disabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(false);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = false;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchDisabledAndExistingChangeEnabled() {
+		// Disable search and previous search change enabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(true);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = false;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, false);
-		verifyNoMoreInteractions(mockTruthDao);
-	}
-	
-	@Test
-	public void testTableUpdatedWithExclusiveLockAndEnableSearchWithExistingChangeEnabled() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
-		List<String> newSchema = oldSchema;
-		List<ColumnChange> expectedChanges = Collections.emptyList();
-		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
-		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(new TableRowChange().setChangeType(TableChangeType.SEARCH).setIsSearchEnabled(true));
-		
-		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, true);
-		
-		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
-		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
-		verifyNoMoreInteractions(mockTruthDao);
-		verifyNoMoreInteractions(mockTableManagerSupport);
-	}
-	
-	@Test
-	public void testTableUpdatedWithExclusiveLockAndDisableSearchWithExistingChangeDisabled() {
-		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
-		List<String> newSchema = oldSchema;
-		List<ColumnChange> expectedChanges = Collections.emptyList();
-		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(any(), any(), any())).thenReturn(newSchema);
-		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(new TableRowChange().setChangeType(TableChangeType.SEARCH).setIsSearchEnabled(false));
-		
-		// call under test
-		manager.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, false);
-		
-		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
-		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
-		verifyNoMoreInteractions(mockTruthDao);
-		verifyNoMoreInteractions(mockTableManagerSupport);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test

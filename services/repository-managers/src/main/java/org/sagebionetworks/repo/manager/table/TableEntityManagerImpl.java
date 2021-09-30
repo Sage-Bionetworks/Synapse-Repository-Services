@@ -586,7 +586,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void tableUpdated(final UserInfo userInfo, final List<String> newSchema, final String tableId, boolean searchEnabled) {
+	public void tableUpdated(final UserInfo userInfo, final List<String> newSchema, final String tableId, Boolean searchEnabled) {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_SECONDS);
@@ -610,7 +610,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param newSchema
 	 * @param tableId
 	 */
-	void tableUpdatedWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema, final String tableId, boolean searchEnabled) {
+	void tableUpdatedWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema, final String tableId, Boolean searchEnabled) {
 		// Lookup the current schema for this table
 		List<String> oldSchema = columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
@@ -624,6 +624,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		// Will add a table schema change if needed 
 		updateTableSchema(callback, userInfo, changeRequest, transactionId);
+		
 		// Will add a search change id needed
 		updateSearchStatus(userInfo, tableId, searchEnabled, transactionId);
 	}
@@ -635,7 +636,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param tableId
 	 * @param searchEnabled
 	 */
-	void updateSearchStatus(UserInfo userInfo, String tableId, boolean searchEnabled, long transactionId) {
+	void updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, long transactionId) {
+		// No change needed if the flag was not specified
+		if (searchEnabled == null) {
+			return;
+		}
 		// At this point only the truth knows about the search status since the table has been created/updated already and the table might not have been built yet
 		TableRowChange lastSearchChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		

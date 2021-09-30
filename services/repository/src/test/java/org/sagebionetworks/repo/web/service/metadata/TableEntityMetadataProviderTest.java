@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -75,7 +75,7 @@ public class TableEntityMetadataProviderTest  {
 	public void testCreate(){
 		// call under test
 		provider.entityCreated(userInfo, table);
-		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, false);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, null);
 		verifyNoMoreInteractions(tableEntityManager);
 	}
 	
@@ -92,7 +92,7 @@ public class TableEntityMetadataProviderTest  {
 		boolean wasNewVersionCreated = false;
 		// call under test
 		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
-		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, false);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, null);
 	}
 	
 	@Test
@@ -156,7 +156,7 @@ public class TableEntityMetadataProviderTest  {
 		// Call under test
 		provider.validateEntity(table, event);
 
-		assertFalse(table.getIsSearchEnabled());
+		assertNull(table.getIsSearchEnabled());
 	}
 	
 	@Test

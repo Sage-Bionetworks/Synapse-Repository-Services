@@ -592,7 +592,7 @@ public class EntityServiceImplAutowiredTest  {
 		table = entityService.createEntity(adminUserId, table, null);
 		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
 		
-		assertFalse(table.getIsSearchEnabled());
+		assertNull(table.getIsSearchEnabled());
 		
 	}
 	

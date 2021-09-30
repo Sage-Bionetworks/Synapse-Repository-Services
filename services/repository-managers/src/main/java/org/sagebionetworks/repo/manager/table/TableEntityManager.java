@@ -193,7 +193,7 @@ public interface TableEntityManager {
 	 * @param columnIds
 	 * @param id
 	 */
-	void tableUpdated(UserInfo userInfo, List<String> columnIds, String id, boolean searchEnabled);
+	void tableUpdated(UserInfo userInfo, List<String> columnIds, String id, Boolean searchEnabled);
 	
 	/**
 	 * Mark a table as deleted. This occurs when a table is moved to the trash. The
