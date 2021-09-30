@@ -307,14 +307,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 	}
 
-
-
-	@Override
-	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
+	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isTableView) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
+	}
+
+	@Override
+	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
+		
+		createTableIfDoesNotExist(tableId, isTableView);
+		
 		boolean alterTemp = false;
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
@@ -721,7 +725,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
 		// This will make sure that the table is properly created if it does not exist
-		updateTableSchema(idAndVersion, false, Collections.emptyList());
+		createTableIfDoesNotExist(idAndVersion, false);
 		
 		if (loadChangeData.getChange().isEnabled()) {
 			tableIndexDao.addSearchColumn(idAndVersion);
