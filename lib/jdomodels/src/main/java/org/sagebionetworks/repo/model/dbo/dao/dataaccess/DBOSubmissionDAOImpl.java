@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
@@ -17,11 +19,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER;
 
 import java.io.IOException;
@@ -36,7 +36,6 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -445,28 +444,5 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_DATA_ACCESS_SUBMISSION);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void backFillAccessorChangesIfNeeded(Submission submission) {
-		List<AccessorChange> accessorChanges = submission.getAccessorChanges();
-		
-		if (accessorChanges == null || accessorChanges.isEmpty()) {
-			return;
-		}
-		
-		Long currentCount = countAccessorChanges(submission.getId());
-		
-		if (currentCount > 0L) {
-			return;
-		}
-		
-		basicDao.createBatch(SubmissionUtils.createDBOSubmissionAccessorChanges(submission));
-	}
-	
-	@Override
-	public Long countAccessorChanges(String submissionId) {
-		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + " WHERE " + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID + "=?", Long.class, submissionId);
 	}
 }
