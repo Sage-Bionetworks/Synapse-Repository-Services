@@ -129,10 +129,4 @@ public interface SubmissionDAO {
 	
 	// For testing
 	void truncateAll();
-	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Migration to normalize accessor changes for submission (See PLFM-6917)")
-	void backFillAccessorChangesIfNeeded(Submission submission);
-	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Migration to normalize accessor changes for submission (See PLFM-6917)")
-	Long countAccessorChanges(String submissionId);
 }
