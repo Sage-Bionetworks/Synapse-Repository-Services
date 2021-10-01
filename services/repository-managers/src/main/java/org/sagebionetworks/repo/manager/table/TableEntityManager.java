@@ -321,7 +321,5 @@ public interface TableEntityManager {
 	 * @return An iterator over the table row changes within the given range of ids that have file references (includes the changes for which the file references are unknown)
 	 */
 	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
-
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Used for backfilling the table row change")
-	void backfillTableRowChangesBatch(long batchSize);
+	
 }
