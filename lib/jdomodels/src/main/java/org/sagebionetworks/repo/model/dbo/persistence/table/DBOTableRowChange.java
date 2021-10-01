@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_RO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TRX_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_ROW_CHANGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 
@@ -47,7 +48,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
 			new FieldColumn("changeType", COL_TABLE_ROW_TYPE),
 			new FieldColumn("transactionId", COL_TABLE_ROW_TRX_ID),
-			new FieldColumn("hasFileRefs", COL_TABLE_ROW_HAS_FILE_REFS)
+			new FieldColumn("hasFileRefs", COL_TABLE_ROW_HAS_FILE_REFS),
+			new FieldColumn("isSearchEnabled", COL_TABLE_ROW_SEARCH_ENABLED)
 	};
 	
 	private static final TableMapping<DBOTableRowChange> TABLE_MAPPING = new TableMapping<DBOTableRowChange>() {
@@ -72,6 +74,10 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			change.setHasFileRefs(rs.getBoolean(COL_TABLE_ROW_HAS_FILE_REFS));
 			if (rs.wasNull()) {
 				change.setHasFileRefs(null);
+			}
+			change.setIsSearchEnabled(rs.getBoolean(COL_TABLE_ROW_SEARCH_ENABLED));
+			if (rs.wasNull()) {
+				change.setIsSearchEnabled(null);
 			}
 			return change;
 		}
@@ -112,6 +118,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private String changeType;
 	private Long transactionId;
 	private Boolean hasFileRefs;
+	private Boolean isSearchEnabled;
 
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
@@ -231,6 +238,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	public void setHasFileRefs(Boolean hasFileRefs) {
 		this.hasFileRefs = hasFileRefs;
 	}
+	
+	public Boolean getIsSearchEnabled() {
+		return isSearchEnabled;
+	}
+	
+	public void setIsSearchEnabled(Boolean isSearchEnabled) {
+		this.isSearchEnabled = isSearchEnabled;
+	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -259,8 +274,8 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, id, hasFileRefs, keyNew, rowCount, rowVersion,
-				tableId, transactionId);
+		return Objects.hash(bucket, changeType, columnIds, createdBy, createdOn, etag, hasFileRefs, id, isSearchEnabled, keyNew, rowCount,
+				rowVersion, tableId, transactionId);
 	}
 
 	@Override
@@ -277,8 +292,9 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		DBOTableRowChange other = (DBOTableRowChange) obj;
 		return Objects.equals(bucket, other.bucket) && Objects.equals(changeType, other.changeType)
 				&& Objects.equals(columnIds, other.columnIds) && Objects.equals(createdBy, other.createdBy)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(hasFileRefs, other.hasFileRefs) && Objects.equals(keyNew, other.keyNew)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
+				&& Objects.equals(hasFileRefs, other.hasFileRefs) && Objects.equals(id, other.id)
+				&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(keyNew, other.keyNew)
 				&& Objects.equals(rowCount, other.rowCount) && Objects.equals(rowVersion, other.rowVersion)
 				&& Objects.equals(tableId, other.tableId) && Objects.equals(transactionId, other.transactionId);
 	}
@@ -288,7 +304,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		return "DBOTableRowChange [id=" + id + ", tableId=" + tableId + ", etag=" + etag + ", rowVersion=" + rowVersion + ", columnIds="
 				+ columnIds + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", bucket=" + bucket + ", keyNew=" + keyNew
 				+ ", rowCount=" + rowCount + ", changeType=" + changeType + ", transactionId=" + transactionId + ", hasFileRefs="
-				+ hasFileRefs + "]";
+				+ hasFileRefs + ", isSearchEnabled=" + isSearchEnabled + "]";
 	}
 
 }

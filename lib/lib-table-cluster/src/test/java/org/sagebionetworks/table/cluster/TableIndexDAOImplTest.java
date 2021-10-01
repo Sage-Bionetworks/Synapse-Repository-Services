@@ -403,7 +403,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
 		String hash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
-		assertEquals(TableIndexDAOImpl.EMPTY_SCHEMA_MD5, hash);
+		assertEquals(TableModelUtils.EMPTY_SCHEMA_MD5, hash);
 		
 		hash = "some hash";
 		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);

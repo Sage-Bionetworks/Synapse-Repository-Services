@@ -67,6 +67,7 @@ public class NodeUtilsTest {
 		node.setColumnModelIds(columnIds);
 		node.setScopeIds(Lists.newArrayList("8","9"));
 		node.setItems(Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(6L)));
+		node.setIsSearchEnabled(true);
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();

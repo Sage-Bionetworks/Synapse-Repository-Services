@@ -22,6 +22,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -60,6 +61,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -507,7 +509,7 @@ public class SQLUtils {
 		builder.append(ROW_VERSION);
 		builder.append(",");
 		builder.append(SCHEMA_HASH);
-		builder.append(" ) VALUES ('1', ?, 'DEFAULT' ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
+		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "' ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
 		return builder.toString();
 	}
 	
@@ -2084,6 +2086,19 @@ public class SQLUtils {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static String generateAddSearchColumnSql(IdAndVersion id) {
+		String tableName = getTableNameForId(id, TableType.INDEX);
+		
+		return "ALTER TABLE " + tableName + " ADD COLUMN `" + ROW_SEARCH_CONTENT + "` MEDIUMTEXT NULL,"
+				+ " ADD FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (`" + ROW_SEARCH_CONTENT + "`)";
+	}
+	
+	public static String generateRemoveSearchColumnSql(IdAndVersion id) {
+		String tableName = getTableNameForId(id, TableType.INDEX);
+		
+		return "ALTER TABLE " + tableName + " DROP COLUMN `" + ROW_SEARCH_CONTENT + "`";
 	}
 
 }

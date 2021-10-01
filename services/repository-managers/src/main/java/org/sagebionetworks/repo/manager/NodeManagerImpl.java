@@ -366,8 +366,10 @@ public class NodeManagerImpl implements NodeManager {
 			String currentHandleId = nodeDao.getFileHandleIdForVersion(updatedNode.getId(), null);
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
-				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();			}
+				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();			
+			}
 		}
+		
 		updateNode(userInfo, updatedNode, entityPropertyAnnotations, newVersion, ChangeType.UPDATE, oldNode);
 
 		return getNode(userInfo, updatedNode.getId());

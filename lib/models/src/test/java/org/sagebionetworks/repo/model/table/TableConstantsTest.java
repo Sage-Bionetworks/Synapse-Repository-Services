@@ -45,4 +45,9 @@ public class TableConstantsTest {
 		assertTrue(TableConstants.isReservedColumnName("row_benefactor"));
 	}
 	
+	@Test
+	public void testIsReservedColumnNameRowSearchContent(){
+		assertTrue(TableConstants.isReservedColumnName("row_search_content"));
+	}
+	
 }

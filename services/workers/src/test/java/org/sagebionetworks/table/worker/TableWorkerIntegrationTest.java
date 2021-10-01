@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -112,8 +113,10 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -280,7 +283,7 @@ public class TableWorkerIntegrationTest {
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 	}
 
 	@Test
@@ -1575,7 +1578,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(null);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, null, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, null, tableId, false);
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		waitForConsistentQuery(adminUserInfo, sql, null, 1L, (queryResult) -> {			
@@ -1854,7 +1857,7 @@ public class TableWorkerIntegrationTest {
 		table.setParentId(projectId);
 		tableId = entityManager.createEntity(owner, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		appendRows(owner, tableId,
 				createRowSet(headers), mockProgressCallback);
 		assertThrows(UnauthorizedException.class, ()->{
@@ -1940,7 +1943,7 @@ public class TableWorkerIntegrationTest {
 		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		
 		// Add a row
 		PartialRow row = new PartialRow();
@@ -3138,6 +3141,93 @@ public class TableWorkerIntegrationTest {
 				null, (queryResult) -> {
 					assertEquals(3, queryResult.getQueryResults().getRows().size());
 				});
+	}
+	
+	@Test
+	public void testEnableSearchWithEmptyTable() throws Exception {
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testEnableSearchWithExistingData() throws Exception {
+		createSchemaOneOfEachType();
+		headers = TableModelUtils.getIds(schema);
+		
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		table.setColumnIds(headers);
+		
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, null);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testDisableSearch() throws Exception {
+		createSchemaOneOfEachType();
+		headers = TableModelUtils.getIds(schema);
+		
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		table.setColumnIds(headers);
+		
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+		
+		// Now disable search
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
 	}
 
 	/**
