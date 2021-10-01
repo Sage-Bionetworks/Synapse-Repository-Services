@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.http.HttpStatus;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -84,8 +83,6 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -1076,52 +1073,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(idRange, "The idRange");
 		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
 		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
-	}
-	
-	@Override
-	public void backfillTableRowChangesBatch(long batchSize) {
-		
-		List<Long> trueBatch = new ArrayList<>();
-		List<Long> falseBatch = new ArrayList<>();
-		
-		List<TableRowChange> batch = tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(batchSize, 0);
-		
-		for (TableRowChange changeMetadata : batch) {
-			
-			boolean hasFileRefs = false;
-			
-			try {
-				SparseChangeSet changeSet = getSparseChangeSet(changeMetadata);
-		 		
-		 		hasFileRefs = !changeSet.getFileHandleIdsInSparseChangeSet().isEmpty();
-			 
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			} catch (NotFoundException e) {
-				hasFileRefs = false;
-			} catch (AmazonServiceException e) {
-				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
-					hasFileRefs = false;
-				} else {
-					throw e;
-				}
-			}
-			
-			if (hasFileRefs) {
-				trueBatch.add(changeMetadata.getId());
-			} else {
-				falseBatch.add(changeMetadata.getId());
-			}
-		}
-		
-		if (!trueBatch.isEmpty()) {
-			tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
-		}
-		
-		if (!falseBatch.isEmpty()) {
-			tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
-		}
-
 	}
 
 }

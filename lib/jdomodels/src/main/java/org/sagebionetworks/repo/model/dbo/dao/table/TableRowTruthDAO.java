@@ -234,10 +234,4 @@ public interface TableRowTruthDAO {
 	 */
 	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
 	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
-	List<TableRowChange> getTableRowChangeWithNullFileRefsPage(long limit, long offset);
-	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
-	void updateRowChangeHasFileRefsBatch(List<Long> ids, boolean hasFileRefs);
-	
 }
