@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This is a utility for Data Definition Language (DDL) statements.
@@ -55,5 +56,35 @@ public interface DDLUtils {
 	 * @return
 	 */
 	public boolean doesFunctionExist(String functionName);
+
+	/**
+	 * Creates the read-only user in the repository database
+	 */
+	public void createRepoitoryDatabaseReadOnlyUser();
+
+	/**
+	 * Creates a user
+	 *
+	 * @param userName		the name of the user
+	 * @param password		the password for the user
+	 */
+	public void createReadOnlyUser(String userName, String password, String schema);
+
+	/**
+	 * Drops a user
+	 *
+	 * @param userName		the name of the user
+	 */
+	public void dropUser(String userName);
+
+	/**
+	 * Checks if a user exists
+	 *
+	 * @param userName
+	 * @return
+	 */
+	public boolean doesUserExist(String userName);
+
+	public List<String> showGrantsForUser(String userName);
 
 }

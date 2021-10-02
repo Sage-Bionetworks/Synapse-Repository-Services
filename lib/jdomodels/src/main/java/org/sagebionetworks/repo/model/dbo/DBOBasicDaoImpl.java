@@ -123,6 +123,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 				ddlUtils.createFunction(functionName, functionMap.get(functionName));
 			}
 		}
+
+		// Create the read-only user in the repo database
+		ddlUtils.createRepoitoryDatabaseReadOnlyUser();
 	}
 
 	@WriteTransaction

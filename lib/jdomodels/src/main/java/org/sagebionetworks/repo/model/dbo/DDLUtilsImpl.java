@@ -34,6 +34,12 @@ public class DDLUtilsImpl implements DDLUtils{
 
 	private static final String ALREADY_EXISTS = "already exists";
 
+	private static final String CREATE_USER = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'";
+	private static final String GRANT_SELECT_USER = "GRANT SELECT ON %s.* TO '%s'@'%%'";
+	private static final String DROP_USER = "DROP USER IF EXISTS '%s'@'%%'";
+	private static final String CHECK_USER_EXISTS = "SELECT * FROM mysql.user WHERE user='%s'";
+	private static final String SHOW_GRANTS_FOR_USER = "SHOW GRANTS for '%s'@'%%'";
+
 	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
 	// Determine if the table exists
@@ -46,8 +52,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	
 	/**
 	 * If the given table does not already exist, then create it using the provided SQL file
-	 * @param databaseTableName
-	 * @param DDLSqlFileName
+	 * @param mapping
 	 * @throws IOException 
 	 */
 	public boolean validateTableExists(TableMapping mapping) throws IOException{
@@ -201,6 +206,42 @@ public class DDLUtilsImpl implements DDLUtils{
 	public void createFunction(String definition) throws IOException {
 		// create the function from its definition
 		jdbcTemplate.update(definition);
+	}
+
+	@Override
+	public void createRepoitoryDatabaseReadOnlyUser() {
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
+		String userName = stackConfiguration.getDbReadOnlyUserName();
+		String password = stackConfiguration.getDbReadOnlyPassword();
+		createReadOnlyUser(userName, password, schema);
+	}
+
+	@Override
+	public void createReadOnlyUser(String userName, String password, String schema) {
+		String sqlCreateUSer = String.format(CREATE_USER, userName, password);
+		jdbcTemplate.update(sqlCreateUSer);
+		String sqlGrantUser = String.format(GRANT_SELECT_USER, schema, userName);
+		jdbcTemplate.update(sqlGrantUser);
+	}
+
+	@Override
+	public void dropUser(String userName) {
+		String sqlDropUser = String.format(DROP_USER, userName);
+		jdbcTemplate.update(sqlDropUser);
+	}
+
+	@Override
+	public boolean doesUserExist(String userName) {
+		String sql = String.format(CHECK_USER_EXISTS, userName);
+		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);
+		return list.size() == 1; // Should only have 'userName'@'%'
+	}
+
+	@Override
+	public List<String> showGrantsForUser(String userName) {
+		String sql = String.format(SHOW_GRANTS_FOR_USER, userName);
+		List<String> list = jdbcTemplate.queryForList(sql, String.class);
+		return list;
 	}
 
 }

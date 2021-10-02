@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -18,10 +21,15 @@ public class DDLUtilsImplTest {
 	
 	@Autowired
 	DDLUtils ddlUtils;
+
+	@Autowired
+	StackConfiguration stackConfiguration;
 	
 	String tableName = "EXAMPLE_TEST";
 	String ddlFile = "Example.sql";
-	
+
+	String userName = "testUser";
+	String password = "testPassword";
 
 	@Test
 	public void testValidateTableExists() throws IOException{
@@ -82,5 +90,20 @@ public class DDLUtilsImplTest {
 		String result = DDLUtilsImpl.removeSQLComments(input);
 		assertEquals(expected, result);
 	}
-	
+
+	@Test
+	public void testCreateReadOnlyUser() throws Exception {
+		final String EXPECTED_GRANT = "GRANT SELECT ON `devxschildw`.* TO `testUser`@`%`";
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
+		ddlUtils.dropUser(userName);
+		assertFalse(ddlUtils.doesUserExist(userName));
+		ddlUtils.createReadOnlyUser(userName, password, schema);
+		assertTrue(ddlUtils.doesUserExist(userName));
+		List<String> expectedGrants = ddlUtils.showGrantsForUser(userName)
+				.stream()
+				.filter(x -> EXPECTED_GRANT.equals(x))
+				.collect(Collectors.toList());
+		assertEquals(1L, expectedGrants.size());
+	}
+
 }
