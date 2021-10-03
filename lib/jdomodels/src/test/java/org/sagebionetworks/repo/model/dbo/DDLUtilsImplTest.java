@@ -91,19 +91,4 @@ public class DDLUtilsImplTest {
 		assertEquals(expected, result);
 	}
 
-	@Test
-	public void testCreateReadOnlyUser() throws Exception {
-		final String EXPECTED_GRANT = "GRANT SELECT ON `devxschildw`.* TO `testUser`@`%`";
-		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
-		ddlUtils.dropUser(userName);
-		assertFalse(ddlUtils.doesUserExist(userName));
-		ddlUtils.createReadOnlyUser(userName, password, schema);
-		assertTrue(ddlUtils.doesUserExist(userName));
-		List<String> expectedGrants = ddlUtils.showGrantsForUser(userName)
-				.stream()
-				.filter(x -> EXPECTED_GRANT.equals(x))
-				.collect(Collectors.toList());
-		assertEquals(1L, expectedGrants.size());
-	}
-
 }

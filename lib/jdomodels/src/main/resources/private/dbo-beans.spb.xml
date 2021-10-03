@@ -7,11 +7,12 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
 
 	<bean id="ddlUtils" class="org.sagebionetworks.repo.model.dbo.DDLUtilsImpl" />
+
+	<bean id="DBUserHelper" class="org.sagebionetworks.repo.model.dbo.DBUserHelper" />
 	
-	<!--Register of all database objects (DBOs) that use BasicDao.  -->
+	<!--Register of all database objects (DBOs) that use org.sagebionetworks.repo.model.dbo.DBUserHelper.  -->
 	<bean id="dboBasicDao" class="org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl">
 		<property name="databaseObjectRegister">
 			<list>

@@ -36,6 +36,8 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	@Autowired
+	DBUserHelper dbUserHelper;
 	
 	/**
 	 * Injected via Spring
@@ -125,7 +127,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 
 		// Create the read-only user in the repo database
-		ddlUtils.createRepoitoryDatabaseReadOnlyUser();
+		dbUserHelper.createDbReadOnlyUser(jdbcTemplate);
 	}
 
 	@WriteTransaction
