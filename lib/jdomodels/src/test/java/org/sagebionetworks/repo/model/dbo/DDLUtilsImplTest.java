@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -24,7 +25,7 @@ public class DDLUtilsImplTest {
 
 	@Autowired
 	StackConfiguration stackConfiguration;
-	
+
 	String tableName = "EXAMPLE_TEST";
 	String ddlFile = "Example.sql";
 
