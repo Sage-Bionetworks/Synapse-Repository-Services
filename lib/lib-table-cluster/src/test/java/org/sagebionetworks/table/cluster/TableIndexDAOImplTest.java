@@ -912,6 +912,71 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testIsSearchEnabledWithNoTable() {
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithEmptyTable() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithFalse() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithTrue() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
+		
+		assertTrue(result);
+	}
+	
+	@Test
+	public void testSetMaxCurrentCompleteVersionAndSearchStatusForTable() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		// Call under test
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		
+		assertTrue(tableIndexDAO.isSearchEnabled(tableId));
+		
+		// Call under test
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		
+		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
+		
+	}
+	
+	@Test
 	public void testDoesIndexStateMatchTableDoesNotExist(){
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);

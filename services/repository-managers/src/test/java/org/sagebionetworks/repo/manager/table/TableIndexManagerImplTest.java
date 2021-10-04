@@ -1038,6 +1038,7 @@ public class TableIndexManagerImplTest {
 		boolean enableSearch = true;
 		
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
+		
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
 
 		// call under test
@@ -1045,7 +1046,7 @@ public class TableIndexManagerImplTest {
 		
 		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		verify(mockIndexDao).addSearchColumn(tableId);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
+		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 	}
 	
 	@Test
@@ -1062,7 +1063,7 @@ public class TableIndexManagerImplTest {
 		
 		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		verify(mockIndexDao).removeSearchColumn(tableId);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
+		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 	}
 
 	@Test
@@ -2370,12 +2371,13 @@ public class TableIndexManagerImplTest {
 	}
 	
 	public TableChangeMetaData setupMockSearchChange(long changeNumber, boolean enableSearch) {
+
 		TestTableChangeMetaData<SearchChange> testChange = new TestTableChangeMetaData<>();
 		testChange.setChangeNumber(changeNumber);
 		testChange.seteTag("etag-" + changeNumber);
 		testChange.setChangeType(TableChangeType.SEARCH);
-		SearchChange searchChange = new SearchChange(enableSearch);
-		ChangeData<SearchChange> change = new ChangeData<SearchChange>(changeNumber, searchChange);
+
+		ChangeData<SearchChange> change = new ChangeData<SearchChange>(changeNumber, new SearchChange(enableSearch));
 		testChange.setChangeData(change);
 		return testChange;
 	}

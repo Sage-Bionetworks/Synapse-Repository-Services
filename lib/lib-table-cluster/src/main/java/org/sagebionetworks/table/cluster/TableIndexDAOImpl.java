@@ -329,12 +329,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return -1L;
 		}
 	}
+	
+	@Override
+	public boolean isSearchEnabled(IdAndVersion tableId) {
+		String sql = SQLUtils.getSearchStatusSQL(tableId);
+		try {
+			return template.queryForObject(sql, Long.class) > 0L;
+		} catch (BadSqlGrammarException e) {
+			// This is thrown if the status table was not created yet
+			return false;
+		}
+	}
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
+	
+	@Override
+	public void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSearchSQL(tableId);
+		template.update(createOrUpdateStatusSql, version, searchEnabled, version, searchEnabled);
+	}	
 	
 	@Override
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {

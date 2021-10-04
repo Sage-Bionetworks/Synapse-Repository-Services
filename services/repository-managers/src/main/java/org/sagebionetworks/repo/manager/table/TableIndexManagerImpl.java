@@ -125,35 +125,33 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
-		final long currentVersion = tableIndexDao
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		if (changeSetVersionNumber > currentVersion) {
 			// apply all changes in a transaction
-			tableIndexDao
-					.executeInWriteTransaction((TransactionStatus status) -> {
-							// apply all groups to the table
-							for(Grouping grouping: rowset.groupByValidValues()){
-								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
-							}
-							// Extract all file handle IDs from this set
-							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
-							if (!fileHandleIds.isEmpty()) {
-								tableIndexDao.applyFileHandleIdsToTable(
-										tableId, fileHandleIds);
-							}
-							boolean alterTemp = false;
-							//once all changes to main table are applied, populate the list-type columns with the changes.
-							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
-								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
-							}
+			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+				// apply all groups to the table
+				for(Grouping grouping: rowset.groupByValidValues()) {
+					tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
+				}
+				// Extract all file handle IDs from this set
+				Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
+				if (!fileHandleIds.isEmpty()) {
+					tableIndexDao.applyFileHandleIdsToTable(tableId, fileHandleIds);
+				}
+				boolean alterTemp = false;
+				//once all changes to main table are applied, populate the list-type columns with the changes.
+				for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
+					tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+					tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
+				}
+				// Once the values are added or updated we check if the search column needs to be populated
 
-							// set the new max version for the index
-							tableIndexDao.setMaxCurrentCompleteVersionForTable(
-									tableId, changeSetVersionNumber);
-							return null;
-						}
-					);
+				// TODO
+				
+				// set the new max version for the index
+				tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, changeSetVersionNumber);
+				return null;
+			});
 		}
 	}
 
@@ -727,14 +725,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// This will make sure that the table is properly created if it does not exist
 		createTableIfDoesNotExist(idAndVersion, false);
 		
-		if (loadChangeData.getChange().isEnabled()) {
+		SearchChange change = loadChangeData.getChange();
+		
+		if (change.isEnabled()) {
 			tableIndexDao.addSearchColumn(idAndVersion);
 		} else {
 			tableIndexDao.removeSearchColumn(idAndVersion);
 		}
 		
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
+		tableIndexDao.setMaxCurrentCompleteVersionAndSearchStatusForTable(idAndVersion, loadChangeData.getChangeNumber(), change.isEnabled());
 	}
 	
 	@Override

@@ -26,8 +26,13 @@ public class TableConstants {
 	 * The reserved column name for row version.
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
-	public static final String SINGLE_KEY = "SINGLE_KEY";
-	public static final String SCHEMA_HASH = "SCHEMA_HASH";
+	
+	/**
+	 * Status table columns
+	 */
+	public static final String STATUS_COL_SINGLE_KEY = "SINGLE_KEY";
+	public static final String STATUS_COL_SCHEMA_HASH = "SCHEMA_HASH";
+	public static final String STATUS_COL_SEARCH_ENABLED = "SEARCH_ENABLED";
 	
 	public static final String ROW_ETAG = "ROW_ETAG";
 	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";

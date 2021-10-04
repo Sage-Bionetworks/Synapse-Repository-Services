@@ -2,7 +2,6 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEYS_PARAM_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_KEY_EXCLUSION_LIST;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
@@ -22,13 +21,14 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
-import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
+import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
+import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
+import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,8 +54,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
@@ -158,9 +158,10 @@ public class SQLUtils {
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
 		case STATUS:
-			columnDefinitions.append("single_key ENUM('1') NOT NULL PRIMARY KEY, ");
+			columnDefinitions.append(STATUS_COL_SINGLE_KEY).append(" ENUM('1') NOT NULL PRIMARY KEY, ");
 			columnDefinitions.append(ROW_VERSION).append(" BIGINT NOT NULL,");
-			columnDefinitions.append(SCHEMA_HASH).append(" CHAR(35) NOT NULL");
+			columnDefinitions.append(STATUS_COL_SCHEMA_HASH).append(" CHAR(35) NOT NULL,");
+			columnDefinitions.append(STATUS_COL_SEARCH_ENABLED).append(" BOOLEAN NOT NULL");
 			break;
 		case FILE_IDS:
 			columnDefinitions.append(FILE_ID).append(" BIGINT NOT NULL PRIMARY KEY");
@@ -504,12 +505,32 @@ public class SQLUtils {
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(tableId, TableType.STATUS));
 		builder.append(" ( ");
-		builder.append(SINGLE_KEY);
+		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
 		builder.append(ROW_VERSION);
 		builder.append(",");
-		builder.append(SCHEMA_HASH);
-		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "' ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
+		builder.append(STATUS_COL_SCHEMA_HASH);
+		builder.append(",");
+		builder.append(STATUS_COL_SEARCH_ENABLED);
+		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
+		return builder.toString();
+	}
+	
+	public static String buildCreateOrUpdateStatusSearchSQL(IdAndVersion tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId, TableType.STATUS));
+		builder.append(" ( ");
+		builder.append(STATUS_COL_SINGLE_KEY);
+		builder.append(",");
+		builder.append(ROW_VERSION);
+		builder.append(",");
+		builder.append(STATUS_COL_SCHEMA_HASH);
+		builder.append(",");
+		builder.append(STATUS_COL_SEARCH_ENABLED);
+		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', ?) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, " + STATUS_COL_SEARCH_ENABLED + " = ?");
 		return builder.toString();
 	}
 	
@@ -520,12 +541,14 @@ public class SQLUtils {
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(tableId, TableType.STATUS));
 		builder.append(" ( ");
-		builder.append(SINGLE_KEY);
+		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
 		builder.append(ROW_VERSION);
 		builder.append(",");
-		builder.append(SCHEMA_HASH);
-		builder.append(" ) VALUES ('1', -1, ? ) ON DUPLICATE KEY UPDATE "+SCHEMA_HASH+" = ? ");
+		builder.append(STATUS_COL_SCHEMA_HASH);
+		builder.append(",");
+		builder.append(STATUS_COL_SEARCH_ENABLED);
+		builder.append(" ) VALUES ('1', -1, ?, FALSE) ON DUPLICATE KEY UPDATE "+STATUS_COL_SCHEMA_HASH+" = ? ");
 		return builder.toString();
 	}
 	
@@ -536,12 +559,14 @@ public class SQLUtils {
 		builder.append("INSERT INTO ");
 		builder.append(getTableNameForId(tableId, TableType.STATUS));
 		builder.append(" ( ");
-		builder.append(SINGLE_KEY);
+		builder.append(STATUS_COL_SINGLE_KEY);
 		builder.append(",");
 		builder.append(ROW_VERSION);
 		builder.append(",");
-		builder.append(SCHEMA_HASH);
-		builder.append(" ) VALUES ('1', ?, ? ) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+SCHEMA_HASH+" = ? ");
+		builder.append(STATUS_COL_SCHEMA_HASH);
+		builder.append(",");
+		builder.append(STATUS_COL_SEARCH_ENABLED);
+		builder.append(" ) VALUES ('1', ?, ?, FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+STATUS_COL_SCHEMA_HASH+" = ? ");
 		return builder.toString();
 	}
 
@@ -665,7 +690,11 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getSchemaHashSQL(IdAndVersion tableId) {
-		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
+		return "SELECT " + STATUS_COL_SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
+	}
+	
+	public static String getSearchStatusSQL(IdAndVersion tableId) {
+		return "SELECT COUNT(" + STATUS_COL_SEARCH_ENABLED + ") FROM " + getTableNameForId(tableId, TableType.STATUS) + " WHERE " + STATUS_COL_SEARCH_ENABLED + " = TRUE";
 	}
 	
 	/**
