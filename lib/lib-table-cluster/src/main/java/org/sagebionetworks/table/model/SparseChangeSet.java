@@ -283,6 +283,17 @@ public class SparseChangeSet implements TableChange {
 				)
 				.collect(Collectors.toList());
 	}
+	
+	public Set<Long> getCreatedOrUpdatedRowIds(List<ColumnModel> columnModels) {
+		ValidateArgument.requiredNotEmpty(columnModels, "The columnModels");
+		return sparseRows.stream()
+			.filter((SparseRow row) -> !row.isDelete() && columnModels.stream()
+					.filter(column -> row.hasCellValue(column.getId()))
+					.findFirst().isPresent()
+			)
+			.map(SparseRow::getRowId)
+			.collect(Collectors.toSet());
+	}
 
 	/**
 	 * Get the
