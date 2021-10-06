@@ -1,15 +1,16 @@
 package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.Optional;
 
@@ -27,6 +28,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 public class AdminServiceAuthFilterTest {
@@ -67,7 +69,7 @@ public class AdminServiceAuthFilterTest {
 
 	@Test
 	public void testCredentialsRequired() {
-		assertFalse(filter.credentialsRequired());
+		assertTrue(filter.credentialsRequired());
 	}
 
 	@Test
@@ -77,17 +79,17 @@ public class AdminServiceAuthFilterTest {
 
 	@Test
 	public void testDoFilterInternalWithEmptyCredentials() throws Exception {
-
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		when(mockResponse.getWriter()).thenReturn(new PrintWriter(out));
 		Optional<UserNameAndPassword> credentials = Optional.empty();
 
 		// Call under test
 		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
+		assertTrue( out.toString(StandardCharsets.UTF_8.name()).contains(BasicAuthenticationFilter.MISSING_CREDENTIALS_MSG));
+		verify(mockResponse).setStatus(HttpStatus.UNAUTHORIZED.value());
 
-		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
-
-		// No other interactions with the request/response/filter chain
+		verifyNoMoreInteractions(mockFilterChain);
 		verifyNoMoreInteractions(mockRequest);
-		verifyNoMoreInteractions(mockResponse);
 		verifyNoMoreInteractions(mockFilterChain);
 	}
 
@@ -110,16 +112,18 @@ public class AdminServiceAuthFilterTest {
 	}
 	@Test
 	public void testDoFilterInternalWithBearerToken() throws Exception {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		when(mockResponse.getWriter()).thenReturn(new PrintWriter(out));
 		when(mockRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn("Bearer xxxxx");
 
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
+		assertTrue( out.toString(StandardCharsets.UTF_8.name()).contains(BasicAuthenticationFilter.MISSING_CREDENTIALS_MSG));
+		verify(mockResponse).setStatus(HttpStatus.UNAUTHORIZED.value());
 
-		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
-		
-		assertEquals(mockRequest, requestCaptor.getValue());
+		verifyNoMoreInteractions(mockFilterChain);
+		verifyNoMoreInteractions(mockRequest);
 		verifyNoMoreInteractions(mockFilterChain);
 	}
 }

@@ -38,7 +38,7 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  */
 public abstract class BasicAuthenticationFilter implements Filter {
 
-	private static final String MISSING_CREDENTIALS_MSG = "Missing required credentials in the authorization header.";
+	protected static final String MISSING_CREDENTIALS_MSG = "Missing required credentials in the authorization header.";
 	private static final String INVALID_CREDENTIALS_MSG = "Invalid credentials.";
 	private static final String CLOUD_WATCH_NAMESPACE_PREFIX = "Authentication";
 	private static final String CLOUD_WATCH_METRIC_NAME = "BadCredentials";

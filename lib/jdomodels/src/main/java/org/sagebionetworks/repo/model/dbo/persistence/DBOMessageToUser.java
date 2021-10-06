@@ -10,15 +10,15 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * Contains information specific to a message sent to a user
  */
-public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUserBackup> {
+public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUser> {
 
 	public static final String MESSAGE_ID_FIELD_NAME = "messageId";
 
@@ -55,53 +55,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Boolean isNotificationMessage;
 	private Boolean overrideNotificationSettings;
 	
-	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup> MIGRATION_TRANSLATOR = new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup>() {
-
-		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Can be removed afer 319 is deployed")
-		@Override
-		public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUserBackup backup) {
-			DBOMessageToUser dbo = new DBOMessageToUser();
-			
-			dbo.setMessageId(backup.getMessageId());
-			dbo.setRootMessageId(backup.getRootMessageId());
-			dbo.setInReplyTo(backup.getInReplyTo());
-			dbo.setSubjectBytes(backup.getSubjectBytes());
-			dbo.setSent(backup.getSent());
-			dbo.setNotificationsEndpoint(backup.getNotificationsEndpoint());
-			dbo.setProfileSettingEndpoint(backup.getProfileSettingEndpoint());
-			dbo.setWithUnsubscribeLink(backup.getWithUnsubscribeLink());
-			dbo.setWithProfileSettingLink(backup.getWithProfileSettingLink());
-			dbo.setIsNotificationMessage(backup.getIsNotificationMessage());
-			dbo.setOverrideNotificationSettings(backup.getOverrideNotificationSettings() == null ? false : backup.getOverrideNotificationSettings());
-			dbo.setBytesTo(backup.getBytesTo());
-			dbo.setBytesCc(backup.getBytesCc());
-			dbo.setBytesBcc(backup.getBytesBcc());
-			
-			return dbo;
-		}
-		
-		@Override
-		public DBOMessageToUserBackup createBackupFromDatabaseObject(DBOMessageToUser dbo) {
-			DBOMessageToUserBackup backup = new DBOMessageToUserBackup();
-			
-			backup.setMessageId(dbo.getMessageId());
-			backup.setRootMessageId(dbo.getRootMessageId());
-			backup.setInReplyTo(dbo.getInReplyTo());
-			backup.setSubjectBytes(dbo.getSubjectBytes());
-			backup.setSent(dbo.getSent());
-			backup.setNotificationsEndpoint(dbo.getNotificationsEndpoint());
-			backup.setProfileSettingEndpoint(dbo.getProfileSettingEndpoint());
-			backup.setWithUnsubscribeLink(dbo.getWithUnsubscribeLink());
-			backup.setWithProfileSettingLink(dbo.getWithProfileSettingLink());
-			backup.setIsNotificationMessage(dbo.getIsNotificationMessage());
-			backup.setOverrideNotificationSettings(dbo.getOverrideNotificationSettings());
-			backup.setBytesTo(dbo.getBytesTo());
-			backup.setBytesCc(dbo.getBytesCc());
-			backup.setBytesBcc(dbo.getBytesBcc());
-			
-			return backup;
-		}
-	};
+	private static final MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	private static final TableMapping<DBOMessageToUser> TABLE_MAPPING = new TableMapping<DBOMessageToUser>() {
 
@@ -285,13 +239,13 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup> getTranslator() {
+	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> getTranslator() {
 		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
-	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
-		return DBOMessageToUserBackup.class;
+	public Class<? extends DBOMessageToUser> getBackupClass() {
+		return DBOMessageToUser.class;
 	}
 
 	@Override
