@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,7 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
@@ -81,6 +83,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -94,6 +97,8 @@ public class TableIndexDAOImplTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	StackConfiguration config;
+	@Autowired
+	RowSearchProcessor searchProcessor;
 	
 	// not a bean
 	TableIndexDAO tableIndexDAO;
@@ -974,6 +979,104 @@ public class TableIndexDAOImplTest {
 		
 		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
 		
+	}
+		
+	@Test
+	public void testUpdateSearchIndex() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+			
+		// Call under test
+		tableIndexDAO.updateSearchIndex(tableId, columns, rowIds, searchProcessor);
+		
+		Map<Long, String> result = tableIndexDAO.fetchSearchContent(tableId, rowIds);
+		
+		assertEquals(rowIds.size(), result.size());
+		
+		for (Row row : rows) {
+			assertEquals(searchProcessor.process(columns, row.getValues()).get(), result.get(row.getRowId()));
+		}
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithSubsetColumns() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+			
+		// Call under test
+		tableIndexDAO.updateSearchIndex(tableId, Arrays.asList(columns.get(0)), rowIds, searchProcessor);
+		
+		Map<Long, String> result = tableIndexDAO.fetchSearchContent(tableId, rowIds);
+		
+		assertEquals(rowIds.size(), result.size());
+		
+		for (Row row : rows) {
+			assertEquals(searchProcessor.process(Arrays.asList(columns.get(0)), Arrays.asList(row.getValues().get(0))).get(), result.get(row.getRowId()));
+		}
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithEmptyTable() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+				
+		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
+					
+		// Call under test
+		tableIndexDAO.updateSearchIndex(tableId, columns, rowIds, searchProcessor);
+		
+		assertTrue(tableIndexDAO.fetchSearchContent(tableId, rowIds).isEmpty());
 	}
 	
 	@Test
