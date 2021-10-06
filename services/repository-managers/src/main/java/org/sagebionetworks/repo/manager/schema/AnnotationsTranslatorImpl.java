@@ -430,7 +430,6 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		return result;
 	}
 	
-	// returns true if an entry is added to the result, false otherwise
 	void handleTypeSchemaForIsSingleMap(String key, JsonSchema typeSchema, Map<String, Boolean> result) {
 		if (typeSchema.getType() != null) {
 			if (typeSchema.getType().equals(Type.array)) {
