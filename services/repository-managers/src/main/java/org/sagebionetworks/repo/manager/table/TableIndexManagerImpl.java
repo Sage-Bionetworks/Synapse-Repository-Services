@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -43,6 +44,7 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
@@ -74,29 +76,24 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * Each container can only be re-synchronized at this frequency.
 	 */
 	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 1000 minutes.
-
+	
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	private final RowSearchProcessor searchProcessor;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory){
-		if(dao == null){
-			throw new IllegalArgumentException("TableIndexDAO cannot be null");
-		}
-		if(tableManagerSupport == null){
-			throw new IllegalArgumentException("TableManagerSupport cannot be null");
-		}
-		if(metadataIndexProviderFactory == null) {
-			throw new IllegalArgumentException("MetadataIndexProviderFactory cannot be null");
-		}
-		if (objectFieldModelResolverFactory == null) {
-			throw new IllegalArgumentException("ObjectFieldModelResolverFactory cannot be null");
-		}
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, RowSearchProcessor searchProcessor){
+		ValidateArgument.required(dao, "TableIndexDao");
+		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
+		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
+		ValidateArgument.required(objectFieldModelResolverFactory, "ObjectFieldModelResolverFactory");
+		ValidateArgument.required(searchProcessor, "RowSearchProcessor");
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
+		this.searchProcessor = searchProcessor;
 	}
 	/*
 	 * (non-Javadoc)
@@ -121,12 +118,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset,
-			final long changeSetVersionNumber) {
+	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset, final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
 		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		if (changeSetVersionNumber > currentVersion) {
+			
+			// Read the current status of the search, this is the status up to the current change
+			boolean isSearchEnabled = tableIndexDao.isSearchEnabled(tableId);
+			
 			// apply all changes in a transaction
 			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 				// apply all groups to the table
@@ -145,9 +145,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
 				}
 				// Once the values are added or updated we check if the search column needs to be populated
-
-				// TODO
-				
+				if (isSearchEnabled) {
+					// We only consider the column that match the given type filter
+					List<ColumnModel> filteredColumns = rowset.getSchema().stream()
+							.filter((ColumnModel column) -> TableConstants.SEARCH_TYPES.contains(column.getColumnType()))
+							.collect(Collectors.toList());
+					
+					if (!filteredColumns.isEmpty()) {
+						// Find out the set of row ids that added/updated values for searcheable columns
+						Set<Long> rowIds = rowset.getCreatedOrUpdatedRowIds(filteredColumns);
+						
+						tableIndexDao.updateSearchIndex(tableId, filteredColumns, rowIds, searchProcessor);
+					}
+				}
 				// set the new max version for the index
 				tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, changeSetVersionNumber);
 				return null;
