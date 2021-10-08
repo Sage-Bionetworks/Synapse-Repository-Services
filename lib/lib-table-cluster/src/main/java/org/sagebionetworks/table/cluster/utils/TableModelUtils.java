@@ -20,7 +20,6 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
