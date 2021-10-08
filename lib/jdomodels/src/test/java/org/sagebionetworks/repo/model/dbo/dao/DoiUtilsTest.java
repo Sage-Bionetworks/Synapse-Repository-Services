@@ -167,36 +167,6 @@ public class DoiUtilsTest {
 		DoiUtils.convertToDbo(dto);
 	}
 
-	/**
-	 * Test for PLFM-5740.
-	 */
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
-	@Test
-	public void testObjectTypeRenameOldName() {
-		DBODoi dbo = setUpDbo();
-		dbo.setDoiObjectType(ObjectType.ACTIVITY);
-		dbo.setObjectType(null);
-		// call under test
-		dbo = new DBODoi().getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(ObjectType.ACTIVITY.name(), dbo.getObjectType());
-		assertEquals(null, dbo.getDoiObjectType());
-	}
-	
-	/**
-	 * Test for PLFM-5740.
-	 */
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
-	@Test
-	public void testObjectTypeRenameNewName() {
-		DBODoi dbo = setUpDbo();
-		dbo.setDoiObjectType(null);
-		dbo.setObjectType(ObjectType.ACTIVITY);
-		// call under test
-		dbo = new DBODoi().getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(ObjectType.ACTIVITY.name(), dbo.getObjectType());
-		assertEquals(null, dbo.getDoiObjectType());
-	}
-	
 	private static DBODoi setUpDbo() {
 		DBODoi dbo = new DBODoi();
 		dbo.setCreatedBy(createdBy);
