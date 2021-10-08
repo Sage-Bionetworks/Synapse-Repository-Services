@@ -393,6 +393,9 @@
 				<entry key="submissionview">
 					<ref bean="tableViewTransactionManager" />
 				</entry>
+				<entry key="dataset">
+					<ref bean="tableViewTransactionManager" />
+				</entry>
 			</map>
 		</property>
 	</bean>
