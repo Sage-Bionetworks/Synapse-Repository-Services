@@ -20,7 +20,6 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -86,6 +85,11 @@ public class TableModelUtils {
 	public static final String EXCEEDS_MAX_SIZE_TEMPLATE = "Request exceeds the maximum number of bytes per request.  Maximum : %1$s bytes";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
+
+	/**
+	 * The MD5 used for tables with no schema.
+	 */
+	public static final String EMPTY_SCHEMA_MD5 = TableModelUtils.createSchemaMD5Hex(Collections.emptyList());
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.

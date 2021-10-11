@@ -1005,7 +1005,7 @@ public class SubmissionDAOImplTest {
 		Long offset = 1L;
 		
 		// call under test
-		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		assertNotNull(page);
 		assertEquals(2, page.size());
 		assertEquals(submissions.get(2), page.get(0).getId());
@@ -1022,7 +1022,7 @@ public class SubmissionDAOImplTest {
 		Long offset = 1L;
 		
 		// call under test
-		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+		List<IdAndChecksum> page = submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		assertNotNull(page);
 		assertTrue(page.isEmpty());
 	}
@@ -1037,7 +1037,7 @@ public class SubmissionDAOImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		}).getMessage();
 		assertEquals("parentIds is required.", message);
 	}
@@ -1052,7 +1052,7 @@ public class SubmissionDAOImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		}).getMessage();
 		assertEquals("salt is required.", message);
 	}
@@ -1067,7 +1067,7 @@ public class SubmissionDAOImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		}).getMessage();
 		assertEquals("limit is required.", message);
 	}
@@ -1083,7 +1083,7 @@ public class SubmissionDAOImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			submissionDAO.getIdAndChecksumsPage(salt, parentIds, subTypes, limit, offset);
+			submissionDAO.getIdAndChecksumsPage(salt, parentIds, limit, offset);
 		}).getMessage();
 		assertEquals("offset is required.", message);
 	}

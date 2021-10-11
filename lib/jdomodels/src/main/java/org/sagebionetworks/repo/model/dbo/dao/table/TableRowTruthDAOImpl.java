@@ -22,7 +22,6 @@ import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,11 +50,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -132,13 +129,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL)"
 			+ " ORDER BY " + COL_TABLE_ROW_ID 
 			+ " LIMIT ? OFFSET ?";
-	
-	private static final String SQL_SELECT_WITH_NULL_FILE_REFS_PAGE = "SELECT * FROM " + TABLE_ROW_CHANGE 
-			+ " WHERE " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND " + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL"
-			+ " ORDER BY " + COL_TABLE_ROW_ID 
-			+ " LIMIT ? OFFSET ?";
-	
-	private static final String SQL_UPDATE_HAS_FILE_REFS_BATCH = "UPDATE " + TABLE_ROW_CHANGE + " SET " + COL_TABLE_ROW_HAS_FILE_REFS + "=:" + COL_TABLE_ROW_HAS_FILE_REFS + ", "  + COL_TABLE_ROW_TABLE_ETAG+ "=UUID() WHERE " + COL_TABLE_ROW_ID + " IN (:" + COL_TABLE_ROW_ID+  ")";
 	
 	private DBOBasicDao basicDao;
 	private JdbcTemplate jdbcTemplate;
@@ -235,7 +225,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setChangeType(TableChangeType.ROW.name());
 		changeDBO.setTransactionId(transactionId);
 		changeDBO.setHasFileRefs(hasFileRefs);
-		
 		basicDao.createNew(changeDBO);
 		return key;
 	}
@@ -265,6 +254,31 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setHasFileRefs(false);
 		basicDao.createNew(changeDBO);
 		return range.getVersionNumber();
+	}
+	
+	@Override
+	public void appendSearchChange(Long userId, String tableId, long transactionId, boolean searchEnabled) {
+		long coutToReserver = 1;
+		IdRange range = reserveIdsInRange(tableId, coutToReserver);
+		
+		DBOTableRowChange changeDBO = new DBOTableRowChange();
+		changeDBO.setId(idGenerator.generateNewId(IdType.TABLE_CHANGE_ID));
+		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
+		changeDBO.setCreatedBy(userId);
+		changeDBO.setCreatedOn(System.currentTimeMillis());
+		changeDBO.setRowCount(0L);
+		changeDBO.setChangeType(TableChangeType.SEARCH.name());
+		changeDBO.setTransactionId(transactionId);
+		changeDBO.setHasFileRefs(false);
+		changeDBO.setIsSearchEnabled(searchEnabled);
+		
+		// We do not store anything to S3 as it is just a boolean
+		changeDBO.setKeyNew(null);
+		changeDBO.setBucket(null);
+		
+		basicDao.createNew(changeDBO);
 	}
 
 	/**
@@ -571,23 +585,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset) {
 		List<DBOTableRowChange> dbos = jdbcTemplate.query(SQL_SELECT_WITH_FILE_REFS_PAGE, rowChangeMapper, idRange.getMinId(), idRange.getMaxId(), limit, offset);
 		return TableRowChangeUtils.ceateDTOFromDBO(dbos);
-	}
-
-	@Override
-	public List<TableRowChange> getTableRowChangeWithNullFileRefsPage(long limit, long offset) {
-		List<DBOTableRowChange> dbos = jdbcTemplate.query(SQL_SELECT_WITH_NULL_FILE_REFS_PAGE, rowChangeMapper, limit, offset);
-		return TableRowChangeUtils.ceateDTOFromDBO(dbos);
-	}
-
-	@Override
-	@WriteTransaction
-	public void updateRowChangeHasFileRefsBatch(List<Long> ids, boolean hasFileRefs) {
-		Map<String, ?> params = ImmutableMap.of(
-				COL_TABLE_ROW_HAS_FILE_REFS, hasFileRefs,
-				COL_TABLE_ROW_ID, ids
-		);
-		
-		new NamedParameterJdbcTemplate(jdbcTemplate).update(SQL_UPDATE_HAS_FILE_REFS_BATCH, params);
 	}
 
 }

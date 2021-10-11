@@ -94,6 +94,15 @@ public interface TableRowTruthDAO {
 	long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes, long transactionId);
 	
 	/**
+	 * Appends a search change to enable/disable the full text search on the table
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @param transactionId
+	 */
+	void appendSearchChange(Long userId, String tableId, long transactionId, boolean searchEnabled);
+	
+	/**
 	 * Get the schema change for a given version.
 	 * @param tableId
 	 * @param versionNumber
@@ -224,11 +233,5 @@ public interface TableRowTruthDAO {
 	 * @return A page of row changes that have file references (includes the changes for which the file references are unknown)
 	 */
 	List<TableRowChange> getTableRowChangeWithFileRefsPage(org.sagebionetworks.repo.model.IdRange idRange, long limit, long offset);
-
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
-	List<TableRowChange> getTableRowChangeWithNullFileRefsPage(long limit, long offset);
-	
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Use for backfilling the table row change")
-	void updateRowChangeHasFileRefsBatch(List<Long> ids, boolean hasFileRefs);
 	
 }

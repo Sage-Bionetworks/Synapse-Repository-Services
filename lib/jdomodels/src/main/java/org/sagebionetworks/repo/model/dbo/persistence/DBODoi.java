@@ -22,10 +22,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
@@ -233,50 +233,21 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private DoiStatus doiStatus;
 	private Long objectId;
 	private ObjectType objectType;
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
-	private ObjectType doiObjectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
 	private Long updatedBy;
 	private Timestamp updatedOn;
 
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
-	public ObjectType getDoiObjectType() {
-		return doiObjectType;
-	}
-
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
-	public void setDoiObjectType(ObjectType doiObjectType) {
-		this.doiObjectType = doiObjectType;
-	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.DOI;
 	}
 
-	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new MigratableTableTranslation<DBODoi, DBODoi>(){
-
-			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				// copy the value from the old type to the new type.
-				if(backup.doiObjectType != null) {
-					backup.setObjectType(backup.getDoiObjectType());
-					backup.setDoiObjectType(null);
-				}
-				return backup;
-			}
-
-			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override

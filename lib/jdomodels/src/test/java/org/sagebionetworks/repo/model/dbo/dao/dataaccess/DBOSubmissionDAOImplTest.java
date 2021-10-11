@@ -578,34 +578,4 @@ public class DBOSubmissionDAOImplTest {
 		submissionDao.delete(dto1.getId());
 		submissionDao.delete(dto2.getId());
 	}
-	
-	@Test
-	public void testBackfillAccessorChangesIfNeededAlreadyExist() {
-		Submission dto = createSubmission();
-		
-		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
-		
-		assertEquals(1L, submissionDao.countAccessorChanges(dto.getId()));
-				
-		submissionDao.backFillAccessorChangesIfNeeded(dto);
-		
-		assertEquals(1L, submissionDao.countAccessorChanges(dto.getId()));
-	}
-	
-	@Test
-	public void testBackfillAccessorChangesIfNeededWithNone() {
-		Submission dto = createSubmission();
-		
-		dto.setAccessorChanges(Collections.emptyList());
-		
-		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
-		
-		assertEquals(0L, submissionDao.countAccessorChanges(dto.getId()));
-		
-		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId(dto.getSubmittedBy()).setType(AccessType.GAIN_ACCESS)));
-				
-		submissionDao.backFillAccessorChangesIfNeeded(dto);
-		
-		assertEquals(1L, submissionDao.countAccessorChanges(dto.getId()));
-	}
 }

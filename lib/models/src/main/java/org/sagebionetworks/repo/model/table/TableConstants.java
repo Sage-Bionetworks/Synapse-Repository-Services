@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class TableConstants {
 
@@ -26,11 +27,17 @@ public class TableConstants {
 	 * The reserved column name for row version.
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
-	public static final String SINGLE_KEY = "SINGLE_KEY";
-	public static final String SCHEMA_HASH = "SCHEMA_HASH";
+	
+	/**
+	 * Status table columns
+	 */
+	public static final String STATUS_COL_SINGLE_KEY = "SINGLE_KEY";
+	public static final String STATUS_COL_SCHEMA_HASH = "SCHEMA_HASH";
+	public static final String STATUS_COL_SEARCH_ENABLED = "SEARCH_ENABLED";
 	
 	public static final String ROW_ETAG = "ROW_ETAG";
 	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";
+	public static final String ROW_SEARCH_CONTENT = "ROW_SEARCH_CONTENT";
 	
 	/**
 	 * FileHandle IDs 
@@ -59,7 +66,7 @@ public class TableConstants {
 	 * ROW_VERSION
 	 */
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, ROW_SEARCH_CONTENT));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and
@@ -75,7 +82,12 @@ public class TableConstants {
 	 * The column name prefix for extra doubles column.
 	 */
 	public static final String DOUBLE_PREFIX = "_DBL";
-
+	
+	/**
+	 * The set of column types eligible to be added to the search index
+	 */
+	public static final Set<ColumnType> SEARCH_TYPES = ImmutableSet.of(ColumnType.STRING, ColumnType.STRING_LIST, ColumnType.LARGETEXT, ColumnType.LINK);
+	
 	/**
 	 * Is the passed column name a reserved column name like ROW_ID or
 	 * ROW_VERSION?

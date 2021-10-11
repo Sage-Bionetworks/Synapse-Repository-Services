@@ -1,11 +1,15 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
+
 import org.sagebionetworks.repo.model.table.TableConstants;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 public class DatabaseColumnInfoTest {
@@ -68,34 +72,43 @@ public class DatabaseColumnInfoTest {
 		assertEquals("_C123_IDX (_C123_)", results);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateIndexDefinitionNullColumnName(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(null);
 		info.setIndexName("_C123_IDX");
 		info.setType(MySqlColumnType.BIGINT);
-		// call under test
-		info.createIndexDefinition();
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			info.createIndexDefinition();
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateIndexDefinitionNullIndexName(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C123_");
 		info.setIndexName(null);
 		info.setType(MySqlColumnType.BIGINT);
-		// call under test
-		info.createIndexDefinition();
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			info.createIndexDefinition();
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateIndexDefinitionNullType(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C123_");
 		info.setIndexName("_C123_IDX");
 		info.setType(null);
-		// call under test
-		info.createIndexDefinition();
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			info.createIndexDefinition();
+		});
 	}
 	
 	@Test
@@ -108,24 +121,30 @@ public class DatabaseColumnInfoTest {
 		assertEquals(-1, compare);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCARDINALITY_COMPARATOROneCardinalityNull(){
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
 		one.setCardinality(null);
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setCardinality(2L);
-		// call under test.
-		DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCARDINALITY_COMPARATORTwoCardinalityNull(){
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
 		one.setCardinality(1L);
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setCardinality(null);
-		// call under test.
-		DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			DatabaseColumnInfo.CARDINALITY_COMPARATOR.compare(one, two);
+		});
 	}
 	
 	@Test
@@ -153,6 +172,13 @@ public class DatabaseColumnInfoTest {
 	public void testIsMetadataBenefactor(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(TableConstants.ROW_BENEFACTOR);
+		assertTrue(info.isMetadata());
+	}
+	
+	@Test
+	public void testIsMetadataSearchContent(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(TableConstants.ROW_SEARCH_CONTENT);
 		assertTrue(info.isMetadata());
 	}
 	

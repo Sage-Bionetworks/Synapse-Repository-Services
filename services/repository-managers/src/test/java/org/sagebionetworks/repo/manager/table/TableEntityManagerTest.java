@@ -7,18 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -32,12 +34,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,13 +109,11 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -159,6 +156,8 @@ public class TableEntityManagerTest {
 	EventsCollector mockStatisticsCollector;
 	@InjectMocks
 	TableEntityManagerImpl manager;
+	
+	TableEntityManagerImpl managerSpy;
 	
 	@Captor
 	ArgumentCaptor<List<String>> stringListCaptor;
@@ -294,6 +293,8 @@ public class TableEntityManagerTest {
 		snapshotRequest.setSnapshotActivityId("987");
 		snapshotRequest.setSnapshotComment("a new comment");
 		snapshotRequest.setSnapshotLabel("a new label");
+		
+		managerSpy = Mockito.spy(manager);
 	}
 
 	void setupQueryAsStream() {
@@ -1068,7 +1069,7 @@ public class TableEntityManagerTest {
 	
 	@SuppressWarnings("unchecked")
 	@Test
-	public void testSetTableSchemaLockUnavailableException() throws Exception{
+	public void testTableUpdatedLockUnavailableException() throws Exception{
 		// setup success.
 		doAnswer(new Answer<Void>(){
 			@Override
@@ -1080,7 +1081,7 @@ public class TableEntityManagerTest {
 
 		assertThrows(TemporarilyUnavailableException.class, ()->{
 			// call under test.
-			manager.setTableSchema(user, schema, tableId);
+			manager.tableUpdated(user, schema, tableId, false);
 		});
 	}
 	
@@ -1766,13 +1767,22 @@ public class TableEntityManagerTest {
 		assertNotNull(schemaChange);
 		assertEquals(1L, schemaChange.getChangeNumber());
 		verify(mockTruthDao, times(1)).getSchemaChangeForVersion(tableId, 1L);
+		
+		// three
+		TableChangeMetaData metaThree = results.get(2);
+		assertEquals(new Long(2), metaThree.getChangeNumber());
+		assertEquals(TableChangeType.SEARCH, metaThree.getChangeType());
+		// load the row.
+		ChangeData<SearchChange> searchChange = metaThree.loadChangeData(SearchChange.class);
+		assertNotNull(searchChange);
+		assertEquals(2L, searchChange.getChangeNumber());
 	}
 	
 	@Test
-	public void testSetTableSchema() throws Exception {
+	public void testTableUpdated() throws Exception {
 		List<String> newSchema = Lists.newArrayList("1", "2");
 		// call under test
-		manager.setTableSchema(user, newSchema, tableId);
+		manager.tableUpdated(user, newSchema, tableId, false);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				any(IdAndVersion.class), any(ProgressingCallable.class));
 	}
@@ -1782,28 +1792,124 @@ public class TableEntityManagerTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testSetTableSchemaLockUnavilableException() throws Exception {
+	public void testTableUpdatedLockUnavilableException() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("No lock");
 		when(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				any(IdAndVersion.class), any(ProgressingCallable.class))).thenThrow(exception);
 		List<String> newSchema = Lists.newArrayList("1", "2");
 		assertThrows(TemporarilyUnavailableException.class, ()->{
 			// call under test
-			manager.setTableSchema(user, newSchema, tableId);
+			manager.tableUpdated(user, newSchema, tableId, false);
 		});
 	}
 	
 	@Test
-	public void testSetTableSchemaWithExclusiveLock() {
+	public void testTableUpdatedWithExclusiveLock() {
 		List<String> oldSchema = Lists.newArrayList("1","2");
-		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
+		
 		List<String> newSchema = Lists.newArrayList("2","3");
-		List<ColumnChange> expectedChanges = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
+		
+		when(mockColumModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(oldSchema);
+		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
+		
+		doReturn(new TableSchemaChangeResponse()).when(managerSpy).updateTableSchema(any(), any(), any(), anyLong());
+		doNothing().when(managerSpy).updateSearchStatus(any(), any(), any(), anyLong());
+		
+		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
+		changeRequest.setChanges(TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema));
+		changeRequest.setEntityId(tableId);
+		changeRequest.setOrderedColumnIds(newSchema);
+		
+		Boolean searchEnabled = true;
+		
 		// call under test
-		manager.setTableSchemaWithExclusiveLock(mockProgressCallback, user, newSchema, tableId);
+		managerSpy.tableUpdatedWithExclusiveLock(mockProgressCallback, user, newSchema, tableId, searchEnabled);
+		
 		verify(mockTableTransactionDao).startTransaction(tableId, user.getId());
+		verify(managerSpy).updateTableSchema(mockProgressCallback, user, changeRequest, transactionId);
+		verify(managerSpy).updateSearchStatus(user, tableId, searchEnabled, transactionId);
+	}
+		
+	@Test
+	public void testUpdateSearchStatusAndSearchEnabled() {
+		// Enable search and no previous search change
+		TableRowChange lastSearchChange = null;
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = true;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, true);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, expectedChanges, newSchema);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchEnabledAndExistingChangeEnabled() {
+		// Enable search and previous search change already enabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(true);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = true;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchEnabledIsNull() {
+		// No action
+		Boolean searchEnabled = null;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verifyZeroInteractions(mockTruthDao);
+		verifyZeroInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchDisabledWithNonExistingChangeDisabled() {
+		// Disable search and previous search change already disabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(false);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = false;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusAndSearchDisabledAndExistingChangeEnabled() {
+		// Disable search and previous search change enabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(true);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		Boolean searchEnabled = false;
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, false);
+		verify(mockTableManagerSupport).touchTable(user, tableId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -1999,140 +2105,6 @@ public class TableEntityManagerTest {
 		assertEquals("Invalid idRange, the minId must be lesser or equal than the maxId", message);
 	}
 	
-	@Test
-	public void testBackFillTableRowChangesBatch() throws IOException {
-		
-		int batchSize = 10;
-		int pageSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, pageSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
-		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		
-		// Call under test
-		manager.backfillTableRowChangesBatch(batchSize);
-		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
-		verify(mockTruthDao, times(pageSize)).getRowSet(any());
-		verify(mockColumModelManager, times(pageSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, pageSize).boxed().collect(Collectors.toList()), false);
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesBatchWithFileRefs() throws IOException {
-		
-		int batchSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, batchSize);
-		
-		SparseRowDto row = new SparseRowDto();
-		row.setValues(Collections.singletonMap(String.valueOf(ColumnType.FILEHANDLEID.ordinal()), "123"));
-		
-		rowDto.setRows(Arrays.asList(row));
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		when(mockTruthDao.getRowSet(any())).thenReturn(rowDto);
-		when(mockColumModelManager.getAndValidateColumnModels(any())).thenReturn(models);
-		
-		// Call under test
-		manager.backfillTableRowChangesBatch(batchSize);
-		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
-		verify(mockTruthDao, times(batchSize)).getRowSet(any());
-		verify(mockColumModelManager, times(batchSize)).getAndValidateColumnModels(rowDto.getColumnIds());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), true);
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesBatchWithAmazonS3NotFound() throws IOException {
-		
-		int batchSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, batchSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		
-		AmazonS3Exception ex = new AmazonS3Exception("Not found");
-		ex.setStatusCode(HttpStatus.SC_NOT_FOUND);
-		
-		doThrow(ex).when(mockTruthDao).getRowSet(any());
-		
-		// Call under test
-		manager.backfillTableRowChangesBatch(batchSize);
-		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
-		verify(mockTruthDao, times(batchSize)).getRowSet(any());
-		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), false);
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesBatchWithNotFound() throws IOException {
-
-		int batchSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, batchSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		
-		NotFoundException ex = new NotFoundException("Not found");
-		
-		doThrow(ex).when(mockTruthDao).getRowSet(any());
-		
-		// Call under test
-		manager.backfillTableRowChangesBatch(batchSize);
-		
-		verify(mockTruthDao).getTableRowChangeWithNullFileRefsPage(batchSize, 0);
-		verify(mockTruthDao, times(batchSize)).getRowSet(any());
-		verify(mockColumModelManager, never()).getAndValidateColumnModels(anyList());
-		verify(mockTruthDao).updateRowChangeHasFileRefsBatch(LongStream.range(0, batchSize).boxed().collect(Collectors.toList()), false);
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesBatchWithOtherAmazonException() throws IOException {
-		
-		int batchSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, batchSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		
-		AmazonServiceException ex = new AmazonServiceException("Something wrong");
-		ex.setErrorType(ErrorType.Client);
-		
-		doThrow(ex).when(mockTruthDao).getRowSet(any());
-		
-		AmazonServiceException result = assertThrows(AmazonServiceException.class, () -> {			
-			// Call under test
-			manager.backfillTableRowChangesBatch(batchSize);
-		});
-		
-		assertEquals(ex, result);
-	}
-	
-	@Test
-	public void testBackFillTableRowChangesBatchWithIOException() throws IOException {
-		
-		int batchSize = 10;
-		
-		List<TableRowChange> changePage = createChange(tableId, batchSize);
-		
-		when(mockTruthDao.getTableRowChangeWithNullFileRefsPage(anyLong(), anyLong())).thenReturn(changePage, Collections.emptyList());
-		
-		IOException ex = new IOException("Something wrong");
-		
-		doThrow(ex).when(mockTruthDao).getRowSet(any());
-		
-		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			manager.backfillTableRowChangesBatch(batchSize);
-		});
-		
-		assertEquals(ex, result.getCause());
-	}
-	
 	/**
 	 * Helper to create a list of TableRowChange for the given tableId and count.
 	 * @param tableId
@@ -2149,6 +2121,7 @@ public class TableEntityManagerTest {
 			change.setRowVersion(new Long(i));
 			change.setChangeType(TableChangeType.values()[i%enumLenght]);
 			change.setKeyNew("someKey"+i);
+			change.setIsSearchEnabled(TableChangeType.SEARCH == change.getChangeType() ? true : null);
 			results.add(change);
 		}
 		return results;

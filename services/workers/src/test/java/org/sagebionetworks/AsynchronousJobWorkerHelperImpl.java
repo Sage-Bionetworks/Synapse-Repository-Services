@@ -393,7 +393,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		long start = System.currentTimeMillis();
 		while (true) {
 			try {
-				tableEntityManager.setTableSchema(userInfo, newSchema, tableId);
+				tableEntityManager.tableUpdated(userInfo, newSchema, tableId, false);
 				return;
 			} catch (TemporarilyUnavailableException e) {
 				LOG.info("Waiting for excluisve lock on {}...", tableId);

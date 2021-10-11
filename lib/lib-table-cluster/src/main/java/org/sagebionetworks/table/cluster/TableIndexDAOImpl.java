@@ -74,10 +74,10 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -86,6 +86,7 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
@@ -192,11 +193,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					+ " t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :" + OBJECT_TYPE_PARAM_NAME
 					+ " AND t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
-
-	/**
-	 * The MD5 used for tables with no schema.
-	 */
-	public static final String EMPTY_SCHEMA_MD5 = TableModelUtils.createSchemaMD5Hex(new LinkedList<String>());
 	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
@@ -334,12 +330,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return -1L;
 		}
 	}
+	
+	@Override
+	public boolean isSearchEnabled(IdAndVersion tableId) {
+		String sql = SQLUtils.getSearchStatusSQL(tableId);
+		try {
+			return template.queryForObject(sql, Long.class) > 0L;
+		} catch (BadSqlGrammarException e) {
+			// This is thrown if the status table was not created yet
+			return false;
+		}
+	}
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
+	
+	@Override
+	public void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSearchSQL(tableId);
+		template.update(createOrUpdateStatusSql, version, searchEnabled, version, searchEnabled);
+	}	
 	
 	@Override
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
@@ -361,7 +374,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
 		} catch (Exception e) {
 			// Spring throws this when the table is empty
-			return EMPTY_SCHEMA_MD5;
+			return TableModelUtils.EMPTY_SCHEMA_MD5;
 		}
 	}
 	
@@ -1238,58 +1251,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new IdAndEtag(id, etag, benefactorId);
 		}, mainType.name(), parentId);
 	}
-
+	
 	@Override
-	public List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> containerIds) {
-		ValidateArgument.required(containerIds, "entityContainerIds");
-		if(containerIds.isEmpty()){
-			return new LinkedList<Long>();
-		}
-		/*
-		 * An ID that does not exist, should be treated the same as an expired
-		 * ID. Therefore, start off with all of the IDs expired, so the
-		 * non-expired IDs can be removed.
-		 */
-		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
+	public boolean isSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId) {
+		ValidateArgument.required(objectId, "objectId");
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
-		param.addValue(ID_PARAM_NAME, containerIds);
+		param.addValue(ID_PARAM_NAME, objectId);
 		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
-		// remove all that are not expired.
-		expiredId.removeAll(nonExpiredIds);
-		// return the remain.
-		return new LinkedList<Long>(expiredId);
+		return nonExpiredIds.isEmpty();
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
-			final Long newExpirationDateMS) {
+	public void setSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId,
+			Long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
-		ValidateArgument.required(toSet, "toSet");
-		if(toSet.isEmpty()){
-			return;
-		}
-		template.batchUpdate(BATCH_INSERT_REPLICATION_SYNC_EXP, new BatchPreparedStatementSetter() {
-			
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				Long idToSet = toSet.get(i);
-				int index = 1;
-				ps.setString(index++, mainType.name());
-				ps.setLong(index++, idToSet);
-				ps.setLong(index++, newExpirationDateMS);
-				ps.setLong(index++, newExpirationDateMS);
-			}
-			
-			@Override
-			public int getBatchSize() {
-				return toSet.size();
-			}
-		});
-		
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(newExpirationDateMS, "newExpirationDateMS");
+		template.update(BATCH_INSERT_REPLICATION_SYNC_EXP, mainType.name(),objectId, newExpirationDateMS, newExpirationDateMS);		
 	}
+
 
 	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
@@ -1438,6 +1421,76 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return namedTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
+	}
+	
+	@Override
+	public void addSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateAddSearchColumnSql(idAndVersion);
+		template.update(sql);
+	}
+	
+	@Override
+	public void removeSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateRemoveSearchColumnSql(idAndVersion);
+		template.update(sql);		
+	}
+	
+	@Override
+	public void updateSearchIndex(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds, RowSearchProcessor rowProcessor) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
+		ValidateArgument.required(rowIds, "rowIds");
+		ValidateArgument.required(rowProcessor, "rowProcessor");
+		
+		if (rowIds.isEmpty()) {
+			return;
+		}
+
+		String readSql = SQLUtils.buildSelectRowIdSQL(idAndVersion, selectColumns);
+
+		List<Object[]> batchUpdateArgs = new ArrayList<>(rowIds.size());
+		
+		Map<String, Object> params = Collections.singletonMap(TableConstants.ROW_ID, rowIds);
+		
+		namedTemplate.query(readSql, params, (RowCallbackHandler) rs -> {
+			List<String> rowValues = new ArrayList<>(selectColumns.size());
+			
+			int fetchIndex = 1;
+			
+			// The first column is always the row id
+			String rowId = rs.getString(fetchIndex++);
+			
+			for (ColumnModel columnModel : selectColumns) {
+				String rawValue = rs.getString(fetchIndex++);
+				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
+				String value = TableModelUtils.translateRowValueFromQuery(rawValue, columnInfo);
+				rowValues.add(value);
+			}
+			
+			rowProcessor.process(selectColumns, rowValues).ifPresent(searchContent -> {
+				batchUpdateArgs.add(new Object[] {searchContent, rowId});
+			});
+			
+		});
+		
+		if (!batchUpdateArgs.isEmpty()) {			
+			String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
+	
+			template.batchUpdate(updateSql, batchUpdateArgs);
+		}
+	}
+	
+	@Override
+	public Map<Long, String> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
+		Map<Long, String> searchContent = new HashMap<>(rowIds.size());
+		namedTemplate.query("SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX), 
+				Collections.singletonMap(TableConstants.ROW_ID, rowIds), 
+				(RowCallbackHandler) rs -> {
+					searchContent.put(rs.getLong(1), rs.getString(2));
+				});
+		return searchContent;
 	}
 	
 }

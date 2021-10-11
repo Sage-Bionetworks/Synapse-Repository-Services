@@ -506,7 +506,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		toDelete.add(tableId);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,

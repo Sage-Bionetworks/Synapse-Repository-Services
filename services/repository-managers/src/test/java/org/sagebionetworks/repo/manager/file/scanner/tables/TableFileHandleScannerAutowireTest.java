@@ -186,7 +186,7 @@ public class TableFileHandleScannerAutowireTest {
 		String tableId = entityManager.createEntity(user, table, null);
 		
 		if (columnIds != null && !columnIds.isEmpty()) {
-			tableManager.setTableSchema(user, columnIds, tableId);
+			tableManager.tableUpdated(user, columnIds, tableId, false);
 		}
 		
 		return KeyFactory.stringToKey(tableId);
