@@ -23,7 +23,6 @@ import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -72,7 +71,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		return DATASET_FILE_COLUMNS;
 	}
 
