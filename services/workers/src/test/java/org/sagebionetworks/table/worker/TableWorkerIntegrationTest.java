@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -113,10 +112,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -2904,17 +2901,8 @@ public class TableWorkerIntegrationTest {
 				fail("This should have failed with an IllegalArgumentException");
 			});
 		});
-		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 37.\n" +
-				"Was expecting one of:\n" +
-				"    \"\\\"\" ...\n" +
-				"    \"`\" ...\n" +
-				"    \"NOT\" ...\n" +
-				"    \"ISNAN\" ...\n" +
-				"    \"ISINFINITY\" ...\n" +
-				"    <entity_id> ...\n" +
-				"    <regular_identifier> ...\n" +
-				"    \"(\" ...\n" +
-				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, whereClauseException.getMessage());
+		assertTrue( whereClauseException.getMessage().startsWith("Encountered \" <date_time_field> \"year \"\" at line 1, column 37."));
+		assertTrue( whereClauseException.getMessage().contains(TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 		Throwable groupbyClauseException = assertThrows(IllegalArgumentException.class, ()->{
 			waitForConsistentQuery(adminUserInfo, "select \"year\" from " + tableId + " where \"year\" = 2020 group" +
 					" by year", null, null, (queryResult) -> {
