@@ -7,15 +7,15 @@ package org.sagebionetworks.table.query.model;
 public interface HasPredicate extends Element {
 
 	/**
-	 * Get the left-hand-side of the predicate.
+	 * Get the left-hand-side of the predicate
 	 * @return
 	 */
-	public ColumnReference getLeftHandSide();
+	ColumnReference getLeftHandSide();
 	
 	/**
 	 * Get right-hand-side values.
 	 * @return
 	 */
-	public Iterable<UnsignedLiteral> getRightHandSideValues();
+	Iterable<UnsignedLiteral> getRightHandSideValues();
 	
 }

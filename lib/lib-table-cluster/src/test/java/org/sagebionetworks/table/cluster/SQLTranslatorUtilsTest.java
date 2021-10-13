@@ -58,9 +58,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -69,7 +67,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.ImmutableMap;
@@ -2249,5 +2246,33 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
 		);
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicate() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text')").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(Collections.singletonMap("b0", "some text"), parameters);
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicateMultiple() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text') AND (foo = 'bar' OR TEXT_MATCHES('some other text'))").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0) AND ( _C111_ = :b1 OR MATCH(ROW_SEARCH_CONTENT) AGAINST(:b2) )";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(ImmutableMap.of("b0", "some text", "b1", "bar", "b2", "some other text"), parameters);
 	}
 }

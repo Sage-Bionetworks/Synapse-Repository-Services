@@ -11,37 +11,27 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 
-public class TextMatchesPredicateTest {
-
-	@Test
-	public void testTextMatchesPredicate() throws ParseException {
-		TextMatchesPredicate element = new TableQueryParser("TEXT_MATCHES('test')").textMatchesPredicate();
-		
-		// Call under test
-		String sql = element.toSql();
-		
-		assertEquals("TEXT_MATCHES('test')", sql);
-		
-	}
+public class TextMatchesMySQLPredicateTest {
 	
 	@Test
 	public void testToSQL() {
-		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesPredicate inputPredicate = new TextMatchesPredicate(new CharacterStringLiteral("some string"));
+		TextMatchesMySQLPredicate element = new TextMatchesMySQLPredicate(inputPredicate);
 		
 		// Call under test
 		String sql = element.toSql();
 		
-		assertEquals("TEXT_MATCHES('some string')", sql);
+		assertEquals("MATCH(ROW_SEARCH_CONTENT) AGAINST('some string')", sql);
 	}
 	
 	@Test
 	public void testGetChildren() {
-		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesPredicate inputPredicate = new TextMatchesPredicate(new CharacterStringLiteral("some string"));
+		TextMatchesMySQLPredicate element = new TextMatchesMySQLPredicate(inputPredicate);
 		
 		// Call under test
 		Iterator<Element> children = element.getChildren().iterator();
@@ -52,8 +42,8 @@ public class TextMatchesPredicateTest {
 	
 	@Test
 	public void testGetLeftHandSide() throws ParseException {
-		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesPredicate inputPredicate = new TextMatchesPredicate(new CharacterStringLiteral("some string"));
+		TextMatchesMySQLPredicate element = new TextMatchesMySQLPredicate(inputPredicate);
 		
 		// Call under test
 		ColumnReference columnReference = element.getLeftHandSide();
@@ -64,8 +54,8 @@ public class TextMatchesPredicateTest {
 	
 	@Test
 	public void testGetRightHandSideValues() {
-		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesPredicate inputPredicate = new TextMatchesPredicate(new CharacterStringLiteral("some string"));
+		TextMatchesMySQLPredicate element = new TextMatchesMySQLPredicate(inputPredicate);
 		
 		// Call under test
 		Iterator<UnsignedLiteral> rightHandSideValues = element.getRightHandSideValues().iterator();
@@ -73,4 +63,5 @@ public class TextMatchesPredicateTest {
 		assertEquals("'some string'", rightHandSideValues.next().toSql());
 		assertFalse(rightHandSideValues.hasNext());
 	}
+
 }
