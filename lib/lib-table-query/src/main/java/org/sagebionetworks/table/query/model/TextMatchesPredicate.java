@@ -12,7 +12,7 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
  */
 public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 		
-	private static final String KEYWORD = "TEXT_MATCHES";
+	public static final String KEYWORD = "TEXT_MATCHES";
 	private static final ColumnReference SEARCH_CONTENT_REF;
 	
 	static {

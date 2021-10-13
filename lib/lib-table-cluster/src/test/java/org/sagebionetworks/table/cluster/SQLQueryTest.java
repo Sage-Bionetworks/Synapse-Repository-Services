@@ -920,6 +920,7 @@ public class SQLQueryTest {
 		
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)", query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+		assertTrue(query.isIncludeSearch());
 	}
 
 }

@@ -62,6 +62,17 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	}
 	
 	/**
+	 * 
+	 * @return True if the query includes a {@link TextMatchesPredicate}
+	 */
+	public boolean isIncludeSearch() {
+		if (tableExpression != null) {
+			return tableExpression.getFirstElementOfType(TextMatchesPredicate.class) != null;
+		}
+		return false;
+	}
+	
+	/**
 	 * Get the name of this table.
 	 * @return
 	 */
