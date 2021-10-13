@@ -3141,7 +3141,7 @@ public class TableWorkerIntegrationTest {
 		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
 		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
 		
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('something')", null, null, (queryResult) -> {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
 		});
 	}
@@ -3162,6 +3162,11 @@ public class TableWorkerIntegrationTest {
 		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
 		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, null);
 		
+		// Searching should throw now as it is not enabled yet
+		assertThrows(IllegalArgumentException.class, () -> {
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('something')", null, null, (queryResult) -> {});	
+		});
+		
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		
@@ -3175,8 +3180,14 @@ public class TableWorkerIntegrationTest {
 		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
 		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
 		
+		// Should not break the table
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		});
+		
+		// Searching should work now as it is enabled
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('something')", null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
 		});
 	}
 	
@@ -3213,8 +3224,9 @@ public class TableWorkerIntegrationTest {
 		// Now disable search
 		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
-			assertEquals(2, queryResult.getQueryResults().getRows().size());
+		// Searching should throw now as it is disabled
+		assertThrows(IllegalArgumentException.class, () -> {
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('something')", null, null, (queryResult) -> {});
 		});
 	}
 	
@@ -3289,29 +3301,65 @@ public class TableWorkerIntegrationTest {
 			assertEquals(2L, resultBundle.getQueryCount());
 		});
 		
-		// Now check for a non existing value
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
-			assertEquals(0, queryResult.getQueryResults().getRows().size());
-		});
-		
-		// Now update one row to add the value
-		rows = Arrays.asList(
-			TableModelTestUtils.createRow(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(0).getVersionNumber(), "singlevalueupdated", "[]", "1")
-		);
-		
-		rowSet = new RowSet();
-		rowSet.setRows(rows);
-		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
-		rowSet.setTableId(tableId);
-		
-		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
-		
-		// Works with updated value
-		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
-			assertEquals(1, queryResult.getQueryResults().getRows().size());
-			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId());
-			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
-		});
+	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabledAndRowUpdated() throws Exception {
+			schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+			);
+			
+			headers = TableModelUtils.getIds(schema);
+			
+			TableEntity table = new TableEntity();
+			table.setName(UUID.randomUUID().toString());
+			table.setParentId(projectId);
+			table.setIsSearchEnabled(true);
+			table.setColumnIds(headers);
+			
+			tableId = entityManager.createEntity(adminUserInfo, table, null);
+			
+			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			
+			// Now add some data
+			List<Row> rows = Arrays.asList(
+				TableModelTestUtils.createRow(null, null, "singlevalue", "[]"),
+				TableModelTestUtils.createRow(null, null, "singlevalue", "[\"multi\", \"value\"]"),
+				TableModelTestUtils.createRow(null, null, "other", null)
+			);
+					
+			RowSet rowSet = new RowSet();
+			rowSet.setRows(rows);
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+			rowSet.setTableId(tableId);
+			
+			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			
+			// Now check for a non existing value
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
+				assertEquals(0, queryResult.getQueryResults().getRows().size());
+			});
+			
+			// Now update one row to add the value
+			rows = Arrays.asList(
+				TableModelTestUtils.createRow(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(0).getVersionNumber(), "singlevalueupdated", "[]")
+			);
+			
+			rowSet = new RowSet();
+			rowSet.setRows(rows);
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+			rowSet.setTableId(tableId);
+			
+			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			
+			// Works with updated value
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
+				assertEquals(1, queryResult.getQueryResults().getRows().size());
+				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId());
+				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+			});
 	}
 
 	/**
