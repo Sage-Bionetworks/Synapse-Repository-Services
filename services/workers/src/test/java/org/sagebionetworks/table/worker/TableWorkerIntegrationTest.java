@@ -3229,6 +3229,102 @@ public class TableWorkerIntegrationTest {
 			assertEquals(2, queryResult.getQueryResults().getRows().size());
 		});
 	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabled() throws Exception {
+		schema = Lists.newArrayList(
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.INTEGER).setName("three"))
+		);
+		
+		headers = TableModelUtils.getIds(schema);
+		
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		table.setColumnIds(headers);
+		
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+		
+		// Now add some data
+		List<Row> rows = Arrays.asList(
+			TableModelTestUtils.createRow(null, null, "singlevalue", "[]", "1"),
+			TableModelTestUtils.createRow(null, null, "singlevalue", "[\"multi\", \"value\"]", "2"),
+			TableModelTestUtils.createRow(null, null, "other", null, "3")
+		);
+				
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		// works on single value
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(1).getRowId());
+			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+		
+		// works on multi-value
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('multi value')", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId());
+			
+			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+		
+		// works with mix of predicates
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('other singlevalue') and three > 1", null, null, (queryResult) -> {
+			assertEquals(2, queryResult.getQueryResults().getRows().size());
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(2).getRowId(), referenceSet.getRows().get(1).getRowId());
+			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+		
+		// Count query still works
+		waitForConsistentQuery(adminUserInfo, "select COUNT(*) from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			assertEquals("2", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+		});
+		
+		// Count through query options still works
+		queryOptions.withRunCount(true);
+		
+		waitForConsistentQueryBundle(adminUserInfo, new Query().setSql("select * from " + tableId + " where text_matches('singlevalue')"), queryOptions, (resultBundle) -> {
+			assertEquals(2L, resultBundle.getQueryCount());
+		});
+		
+		// Now check for a non existing value
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
+			assertEquals(0, queryResult.getQueryResults().getRows().size());
+		});
+		
+		// Now update one row to add the value
+		rows = Arrays.asList(
+			TableModelTestUtils.createRow(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(0).getVersionNumber(), "singlevalueupdated", "[]", "1")
+		);
+		
+		rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+		
+		// Works with updated value
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalueupdated')", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId());
+			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+	}
 
 	/**
 	 * Create a string of the given size.
