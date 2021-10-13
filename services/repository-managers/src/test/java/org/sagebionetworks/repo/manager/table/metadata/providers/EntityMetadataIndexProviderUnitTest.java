@@ -9,9 +9,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -131,6 +133,20 @@ public class EntityMetadataIndexProviderUnitTest {
 
 		// Call under test
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
+
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetSubTypesForMaskWithAllTypes() {
+		// one of each
+		long viewTypeMask = (long) 0xffffffff;
+
+		// Call under test
+		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
+		
+		Set<SubType> expected = Arrays.stream(ViewTypeMask.values()).map(t -> SubType.valueOf(t.getEntityType().name()))
+				.collect(Collectors.toSet());
 
 		assertEquals(expected, result);
 	}
