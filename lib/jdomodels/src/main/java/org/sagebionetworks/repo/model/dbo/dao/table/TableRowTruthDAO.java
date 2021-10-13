@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -76,11 +75,11 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @param columns
 	 * @param delta
-	 * @param hasFileRefs If the change set includes references to file handles, note that it can currently be null but used for testing only before the backfill is performed
+	 * @param hasFileRefs If the change set includes references to file handles
 	 * @return
 	 * @throws IOException
 	 */
-	String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId, Boolean hasFileRefs);
+	String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId, boolean hasFileRefs);
 	
 	/**
 	 * Append a schema change to the table's changes.
