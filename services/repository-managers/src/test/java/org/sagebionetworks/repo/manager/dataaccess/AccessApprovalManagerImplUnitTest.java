@@ -79,7 +79,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@BeforeEach
 	public void before() {
 		userInfo = new UserInfo(false);
-		userInfo.setId(3L);
+		userInfo.setId(4L);
 	}
 
 	@Test
@@ -102,6 +102,7 @@ public class AccessApprovalManagerImplUnitTest {
 			manager.revokeAccessApprovals(userInfo, "1", null);
 		});
 	}
+	
 
 	@Test
 	public void testRevokeAccessApprovalsWithNonACTNorAdminUser() {
@@ -143,6 +144,37 @@ public class AccessApprovalManagerImplUnitTest {
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
+		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
+		
+		// Call under test
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		
+		verify(mockAccessApprovalDAO).listApprovalsByAccessor(accessRequirementId, accessorId);
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
+	}
+	
+	/**
+	 * Added for PLFM-6922.
+	 */
+	@Test
+	public void testRevokeAccessApprovalsWithOwnApproval() {
+		String accessRequirementId = "2";
+		String accessorId = userInfo.getId().toString();
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		AccessRequirement accessRequirement = new ACTAccessRequirement();
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
 		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class TableConstants {
 
@@ -81,7 +82,12 @@ public class TableConstants {
 	 * The column name prefix for extra doubles column.
 	 */
 	public static final String DOUBLE_PREFIX = "_DBL";
-
+	
+	/**
+	 * The set of column types eligible to be added to the search index
+	 */
+	public static final Set<ColumnType> SEARCH_TYPES = ImmutableSet.of(ColumnType.STRING, ColumnType.STRING_LIST, ColumnType.LARGETEXT, ColumnType.LINK);
+	
 	/**
 	 * Is the passed column name a reserved column name like ROW_ID or
 	 * ROW_VERSION?

@@ -3006,4 +3006,72 @@ public class SQLUtilsTest {
 		
 		assertEquals(expected, sql);
 	}
+	
+	@Test
+	public void testBuildSelectRowIdSQL() {
+		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectRowIdSQLWithNullId() {
+		tableId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildSelectRowIdSQLWithNullColumns() {
+		simpleSchema = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+		});
+		
+		assertEquals("The columns is required and must not be empty.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildSelectRowIdSQLWithEmptyColumns() {
+		simpleSchema = Collections.emptyList();
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+		});
+		
+		assertEquals("The columns is required and must not be empty.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildBatchUpdateSearchContentSql() {
+		String expected = "UPDATE T999 SET `ROW_SEARCH_CONTENT` = ? WHERE ROW_ID = ?";
+		
+		// Call under test
+		String sql = SQLUtils.buildBatchUpdateSearchContentSql(tableId);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildBatchUpdateSearchContentSqlWithNullId() {
+		tableId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLUtils.buildBatchUpdateSearchContentSql(tableId);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
 }

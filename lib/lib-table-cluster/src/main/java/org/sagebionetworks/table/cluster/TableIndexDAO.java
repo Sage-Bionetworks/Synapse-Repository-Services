@@ -14,10 +14,11 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -573,18 +574,6 @@ public interface TableIndexDAO {
 	 */
 	void deleteRowsFromViewBatch(IdAndVersion viewId, Long... idsToDelete);
 
-	// For testing:
-
-	/**
-	 * Clear all expirations.
-	 */
-	void truncateReplicationSyncExpiration();
-
-	/**
-	 * Cleanup all the index tables
-	 */
-	void truncateIndex();
-
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
@@ -630,5 +619,27 @@ public interface TableIndexDAO {
 	 * @param idAndVersion
 	 */
 	void removeSearchColumn(IdAndVersion idAndVersion);
+	
+	/**
+	 * Update the search column index for the rows with the give set of ids
+	 * 
+	 * @param idAndVersion
+	 * @param rowIds
+	 */
+	void updateSearchIndex(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds, RowSearchProcessor rowProcessor);
+
+	// For testing:
+
+	/**
+	 * Clear all expirations.
+	 */
+	void truncateReplicationSyncExpiration();
+
+	/**
+	 * Cleanup all the index tables
+	 */
+	void truncateIndex();
+	
+	Map<Long, String> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
 
 }

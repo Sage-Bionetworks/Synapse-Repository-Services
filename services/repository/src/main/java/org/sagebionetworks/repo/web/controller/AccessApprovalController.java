@@ -287,7 +287,7 @@ public class AccessApprovalController {
 
 	/**
 	 * Revoke all Access Approvals an accessor may have for a given Access Requirement.
-	 * This service is only available to the ACT.
+	 * The caller must match the accessorId or the caller must be a member of the ACT.
 	 * Note: requirementId must be the ID of an 
 	 * <a href="${org.sagebionetworks.repo.model.ACTAccessRequirement}">ACT AccessRequirement</a>.
 	 * 

@@ -169,7 +169,7 @@ public class TableRowTruthDAOImplTest {
 	 * @throws IOException
 	 */
 	private long appendRowSetToTable(String userId, String tableId, List<ColumnModel> columns, SparseChangeSet delta,
-			Long linkToVersion, Boolean hasFileRefs) throws IOException {
+			Long linkToVersion, boolean hasFileRefs) throws IOException {
 		return readCommitedTransactionTemplate.execute((TransactionStatus status) -> {
 			// Now set the row version numbers and ID.
 			int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);

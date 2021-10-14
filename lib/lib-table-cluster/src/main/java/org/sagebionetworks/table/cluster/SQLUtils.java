@@ -2129,5 +2129,26 @@ public class SQLUtils {
 		
 		return "ALTER TABLE " + tableName + " DROP COLUMN `" + ROW_SEARCH_CONTENT + "`";
 	}
-
+	
+	public static String buildSelectRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
+		ValidateArgument.required(id, "The id");
+		ValidateArgument.requiredNotEmpty(columns, "The columns");
+		
+		StringBuilder sql = new StringBuilder("SELECT ")
+				.append(ROW_ID)
+				.append(", ")
+				.append(String.join(",", getColumnNames(columns)))
+				.append(" FROM ")
+				.append(getTableNameForId(id, TableType.INDEX))
+				.append(" WHERE ").append(ROW_ID).append(" IN(:").append(ROW_ID).append(")");
+		
+		return sql.toString();
+	}
+	
+	public static String buildBatchUpdateSearchContentSql(IdAndVersion id) {
+		ValidateArgument.required(id, "The id");
+		
+		return "UPDATE " + getTableNameForId(id, TableType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = ? WHERE " + ROW_ID + " = ?";
+	}
+	
 }

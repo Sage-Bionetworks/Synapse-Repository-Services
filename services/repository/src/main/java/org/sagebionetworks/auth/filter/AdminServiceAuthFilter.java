@@ -45,6 +45,10 @@ public class AdminServiceAuthFilter extends BasicAuthServiceFilter {
 		return true;
 	}
 	
+	/**
+	 * Note: We attempted to remove this temporary code but it failed since all of the IT integration tests depend on the calling the 
+	 * administration services with an API key. See: PLFM-6973.
+	 */
 	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "This allows backward compatibility, can be removed once all the admin clients are updated.")
 	@Override
 	protected void validateCredentialsAndDoFilterInternal(HttpServletRequest httpRequest,

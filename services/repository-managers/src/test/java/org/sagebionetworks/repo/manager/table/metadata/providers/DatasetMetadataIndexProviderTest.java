@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -112,5 +113,18 @@ public class DatasetMetadataIndexProviderTest {
 			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
 		}).getMessage();
 		assertEquals("Maximum of 1 items in a dataset exceeded.", message);
+	}
+	
+	/**
+	 * Test for PLFM
+	 */
+	@Test
+	public void testGetDefaultColumnModel() {
+		Long viewTypeMask = null;
+		DefaultColumnModel expected = DefaultColumnModel.builder(ViewObjectType.DATASET)
+		.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
+		// call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+		assertEquals(expected, model);
 	}
 }

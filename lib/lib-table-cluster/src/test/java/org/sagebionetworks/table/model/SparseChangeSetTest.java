@@ -1,20 +1,24 @@
 package org.sagebionetworks.table.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -22,8 +26,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-
-import com.google.common.collect.Lists;
 
 public class SparseChangeSetTest {
 	
@@ -34,13 +36,13 @@ public class SparseChangeSetTest {
 	long versionNumber;
 	SparseChangeSet changeSet;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		MockitoAnnotations.initMocks(this);
 		booleanColumn = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
 		stringColumn = TableModelTestUtils.createColumn(2L, "aString", ColumnType.STRING);
 		doubleColumn = TableModelTestUtils.createColumn(3L, "aDouble", ColumnType.DOUBLE);
-		schema = Lists.newArrayList(booleanColumn, stringColumn, doubleColumn);
+		schema = Arrays.asList(booleanColumn, stringColumn, doubleColumn);
 		versionNumber = 101;
 		changeSet = new SparseChangeSet("syn123",schema);
 	}
@@ -53,10 +55,13 @@ public class SparseChangeSetTest {
 		assertEquals(doubleColumn, changeSet.getColumnModel(doubleColumn.getId()));
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetColumnModelNotFound(){
 		String columnIdDoesNotExist = "-99";
-		changeSet.getColumnModel(columnIdDoesNotExist);
+		
+		assertThrows(NotFoundException.class, () -> {
+			changeSet.getColumnModel(columnIdDoesNotExist);
+		});
 	}
 	
 	@Test
@@ -66,16 +71,20 @@ public class SparseChangeSetTest {
 		assertEquals(new Integer(2), changeSet.getColumnIndex(doubleColumn.getId()));
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetColumnIndexNotFound(){
 		String columnIdDoesNotExist = "-99";
-		changeSet.getColumnIndex(columnIdDoesNotExist);
+		assertThrows(NotFoundException.class, () -> {
+			changeSet.getColumnIndex(columnIdDoesNotExist);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testNullSchema(){
 		schema = null;
-		changeSet = new SparseChangeSet("syn123", schema);
+		assertThrows(IllegalArgumentException.class, () -> {
+			changeSet = new SparseChangeSet("syn123", schema);
+		});
 	}
 	
 	@Test
@@ -87,27 +96,28 @@ public class SparseChangeSetTest {
 		row.setCellValue(doubleColumn.getId(), "2.21");
 		// add invalid values to the next row
 		SparseRow nextRow = changeSet.addEmptyRow();
-		try {
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			nextRow.setCellValue(booleanColumn.getId(), "notABoolean");
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().startsWith("Value at [1,0] was not a valid BOOLEAN"));
-			assertFalse(nextRow.hasCellValue(booleanColumn.getId()));
-		}
-		try {
+		});
+		
+		assertTrue(e.getMessage().startsWith("Value at [1,0] was not a valid BOOLEAN"));
+		assertFalse(nextRow.hasCellValue(booleanColumn.getId()));
+		
+		e = assertThrows(IllegalArgumentException.class, () -> {
 			nextRow.setCellValue(stringColumn.getId(), "way too long................................................................................");
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().startsWith("Value at [1,1] was not a valid STRING"));
-			assertFalse(nextRow.hasCellValue(stringColumn.getId()));
-		}
-		try {
+		});
+		
+		assertTrue(e.getMessage().startsWith("Value at [1,1] was not a valid STRING"));
+		assertFalse(nextRow.hasCellValue(stringColumn.getId()));
+		
+		 e = assertThrows(IllegalArgumentException.class, () -> {
 			nextRow.setCellValue(doubleColumn.getId(), "not a double");
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().startsWith("Value at [1,2] was not a valid DOUBLE"));
-			assertFalse(nextRow.hasCellValue(doubleColumn.getId()));
-		}
+		 });
+		 
+		assertTrue(e.getMessage().startsWith("Value at [1,2] was not a valid DOUBLE"));
+		assertFalse(nextRow.hasCellValue(doubleColumn.getId()));
+		
 	}
 	
 	/**
@@ -133,7 +143,7 @@ public class SparseChangeSetTest {
 		SparseRow row = changeSet.addEmptyRow();
 		row.setRowId(123L);
 		String columnId = booleanColumn.getId();
-		assertFalse("Cell should start no value",row.hasCellValue(columnId));
+		assertFalse(row.hasCellValue(columnId), "Cell should start no value");
 		row.setCellValue(columnId, "true");
 		assertTrue(row.hasCellValue(columnId));
 	}
@@ -170,12 +180,15 @@ public class SparseChangeSetTest {
 		assertEquals("foo", value);
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetRowValueNotFound(){
 		SparseRow row = changeSet.addEmptyRow();
 		String columnId = stringColumn.getId();
-		// should throw not found.
-		row.getCellValue(columnId);
+		
+		assertThrows(NotFoundException.class, () -> {			
+			// should throw not found.
+			row.getCellValue(columnId);
+		});
 	}
 	
 	@Test
@@ -211,7 +224,7 @@ public class SparseChangeSetTest {
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
 		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING);
-		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
 		changeSet = new SparseChangeSet("syn123",schema);
 		// add combinations of rows
 		SparseRow r0 = changeSet.addEmptyRow();
@@ -255,28 +268,28 @@ public class SparseChangeSetTest {
 		// group one.
 		assertTrue(it.hasNext());
 		Grouping g1 = it.next();
-		assertEquals(Lists.newArrayList(c1), g1.getColumnsWithValues());
-		assertEquals(Lists.newArrayList(r0,r5), g1.getRows());
+		assertEquals(Arrays.asList(c1), g1.getColumnsWithValues());
+		assertEquals(Arrays.asList(r0,r5), g1.getRows());
 		// group two.
 		assertTrue(it.hasNext());
 		Grouping g2 = it.next();
-		assertEquals(Lists.newArrayList(c2), g2.getColumnsWithValues());
-		assertEquals(Lists.newArrayList(r1,r6), g2.getRows());
+		assertEquals(Arrays.asList(c2), g2.getColumnsWithValues());
+		assertEquals(Arrays.asList(r1,r6), g2.getRows());
 		// group three.
 		assertTrue(it.hasNext());
 		Grouping g3 = it.next();
-		assertEquals(Lists.newArrayList(c3), g3.getColumnsWithValues());
-		assertEquals(Lists.newArrayList(r2,r7), g3.getRows());
+		assertEquals(Arrays.asList(c3), g3.getColumnsWithValues());
+		assertEquals(Arrays.asList(r2,r7), g3.getRows());
 		// group four.
 		assertTrue(it.hasNext());
 		Grouping g4 = it.next();
-		assertEquals(Lists.newArrayList(c1,c2,c3), g4.getColumnsWithValues());
-		assertEquals(Lists.newArrayList(r3,r8), g4.getRows());
+		assertEquals(Arrays.asList(c1,c2,c3), g4.getColumnsWithValues());
+		assertEquals(Arrays.asList(r3,r8), g4.getRows());
 		// group four.
 		assertTrue(it.hasNext());
 		Grouping g5 = it.next();
-		assertEquals(Lists.newArrayList(), g5.getColumnsWithValues());
-		assertEquals(Lists.newArrayList(r4,r9), g5.getRows());
+		assertEquals(Arrays.asList(), g5.getColumnsWithValues());
+		assertEquals(Arrays.asList(r4,r9), g5.getRows());
 	}
 	
 	/**
@@ -327,7 +340,7 @@ public class SparseChangeSetTest {
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
 		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING);
-		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
 		changeSet = new SparseChangeSet("syn123",schema);
 		// add combinations of rows
 		SparseRow r0 = changeSet.addEmptyRow();
@@ -376,7 +389,7 @@ public class SparseChangeSetTest {
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING_LIST);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
 		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER_LIST);
-		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
 		changeSet = new SparseChangeSet("syn123",schema);
 		// add combinations of rows
 		SparseRow r0 = changeSet.addEmptyRow();
@@ -422,6 +435,133 @@ public class SparseChangeSetTest {
 				new ListColumnRowChanges(c3, Sets.newHashSet(2L,3L,7L,8L))
 		);
 		assertEquals(expected, listColumnRowChanges);
+	}
+	
+	@Test
+	public void testGetCreatedOrUpdatedRowIds() {
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING_LIST);
+		
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
+		
+		changeSet = new SparseChangeSet("syn123",schema);
+		// Add a delete
+		SparseRow r0 = changeSet.addEmptyRow();
+		r0.setRowId(0L);
+		
+		// Add a row with the first column only
+		SparseRow r1 = changeSet.addEmptyRow();
+		r1.setRowId(1L);
+		r1.setCellValue(c1.getId(), "value");
+		
+		// Add a row with the second column only
+		SparseRow r2 = changeSet.addEmptyRow();
+		r2.setRowId(2L);
+		r2.setCellValue(c2.getId(), "1");
+		
+		// Add all the column
+		SparseRow r3 = changeSet.addEmptyRow();
+		r3.setRowId(3L);
+		r3.setCellValue(c1.getId(), "value");
+		r3.setCellValue(c2.getId(), "1");
+		r3.setCellValue(c3.getId(), "[\"value\"]");
+		
+		List<ColumnModel> columnFilter = Arrays.asList(c1, c3);
+		
+		Set<Long> expected = ImmutableSet.of(1L, 3L);
+		
+		// Call under test
+		Set<Long> result = changeSet.getCreatedOrUpdatedRowIds(columnFilter);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetCreatedOrUpdatedRowIdsWithNoMatch() {
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING_LIST);
+		
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
+		
+		changeSet = new SparseChangeSet("syn123", schema);
+		
+		// Add a delete
+		SparseRow r0 = changeSet.addEmptyRow();
+		r0.setRowId(0L);
+		
+		// Add a row with the first column only
+		SparseRow r1 = changeSet.addEmptyRow();
+		r1.setRowId(1L);
+		r1.setCellValue(c1.getId(), "value");
+		
+		// Add a row with the second column only
+		SparseRow r2 = changeSet.addEmptyRow();
+		r2.setRowId(2L);
+		r2.setCellValue(c2.getId(), "1");
+		
+		// Add all the column
+		SparseRow r3 = changeSet.addEmptyRow();
+		r3.setRowId(3L);
+		r3.setCellValue(c1.getId(), "value");
+		r3.setCellValue(c2.getId(), "1");
+		r3.setCellValue(c3.getId(), "[\"value\"]");
+		
+		List<ColumnModel> columnFilter = Arrays.asList(new ColumnModel().setId("4"));
+
+		Set<Long> expected = Collections.emptySet();
+				
+		// Call under test
+		Set<Long> result = changeSet.getCreatedOrUpdatedRowIds(columnFilter);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetCreatedOrUpdatedRowIdsWithEmptyChangeSet() {
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING_LIST);
+		
+		List<ColumnModel> schema = Arrays.asList(c1, c2, c3);
+		
+		changeSet = new SparseChangeSet("syn123", schema);
+		
+		List<ColumnModel> columnFilter = Arrays.asList(c1, c2, c3);
+
+		Set<Long> expected = Collections.emptySet();
+				
+		// Call under test
+		Set<Long> result = changeSet.getCreatedOrUpdatedRowIds(columnFilter);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetCreatedOrUpdatedRowIdsWithNullFilter() {
+		
+		List<ColumnModel> columnFilter = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			changeSet.getCreatedOrUpdatedRowIds(columnFilter);
+		});
+
+		assertEquals("The columnModels is required and must not be empty.", ex.getMessage());
+	}
+	
+	@Test
+	public void testGetCreatedOrUpdatedRowIdsWithEmptyFilter() {
+		
+		List<ColumnModel> columnFilter = Collections.emptyList();
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			changeSet.getCreatedOrUpdatedRowIds(columnFilter);
+		});
+
+		assertEquals("The columnModels is required and must not be empty.", ex.getMessage());
 	}
 	
 }

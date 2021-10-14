@@ -80,6 +80,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
@@ -95,6 +96,7 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -119,6 +121,8 @@ public class TableIndexManagerImplTest {
 	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	@Mock
 	private ObjectFieldModelResolver mockObjectFieldModelResolver;
+	@Mock
+	private RowSearchProcessor mockSearchProcessor;
 	@Mock
 	private ViewFilter mockFilter;
 	@Mock
@@ -169,7 +173,7 @@ public class TableIndexManagerImplTest {
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory,
-				mockObjectFieldModelResolverFactory);
+				mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -224,7 +228,7 @@ public class TableIndexManagerImplTest {
 	public void testNullDao() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
@@ -232,21 +236,28 @@ public class TableIndexManagerImplTest {
 	public void testNullSupport() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
 	@Test
 	public void testNullProviderFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
 	@Test
 	public void testNullObjectFieldFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor);
+		});
+	}
+	
+	@Test
+	public void testNullSSearchProcessor() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
 		});
 	}
 
@@ -266,6 +277,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
 	}
 
 	@Test
@@ -279,6 +291,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		verify(mockIndexDao, never()).setMaxCurrentCompleteVersionForTable(any(IdAndVersion.class), anyLong());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
 	}
 
 	@Test
@@ -305,10 +318,11 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
 	}
 
 	@Test
-	public void testApplyChangeSetToIndex_PopulateListColumns() {
+	public void testApplyChangeSetToIndexPopulateListColumns() {
 		setupExecuteInWriteTransaction();
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		// no files in the schema
@@ -342,6 +356,89 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+	}
+	
+	@Test
+	public void testApplyChangeSetToIndexWithSearchEnabled() {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockIndexDao.isSearchEnabled(tableId)).thenReturn(true);
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "strList", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(101L, "str", ColumnType.STRING),
+				TableModelTestUtils.createColumn(102L, "integer", ColumnType.INTEGER)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row.setCellValue("101", "some value");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("101", "some value");
+
+		SparseRow row3 = sparseChangeSet.addEmptyRow();
+		row3.setRowId(6L);
+		row3.setCellValue("102", "1");
+		
+		// call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L), mockSearchProcessor);
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+	}
+	
+	@Test
+	public void testApplyChangeSetToIndexWithSearchEnabledAndNoUpdate() {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockIndexDao.isSearchEnabled(tableId)).thenReturn(true);
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "integer", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(101L, "double", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(102L, "integerList", ColumnType.INTEGER_LIST)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "1");
+		row.setCellValue("101", "1.0");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("101", "2.0");
+
+		SparseRow row3 = sparseChangeSet.addEmptyRow();
+		row3.setRowId(6L);
+		row3.setCellValue("102", "[1, 2, 3]");
+		
+		// call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
 
 	@Test

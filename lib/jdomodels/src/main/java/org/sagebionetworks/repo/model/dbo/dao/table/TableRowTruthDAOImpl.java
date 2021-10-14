@@ -126,7 +126,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	private static final String SQL_SELECT_WITH_FILE_REFS_PAGE = "SELECT * FROM " + TABLE_ROW_CHANGE 
 			+ " WHERE " + COL_TABLE_ROW_ID + " BETWEEN ? AND ?"
-			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND (" + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE OR " + COL_TABLE_ROW_HAS_FILE_REFS + " IS NULL)"
+			+ " AND " + COL_TABLE_ROW_TYPE + "='" + TableChangeType.ROW.name() + "' AND " + COL_TABLE_ROW_HAS_FILE_REFS + " IS TRUE"
 			+ " ORDER BY " + COL_TABLE_ROW_ID 
 			+ " LIMIT ? OFFSET ?";
 	
@@ -208,7 +208,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@WriteTransaction
 	@Override
 	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber,
-			List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId, Boolean hasFileRefs) {
+			List<ColumnModel> columns, final SparseChangeSetDto delta, long transactionId, boolean hasFileRefs) {
 		// Write the delta to S3
 		String key = saveToS3((OutputStream out) -> TableModelUtils.writeSparesChangeSetToGz(delta, out));
 		// record the change

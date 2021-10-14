@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -84,5 +85,16 @@ public class ViewTypeMaskTest {
 			// call under test
 			ViewTypeMask.getViewTypeMask(scope);
 		});
+	}
+	
+	@Test
+	public void testAllTypesMask() {
+		long  mask = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			assertTrue(type.getMask() > mask);
+			mask = mask | type.getMask();
+		}
+		System.out.println(mask);
+		assertEquals((long)Math.pow(2, ViewTypeMask.values().length), mask+1);
 	}
 }
