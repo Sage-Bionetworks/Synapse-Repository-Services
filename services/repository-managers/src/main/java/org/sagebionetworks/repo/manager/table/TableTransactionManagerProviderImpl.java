@@ -5,11 +5,13 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Simple mapping of entity types to transaction managers.
  *
  */
+@Service
 public class TableTransactionManagerProviderImpl implements TableTransactionManagerProvider {
 
 	@Autowired
