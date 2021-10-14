@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -856,11 +857,11 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
 
 		//parameter mapping should have stripped out the "syn" prefixes
-		Map<String, Object> expected = new HashMap<String, Object>(){{
-				put("b0", 123L);
-				put("b1", 456L);
-				put("b2", 789L);
-		}};
+		Map<String, Object> expected = ImmutableMap.of(
+			"b0", 123L,
+			"b1", 456L,
+			"b2", 789L
+		);
 
 		assertEquals(expected, parameters);
 	}
@@ -2061,7 +2062,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_nullEmptyList() {
+	public void testTranslateQueryFiltersWithNOrullEmptyList() {
 		assertThrows(IllegalArgumentException.class, () ->
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(null)
@@ -2074,7 +2075,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_singleColumns() {
+	public void testTranslateQueryFiltersWithSingleColumns() {
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2086,7 +2087,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_multipleColumns(){
+	public void testTranslateQueryFiltersWithMultipleColumns(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2103,7 +2104,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_singleValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndsingleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2116,7 +2117,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndmultipleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2129,7 +2130,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_nullEmptyColName(){
+	public void testTranslateQueryFiltersWithLikeFilterAndnullEmptyColName(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
 		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
@@ -2149,7 +2150,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_nullEmptyValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndNullOrEmptyValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		StringBuilder builder = new StringBuilder();
@@ -2168,7 +2169,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithHasFilterAndmultipleValues(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS)
@@ -2181,7 +2182,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasLikeFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithHasLikeFilterAndmultipleValues(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
@@ -2194,7 +2195,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasFilter_SingleValue(){
+	public void testTranslateQueryFiltersWithHasFilterAndSingleValue(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS)
@@ -2207,7 +2208,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasLikeFilter_SingleValue(){
+	public void testTranslateQueryFiltersWithHasLikeFilterAndSingleValue(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
@@ -2218,9 +2219,44 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateQueryFilters(builder, filter);
 		assertEquals("(\"myCol\" HAS_LIKE ('foo%'))", builder.toString());
 	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithTextMatchesFilter(){
+		TextMatchesQueryFilter filter = new TextMatchesQueryFilter()
+				.setSearchExpression("some search string");
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(TEXT_MATCHES('some search string'))", builder.toString());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithTextMatchesFilterAndNullOrEmptyValue(){
+		TextMatchesQueryFilter filter = new TextMatchesQueryFilter()
+				.setSearchExpression(null);
+
+		StringBuilder builder = new StringBuilder();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		}).getMessage();
+		
+		assertEquals("TextMatchesQueryFilter.searchExpression is required and must not be the empty string.", message);
+		
+		filter.setSearchExpression("  ");
+		
+		message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		}).getMessage();
+		
+		assertEquals("TextMatchesQueryFilter.searchExpression is required and must not be a blank string.", message);
+	}
 
 	@Test
-	public void testTranslateQueryFilters_UnknownImplementation(){
+	public void testTranslateQueryFiltersWithUnknownImplementation(){
 		QueryFilter filter = new QueryFilter(){
 			@Override
 			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {

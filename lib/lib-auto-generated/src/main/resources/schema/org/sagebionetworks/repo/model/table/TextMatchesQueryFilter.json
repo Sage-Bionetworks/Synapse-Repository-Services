@@ -1,0 +1,10 @@
+{
+	"implements": [{"$ref":"org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"description": "A filter to apply a TEXT_MATCHES predicate (full text search) to the query using the given searchExpression as value.",
+	"properties": {
+		"searchExpression": {
+			"type": "string",
+			"description": "The search expression to match against the table rows."
+		}
+	}
+}

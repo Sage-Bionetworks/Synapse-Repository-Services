@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -912,9 +913,20 @@ public class SQLTranslatorUtils {
 			translateSingleValueFilters(builder, (ColumnSingleValueQueryFilter) filter);
 		} else if (filter instanceof ColumnMultiValueFunctionQueryFilter) {
 			translateMultiValueFunctionFilters(builder, (ColumnMultiValueFunctionQueryFilter) filter);
+		} else if (filter instanceof TextMatchesQueryFilter) {
+			translateTextMatchesQueryFilter(builder, (TextMatchesQueryFilter) filter);
 		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
+	}
+
+	static void translateTextMatchesQueryFilter(StringBuilder builder, TextMatchesQueryFilter filter) {
+		ValidateArgument.requiredNotBlank(filter.getSearchExpression(), "TextMatchesQueryFilter.searchExpression");
+		builder.append("(");
+		builder.append(TextMatchesPredicate.KEYWORD).append("(");
+		appendSingleQuotedValueToStringBuilder(builder, filter.getSearchExpression());
+		builder.append(")");
+		builder.append(")");
 	}
 
 	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){
