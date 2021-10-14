@@ -16,7 +16,7 @@ public class TextMatchesMySQLPredicate extends SQLElement implements HasPredicat
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("MATCH(").append(TableConstants.ROW_SEARCH_CONTENT).append(") AGAINST(");
-		inputPredicate.getValueExpression().toSql(builder, parameters);
+		inputPredicate.getSearchExpression().toSql(builder, parameters);
 		builder.append(")");
 	}
 

@@ -2,6 +2,7 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Iterator;
 
@@ -25,6 +26,33 @@ public class TextMatchesPredicateTest {
 		
 		assertEquals("TEXT_MATCHES('test')", sql);
 		
+	}
+	
+	@Test
+	public void testTextMatchesPredicateWithCaseInsensitive() throws ParseException {
+		TextMatchesPredicate element = new TableQueryParser("text_MATCHES('test')").textMatchesPredicate();
+		
+		// Call under test
+		String sql = element.toSql();
+		
+		assertEquals("TEXT_MATCHES('test')", sql);
+		
+	}
+	
+	@Test
+	public void testTextMatchesPredicateWithNonCharacterLiteral() throws ParseException {
+		assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("TEXT_MATCHES(1.0)").textMatchesPredicate();
+		});
+		assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("TEXT_MATCHES(false)").textMatchesPredicate();
+		});
+		assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("TEXT_MATCHES(1)").textMatchesPredicate();
+		});
+		assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("TEXT_MATCHES(\"something\")").textMatchesPredicate();
+		});
 	}
 	
 	@Test

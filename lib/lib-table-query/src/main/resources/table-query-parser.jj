@@ -1047,12 +1047,12 @@ SynapseFunctionName synapseFunctionName():
 
 TextMatchesPredicate textMatchesPredicate():
 {
-	CharacterStringLiteral valueExpression = null;
+	CharacterStringLiteral searchExpression = null;
 }
 {
-	<text_matches><left_paren> { valueExpression = characterStringLiteral(); } <right_paren>
+	<text_matches><left_paren> { searchExpression = characterStringLiteral(); } <right_paren>
 	
-	{ return new TextMatchesPredicate(valueExpression); }
+	{ return new TextMatchesPredicate(searchExpression); }
 }
 
 MySqlFunction mysqlFunction():

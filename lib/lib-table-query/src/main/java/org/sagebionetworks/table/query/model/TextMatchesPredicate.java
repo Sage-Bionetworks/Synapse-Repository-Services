@@ -23,26 +23,26 @@ public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 		}
 	}
 	
-	private UnsignedLiteral valueExpression;
+	private UnsignedLiteral searchExpression;
 
-	public TextMatchesPredicate(CharacterStringLiteral valueExpression) {
-		this.valueExpression = new UnsignedLiteral(new GeneralLiteral(valueExpression));
+	public TextMatchesPredicate(CharacterStringLiteral searchExpression) {
+		this.searchExpression = new UnsignedLiteral(new GeneralLiteral(searchExpression));
 	}
 	
-	public UnsignedLiteral getValueExpression() {
-		return valueExpression;
+	public UnsignedLiteral getSearchExpression() {
+		return searchExpression;
 	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(KEYWORD).append("(");
-		valueExpression.toSql(builder, parameters);
+		searchExpression.toSql(builder, parameters);
 		builder.append(")");
 	}
 
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(valueExpression);
+		return SQLElement.buildChildren(searchExpression);
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 	
 	@Override
 	public Iterable<UnsignedLiteral> getRightHandSideValues() {
-		return Collections.singleton(valueExpression);
+		return Collections.singleton(searchExpression);
 	}
 
 }
