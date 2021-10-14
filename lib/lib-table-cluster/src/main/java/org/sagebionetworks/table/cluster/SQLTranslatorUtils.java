@@ -552,24 +552,8 @@ public class SQLTranslatorUtils {
 			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
-		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
 		
-		ColumnReference leftHandSide = predicate.getLeftHandSide();
-		
-		// We first check if the left hand side column is implicit (Not exposed to the user, for example TextMatchesPredicate)
-		// In such cases the ColumnTranslationReferenceLookup cannot be used since the user cannot query the column directly
-		// and instead we use the column type from the reference directly
-		ColumnType columnType = leftHandSide.getImplicitColumnType();
-		
-		if (columnType == null) {
-			// lookup the column name from the left-hand-side
-			String columnName = leftHandSide.toSqlWithoutQuotes();
-			
-			ColumnTranslationReference columnReference = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
-					.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName));
-
-			columnType = columnReference.getColumnType();
-		}	
+		ColumnType columnType = getColumnType(columnTranslationReferenceLookup, predicate.getLeftHandSide());	
 		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
@@ -596,6 +580,26 @@ public class SQLTranslatorUtils {
 					columnNameRef.replaceChildren(new RegularIdentifier(referencedColumn.getTranslatedColumnName()));
 				});
 		}
+	}
+
+	static ColumnType getColumnType(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, ColumnReference columnReference) {
+		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
+		ValidateArgument.required(columnReference, "columnReference");
+		// We first check if the left hand side column is implicit (Not exposed to the user, for example TextMatchesPredicate)
+		// In such cases the ColumnTranslationReferenceLookup cannot be used since the user cannot query the column directly
+		// and instead we use the column type from the reference directly
+		ColumnType columnType = columnReference.getImplicitColumnType();
+		
+		if (columnType == null) {
+			// lookup the column name from the left-hand-side
+			String columnName = columnReference.toSqlWithoutQuotes();
+			
+			columnType = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
+					.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName))
+					.getColumnType();
+		}
+		
+		return columnType;
 	}
 
 	/**

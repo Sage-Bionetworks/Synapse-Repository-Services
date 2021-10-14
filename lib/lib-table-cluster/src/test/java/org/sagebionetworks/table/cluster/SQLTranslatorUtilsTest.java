@@ -50,6 +50,7 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
@@ -2246,6 +2247,66 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
 		);
+	}
+	
+	@Test
+	public void testGetColumnType() throws ParseException {
+		ColumnModel column = schema.get(0);
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(column.getName()));
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(column.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithImplicitType() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("column"), ColumnType.DOUBLE);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(ColumnType.DOUBLE, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNonExistingColumn() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("nonexisting"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("Column does not exist: nonexisting", message);
+		
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReference() throws ParseException {
+		ColumnReference columnReference = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnReference is required.", message);	
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReferenceLookup() throws ParseException {
+		columnMap = null;
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(schema.get(0).getName()));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnTranslationReferenceLookup is required.", message);
+		
 	}
 	
 	@Test
