@@ -382,22 +382,6 @@
 	<bean id="tableTransactionManagerProvider"
 		class="org.sagebionetworks.repo.manager.table.TableTransactionManagerProviderImpl"
 		scope="singleton">
-		<property name="managerMap">
-			<map>
-				<entry key="table">
-					<ref bean="tableEntityTransactionManager" />
-				</entry>
-				<entry key="entityview">
-					<ref bean="tableViewTransactionManager" />
-				</entry>
-				<entry key="submissionview">
-					<ref bean="tableViewTransactionManager" />
-				</entry>
-				<entry key="dataset">
-					<ref bean="tableViewTransactionManager" />
-				</entry>
-			</map>
-		</property>
 	</bean>
 
 	<bean id="tableUploadManager"
