@@ -25,9 +25,9 @@ public class TableTransactionManagerMap {
 	public Map<EntityType, TableTransactionManager> getMapping() {
 		Map<EntityType, TableTransactionManager> map = new HashMap<>();
 		map.put(EntityType.table, tableEntityTransactionManager);
-		map.put(EntityType.entityview, tableEntityTransactionManager);
-		map.put(EntityType.submissionview, tableEntityTransactionManager);
-		map.put(EntityType.dataset, tableEntityTransactionManager);
+		map.put(EntityType.entityview, tableViewTransactionManager);
+		map.put(EntityType.submissionview, tableViewTransactionManager);
+		map.put(EntityType.dataset, tableViewTransactionManager);
 		return map;
 	};
 }
