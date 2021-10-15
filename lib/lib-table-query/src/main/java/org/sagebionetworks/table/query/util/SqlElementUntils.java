@@ -1,7 +1,11 @@
 package org.sagebionetworks.table.query.util;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -13,6 +17,7 @@ import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
+import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
@@ -46,11 +51,8 @@ import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Utilities for creating SQL elements
@@ -364,6 +366,16 @@ public class SqlElementUntils {
 	 */
 	public static ColumnReference createColumnReference(String sql) throws ParseException {
 		return new TableQueryParser(sql).columnReference();
+	}
+	
+	/**
+	 * Creates a column name for the passed SQL.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static ColumnName createColumnName(String sql) throws ParseException {
+		return new TableQueryParser(sql).columnName();
 	}
 
 	/**

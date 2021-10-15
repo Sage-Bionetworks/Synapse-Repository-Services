@@ -633,6 +633,25 @@ public class TableQueryManagerImplTest {
 		assertEquals(expectedRangeResult, facetResultColumn);
 	}
 	
+	@Test
+	public void testQueryAsStreamAfterAuthorizationWithSearchDisabled() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.isSearchEnabled(any())).thenReturn(false);
+		
+		// null handler indicates not to run the main query.
+		RowHandler rowHandler = null;
+		queryOptions = new QueryOptions();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId+" where text_matches('test')", models, user.getId()).build();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		}).getMessage();
+		
+		assertEquals("Invalid use of TEXT_MATCHES. Full text search is not enabled on table syn123.", message);
+
+	}
+	
 	
 	@Test
 	public void testRunQueryAsStream() throws ParseException{

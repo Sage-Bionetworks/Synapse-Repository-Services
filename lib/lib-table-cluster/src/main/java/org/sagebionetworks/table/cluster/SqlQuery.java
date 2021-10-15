@@ -107,6 +107,8 @@ public class SqlQuery {
 	List<FacetColumnRequest> selectedFacets;
 
 	EntityType tableType;
+	
+	private boolean isIncludeSearch;
 
 	/**
 	 * @param tableId
@@ -197,6 +199,8 @@ public class SqlQuery {
 		if(maxBytesPerPage != null){
 			this.maxRowsPerPage =  Math.max(1, maxBytesPerPage / this.maxRowSizeBytes);
 		}
+		// Does the query contain any text_matches elements?
+		this.isIncludeSearch = model.isIncludeSearch();
 		// paginated model includes all overrides and max rows per page.
 		QuerySpecification paginatedModel = SqlElementUntils.overridePagination(model, overrideOffset, overrideLimit, maxRowsPerPage);
 
@@ -368,5 +372,9 @@ public class SqlQuery {
 
 	public Long getUserId() {
 		return userId;
+	}
+	
+	public boolean isIncludeSearch() {
+		return isIncludeSearch;
 	}
 }

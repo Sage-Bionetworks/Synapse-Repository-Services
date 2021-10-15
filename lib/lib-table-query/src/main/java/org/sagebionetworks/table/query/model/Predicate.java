@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * Predicate ::= {@link ComparisonPredicate} | {@link BetweenPredicate} |
  * {@link InPredicate} | {@link LikePredicate} | {@link IsPredicate} |
- * {@link BooleanFunctionPredicate}
+ * {@link BooleanFunctionPredicate} | {@link TextMatchesPredicate}
  */
 public class Predicate extends SimpleBranch {
 
@@ -33,5 +33,9 @@ public class Predicate extends SimpleBranch {
 
 	public Predicate(BooleanFunctionPredicate booleanFunctionPredicate) {
 		super(booleanFunctionPredicate);
+	}
+	
+	public Predicate(TextMatchesPredicate textMatchesPredicate) {
+		super(textMatchesPredicate);
 	}
 }

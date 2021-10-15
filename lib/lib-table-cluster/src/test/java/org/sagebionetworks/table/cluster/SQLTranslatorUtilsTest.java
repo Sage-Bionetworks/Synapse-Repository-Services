@@ -50,6 +50,7 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
@@ -58,9 +59,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -69,7 +68,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.ImmutableMap;
@@ -2249,5 +2247,93 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
 		);
+	}
+	
+	@Test
+	public void testGetColumnType() throws ParseException {
+		ColumnModel column = schema.get(0);
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(column.getName()));
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(column.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithImplicitType() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("column"), ColumnType.DOUBLE);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(ColumnType.DOUBLE, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNonExistingColumn() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("nonexisting"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("Column does not exist: nonexisting", message);
+		
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReference() throws ParseException {
+		ColumnReference columnReference = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnReference is required.", message);	
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReferenceLookup() throws ParseException {
+		columnMap = null;
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(schema.get(0).getName()));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnTranslationReferenceLookup is required.", message);
+		
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicate() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text')").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(Collections.singletonMap("b0", "some text"), parameters);
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicateMultiple() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text') AND (foo = 'bar' OR TEXT_MATCHES('some other text'))").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0) AND ( _C111_ = :b1 OR MATCH(ROW_SEARCH_CONTENT) AGAINST(:b2) )";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(ImmutableMap.of("b0", "some text", "b1", "bar", "b2", "some other text"), parameters);
 	}
 }
