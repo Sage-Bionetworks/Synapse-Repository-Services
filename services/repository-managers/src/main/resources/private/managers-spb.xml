@@ -370,32 +370,6 @@
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
     
 	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
-    
-	<bean id="tableEntityTransactionManager"
-		class="org.sagebionetworks.repo.manager.table.TableEntityTransactionManager"
-		scope="singleton"/>
-		
-	<bean id="tableViewTransactionManager"
-		class="org.sagebionetworks.repo.manager.table.TableViewTransactionManager"
-		scope="singleton"/>
-
-	<bean id="tableTransactionManagerProvider"
-		class="org.sagebionetworks.repo.manager.table.TableTransactionManagerProviderImpl"
-		scope="singleton">
-		<property name="managerMap">
-			<map>
-				<entry key="table">
-					<ref bean="tableEntityTransactionManager" />
-				</entry>
-				<entry key="entityview">
-					<ref bean="tableViewTransactionManager" />
-				</entry>
-				<entry key="submissionview">
-					<ref bean="tableViewTransactionManager" />
-				</entry>
-			</map>
-		</property>
-	</bean>
 
 	<bean id="tableUploadManager"
 		class="org.sagebionetworks.repo.manager.table.TableUploadManagerImpl"

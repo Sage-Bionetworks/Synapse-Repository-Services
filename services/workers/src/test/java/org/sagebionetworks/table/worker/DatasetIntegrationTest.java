@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
@@ -33,6 +35,11 @@ import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,8 +133,8 @@ public class DatasetIntegrationTest {
 
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
 				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
-		
-		
+
+
 		// call under test
 		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC",
 				(QueryResultBundle result) -> {
@@ -144,12 +151,11 @@ public class DatasetIntegrationTest {
 							.setValues(Arrays.asList("v-3")), rows.get(2));
 				}, MAX_WAIT);
 	}
-	
-	
+
+
 	/**
 	 * Create File entity with multiple versions using the annotations for each version.
-	 * 
-	 * @param annotationVersion
+	 *
 	 * @return
 	 */
 	public FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
@@ -159,7 +165,7 @@ public class DatasetIntegrationTest {
 			AnnotationsV2TestUtils.putAnnotations(annos, annotationKey, "v-"+i, AnnotationsValueType.STRING);
 			annotations.add(annos);
 		}
-		
+
 		// create the entity
 		String fileId = null;
 		int version = 1;
@@ -186,6 +192,53 @@ public class DatasetIntegrationTest {
 			version++;
 		}
 		return entityManager.getEntity(userInfo, fileId, FileEntity.class);
+	}
+
+	@Test
+	public void testSchemaUpdateTransaction() throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), 1);
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L)
+		);
+
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+
+		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
+				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
+
+
+		// Create a new ColumnModel
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setName("aNewColumnName");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(75L);
+		newColumn = columnModelManager.createColumnModel(userInfo, newColumn);
+
+		// Create a transaction request to update the schema
+		// Replace the old column with the new column
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(stringColumn.getId());
+		change.setNewColumnId(newColumn.getId());
+		schemaChangeRequest.setChanges(Collections.singletonList(change));
+
+		List<TableUpdateRequest> changes = Collections.singletonList(schemaChangeRequest);
+
+		TableUpdateTransactionRequest request = new TableUpdateTransactionRequest();
+		request.setEntityId(dataset.getId());
+		request.setChanges(changes);
+
+		List<ColumnModel> expectedSchema = Collections.singletonList(newColumn);
+
+		// call under test
+		asyncHelper.assertJobResponse(userInfo,	request,
+				(TableUpdateTransactionResponse result) -> {
+					TableSchemaChangeResponse schemaChangeResponse = (TableSchemaChangeResponse) result.getResults().get(0);
+					assertEquals(expectedSchema, schemaChangeResponse.getSchema());
+				},
+				MAX_WAIT
+		);
 	}
 
 }

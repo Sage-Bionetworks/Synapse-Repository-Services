@@ -37,6 +37,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 
 /**
@@ -45,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
+@Service
 public class TableViewTransactionManager implements TableTransactionManager, UploadRowProcessor {
 	
 	@Autowired
