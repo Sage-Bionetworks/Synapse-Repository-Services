@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -558,6 +559,79 @@ public class AnnotationsTranslatorImplTest {
 	}
 	
 	@Test
+	public void testIsSingleType() {
+		// default to null
+		assertFalse(translator.isSingleType(null));
+		assertFalse(translator.isSingleType(new JsonSchema()));
+		assertFalse(translator.isSingleType(new JsonSchema().setType(Type.array)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.string)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.integer)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.number)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type._boolean)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type._null)));
+		assertTrue(translator.isSingleType(new JsonSchema().setType(Type.object)));
+		assertTrue(translator.isSingleType(new JsonSchema().set_enum(Collections.emptyList())));
+		assertTrue(translator.isSingleType(new JsonSchema().set_enum(Arrays.asList("one"))));
+		assertTrue(translator.isSingleType(new JsonSchema().set_const("one")));
+	}
+	
+	@Test
+	public void testBuildJsonSchemaIsSingleMap() throws Exception {
+		JsonSchema schema = SchemaTestUtils.loadSchemaFromClasspath("schemas/ComplexReferences.json");
+		// call under test
+		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
+		Map<String, Boolean> expected = new HashMap<>(10);
+		expected.put("simple-single-ref", true);
+		expected.put("simple-array-ref", false);
+		expected.put("array-items-ref", false);
+		expected.put("ref-to-const", true);
+		expected.put("ref-to-enum", true);
+		expected.put("inside-if", true);
+		expected.put("then-value", false);
+		expected.put("else-value", true);
+		assertEquals(expected, map);
+	}
+	
+	@Test
+	public void testBuildJsonSchemaIsSingleMapWithNullDefinitions() throws Exception {
+		JsonSchema schema = SchemaTestUtils.loadSchemaFromClasspath("schemas/ComplexReferences.json");
+		schema.setDefinitions(null);
+		// call under test
+		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
+		// without valid references everything is false.
+		Map<String, Boolean> expected = new HashMap<>(10);
+		expected.put("simple-single-ref", false);
+		expected.put("simple-array-ref", false);
+		expected.put("array-items-ref", false);
+		expected.put("ref-to-const", false);
+		expected.put("ref-to-enum", false);
+		expected.put("inside-if", false);
+		expected.put("then-value", false);
+		expected.put("else-value", false);
+		assertEquals(expected, map);
+	}
+	
+	@Test
+	public void testGetRelative$Ref() {
+		assertEquals("bar", translator.getRelative$Ref("#/definitions/bar"));
+		assertEquals("foo", translator.getRelative$Ref("foo"));
+		assertEquals("", translator.getRelative$Ref("#/definitions/"));
+	}
+	
+	@Test
+	public void testBuildJsonSchemaIsSingleMapWithBad$ref() throws Exception {
+		JsonSchema schema = new JsonSchema().setProperties(new HashMap<String, JsonSchema>());
+		schema.getProperties().put("has-bad-ref", new JsonSchema().set$ref("wrong"));
+		
+		schema.setDefinitions(null);
+		// call under test
+		Map<String, Boolean> map = translator.buildJsonSchemaIsSingleMap(schema);
+		Map<String, Boolean> expected = new HashMap<>(1);
+		expected.put("has-bad-ref", false);
+		assertEquals(expected, map);
+	}
+	
+	@Test
 	public void testWriteAnnotationsToJSONObjectWithNullValue() {
 		schema = null;
 		Annotations toWrite = new Annotations();
@@ -926,6 +1000,31 @@ public class AnnotationsTranslatorImplTest {
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		assertEquals(json.getString("key"), "foo");
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithReferencedSchemaAndNoDefintions() {
+		// should not default to an array
+		JsonSchema referencedSchema = new JsonSchema();
+		referencedSchema.set$id("org-id");
+		referencedSchema.setType(Type.string);
+		JsonSchema reference = new JsonSchema();
+		reference.set$ref("#/definitions/" + referencedSchema.get$id());
+		properties.put("key", reference);
+		Map<String, JsonSchema> definitions = new HashMap<>();
+		definitions.put(referencedSchema.get$id(), referencedSchema);
+		schema.setDefinitions(null);
+		Annotations toWrite = new Annotations();
+		Map<String, AnnotationsValue> map = new LinkedHashMap<String, AnnotationsValue>();
+		AnnotationsValue annoValue = new AnnotationsValue();
+		annoValue.setType(AnnotationsValueType.STRING);
+		annoValue.setValue(Arrays.asList("foo"));
+		map.put("key", annoValue);
+		toWrite.setAnnotations(map);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		assertEquals(json.getJSONArray("key").getString(0), "foo");
 	}
 	
 	@Test

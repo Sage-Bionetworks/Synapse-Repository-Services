@@ -1,0 +1,75 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "complexRefs",
+	"description": "test for complext $refs",
+	"properties": {
+		"simple-single-ref": {
+			"$ref": "#/definitions/org-simple.string-1.0.2"
+		},
+		"simple-array-ref": {
+			"$ref": "#/definitions/org-simple.array.boolean"
+		},
+		"array-items-ref": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/org-simple.string-1.0.2"
+			}
+		},
+		"ref-to-const": {
+			"$ref": "#/definitions/org-simple.const"
+		},
+		"ref-to-enum": {
+			"$ref": "#/definitions/org-simple.enum"
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"inside-if": {
+						"$ref": "#/definitions/org-simple.const"
+					}
+				}
+			},
+			"then": {
+				"description": "when red, then an array",
+				"properties": {
+					"then-value": {
+						"$ref": "#/definitions/org-simple.array.boolean"
+					}
+				}
+			},
+			"else": {
+				"description": "when not red, then a single",
+				"properties": {
+					"else-value": {
+						"$ref": "#/definitions/org-simple.string-1.0.2"
+					}
+				}
+			}
+		}
+	],
+	"definitions": {
+		"org-simple.string-1.0.2": {
+			"type": "string",
+			"description": "A simple string"
+		},
+		"org-simple.array.boolean": {
+			"description": "An array of booleans",
+			"type": "array",
+			"items": {
+				"type": "boolean"
+			}
+		},
+		"org-simple.const": {
+			"const": "red"
+		},
+		"org-simple.enum": {
+			"enum": [
+				"red",
+				"blue",
+				"green"
+			]
+		}
+	}
+}

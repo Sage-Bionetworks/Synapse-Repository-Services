@@ -577,7 +577,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		String schemaId = info.getSchemaId();
 		Iterator<String> versionIds = getVersionIdsOfDependantsIterator(schemaId);
 		while (versionIds.hasNext()) {
-			// send ChangeType.UPDATE so createOrUpdateValidationSchemaIndex doesn't re-send dependant notifications
+			// send ChangeType.UPDATE so createOrUpdateValidationSchemaIndex doesn't re-send dependent notifications
 			transactionalMessenger.sendMessageAfterCommit(versionIds.next(), 
 					ObjectType.JSON_SCHEMA, ChangeType.UPDATE);
 		}
