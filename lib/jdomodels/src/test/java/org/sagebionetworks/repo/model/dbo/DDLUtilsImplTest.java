@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,14 +21,8 @@ public class DDLUtilsImplTest {
 	@Autowired
 	DDLUtils ddlUtils;
 
-	@Autowired
-	StackConfiguration stackConfiguration;
-
 	String tableName = "EXAMPLE_TEST";
 	String ddlFile = "Example.sql";
-
-	String userName = "testUser";
-	String password = "testPassword";
 
 	@Test
 	public void testValidateTableExists() throws IOException{
