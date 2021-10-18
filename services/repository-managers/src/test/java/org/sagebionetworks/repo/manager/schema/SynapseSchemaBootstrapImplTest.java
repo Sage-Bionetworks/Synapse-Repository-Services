@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,8 +23,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -33,8 +35,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.google.common.collect.Lists;
@@ -258,7 +258,7 @@ public class SynapseSchemaBootstrapImplTest {
 		verify(bootstrapSpy).getNextPatchNumberIfNeeded(organizationName, schemaName, jsonSchema);
 		
 		CreateSchemaRequest expected = new CreateSchemaRequest();
-		JsonSchema clone = cloneJsonSchema(jsonSchema);
+		JsonSchema clone = SchemaTestUtils.cloneJsonSchema(jsonSchema);
 		clone.set$id("org.sagebionetworks-repo.model.Test.json-1.0.101");
 		expected.setSchema(clone);
 		verify(mockJsonSchemaManager).createJsonSchema(admin, expected);
@@ -354,12 +354,5 @@ public class SynapseSchemaBootstrapImplTest {
 		assertEquals(jsonSchema.getAllOf().get(0).get$ref(), versionInfo.get$id());
 	}
 
-	public JsonSchema cloneJsonSchema(JsonSchema schema) {
-		try {
-			String json = EntityFactory.createJSONStringForEntity(schema);
-			return EntityFactory.createEntityFromJSONString(json, JsonSchema.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-	}
+
 }
