@@ -120,6 +120,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -3287,7 +3288,7 @@ public class TableWorkerIntegrationTest {
 			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(2).getRowId(), referenceSet.getRows().get(1).getRowId());
 			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 		});
-		
+				
 		// Count query still works
 		waitForConsistentQuery(adminUserInfo, "select COUNT(*) from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
 			assertEquals(1, queryResult.getQueryResults().getRows().size());
@@ -3299,6 +3300,13 @@ public class TableWorkerIntegrationTest {
 		
 		waitForConsistentQueryBundle(adminUserInfo, new Query().setSql("select * from " + tableId + " where text_matches('singlevalue')"), queryOptions, (resultBundle) -> {
 			assertEquals(2L, resultBundle.getQueryCount());
+		});
+		
+		// works using a QueryFilter
+		waitForConsistentQueryBundle(adminUserInfo, new Query().setSql("select * from " + tableId).setAdditionalFilters(Arrays.asList(new TextMatchesQueryFilter().setSearchExpression("singlevalue"))), queryOptions, (resultBundle) -> {
+			assertEquals(2, resultBundle.getQueryResult().getQueryResults().getRows().size());
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(1).getRowId());
+			assertEquals(expectedIds, resultBundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 		});
 		
 	}
