@@ -32,6 +32,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-dbuserhelper</artifactId>
+			<version>develop-SNAPSHOT</version>
+		</dependency>
+
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -126,7 +132,7 @@
 			<scope>compile</scope>
 		</dependency>
 
-  	</dependencies>
+	</dependencies>
 
 	<properties>
 		<jacoco.branch.minumum>0.60</jacoco.branch.minumum>

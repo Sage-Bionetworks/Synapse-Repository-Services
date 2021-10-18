@@ -35,6 +35,7 @@
 		<module>lib-upload</module>
 		<module>lib-markdown</module>
 		<module>lib-schema-id</module>
-  </modules>
+        <module>lib-dbuserhelper</module>
+    </modules>
 
 </project>

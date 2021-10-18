@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,6 +37,8 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	@Autowired
+	DBUserHelper dbUserHelper;
 	
 	/**
 	 * Injected via Spring
@@ -123,6 +126,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 				ddlUtils.createFunction(functionName, functionMap.get(functionName));
 			}
 		}
+
+		// Create the read-only user in the repo database
+		dbUserHelper.createDbReadOnlyUser(jdbcTemplate);
 	}
 
 	@WriteTransaction

@@ -185,6 +185,12 @@
 			<artifactId>guava</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-dbuserhelper</artifactId>
+			<version>develop-SNAPSHOT</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

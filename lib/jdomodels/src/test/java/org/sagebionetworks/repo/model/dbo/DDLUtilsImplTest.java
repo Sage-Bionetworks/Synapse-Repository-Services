@@ -8,6 +8,8 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -18,10 +20,9 @@ public class DDLUtilsImplTest {
 	
 	@Autowired
 	DDLUtils ddlUtils;
-	
+
 	String tableName = "EXAMPLE_TEST";
 	String ddlFile = "Example.sql";
-	
 
 	@Test
 	public void testValidateTableExists() throws IOException{
@@ -82,5 +83,5 @@ public class DDLUtilsImplTest {
 		String result = DDLUtilsImpl.removeSQLComments(input);
 		assertEquals(expected, result);
 	}
-	
+
 }

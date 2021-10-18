@@ -84,6 +84,10 @@ public interface StackConfiguration {
 	 */
 	public String getIdGeneratorDatabasePassword();
 
+	// Read-only username and password accross all dbs
+	public String getDbReadOnlyUserName();
+	public String getDbReadOnlyPassword();
+
 	public String getIdGeneratorDatabaseDriver();
 
 	/**

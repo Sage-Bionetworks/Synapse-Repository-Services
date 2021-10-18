@@ -774,7 +774,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createObjectReplicationTablesIfDoesNotExist(){
+	public void createObjectReplicationTablesIfDoesNotExist() {
 		template.update(OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
