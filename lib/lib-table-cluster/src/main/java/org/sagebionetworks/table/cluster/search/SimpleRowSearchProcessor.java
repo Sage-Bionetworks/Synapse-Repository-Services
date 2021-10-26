@@ -17,21 +17,19 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 	private static final String SEPARATOR = " ";
 
 	@Override
-	public Optional<String> process(List<ColumnModel> columns, List<String> rowValues) {
-		ValidateArgument.required(columns, "columns");
-		ValidateArgument.required(rowValues, "rowValues");
-		ValidateArgument.requirement(columns.size() == rowValues.size(), "The number of columns and row values must match.");
+	public Optional<RowSearchContent> process(TableRowData rowData) {
+		ValidateArgument.required(rowData, "rowData");
 		
 		StringBuilder output = new StringBuilder();
 		
-		for (int i=0; i < rowValues.size(); i++) {
-			String value = rowValues.get(i);
+		for (TableCellData cellData : rowData.getRowData()) {
+			String value = cellData.getData();
 			
 			if (StringUtils.isBlank(value)) {
 				continue;
 			}
 			
-			ColumnModel model = columns.get(i);
+			ColumnModel model = cellData.getColumnModel();
 			
 			if (ColumnTypeListMappings.isList(model.getColumnType())) {
 				List<String> multiValues = new JSONArray(value).toList().stream()
@@ -45,7 +43,13 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 			
 		}
 		
-		return Optional.ofNullable(StringUtils.trimToNull(output.toString()));
+		String searchContent = StringUtils.trimToNull(output.toString());
+		
+		if (searchContent == null) {
+			return Optional.empty();
+		} else {
+			return Optional.of(new RowSearchContent(rowData.getRowId(), searchContent));
+		}
 	}
 
 }

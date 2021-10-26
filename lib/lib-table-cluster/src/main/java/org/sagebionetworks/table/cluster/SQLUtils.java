@@ -2129,7 +2129,7 @@ public class SQLUtils {
 		return "ALTER TABLE " + tableName + " DROP COLUMN `" + ROW_SEARCH_CONTENT + "`";
 	}
 	
-	public static String buildSelectRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
+	public static String buildSelectSearchDataByRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
 		ValidateArgument.required(id, "The id");
 		ValidateArgument.requiredNotEmpty(columns, "The columns");
 		

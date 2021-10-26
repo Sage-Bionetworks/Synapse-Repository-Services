@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,6 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,8 +82,12 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TableCellData;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
@@ -277,7 +282,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -291,7 +296,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		verify(mockIndexDao, never()).setMaxCurrentCompleteVersionForTable(any(IdAndVersion.class), anyLong());
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -318,7 +323,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -356,7 +361,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 	
 	@Test
@@ -364,6 +369,7 @@ public class TableIndexManagerImplTest {
 		setupExecuteInWriteTransaction();
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		when(mockIndexDao.isSearchEnabled(tableId)).thenReturn(true);
+		
 		// no files in the schema
 		schema = Arrays.asList(
 				TableModelTestUtils.createColumn(99L, "strList", ColumnType.STRING_LIST),
@@ -385,6 +391,13 @@ public class TableIndexManagerImplTest {
 		row3.setRowId(6L);
 		row3.setCellValue("102", "1");
 		
+		TableRowData rowData = new TableRowData(102L, Arrays.asList(new TableCellData(schema.get(0), "some data")));
+		RowSearchContent searchRowContent = new RowSearchContent(101L, "processed row");
+		
+		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(Arrays.asList(rowData, rowData));
+		when(mockSearchProcessor.process(any())).thenReturn(Optional.of(searchRowContent));
+		
+		
 		// call under test.
 		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
 		
@@ -394,8 +407,9 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
-		
-		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L), mockSearchProcessor);
+		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L));
+		verify(mockSearchProcessor, times(2)).process(rowData);
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchRowContent, searchRowContent));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
@@ -436,7 +450,7 @@ public class TableIndexManagerImplTest {
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		
-		verify(mockIndexDao, never()).updateSearchIndex(any(), any(), any(), any());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
@@ -2403,6 +2417,121 @@ public class TableIndexManagerImplTest {
 		
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
+	}
+	
+	@Test
+	public void testUpdateSearchIndex() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+		);
+		when(mockSearchProcessor.process(any())).thenAnswer(call -> {
+			TableRowData data = call.getArgument(0);
+			return Optional.of(new RowSearchContent(data.getRowId(), "processed value"));
+		});
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		for (TableRowData row : rows) {
+			verify(mockSearchProcessor).process(row);
+		}
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		List<RowSearchContent> expectedBatch = rows.stream().map( data -> new RowSearchContent(data.getRowId(), "processed value")).collect(Collectors.toList());
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, expectedBatch);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithEmptyElement() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+		);
+		
+		RowSearchContent searchContent = new RowSearchContent(1L, "processed value");
+		
+		when(mockSearchProcessor.process(any())).thenReturn(Optional.of(searchContent), Optional.empty());
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		for (TableRowData row : rows) {
+			verify(mockSearchProcessor).process(row);
+		}
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchContent));
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithNoContent() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+		);
+				
+		when(mockSearchProcessor.process(any())).thenReturn(Optional.empty());
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		for (TableRowData row : rows) {
+			verify(mockSearchProcessor).process(row);
+		}
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithMultipleBatches() {
+		
+		int size = TableIndexManagerImpl.BATCH_SIZE * 2 - TableIndexManagerImpl.BATCH_SIZE/2;
+		
+		List<TableRowData> rows = LongStream.range(0, size).boxed().map(rowId -> 
+			new TableRowData(rowId, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+		).collect(Collectors.toList());
+		
+		Optional<RowSearchContent> searchContent = Optional.of(new RowSearchContent(1L, "processed value"));
+		
+		when(mockSearchProcessor.process(any())).thenReturn(searchContent);
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		verify(mockSearchProcessor, times(size)).process(any());
+
+		List<List<TableRowData>> expectedBatches = Lists.partition(rows, TableIndexManagerImpl.BATCH_SIZE);
+		
+		for (List<TableRowData> batch : expectedBatches) {
+			List<RowSearchContent> transformedBatch = batch.stream().map( data -> searchContent.get()).collect(Collectors.toList());
+			verify(mockIndexDao).updateSearchIndex(tableId, transformedBatch);
+		}
+
+		verifyNoMoreInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithEmptyIterator() {
+		Iterator<TableRowData> rowData = Collections.emptyIterator();
+
+		manager.updateSearchIndex(tableId, rowData);
+		
+		verifyZeroInteractions(mockSearchProcessor);
+		verifyZeroInteractions(mockIndexDao);
+		
 	}
 	
 	@SuppressWarnings("unchecked")

@@ -45,6 +45,8 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
@@ -154,8 +156,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					if (!filteredColumns.isEmpty()) {
 						// Find out the set of row ids that added/updated values for searcheable columns
 						Set<Long> rowIds = rowset.getCreatedOrUpdatedRowIds(filteredColumns);
-						
-						tableIndexDao.updateSearchIndex(tableId, filteredColumns, rowIds, searchProcessor);
+						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(tableId, filteredColumns, rowIds);
+						updateSearchIndex(tableId, rowsData.iterator());
 					}
 				}
 				// set the new max version for the index
@@ -163,6 +165,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				return null;
 			});
 		}
+	}
+	
+	void updateSearchIndex(IdAndVersion tableId, Iterator<TableRowData> tableRowDataIterator) {
+		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
+			List<RowSearchContent> transformedBatch = batch.stream()
+				// Each item in the batch is processed by the search processor
+				.map(searchProcessor::process)
+				// The search processor can return an empty optional (e.g. nothing to index for the row)
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.collect(Collectors.toList());
+			
+			if (!transformedBatch.isEmpty()) {
+				tableIndexDao.updateSearchIndex(tableId, transformedBatch);
+			}
+		});
 	}
 
 	/*
@@ -343,6 +361,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			List<String> columnIds = TableModelUtils.getIds(currentSchema);
 			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+			// TODO 
+			// 1. Check if the search is enabled at this point for the table
+			// 2. If the search is enabled check if the schema changes might need to a re-index of existing data:
+			// 	  -> If a column was deleted and its type matches a search type
+			//    -> If an existing column was updated and the new type matches a search type
+			//    -> If an existing column was updated and the old type matches a search type but the new one doesn't (e.g. this is similar to a delete)
 		}
 		return wasSchemaChanged;
 	}	
@@ -739,6 +763,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		if (change.isEnabled()) {
 			tableIndexDao.addSearchColumn(idAndVersion);
+			
+			// TODO
+			// 1. Check if any row change is in the history
+			// 2. Load the schema
+			// 3. Re-index the table
+			
 		} else {
 			tableIndexDao.removeSearchColumn(idAndVersion);
 		}

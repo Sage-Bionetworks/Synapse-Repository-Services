@@ -86,7 +86,9 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TableCellData;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
@@ -1438,59 +1440,61 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void updateSearchIndex(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds, RowSearchProcessor rowProcessor) {
+	public List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
 		ValidateArgument.required(rowIds, "rowIds");
-		ValidateArgument.required(rowProcessor, "rowProcessor");
 		
 		if (rowIds.isEmpty()) {
-			return;
+			return Collections.emptyList();
 		}
-
-		String readSql = SQLUtils.buildSelectRowIdSQL(idAndVersion, selectColumns);
-
-		List<Object[]> batchUpdateArgs = new ArrayList<>(rowIds.size());
+		
+		String readSql = SQLUtils.buildSelectSearchDataByRowIdSQL(idAndVersion, selectColumns);
 		
 		Map<String, Object> params = Collections.singletonMap(TableConstants.ROW_ID, rowIds);
-		
-		namedTemplate.query(readSql, params, (RowCallbackHandler) rs -> {
-			List<String> rowValues = new ArrayList<>(selectColumns.size());
+				
+		return namedTemplate.query(readSql, params, (rs, rowNum) -> {
 			
 			int fetchIndex = 1;
 			
 			// The first column is always the row id
-			String rowId = rs.getString(fetchIndex++);
+			Long rowId = rs.getLong(fetchIndex++);
+
+			List<TableCellData> rowData = new ArrayList<>(selectColumns.size());
 			
 			for (ColumnModel columnModel : selectColumns) {
 				String rawValue = rs.getString(fetchIndex++);
 				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
 				String value = TableModelUtils.translateRowValueFromQuery(rawValue, columnInfo);
-				rowValues.add(value);
+				rowData.add(new TableCellData(columnModel, value));
 			}
 			
-			rowProcessor.process(selectColumns, rowValues).ifPresent(searchContent -> {
-				batchUpdateArgs.add(new Object[] {searchContent, rowId});
-			});
+			return new TableRowData(rowId, rowData);
 			
 		});
-		
-		if (!batchUpdateArgs.isEmpty()) {			
-			String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
-	
-			template.batchUpdate(updateSql, batchUpdateArgs);
-		}
 	}
 	
 	@Override
-	public Map<Long, String> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
-		Map<Long, String> searchContent = new HashMap<>(rowIds.size());
-		namedTemplate.query("SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX), 
-				Collections.singletonMap(TableConstants.ROW_ID, rowIds), 
-				(RowCallbackHandler) rs -> {
-					searchContent.put(rs.getLong(1), rs.getString(2));
-				});
-		return searchContent;
+	public void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(searchContentRows, "searchContentRows");
+		
+		String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
+		
+		List<Object[]> batchUpdateArgs = new ArrayList<>(searchContentRows.size());
+		
+		for (RowSearchContent searchContent : searchContentRows) {
+			batchUpdateArgs.add(new Object[] {searchContent.getSearchContent(), searchContent.getRowId()});
+		}
+
+		template.batchUpdate(updateSql, batchUpdateArgs);
+	
+	}
+	
+	@Override
+	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
+		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
+		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
 	
 }

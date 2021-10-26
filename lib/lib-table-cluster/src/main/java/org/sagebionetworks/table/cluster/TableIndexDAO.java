@@ -18,7 +18,8 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -621,12 +622,19 @@ public interface TableIndexDAO {
 	void removeSearchColumn(IdAndVersion idAndVersion);
 	
 	/**
-	 * Update the search column index for the rows with the give set of ids
-	 * 
-	 * @param idAndVersion
-	 * @param rowIds
+	 * @param idAndVersion The id of the table
+	 * @param selectColumns The columns to fetch
+	 * @param rowIds The id of the rows to restrict the data to
+	 * @return A batch over the table row content matching the given set of columns for the rows with the given ids 
 	 */
-	void updateSearchIndex(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds, RowSearchProcessor rowProcessor);
+	List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds);
+	
+	/**
+	 * Updates the search index content for the given batch of rows
+	 * @param idAndVersion The id of the table
+	 * @param searchContentRows The batch of rows to update
+	 */
+	void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows);	
 
 	// For testing:
 
@@ -640,6 +648,10 @@ public interface TableIndexDAO {
 	 */
 	void truncateIndex();
 	
-	Map<Long, String> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
+	/**
+	 * fetch the current search content for the given set of rows
+	 */
+	List<RowSearchContent> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
+
 
 }
