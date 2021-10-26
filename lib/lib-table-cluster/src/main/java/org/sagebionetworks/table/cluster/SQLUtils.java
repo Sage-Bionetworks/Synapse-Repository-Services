@@ -29,6 +29,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -2129,21 +2131,34 @@ public class SQLUtils {
 		return "ALTER TABLE " + tableName + " DROP COLUMN `" + ROW_SEARCH_CONTENT + "`";
 	}
 	
-	public static String buildSelectSearchDataByRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
-		ValidateArgument.required(id, "The id");
-		ValidateArgument.requiredNotEmpty(columns, "The columns");
+	public static String buildSelectTableDataByRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
 		
-		StringBuilder sql = new StringBuilder("SELECT ")
-				.append(ROW_ID)
-				.append(", ")
-				.append(String.join(",", getColumnNames(columns)))
-				.append(" FROM ")
-				.append(getTableNameForId(id, TableType.INDEX))
+		StringBuilder sql = buildSelectTableData(id, columns)
 				.append(" WHERE ").append(ROW_ID).append(" IN(:").append(ROW_ID).append(")");
 		
 		return sql.toString();
 	}
 	
+	public static String buildSelectTableDataPage(IdAndVersion id, List<ColumnModel> columns) {
+		
+		StringBuilder sql = buildSelectTableData(id, columns)
+				.append(" ORDER BY ").append(ROW_ID).append(" LIMIT :").append(P_LIMIT).append(" OFFSET :").append(P_OFFSET);
+		
+		return sql.toString();
+	}
+	
+	private static StringBuilder buildSelectTableData(IdAndVersion id, List<ColumnModel> columns) {
+		ValidateArgument.required(id, "The id");
+		ValidateArgument.requiredNotEmpty(columns, "The columns");
+		
+		return new StringBuilder("SELECT ")
+				.append(ROW_ID)
+				.append(", ")
+				.append(String.join(",", getColumnNames(columns)))
+				.append(" FROM ")
+				.append(getTableNameForId(id, TableType.INDEX));
+	}
+	 
 	public static String buildBatchUpdateSearchContentSql(IdAndVersion id) {
 		ValidateArgument.required(id, "The id");
 		

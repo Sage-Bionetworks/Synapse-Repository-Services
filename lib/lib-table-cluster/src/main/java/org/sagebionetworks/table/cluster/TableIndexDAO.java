@@ -630,6 +630,16 @@ public interface TableIndexDAO {
 	List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds);
 	
 	/**
+	 * 
+	 * @param idAndVersion The id of the table
+	 * @param selectColumns The columns to fetch
+	 * @param limit
+	 * @param offset
+	 * @return A page of table row content matching the given set of columns paginated according to the given limit and offset (ordered by row id)
+	 */
+	List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset);
+	
+	/**
 	 * Updates the search index content for the given batch of rows
 	 * @param idAndVersion The id of the table
 	 * @param searchContentRows The batch of rows to update

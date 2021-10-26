@@ -115,6 +115,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -202,7 +203,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-
+	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
@@ -1449,29 +1450,50 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		String readSql = SQLUtils.buildSelectSearchDataByRowIdSQL(idAndVersion, selectColumns);
+		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(idAndVersion, selectColumns);
 		
 		Map<String, Object> params = Collections.singletonMap(TableConstants.ROW_ID, rowIds);
-				
-		return namedTemplate.query(readSql, params, (rs, rowNum) -> {
-			
-			int fetchIndex = 1;
+		
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
+		
+		return namedTemplate.query(sql, params, rowMapper);
+	}
+	
+	@Override
+	public List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
+		
+		String sql = SQLUtils.buildSelectTableDataPage(idAndVersion, selectColumns);
+		
+		Map<String, Object> params = ImmutableMap.of(
+			TableConstants.P_LIMIT, limit,
+			TableConstants.P_OFFSET, offset
+		);
+		
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
+		
+		return namedTemplate.query(sql, params, rowMapper);
+	}
+	
+	private RowMapper<TableRowData> getTableDataMapper(List<ColumnModel> selectColumns) {
+		return (rs, rowNum) -> {
+			int columnIndex = 1;
 			
 			// The first column is always the row id
-			Long rowId = rs.getLong(fetchIndex++);
+			Long rowId = rs.getLong(columnIndex++);
 
 			List<TableCellData> rowData = new ArrayList<>(selectColumns.size());
 			
 			for (ColumnModel columnModel : selectColumns) {
-				String rawValue = rs.getString(fetchIndex++);
+				String rawValue = rs.getString(columnIndex++);
 				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
 				String value = TableModelUtils.translateRowValueFromQuery(rawValue, columnInfo);
 				rowData.add(new TableCellData(columnModel, value));
 			}
 			
 			return new TableRowData(rowId, rowData);
-			
-		});
+		};
 	}
 	
 	@Override

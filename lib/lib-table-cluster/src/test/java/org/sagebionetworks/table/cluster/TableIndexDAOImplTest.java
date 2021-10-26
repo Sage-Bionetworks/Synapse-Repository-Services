@@ -1067,6 +1067,139 @@ public class TableIndexDAOImplTest {
 		
 		assertEquals(expected, result);
 	}
+	
+	@Test
+	public void testGetTableDataPage() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = set.getRows().stream().limit(limit).map(row -> {
+			List<TableCellData> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TableCellData(columns.get(i), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+		
+	@Test
+	public void testGetTableDataPageWithOffset() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+		long offset = 10;
+		long limit = 10;
+		
+		List<TableRowData> expected = set.getRows().stream().skip(offset).limit(limit).map(row -> {
+			List<TableCellData> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TableCellData(columns.get(i), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetTableDataPageWithSubSchema() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+			
+		// We want to fetch only the first and third column data
+		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = set.getRows().stream().limit(limit).map(row -> {
+			List<TableCellData> rowData = new ArrayList<>();
+			
+			rowData.add(new TableCellData(columns.get(0), row.getValues().get(0)));
+			rowData.add(new TableCellData(columns.get(2), row.getValues().get(2)));
+			
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, subSchema, limit, offset);
+		
+		assertEquals(expected, result);
+	}
 		
 	@Test
 	public void testUpdateSearchIndex() {
