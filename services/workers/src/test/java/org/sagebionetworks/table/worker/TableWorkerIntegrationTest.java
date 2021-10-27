@@ -3369,6 +3369,59 @@ public class TableWorkerIntegrationTest {
 				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 			});
 	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabledOnExistingData() throws Exception {
+			schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+			);
+			
+			headers = TableModelUtils.getIds(schema);
+			
+			TableEntity table = new TableEntity();
+			table.setName(UUID.randomUUID().toString());
+			table.setParentId(projectId);
+			table.setIsSearchEnabled(false);
+			table.setColumnIds(headers);
+			
+			tableId = entityManager.createEntity(adminUserInfo, table, null);
+			
+			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+			// Initially the search is not enabled
+			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+			
+			// Now add some data
+			List<Row> rows = Arrays.asList(
+				TableModelTestUtils.createRow(null, null, "singlevalue", "[]"),
+				TableModelTestUtils.createRow(null, null, "singlevalue", "[\"multi\", \"value\"]"),
+				TableModelTestUtils.createRow(null, null, "other", null)
+			);
+					
+			RowSet rowSet = new RowSet();
+			rowSet.setRows(rows);
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+			rowSet.setTableId(tableId);
+			
+			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			
+			// Now check that an error is thrown as the search is disabled
+			String errorMessage = assertThrows(IllegalArgumentException.class, () -> {				
+				waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {});
+			}).getMessage();
+			
+			assertEquals("Invalid use of TEXT_MATCHES. Full text search is not enabled on table " + tableId + ".", errorMessage);
+			
+			// Now enable the search on the table
+			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			
+			// Check that now we can search on the existing data
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
+				assertEquals(2, queryResult.getQueryResults().getRows().size());
+				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(1).getRowId());
+				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+			});
+	}
 
 	/**
 	 * Create a string of the given size.

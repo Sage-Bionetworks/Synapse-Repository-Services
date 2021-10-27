@@ -1151,6 +1151,7 @@ public class TableIndexManagerImplTest {
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).updateSearchIndex(any());
 
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
@@ -1158,6 +1159,7 @@ public class TableIndexManagerImplTest {
 		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		verify(mockIndexDao).addSearchColumn(tableId);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
+		verify(managerSpy).updateSearchIndex(tableId);
 	}
 	
 	@Test
@@ -2420,7 +2422,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndex() {
+	public void testUpdateSearchIndexFromIterator() {
 		
 		List<TableRowData> rows = Arrays.asList(
 			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
@@ -2447,7 +2449,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndexWithEmptyElement() {
+	public void testUpdateSearchIndexFromIteratorWithEmptyElement() {
 		
 		List<TableRowData> rows = Arrays.asList(
 			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
@@ -2472,7 +2474,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndexWithNoContent() {
+	public void testUpdateSearchIndexFromIteratorWithNoContent() {
 		
 		List<TableRowData> rows = Arrays.asList(
 			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
@@ -2495,7 +2497,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndexWithMultipleBatches() {
+	public void testUpdateSearchIndexFromIteratorWithMultipleBatches() {
 		
 		int size = TableIndexManagerImpl.BATCH_SIZE * 2 - TableIndexManagerImpl.BATCH_SIZE/2;
 		
@@ -2524,13 +2526,78 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndexWithEmptyIterator() {
+	public void testUpdateSearchIndexFromIteratorWithEmptyIterator() {
 		Iterator<TableRowData> rowData = Collections.emptyIterator();
 
+		// Call under test
 		manager.updateSearchIndex(tableId, rowData);
 		
 		verifyZeroInteractions(mockSearchProcessor);
 		verifyZeroInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndex() {
+		DatabaseColumnInfo column1Info = new DatabaseColumnInfo();
+		column1Info.setColumnName("_C44_");
+		column1Info.setColumnType(ColumnType.STRING);
+		
+		DatabaseColumnInfo column2Info = new DatabaseColumnInfo();
+		column2Info.setColumnName("_C45_");
+		column2Info.setColumnType(ColumnType.DOUBLE);
+		
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Arrays.asList(column1Info, column2Info));
+		
+		// This is the expected sub-schema for the search index
+		List<ColumnModel> expectedSearchSchema = Arrays.asList(
+			new ColumnModel().setId("44").setColumnType(ColumnType.STRING)		
+		);
+		
+		TableRowData tableRow1Data = new TableRowData(1L, 
+			expectedSearchSchema.stream().map(model -> new TableCellData(model, "some value")).collect(Collectors.toList())
+		);
+		
+		TableRowData tableRow2Data = new TableRowData(2L, 
+			expectedSearchSchema.stream().map(model -> new TableCellData(model, "some value")).collect(Collectors.toList())
+		);
+		
+		// The pagination iterator calls this twice unconditionally, so the second time we return an empty list
+		when(mockIndexDao.getTableDataPage(any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(tableRow1Data, tableRow2Data), Collections.emptyList());
+		
+		RowSearchContent expectedSearchContent = new RowSearchContent(1L, "processed value");
+		
+		when(mockSearchProcessor.process(any())).thenReturn(Optional.of(expectedSearchContent));
+		
+		// Call under test
+		manager.updateSearchIndex(tableId);
+		
+		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, 0);
+		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, TableIndexManagerImpl.BATCH_SIZE);
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(expectedSearchContent, expectedSearchContent));
+		
+		verifyNoMoreInteractions(mockIndexDao);
+		
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithNoMatchingSchema() {
+		DatabaseColumnInfo column1Info = new DatabaseColumnInfo();
+		column1Info.setColumnName("_C44_");
+		column1Info.setColumnType(ColumnType.INTEGER);
+		
+		DatabaseColumnInfo column2Info = new DatabaseColumnInfo();
+		column2Info.setColumnName("_C45_");
+		column2Info.setColumnType(ColumnType.DOUBLE);
+		
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Arrays.asList(column1Info, column2Info));
+		
+		// Call under test
+		manager.updateSearchIndex(tableId);
+				
+		verifyNoMoreInteractions(mockIndexDao);
+		
 		
 	}
 	
