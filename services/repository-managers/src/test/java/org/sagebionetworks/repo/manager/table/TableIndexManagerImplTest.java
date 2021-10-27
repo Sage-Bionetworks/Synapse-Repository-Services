@@ -2598,7 +2598,36 @@ public class TableIndexManagerImplTest {
 				
 		verifyNoMoreInteractions(mockIndexDao);
 		
+	}
+	
+	@Test
+	public void testGetSchemaForSearchIndex() {
+		schema = TableModelTestUtils.createOneOfEachType();
 		
+		// Call under test
+		List<ColumnModel> searchSchema = manager.getSchemaForSearchIndex(schema);
+		
+		assertFalse(searchSchema.isEmpty());
+		
+		searchSchema.forEach(columnModel -> {
+			assertTrue(TableConstants.SEARCH_TYPES.contains(columnModel.getColumnType()));
+		});
+
+	}
+	
+	@Test
+	public void testGetSchemaForSearchIndexWithNoneElegible() {
+		schema = Arrays.asList(
+			TableModelTestUtils.createColumn(99L, "integer", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(101L, "double", ColumnType.DOUBLE),
+			TableModelTestUtils.createColumn(102L, "filehandleid", ColumnType.FILEHANDLEID)
+		);
+		
+		// Call under test
+		List<ColumnModel> searchSchema = manager.getSchemaForSearchIndex(schema);
+		
+		assertTrue(searchSchema.isEmpty());
+
 	}
 	
 	@SuppressWarnings("unchecked")

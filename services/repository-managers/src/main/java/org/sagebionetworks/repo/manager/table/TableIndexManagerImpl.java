@@ -934,7 +934,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param schema
 	 * @return The sub-schema consisting of columns that are eligible to be added to the search index
 	 */
-	private List<ColumnModel> getSchemaForSearchIndex(List<ColumnModel> schema) {
+	List<ColumnModel> getSchemaForSearchIndex(List<ColumnModel> schema) {
 		return schema.stream()
 				.filter((ColumnModel column) -> TableConstants.SEARCH_TYPES.contains(column.getColumnType()))
 				.collect(Collectors.toList());
