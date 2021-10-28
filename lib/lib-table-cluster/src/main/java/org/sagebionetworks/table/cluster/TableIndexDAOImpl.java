@@ -86,7 +86,9 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
@@ -113,6 +115,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -200,7 +203,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-
+	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
@@ -1438,59 +1441,91 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void updateSearchIndex(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds, RowSearchProcessor rowProcessor) {
+	public List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
 		ValidateArgument.required(rowIds, "rowIds");
-		ValidateArgument.required(rowProcessor, "rowProcessor");
 		
 		if (rowIds.isEmpty()) {
-			return;
+			return Collections.emptyList();
 		}
-
-		String readSql = SQLUtils.buildSelectRowIdSQL(idAndVersion, selectColumns);
-
-		List<Object[]> batchUpdateArgs = new ArrayList<>(rowIds.size());
+		
+		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(idAndVersion, selectColumns);
 		
 		Map<String, Object> params = Collections.singletonMap(TableConstants.ROW_ID, rowIds);
 		
-		namedTemplate.query(readSql, params, (RowCallbackHandler) rs -> {
-			List<String> rowValues = new ArrayList<>(selectColumns.size());
-			
-			int fetchIndex = 1;
-			
-			// The first column is always the row id
-			String rowId = rs.getString(fetchIndex++);
-			
-			for (ColumnModel columnModel : selectColumns) {
-				String rawValue = rs.getString(fetchIndex++);
-				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
-				String value = TableModelUtils.translateRowValueFromQuery(rawValue, columnInfo);
-				rowValues.add(value);
-			}
-			
-			rowProcessor.process(selectColumns, rowValues).ifPresent(searchContent -> {
-				batchUpdateArgs.add(new Object[] {searchContent, rowId});
-			});
-			
-		});
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
 		
-		if (!batchUpdateArgs.isEmpty()) {			
-			String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
-	
-			template.batchUpdate(updateSql, batchUpdateArgs);
-		}
+		return namedTemplate.query(sql, params, rowMapper);
 	}
 	
 	@Override
-	public Map<Long, String> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
-		Map<Long, String> searchContent = new HashMap<>(rowIds.size());
-		namedTemplate.query("SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX), 
-				Collections.singletonMap(TableConstants.ROW_ID, rowIds), 
-				(RowCallbackHandler) rs -> {
-					searchContent.put(rs.getLong(1), rs.getString(2));
-				});
-		return searchContent;
+	public List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
+		
+		String sql = SQLUtils.buildSelectTableDataPage(idAndVersion, selectColumns);
+		
+		Map<String, Object> params = ImmutableMap.of(
+			TableConstants.P_LIMIT, limit,
+			TableConstants.P_OFFSET, offset
+		);
+		
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
+		
+		return namedTemplate.query(sql, params, rowMapper);
+	}
+	
+	private RowMapper<TableRowData> getTableDataMapper(List<ColumnModel> selectColumns) {
+		return (rs, rowNum) -> {
+			int columnIndex = 1;
+			
+			// The first column is always the row id
+			Long rowId = rs.getLong(columnIndex++);
+
+			List<TypedCellValue> rowData = new ArrayList<>(selectColumns.size());
+			
+			for (ColumnModel columnModel : selectColumns) {
+				String rawValue = rs.getString(columnIndex++);
+				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
+				String value = columnInfo.parseValueForDatabaseRead(rawValue);
+				rowData.add(new TypedCellValue(columnModel.getColumnType(), value));
+			}
+			
+			return new TableRowData(rowId, rowData);
+		};
+	}
+	
+	@Override
+	public void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(searchContentRows, "searchContentRows");
+		
+		String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
+		
+		List<Object[]> batchUpdateArgs = new ArrayList<>(searchContentRows.size());
+		
+		for (RowSearchContent searchContent : searchContentRows) {
+			batchUpdateArgs.add(new Object[] {searchContent.getSearchContent(), searchContent.getRowId()});
+		}
+
+		template.batchUpdate(updateSql, batchUpdateArgs);
+	
+	}
+	
+	@Override
+	public void clearSearchIndex(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		
+		String updateSql = SQLUtils.buildClearSearchContentSql(idAndVersion);
+		
+		template.update(updateSql);
+	}
+	
+	@Override
+	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
+		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
+		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
 	
 }

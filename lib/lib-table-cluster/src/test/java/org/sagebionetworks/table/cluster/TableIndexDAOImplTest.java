@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,9 +50,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -64,7 +63,9 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
@@ -97,8 +98,6 @@ public class TableIndexDAOImplTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	StackConfiguration config;
-	@Autowired
-	RowSearchProcessor searchProcessor;
 	
 	// not a bean
 	TableIndexDAO tableIndexDAO;
@@ -210,6 +209,35 @@ public class TableIndexDAOImplTest {
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
+	
+	/**
+	 * Helper to generate a given number of rows and append them to the given table
+	 * 
+	 * @param tableId
+	 * @param columns
+	 * @param rowsCount
+	 * @return
+	 */
+	private List<Row> generateAndAppendRows(IdAndVersion tableId, List<ColumnModel> columns, int rowsCount) {
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, rowsCount);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(range.getMinimumId() + rowsCount);
+		range.setVersionNumber(1L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+		return set.getRows();
+	}
+	
 	/**
 	 * Helper to apply a change set to the index.s
 	 * @param rowSet
@@ -980,6 +1008,156 @@ public class TableIndexDAOImplTest {
 		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
 		
 	}
+	
+	@Test
+	public void testGetTableDataForRowIds() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		List<TableRowData> expected = rows.stream().map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, columns, rowIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetTableDataForRowIdsWithSubSchema() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// We want to fetch only the first and third column data
+		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
+		
+		List<TableRowData> expected = rows.stream().map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
+			
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, subSchema, rowIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetTableDataPage() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+		
+	@Test
+	public void testGetTableDataPageWithOffset() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		long offset = 10;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().skip(offset).limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetTableDataPageWithSubSchema() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);		
+			
+		// We want to fetch only the first and third column data
+		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
+			
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, subSchema, limit, offset);
+		
+		assertEquals(expected, result);
+	}
 		
 	@Test
 	public void testUpdateSearchIndex() {
@@ -991,76 +1169,20 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(columns, tableId, isView);
 		tableIndexDAO.addSearchColumn(tableId);
 		
-		// Now add some data
-		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
-		set.setHeaders(headers);
-		set.setTableId(tableId.toString());
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(4L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
 		
-		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
-		
-		// Now fill the table with data
-		createOrUpdateOrDeleteRows(tableId, set, columns);
+		List<RowSearchContent> expectedBatch = rows.stream().map(row -> 
+			new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues()))
+		).collect(Collectors.toList());
 			
 		// Call under test
-		tableIndexDAO.updateSearchIndex(tableId, columns, rowIds, searchProcessor);
+		tableIndexDAO.updateSearchIndex(tableId, expectedBatch);
 		
-		Map<Long, String> result = tableIndexDAO.fetchSearchContent(tableId, rowIds);
-		
-		assertEquals(rowIds.size(), result.size());
-		
-		for (Row row : rows) {
-			assertEquals(searchProcessor.process(columns, row.getValues()).get(), result.get(row.getRowId()));
-		}
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+
+		assertEquals(expectedBatch, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
-	
-	@Test
-	public void testUpdateSearchIndexWithSubsetColumns() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
 		
-		createOrUpdateTable(columns, tableId, isView);
-		tableIndexDAO.addSearchColumn(tableId);
-		
-		// Now add some data
-		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
-		set.setHeaders(headers);
-		set.setTableId(tableId.toString());
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(4L);
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
-		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
-		
-		// Now fill the table with data
-		createOrUpdateOrDeleteRows(tableId, set, columns);
-			
-		// Call under test
-		tableIndexDAO.updateSearchIndex(tableId, Arrays.asList(columns.get(0)), rowIds, searchProcessor);
-		
-		Map<Long, String> result = tableIndexDAO.fetchSearchContent(tableId, rowIds);
-		
-		assertEquals(rowIds.size(), result.size());
-		
-		for (Row row : rows) {
-			assertEquals(searchProcessor.process(Arrays.asList(columns.get(0)), Arrays.asList(row.getValues().get(0))).get(), result.get(row.getRowId()));
-		}
-	}
-	
 	@Test
 	public void testUpdateSearchIndexWithEmptyTable() {
 		List<ColumnModel> columns = Arrays.asList(
@@ -1072,11 +1194,48 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addSearchColumn(tableId);
 				
 		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
+		
+		List<RowSearchContent> batch = Arrays.asList(
+			new RowSearchContent(1L, "something"),
+			new RowSearchContent(2L, "something else")
+		);	
 					
 		// Call under test
-		tableIndexDAO.updateSearchIndex(tableId, columns, rowIds, searchProcessor);
+		tableIndexDAO.updateSearchIndex(tableId, batch);
 		
 		assertTrue(tableIndexDAO.fetchSearchContent(tableId, rowIds).isEmpty());
+	}
+	
+	@Test
+	public void testClearSearchIndex() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		// Now add some data
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// Now sets the search content for each row to "search content"
+		List<RowSearchContent> rowsSearchContent = rows.stream().map(row -> new RowSearchContent(row.getRowId(), "search content")).collect(Collectors.toList());
+		
+		tableIndexDAO.updateSearchIndex(tableId, rowsSearchContent);
+		
+		// Make sure we have the expected search content
+		assertEquals(rowsSearchContent, tableIndexDAO.fetchSearchContent(tableId, rowIds));
+		
+		// Call under test
+		tableIndexDAO.clearSearchIndex(tableId);
+
+		// Makes sure all the rows were cleared and set to null
+		List<RowSearchContent> expected = rows.stream().map(row -> new RowSearchContent(row.getRowId(), null)).collect(Collectors.toList());
+			
+		assertEquals(expected, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
 	
 	@Test

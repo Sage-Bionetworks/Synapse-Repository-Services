@@ -3008,46 +3008,92 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testBuildSelectRowIdSQL() {
+	public void testBuildSelectTableDataByRowIdSQL() {
 		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
 		
 		// Call under test
-		String sql = SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
 		
 		assertEquals(expected, sql);
 	}
 	
 	@Test
-	public void testBuildSelectRowIdSQLWithNullId() {
+	public void testBuildSelectTableDataByRowIdSQLWithNullId() {
 		tableId = null;
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+			SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
 		});
 		
 		assertEquals("The id is required.", ex.getMessage());
 	}
 	
 	@Test
-	public void testBuildSelectRowIdSQLWithNullColumns() {
+	public void testBuildSelectTableDataByRowIdSQLWithNullColumns() {
 		simpleSchema = null;
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+			SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
 		});
 		
 		assertEquals("The columns is required and must not be empty.", ex.getMessage());
 	}
 	
 	@Test
-	public void testBuildSelectRowIdSQLWithEmptyColumns() {
+	public void testBuildSelectTableDataByRowIdSQLWithEmptyColumns() {
 		simpleSchema = Collections.emptyList();
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			SQLUtils.buildSelectRowIdSQL(tableId, simpleSchema);
+			SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
+		});
+		
+		assertEquals("The columns is required and must not be empty.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildSelectTableDataPageSQL() {
+		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 ORDER BY ROW_ID LIMIT :pLimit OFFSET :pOffset";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectTableDataPageSQLWithNullId() {
+		tableId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildSelectTableDataPageSQLWithNullColumns() {
+		simpleSchema = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
+		});
+		
+		assertEquals("The columns is required and must not be empty.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildSelectTableDataPageSQLWithEmptyColumns() {
+		simpleSchema = Collections.emptyList();
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
 		});
 		
 		assertEquals("The columns is required and must not be empty.", ex.getMessage());
@@ -3070,6 +3116,28 @@ public class SQLUtilsTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			SQLUtils.buildBatchUpdateSearchContentSql(tableId);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testBuildClearSearchContentSql() {
+		String expected = "UPDATE T999 SET `ROW_SEARCH_CONTENT` = NULL";
+		
+		// Call under test
+		String sql = SQLUtils.buildClearSearchContentSql(tableId);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildClearSearchContentSqlWithNullId() {
+		tableId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLUtils.buildClearSearchContentSql(tableId);
 		});
 		
 		assertEquals("The id is required.", ex.getMessage());

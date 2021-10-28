@@ -44,7 +44,9 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
 import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
@@ -55,6 +57,7 @@ import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -147,15 +150,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				// Once the values are added or updated we check if the search column needs to be populated
 				if (isSearchEnabled) {
 					// We only consider the column that match the given type filter
-					List<ColumnModel> filteredColumns = rowset.getSchema().stream()
-							.filter((ColumnModel column) -> TableConstants.SEARCH_TYPES.contains(column.getColumnType()))
-							.collect(Collectors.toList());
+					List<ColumnModel> filteredColumns = getSchemaForSearchIndex(rowset.getSchema());
 					
 					if (!filteredColumns.isEmpty()) {
 						// Find out the set of row ids that added/updated values for searcheable columns
 						Set<Long> rowIds = rowset.getCreatedOrUpdatedRowIds(filteredColumns);
-						
-						tableIndexDao.updateSearchIndex(tableId, filteredColumns, rowIds, searchProcessor);
+						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(tableId, filteredColumns, rowIds);
+						updateSearchIndex(tableId, rowsData.iterator());
 					}
 				}
 				// set the new max version for the index
@@ -330,11 +331,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		boolean alterTemp = false;
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		if(wasSchemaChanged){
-			// Get the current schema.
-			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
-			// Determine the current schema
-			List<ColumnModel> currentSchema = SQLUtils.extractSchemaFromInfo(tableInfo);
+		
+		if (wasSchemaChanged) {
+			// Determine the current schema of the table
+			List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
 			if(currentSchema.isEmpty()){
 				// there are no columns in the table so truncate all rows.
 				tableIndexDao.truncateTable(tableId);
@@ -343,6 +343,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			List<String> columnIds = TableModelUtils.getIds(currentSchema);
 			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+			
+			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
+				updateSearchIndex(tableId);
+			}
+			
 		}
 		return wasSchemaChanged;
 	}	
@@ -739,6 +744,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		if (change.isEnabled()) {
 			tableIndexDao.addSearchColumn(idAndVersion);
+
+			// When we enable the search on a table we unconditionally re-index the whole table
+			updateSearchIndex(idAndVersion);
+			
 		} else {
 			tableIndexDao.removeSearchColumn(idAndVersion);
 		}
@@ -909,5 +918,116 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
 		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
 	}
+	
+	/**
+	 * @param tableId The id of the table
+	 * @return The schema currently used by the table in the index
+	 */
+	private List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
+		// Get the current schema.
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		// Determine the current schema
+		return SQLUtils.extractSchemaFromInfo(tableInfo);
+	}
+	
+	/**
+	 * @param schema
+	 * @return The sub-schema consisting of columns that are eligible to be added to the search index
+	 */
+	List<ColumnModel> getSchemaForSearchIndex(List<ColumnModel> schema) {
+		return schema.stream()
+				.filter(TableIndexManagerImpl::isColumnEligibleForSearchIndex)
+				.collect(Collectors.toList());
+	}
+	
+	/**
+	 * Updates the search index for the table with the given id
+	 * 
+	 * @param tableId
+	 */
+	void updateSearchIndex(IdAndVersion tableId) {
+		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
+		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
+		
+		if (searchIndexSchema.isEmpty()) {
+			// On a schema change it might happen that now no columns are eligible for indexing, for such cases
+			// we simply clear the search index
+			tableIndexDao.clearSearchIndex(tableId);
+			return;
+		}
+		
+		Iterator<TableRowData> tableRowsIterator = new PaginationIterator<>((PaginationProvider<TableRowData>) (limit, offset) -> {
+			return tableIndexDao.getTableDataPage(tableId, searchIndexSchema, limit, offset);
+		}, BATCH_SIZE);
+		
+		updateSearchIndex(tableId, tableRowsIterator);
+	}
+	
+	/**
+	 * Given an iterator over the rows of a table updates the search index re-computing the index values for each
+	 * row returned by the iterator
+	 * 
+	 * @param tableId
+	 * @param tableRowDataIterator
+	 */
+	void updateSearchIndex(IdAndVersion tableId, Iterator<TableRowData> tableRowDataIterator) {
+		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
+			List<RowSearchContent> transformedBatch = batch.stream()
+				.map(this::mapTableRowDataToSearchContent)
+				.collect(Collectors.toList());
+			
+			if (!transformedBatch.isEmpty()) {
+				tableIndexDao.updateSearchIndex(tableId, transformedBatch);
+			}
+		});
+	}
+	
+	private RowSearchContent mapTableRowDataToSearchContent(TableRowData rowData) {
+		String processedValue = searchProcessor.process(rowData.getRowValues());
+		return new RowSearchContent(rowData.getRowId(), processedValue);
+	}
+	
+	/**
+	 * A change in the schema of a table requires a full re-index of the table if:
+	 * 
+	 * 1. A column that was eligible for the search index was deleted
+	 * 2. An existing column non-eligible for the search index was updated to a column that is now eligible
+	 * 3. An existing column eligible for the search index was updated to a column that is now not eligible
+	 * 
+	 * @param tableId
+	 * @param changes
+	 * @return True if the given changes for the table require a full re-index of the search index of the table
+	 */
+	static boolean isRequireSearchIndexUpdate(IdAndVersion tableId, List<ColumnChangeDetails> changes) {
+		if (changes.isEmpty()) {
+			return false;
+		}
+		
+		for (ColumnChangeDetails change : changes) {
+			// For a new column there is not data yet so no need to re-index
+			if (change.getOldColumn() == null) {
+				continue;
+			}
+			// A deleted column: requires re-indexing only if the type of the column is eligible for the search index
+			if (change.getNewColumn() == null && isColumnEligibleForSearchIndex(change.getOldColumn())) {
+				return true;
+			}
+			// An updated column: requires re-indexing if the old column or the new column are eligible for the search index
+			if (change.getNewColumn() != null && (isColumnEligibleForSearchIndex(change.getNewColumn()) || isColumnEligibleForSearchIndex(change.getOldColumn()))) {
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
 
+	/**
+	 * @param column
+	 * @return True if the given column model has a data type that is eligible to be added to the search index
+	 */
+	private static boolean isColumnEligibleForSearchIndex(ColumnModel column) {
+		return TableConstants.SEARCH_TYPES.contains(column.getColumnType());
+	}
+	
 }
