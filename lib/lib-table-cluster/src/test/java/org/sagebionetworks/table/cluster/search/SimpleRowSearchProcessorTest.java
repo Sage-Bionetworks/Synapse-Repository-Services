@@ -23,60 +23,60 @@ public class SimpleRowSearchProcessorTest {
 	@Test
 	public void testProcess() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), "1"),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value 1 big value"), result.get());
+		assertEquals("value 1 big value", result.get());
 	}
 	
 	@Test
 	public void testProcessWithNullValues() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), null),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value big value"), result.get());
+		assertEquals("value big value", result.get());
 	}
 	
 	@Test
 	public void testProcessWithEmptyValues() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), "   "),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value big value"), result.get());
+		assertEquals("value big value", result.get());
 	}
 	
 	@Test
 	public void testProcessWithNothingToIndex() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), null),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), null),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), " "),
@@ -84,7 +84,7 @@ public class SimpleRowSearchProcessorTest {
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
 		assertFalse(result.isPresent());
 	}
@@ -92,52 +92,52 @@ public class SimpleRowSearchProcessorTest {
 	@Test
 	public void testProcessWithMultiValues() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), "[\"a\",\"b\", \" c\"]"),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value a b c big value"), result.get());
+		assertEquals("value a b c big value", result.get());
 	}
 	
 	@Test
 	public void testProcessWithMultiNullValues() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), "[\"a\",\"b\", null]"),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value a b big value"), result.get());
+		assertEquals("value a b big value", result.get());
 	}
 	
 	@Test
 	public void testProcessWithMultiEmptyValues() {
 		
-		Long tableId = 1L;
+		Long rowId = 1L;
 		
-		TableRowData rowData = new TableRowData(tableId, Arrays.asList(
+		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
 				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
 				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), ""),
 				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
 		));
 		
 		// Call under test
-		Optional<RowSearchContent> result = processor.process(rowData);
+		Optional<String> result = processor.process(rowData);
 		
-		assertEquals(new RowSearchContent(tableId, "value big value"), result.get());
+		assertEquals("value big value", result.get());
 	}
 	
 	@Test

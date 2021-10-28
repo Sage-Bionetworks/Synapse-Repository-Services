@@ -9,8 +9,8 @@ public interface RowSearchProcessor {
 	 * Process the given row data to compute a single string to use in the search index. Note that multi-value types are encoded as JSON arrays in the cell value
 	 * 
 	 * @param rowData The data for a single row
-	 * @return An optional SearchRowContent containing the search content, empty if nothing to index
+	 * @return An optional single string containing the search content, empty if nothing to index
 	 */
-	Optional<RowSearchContent> process(TableRowData rowData);
+	Optional<String> process(TableRowData rowData);
 	
 }

@@ -3465,7 +3465,11 @@ public class TableWorkerIntegrationTest {
 			});
 			
 			// Simulate a schema change where a column is deleted, keep only the multivalue column
-			headers = Arrays.asList(headers.get(1));
+			schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+			);
+			
+			headers = TableModelUtils.getIds(schema);
 			
 			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
 			

@@ -44,8 +44,8 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -974,10 +974,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
 			List<RowSearchContent> transformedBatch = batch.stream()
 				// Each item in the batch is processed by the search processor
-				.map(searchProcessor::process)
-				// The search processor can return an empty optional (e.g. nothing to index for the row)
-				.filter(Optional::isPresent)
-				.map(Optional::get)
+				.map((TableRowData rowData) -> new RowSearchContent(rowData.getRowId(), searchProcessor.process(rowData).orElse(null)))
 				.collect(Collectors.toList());
 			
 			if (!transformedBatch.isEmpty()) {

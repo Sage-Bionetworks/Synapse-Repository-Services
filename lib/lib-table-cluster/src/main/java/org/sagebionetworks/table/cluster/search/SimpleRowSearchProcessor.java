@@ -17,7 +17,7 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 	private static final String SEPARATOR = " ";
 
 	@Override
-	public Optional<RowSearchContent> process(TableRowData rowData) {
+	public Optional<String> process(TableRowData rowData) {
 		ValidateArgument.required(rowData, "rowData");
 		
 		StringBuilder output = new StringBuilder();
@@ -43,13 +43,7 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 			
 		}
 		
-		String searchContent = StringUtils.trimToNull(output.toString());
-		
-		if (searchContent == null) {
-			return Optional.empty();
-		} else {
-			return Optional.of(new RowSearchContent(rowData.getRowId(), searchContent));
-		}
+		return Optional.ofNullable(StringUtils.trimToNull(output.toString()));
 	}
 
 }
