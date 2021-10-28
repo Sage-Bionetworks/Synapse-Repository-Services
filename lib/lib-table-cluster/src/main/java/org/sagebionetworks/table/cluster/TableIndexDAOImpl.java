@@ -1514,6 +1514,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
+	public void clearSearchIndex(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		
+		String updateSql = SQLUtils.buildClearSearchContentSql(idAndVersion);
+		
+		template.update(updateSql);
+	}
+	
+	@Override
 	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
 		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
 		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));

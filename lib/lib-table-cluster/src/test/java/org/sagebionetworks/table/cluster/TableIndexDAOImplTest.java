@@ -1265,6 +1265,46 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testClearSearchIndex() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+		// Call under test
+		tableIndexDAO.clearSearchIndex(tableId);
+
+		List<RowSearchContent> expected = set.getRows().stream().map(row -> 
+			new RowSearchContent(row.getRowId(), null)
+		).collect(Collectors.toList());
+			
+		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
+
+		assertEquals(expected, tableIndexDAO.fetchSearchContent(tableId, rowIds));
+	}
+	
+	@Test
 	public void testDoesIndexStateMatchTableDoesNotExist(){
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);

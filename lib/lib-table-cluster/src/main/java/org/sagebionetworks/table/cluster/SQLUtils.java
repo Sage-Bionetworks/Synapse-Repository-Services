@@ -2165,4 +2165,10 @@ public class SQLUtils {
 		return "UPDATE " + getTableNameForId(id, TableType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = ? WHERE " + ROW_ID + " = ?";
 	}
 	
+	public static String buildClearSearchContentSql(IdAndVersion id) {
+		ValidateArgument.required(id, "The id");
+		
+		return "UPDATE " + getTableNameForId(id, TableType.INDEX) + " SET `" + ROW_SEARCH_CONTENT + "` = NULL";
+	}
+	
 }

@@ -644,7 +644,13 @@ public interface TableIndexDAO {
 	 * @param idAndVersion The id of the table
 	 * @param searchContentRows The batch of rows to update
 	 */
-	void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows);	
+	void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows);
+	
+	/**
+	 * Clear all the content of the search index for the table with the given id
+	 * @param idAndVersion The id of the table
+	 */
+	void clearSearchIndex(IdAndVersion idAndVersion);
 
 	// For testing:
 

@@ -3422,6 +3422,60 @@ public class TableWorkerIntegrationTest {
 				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 			});
 	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabledOnSchemaChange() throws Exception {
+			schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+				columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING_LIST).setName("two"))
+			);
+			
+			headers = TableModelUtils.getIds(schema);
+			
+			TableEntity table = new TableEntity();
+			table.setName(UUID.randomUUID().toString());
+			table.setParentId(projectId);
+			table.setIsSearchEnabled(false);
+			table.setColumnIds(headers);
+			
+			tableId = entityManager.createEntity(adminUserInfo, table, null);
+			
+			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			
+			// Now add some data
+			List<Row> rows = Arrays.asList(
+				TableModelTestUtils.createRow(null, null, "value", "[]"),
+				TableModelTestUtils.createRow(null, null, "value", "[\"multi\", \"value\"]"),
+				TableModelTestUtils.createRow(null, null, "other", null)
+			);
+					
+			RowSet rowSet = new RowSet();
+			rowSet.setRows(rows);
+			rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+			rowSet.setTableId(tableId);
+			
+			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+						
+			// Check that now we can search on the existing data
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('value')", null, null, (queryResult) -> {
+				assertEquals(2, queryResult.getQueryResults().getRows().size());
+				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId(), referenceSet.getRows().get(0).getRowId());
+				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+			});
+			
+			// Simulate a schema change where a column is deleted, keep only the multivalue column
+			headers = Arrays.asList(headers.get(1));
+			
+			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			
+			// Now only the second row matches since the the first row does not have the column with the value anymore
+			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('value')", null, null, (queryResult) -> {
+				assertEquals(1, queryResult.getQueryResults().getRows().size());
+				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId());
+				assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+			});
+	}
 
 	/**
 	 * Create a string of the given size.

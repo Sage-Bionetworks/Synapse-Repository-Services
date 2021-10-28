@@ -331,7 +331,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		boolean alterTemp = false;
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		if(wasSchemaChanged){
+		
+		if (wasSchemaChanged) {
 			// Determine the current schema of the table
 			List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
 			if(currentSchema.isEmpty()){
@@ -342,12 +343,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			List<String> columnIds = TableModelUtils.getIds(currentSchema);
 			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
-			// TODO 
-			// 1. Check if the search is enabled at this point for the table
-			// 2. If the search is enabled check if the schema changes might need to a re-index of existing data:
-			// 	  -> If a column was deleted and its type matches a search type
-			//    -> If an existing column was updated and the new type matches a search type
-			//    -> If an existing column was updated and the old type matches a search type but the new one doesn't (e.g. this is similar to a delete)
+			
+			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
+				updateSearchIndex(tableId);
+			}
+			
 		}
 		return wasSchemaChanged;
 	}	
@@ -936,7 +936,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	List<ColumnModel> getSchemaForSearchIndex(List<ColumnModel> schema) {
 		return schema.stream()
-				.filter((ColumnModel column) -> TableConstants.SEARCH_TYPES.contains(column.getColumnType()))
+				.filter(TableIndexManagerImpl::isColumnEligibleForSearchIndex)
 				.collect(Collectors.toList());
 	}
 	
@@ -950,6 +950,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
 		
 		if (searchIndexSchema.isEmpty()) {
+			// On a schema change it might happen that now no columns are eligible for indexing, for such cases
+			// we simply clear the search index
+			tableIndexDao.clearSearchIndex(tableId);
 			return;
 		}
 		
@@ -982,5 +985,48 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 		});
 	}
+	
+	/**
+	 * A change in the schema of a table requires a full re-index of the table if:
+	 * 
+	 * 1. A column that was eligible for the search index was deleted
+	 * 2. An existing column non-eligible for the search index was updated to a column that is now eligible
+	 * 3. An existing column eligible for the search index was updated to a column that is now not eligible
+	 * 
+	 * @param tableId
+	 * @param changes
+	 * @return True if the given changes for the table require a full re-index of the search index of the table
+	 */
+	static boolean isRequireSearchIndexUpdate(IdAndVersion tableId, List<ColumnChangeDetails> changes) {
+		if (changes.isEmpty()) {
+			return false;
+		}
+		
+		for (ColumnChangeDetails change : changes) {
+			// For a new column there is not data yet so no need to re-index
+			if (change.getOldColumn() == null) {
+				continue;
+			}
+			// A deleted column: requires re-indexing only if the type of the column is eligible for the search index
+			if (change.getNewColumn() == null && isColumnEligibleForSearchIndex(change.getOldColumn())) {
+				return true;
+			}
+			// An updated column: requires re-indexing if the old column or the new column are eligible for the search index
+			if (change.getNewColumn() != null && (isColumnEligibleForSearchIndex(change.getNewColumn()) || isColumnEligibleForSearchIndex(change.getOldColumn()))) {
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
 
+	/**
+	 * @param column
+	 * @return True if the given column model has a data type that is eligible to be added to the search index
+	 */
+	private static boolean isColumnEligibleForSearchIndex(ColumnModel column) {
+		return TableConstants.SEARCH_TYPES.contains(column.getColumnType());
+	}
+	
 }

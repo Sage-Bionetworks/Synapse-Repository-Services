@@ -3120,4 +3120,26 @@ public class SQLUtilsTest {
 		
 		assertEquals("The id is required.", ex.getMessage());
 	}
+	
+	@Test
+	public void testBuildClearSearchContentSql() {
+		String expected = "UPDATE T999 SET `ROW_SEARCH_CONTENT` = NULL";
+		
+		// Call under test
+		String sql = SQLUtils.buildClearSearchContentSql(tableId);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildClearSearchContentSqlWithNullId() {
+		tableId = null;
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			SQLUtils.buildClearSearchContentSql(tableId);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
 }
