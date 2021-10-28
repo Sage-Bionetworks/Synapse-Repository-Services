@@ -87,7 +87,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TableCellData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -1483,13 +1483,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			// The first column is always the row id
 			Long rowId = rs.getLong(columnIndex++);
 
-			List<TableCellData> rowData = new ArrayList<>(selectColumns.size());
+			List<TypedCellValue> rowData = new ArrayList<>(selectColumns.size());
 			
 			for (ColumnModel columnModel : selectColumns) {
 				String rawValue = rs.getString(columnIndex++);
 				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
-				String value = TableModelUtils.translateRowValueFromQuery(rawValue, columnInfo);
-				rowData.add(new TableCellData(columnModel, value));
+				String value = columnInfo.parseValueForDatabaseRead(rawValue);
+				rowData.add(new TypedCellValue(columnModel.getColumnType(), value));
 			}
 			
 			return new TableRowData(rowId, rowData);

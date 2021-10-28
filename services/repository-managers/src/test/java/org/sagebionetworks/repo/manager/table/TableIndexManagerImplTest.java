@@ -83,7 +83,7 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactor
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TableCellData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -391,11 +391,11 @@ public class TableIndexManagerImplTest {
 		row3.setRowId(6L);
 		row3.setCellValue("102", "1");
 		
-		TableRowData rowData = new TableRowData(102L, Arrays.asList(new TableCellData(schema.get(0), "some data")));
+		TableRowData rowData = new TableRowData(102L, Arrays.asList(new TypedCellValue(schema.get(0).getColumnType(), "some data")));
 		RowSearchContent searchRowContent = new RowSearchContent(102L, "processed row");
 		
 		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(Arrays.asList(rowData, rowData));
-		when(mockSearchProcessor.process(any())).thenReturn(Optional.of(searchRowContent.getSearchContent()));
+		when(mockSearchProcessor.process(any())).thenReturn(searchRowContent.getSearchContent());
 		
 		
 		// call under test.
@@ -408,7 +408,7 @@ public class TableIndexManagerImplTest {
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L));
-		verify(mockSearchProcessor, times(2)).process(rowData);
+		verify(mockSearchProcessor, times(2)).process(rowData.getRowValues());
 		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchRowContent, searchRowContent));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
@@ -2529,17 +2529,17 @@ public class TableIndexManagerImplTest {
 		);
 		
 		TableRowData tableRow1Data = new TableRowData(1L, 
-			expectedSearchSchema.stream().map(model -> new TableCellData(model, "some value")).collect(Collectors.toList())
+			expectedSearchSchema.stream().map(model -> new TypedCellValue(model.getColumnType(), "some value")).collect(Collectors.toList())
 		);
 		
 		TableRowData tableRow2Data = new TableRowData(2L, 
-			expectedSearchSchema.stream().map(model -> new TableCellData(model, "some value")).collect(Collectors.toList())
+			expectedSearchSchema.stream().map(model -> new TypedCellValue(model.getColumnType(), "some value")).collect(Collectors.toList())
 		);
 		
 		// The pagination iterator calls this twice unconditionally, so the second time we return an empty list
 		when(mockIndexDao.getTableDataPage(any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(tableRow1Data, tableRow2Data), Collections.emptyList());
 		
-		when(mockSearchProcessor.process(any())).thenReturn(Optional.of("processed value"));
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
 		
 		// Call under test
 		manager.updateSearchIndex(tableId);
@@ -2578,17 +2578,20 @@ public class TableIndexManagerImplTest {
 	public void testUpdateSearchIndexWithIterator() {
 		
 		List<TableRowData> rows = Arrays.asList(
-			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
-			new TableRowData(2L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+			new TableRowData(1L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		);
-		when(mockSearchProcessor.process(any())).thenReturn(Optional.of("processed value"));
+		
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
 
 		// Call under test
 		manager.updateSearchIndex(tableId, rows.iterator());
+
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
 		
-		for (TableRowData row : rows) {
-			verify(mockSearchProcessor).process(row);
-		}
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
 		
 		verifyNoMoreInteractions(mockSearchProcessor);
 		
@@ -2599,21 +2602,23 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testUpdateSearchIndexWithIteratorAndEmptyElement() {
+	public void testUpdateSearchIndexWithIteratorAndNullSearchContent() {
 		
 		List<TableRowData> rows = Arrays.asList(
-			new TableRowData(1L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value"))),
-			new TableRowData(2L, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+			new TableRowData(1L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		);
 		
-		when(mockSearchProcessor.process(any())).thenReturn(Optional.of("processed value"), Optional.empty());
+		when(mockSearchProcessor.process(any())).thenReturn("processed value", null);
 
 		// Call under test
 		manager.updateSearchIndex(tableId, rows.iterator());
 		
-		for (TableRowData row : rows) {
-			verify(mockSearchProcessor).process(row);
-		}
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
 		
 		verifyNoMoreInteractions(mockSearchProcessor);
 		
@@ -2641,15 +2646,19 @@ public class TableIndexManagerImplTest {
 		int size = TableIndexManagerImpl.BATCH_SIZE * 2 - TableIndexManagerImpl.BATCH_SIZE/2;
 		
 		List<TableRowData> rows = LongStream.range(0, size).boxed().map(rowId -> 
-			new TableRowData(rowId, Arrays.asList(new TableCellData(schema.get(0), "column 2 value"), new TableCellData(schema.get(1), "column 2 value")))
+			new TableRowData(rowId, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		).collect(Collectors.toList());
 		
-		when(mockSearchProcessor.process(any())).thenReturn(Optional.of("processed value"));
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
 
 		// Call under test
 		manager.updateSearchIndex(tableId, rows.iterator());
 		
-		verify(mockSearchProcessor, times(size)).process(any());
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
 
 		List<List<TableRowData>> expectedBatches = Lists.partition(rows, TableIndexManagerImpl.BATCH_SIZE);
 		

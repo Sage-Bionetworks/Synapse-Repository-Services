@@ -10,24 +10,24 @@ public class TableRowData {
 	
 	private Long rowId;
 
-	private List<TableCellData> rowData;
+	private List<TypedCellValue> rowValues;
 
-	public TableRowData(Long rowId, List<TableCellData> rowData) {
+	public TableRowData(Long rowId, List<TypedCellValue> rowValues) {
 		this.rowId = rowId;
-		this.rowData = rowData;
+		this.rowValues = rowValues;
 	}
 
 	public Long getRowId() {
 		return rowId;
 	}
 	
-	public List<TableCellData> getRowData() {
-		return rowData;
+	public List<TypedCellValue> getRowValues() {
+		return rowValues;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(rowData, rowId);
+		return Objects.hash(rowValues, rowId);
 	}
 
 	@Override
@@ -42,7 +42,7 @@ public class TableRowData {
 			return false;
 		}
 		TableRowData other = (TableRowData) obj;
-		return Objects.equals(rowData, other.rowData) && Objects.equals(rowId, other.rowId);
+		return Objects.equals(rowValues, other.rowValues) && Objects.equals(rowId, other.rowId);
 	}
 	
 	

@@ -1,12 +1,10 @@
 package org.sagebionetworks.table.cluster.search;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Component;
@@ -17,21 +15,19 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 	private static final String SEPARATOR = " ";
 
 	@Override
-	public Optional<String> process(TableRowData rowData) {
-		ValidateArgument.required(rowData, "rowData");
+	public String process(List<TypedCellValue> data) {
+		ValidateArgument.required(data, "data");
 		
 		StringBuilder output = new StringBuilder();
 		
-		for (TableCellData cellData : rowData.getRowData()) {
-			String value = cellData.getData();
+		for (TypedCellValue rawValue : data) {
+			String value = rawValue.getRawValue();
 			
 			if (StringUtils.isBlank(value)) {
 				continue;
 			}
 			
-			ColumnModel model = cellData.getColumnModel();
-			
-			if (ColumnTypeListMappings.isList(model.getColumnType())) {
+			if (ColumnTypeListMappings.isList(rawValue.getColumnType())) {
 				List<String> multiValues = new JSONArray(value).toList().stream()
 						.map(obj -> obj == null ? null : obj.toString().trim())
 						.filter(str -> !StringUtils.isBlank(str))
@@ -43,7 +39,7 @@ public class SimpleRowSearchProcessor implements RowSearchProcessor {
 			
 		}
 		
-		return Optional.ofNullable(StringUtils.trimToNull(output.toString()));
+		return StringUtils.trimToNull(output.toString());
 	}
 
 }

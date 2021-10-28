@@ -1,16 +1,16 @@
 package org.sagebionetworks.table.cluster.search;
 
-import java.util.Optional;
+import java.util.List;
 
 @FunctionalInterface
 public interface RowSearchProcessor {
 
 	/**
-	 * Process the given row data to compute a single string to use in the search index. Note that multi-value types are encoded as JSON arrays in the cell value
+	 * Process the given list of values to compute a single string to use in the search index.
 	 * 
-	 * @param rowData The data for a single row
-	 * @return An optional single string containing the search content, empty if nothing to index
+	 * @param values A list of typed values, in case of multi-value types the raw data is encoded as a JSON array
+	 * @return A string denoting the value computed from the given list, can be null
 	 */
-	Optional<String> process(TableRowData rowData);
+	String process(List<TypedCellValue> data);
 	
 }

@@ -1,17 +1,16 @@
 package org.sagebionetworks.table.cluster.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,133 +22,117 @@ public class SimpleRowSearchProcessorTest {
 	@Test
 	public void testProcess() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), "1"),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.INTEGER, "1"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value 1 big value", result.get());
+		assertEquals("value 1 big value", result);
 	}
 	
 	@Test
 	public void testProcessWithNullValues() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), null),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.INTEGER, null),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value big value", result.get());
+		assertEquals("value big value", result);
 	}
 	
 	@Test
 	public void testProcessWithEmptyValues() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), "   "),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.INTEGER, "    "),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value big value", result.get());
+		assertEquals("value big value", result);
 	}
 	
 	@Test
 	public void testProcessWithNothingToIndex() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), null),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER), null),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), " "),
-				new TableCellData(TableModelTestUtils.createColumn(4L, "four", ColumnType.STRING_LIST), "[]")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.INTEGER, null),
+			new TypedCellValue(ColumnType.LARGETEXT, "   "),
+			new TypedCellValue(ColumnType.STRING_LIST, "[]")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
-		
-		assertFalse(result.isPresent());
+		String result = processor.process(data);
+
+		assertNull(result);
 	}
 	
 	@Test
 	public void testProcessWithMultiValues() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), "[\"a\",\"b\", \" c\"]"),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.STRING_LIST, "[\"a\",\"b\", \" c\"]"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value a b c big value", result.get());
+		assertEquals("value a b c big value", result);
 	}
 	
 	@Test
 	public void testProcessWithMultiNullValues() {
-		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), "[\"a\",\"b\", null]"),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+				
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.STRING_LIST, "[\"a\",\"b\", null]"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value a b big value", result.get());
+		assertEquals("value a b big value", result);
 	}
 	
 	@Test
 	public void testProcessWithMultiEmptyValues() {
 		
-		Long rowId = 1L;
-		
-		TableRowData rowData = new TableRowData(rowId, Arrays.asList(
-				new TableCellData(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING), "value"),
-				new TableCellData(TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST), ""),
-				new TableCellData(TableModelTestUtils.createColumn(3L, "three", ColumnType.LARGETEXT), "big value")
-		));
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.STRING_LIST, ""),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
 		
 		// Call under test
-		Optional<String> result = processor.process(rowData);
+		String result = processor.process(data);
 		
-		assertEquals("value big value", result.get());
+		assertEquals("value big value", result);
 	}
 	
 	@Test
 	public void testProcessWithNullRowData() {
-		
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			processor.process(null);
 		});
 		
-		assertEquals("rowData is required.", ex.getMessage());
+		assertEquals("data is required.", ex.getMessage());
 	}
 
 }

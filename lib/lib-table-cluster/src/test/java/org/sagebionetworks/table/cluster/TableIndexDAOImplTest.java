@@ -64,7 +64,7 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TableCellData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
@@ -1008,9 +1008,9 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowIds = set.getRows().stream().map(Row::getRowId).collect(Collectors.toSet());
 		
 		List<TableRowData> expected = set.getRows().stream().map(row -> {
-			List<TableCellData> rowData = new ArrayList<>();
+			List<TypedCellValue> rowData = new ArrayList<>();
 			for (int i=0; i<columns.size(); i++) {
-				rowData.add(new TableCellData(columns.get(i), row.getValues().get(i)));
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
@@ -1054,10 +1054,10 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
 		
 		List<TableRowData> expected = set.getRows().stream().map(row -> {
-			List<TableCellData> rowData = new ArrayList<>();
+			List<TypedCellValue> rowData = new ArrayList<>();
 			
-			rowData.add(new TableCellData(columns.get(0), row.getValues().get(0)));
-			rowData.add(new TableCellData(columns.get(2), row.getValues().get(2)));
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
 			
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
@@ -1097,9 +1097,9 @@ public class TableIndexDAOImplTest {
 		long limit = 10;
 		
 		List<TableRowData> expected = set.getRows().stream().limit(limit).map(row -> {
-			List<TableCellData> rowData = new ArrayList<>();
+			List<TypedCellValue> rowData = new ArrayList<>();
 			for (int i=0; i<columns.size(); i++) {
-				rowData.add(new TableCellData(columns.get(i), row.getValues().get(i)));
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
@@ -1139,9 +1139,9 @@ public class TableIndexDAOImplTest {
 		long limit = 10;
 		
 		List<TableRowData> expected = set.getRows().stream().skip(offset).limit(limit).map(row -> {
-			List<TableCellData> rowData = new ArrayList<>();
+			List<TypedCellValue> rowData = new ArrayList<>();
 			for (int i=0; i<columns.size(); i++) {
-				rowData.add(new TableCellData(columns.get(i), row.getValues().get(i)));
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
@@ -1187,10 +1187,10 @@ public class TableIndexDAOImplTest {
 		long limit = 10;
 		
 		List<TableRowData> expected = set.getRows().stream().limit(limit).map(row -> {
-			List<TableCellData> rowData = new ArrayList<>();
+			List<TypedCellValue> rowData = new ArrayList<>();
 			
-			rowData.add(new TableCellData(columns.get(0), row.getValues().get(0)));
-			rowData.add(new TableCellData(columns.get(2), row.getValues().get(2)));
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
 			
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());

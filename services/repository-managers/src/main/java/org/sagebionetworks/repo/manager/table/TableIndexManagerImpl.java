@@ -973,14 +973,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void updateSearchIndex(IdAndVersion tableId, Iterator<TableRowData> tableRowDataIterator) {
 		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
 			List<RowSearchContent> transformedBatch = batch.stream()
-				// Each item in the batch is processed by the search processor
-				.map((TableRowData rowData) -> new RowSearchContent(rowData.getRowId(), searchProcessor.process(rowData).orElse(null)))
+				.map(this::mapTableRowDataToSearchContent)
 				.collect(Collectors.toList());
 			
 			if (!transformedBatch.isEmpty()) {
 				tableIndexDao.updateSearchIndex(tableId, transformedBatch);
 			}
 		});
+	}
+	
+	private RowSearchContent mapTableRowDataToSearchContent(TableRowData rowData) {
+		String processedValue = searchProcessor.process(rowData.getRowValues());
+		return new RowSearchContent(rowData.getRowId(), processedValue);
 	}
 	
 	/**
