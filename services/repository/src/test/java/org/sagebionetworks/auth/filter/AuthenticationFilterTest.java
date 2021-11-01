@@ -43,8 +43,10 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.model.AuthenticationType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationMethod;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
@@ -144,10 +146,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Should default to anonymous
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), anonymous);
+		assertEquals(AuthorizationMethod.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 	
 	/**
@@ -165,10 +168,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Should default to anonymous
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertTrue(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(anonymous));
+		assertEquals(AuthenticationType.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 	
 	
@@ -182,10 +186,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Session token should not be recognized
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), sessionUsername);
+		assertEquals(AuthenticationType.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 	
 	@Test
@@ -207,10 +212,11 @@ public class AuthenticationFilterTest {
 
 		// Signature should match
 		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(userId.toString(), passedAlongUsername);
+		assertEquals(AuthenticationType.APIKEY.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 	
 	@Test
@@ -270,6 +276,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals(AuthenticationType.BEARERTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 
 	@Test
@@ -286,6 +293,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals(AuthenticationType.SESSIONTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 
 	@Test
@@ -356,6 +364,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals(AuthenticationType.BASIC.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME));
 	}
 
 

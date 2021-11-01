@@ -3,7 +3,6 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -14,7 +13,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -28,8 +26,8 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationMethod;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthException;
@@ -72,6 +70,9 @@ public class AuthenticationFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
+
+		AuthorizationMethod authorizationMethod = null;
+
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
 		
@@ -79,11 +80,12 @@ public class AuthenticationFilter implements Filter {
 		String accessToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		if (isTokenEmptyOrNull(accessToken)) {
 			accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
+		} else {
+			authorizationMethod = AuthorizationMethod.SESSIONTOKEN;
 		}
 
 		Long userId = null;
-		
-		
+
 		if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
 			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
@@ -97,11 +99,15 @@ public class AuthenticationFilter implements Filter {
 				return;
 			}
 			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
+			authorizationMethod = AuthorizationMethod.APIKEY;
 		} else {
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
 					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
+					if (authorizationMethod == null) { // accessToken came in as sessionToken
+						authorizationMethod = AuthorizationMethod.BEARERTOKEN;
+					}
 				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
@@ -116,7 +122,11 @@ public class AuthenticationFilter implements Filter {
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 			}
 		}
-		
+
+		if (authorizationMethod == null/* && HttpAuthUtil.usesBasicAuthentication(req)*/) {
+			authorizationMethod = AuthorizationMethod.BASIC;
+		}
+
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
 
@@ -131,6 +141,7 @@ public class AuthenticationFilter implements Filter {
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
+			HttpAuthUtil.setAuthorizationMethod(modHeaders, authorizationMethod);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
