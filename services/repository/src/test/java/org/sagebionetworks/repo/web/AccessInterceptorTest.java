@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -201,7 +200,7 @@ public class AccessInterceptorTest {
 	public void testGetOAuthClientIdFromBearerJwt() throws Exception {
 		// Put the client ID in the JWT access token
 		when(mockRequest.getHeader("Authorization")).thenReturn(BEARER_TOKEN_HEADER);
-		when(mockRequest.getHeader("authorizationMethod")).thenReturn("BEARERTOKEN");
+		when(mockRequest.getHeader("authenticationMethod")).thenReturn("BEARERTOKEN");
 		Claims claims = new DefaultClaims();
 		claims.setAudience(OAUTH_CLIENT_ID);
 		Jwt<JwsHeader,Claims> jwt = new DefaultJwt(null, claims);
@@ -230,7 +229,7 @@ public class AccessInterceptorTest {
 		// Put the client ID in the basic auth header.
 		when(mockRequest.getHeader("Authorization")).thenReturn(BASIC_AUTH_HEADER);
 		when(mockRequest.getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER)).thenReturn(OAUTH_CLIENT_ID_BASIC);
-		when(mockRequest.getHeader("authorizationMethod")).thenReturn("BASICAUTH");
+		when(mockRequest.getHeader("authenticationMethod")).thenReturn("BASICAUTH");
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
