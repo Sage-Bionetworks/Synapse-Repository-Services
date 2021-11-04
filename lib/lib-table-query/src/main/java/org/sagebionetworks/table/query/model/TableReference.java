@@ -8,10 +8,10 @@ public class TableReference extends SimpleBranch {
 	public TableReference(TableName tableName) {
 		super(tableName);
 	}
-
-	//not used by parser.
-	//also skipped <joined table> part of the spec and heads directly to <qualified join>
-	public TableReference(QualifiedJoin joinedTable) {super(joinedTable);}
+	
+	public TableReference(QualifiedJoin qualifiedJoin) {
+		super(qualifiedJoin);
+	}
 
 	public String getTableName() {
 		return child.toSql();

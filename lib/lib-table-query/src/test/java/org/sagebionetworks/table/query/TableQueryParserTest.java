@@ -463,5 +463,12 @@ public class TableQueryParserTest {
 			TableQueryParser.parserQuery("select * from syn123 where foo = CURRENT_USER");
 		});
 	}
+	
+	@Test
+	public void testJoin() throws ParseException {
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 join syn456 on syn123.a = syn456.a");
+		assertEquals("SELECT * FROM syn123 join syn456 on syn123.a = syn456.a",	element.toSql());
+	}
+
 
 }
