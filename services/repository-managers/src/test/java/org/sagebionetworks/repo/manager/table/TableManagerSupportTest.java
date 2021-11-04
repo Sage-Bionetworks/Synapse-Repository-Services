@@ -530,104 +530,15 @@ public class TableManagerSupportTest {
 	
 	
 	@Test
-	public void testGetAllContainerIdsForViewScope() throws LimitExceededException {
-		when(mockViewScopeDao.getViewScope(idAndVersion.getId())).thenReturn(scope);
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
-		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		assertEquals(containersInScope, containers);
-		verify(mockViewScopeDao).getViewScope(idAndVersion.getId());
-		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
-	}
-	
-	@Test
-	public void testGetAllContainerIdsForScopeOverLimit(){
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		Set<Long> overLimit = new HashSet<>();
-		int countOverLimit = TableConstants.MAX_CONTAINERS_PER_VIEW+1;
-		for(long i=0; i<countOverLimit; i++){
-			overLimit.add(i);
-		}
-		String errMessage = "Some specific error message";
-		
-		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test.
-			manager.getAllContainerIdsForScope(overLimit, scopeType);
-		});
-		
-		assertEquals(errMessage, ex.getMessage());
-		
-		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
-	}
-	
-	@Test
-	public void testGetAllContainerIdsForScopeFiewView() throws LimitExceededException{
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		when(mockMetadataIndexProvider.getContainerIdsForScope(any(), any(), anyInt())).thenReturn(containersInScope);
-		
-		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForScope(scope, scopeType);
-		assertEquals(containersInScope, containers);
-		
-		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
-		
-	}
-	
-	/**
-	 * For this case the scope is under the limit, but the expanded containers
-	 * would go over the limit.
-	 * @throws LimitExceededException 
-	 */
-	@Test
-	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		
-		String errMessage = "Some specific error message";
-		
-		when(mockMetadataIndexProvider.createViewOverLimitMessage(any(), anyInt())).thenReturn(errMessage);
-		
-		// setup limit exceeded.
-		LimitExceededException exception = new LimitExceededException("too many");
-
-		doThrow(exception).when(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.getAllContainerIdsForScope(scope, scopeType);
-		});
-		
-		assertEquals(errMessage, ex.getMessage());
-		
-		verify(mockMetadataIndexProvider).createViewOverLimitMessage(scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
-	}
-	
-	@Test
 	public void testValidateScopeSize() throws LimitExceededException{
 		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
 		
 		// call under test
 		manager.validateScope(scopeType, scope);
 		
-		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
-		verify(mockMetadataIndexProvider).getContainerIdsForScope(scope, scopeType.getTypeMask(), TableConstants.MAX_CONTAINERS_PER_VIEW);
+		verify(mockMetadataIndexProvider).validateScopeAndType(scopeType.getTypeMask(), scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
 	}
 	
-	@Test
-	public void testValidateScopeSizeNullScope() throws LimitExceededException {
-		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-		// The scope can be null.
-		scope = null;
-		// call under test
-		manager.validateScope(scopeType, scope);
-
-		verify(mockMetadataIndexProvider).validateTypeMask(scopeType.getTypeMask());
-	}
 	
 	@Test
 	public void testGetViewStateNumber() throws LimitExceededException{

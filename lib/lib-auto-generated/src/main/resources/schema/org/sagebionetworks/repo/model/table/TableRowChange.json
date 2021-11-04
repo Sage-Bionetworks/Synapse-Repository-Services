@@ -45,11 +45,15 @@
             "enum": [
                 {
                     "name": "ROW",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A change set of table rows"
                 },
                 {
                     "name": "COLUMN",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A change in the table schema"
+                },
+                {
+                	"name": "SEARCH",
+                	"description": "A change in the search configuration"
                 }
             ]
         },
@@ -60,6 +64,10 @@
         "hasFileRefs": {
         	"type": "boolean",
         	"description": "Indicates if the change contains references to file handles. Always false for a COLUMN change."
+        },
+        "isSearchEnabled": {
+        	"type": "boolean",
+        	"description": "Indicates if the for this change the search is enabled"
         }
     }
 }

@@ -1468,7 +1468,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param viewTypeMask
 	 *            Bit mask representing the types to include in the view. The
 	 *            following are the possible types when the viewEntityType is entityview: (type=<mask_hex>): File=0x01,
-	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20. For a viewEntityType of submissionview the mask 
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20, SubmissionView=0x40, Dataset=0x80. For a viewEntityType of submissionview the mask 
 	 *            is not required
 
 	 * @return

@@ -20,6 +20,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TableQueryUtilsTest {
 
@@ -175,16 +176,7 @@ public class TableQueryUtilsTest {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
 			TableQueryUtils.extractTableIdFromSql(sql);
 		});
-		assertEquals("Encountered \" <date_time_field> \"year \"\" at line 1, column 31.\n" +
-				"Was expecting one of:\n" +
-				"    \"\\\"\" ...\n" +
-				"    \"`\" ...\n" +
-				"    \"NOT\" ...\n" +
-				"    \"ISNAN\" ...\n" +
-				"    \"ISINFINITY\" ...\n" +
-				"    <entity_id> ...\n" +
-				"    <regular_identifier> ...\n" +
-				"    \"(\" ...\n" +
-				"    " + TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE, exception.getMessage());
+		assertTrue(exception.getMessage().startsWith("Encountered \" <date_time_field> \"year \"\" at line 1, column 31."));
+		assertTrue(exception.getMessage().contains(TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE));
 	}
 }

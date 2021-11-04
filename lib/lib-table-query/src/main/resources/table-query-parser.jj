@@ -191,6 +191,7 @@ TOKEN [IGNORE_CASE]: {
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
 | < separator: "SEPARATOR">
+| < text_matches: "TEXT_MATCHES">
 }
 
 /* Aggregate functions */
@@ -755,10 +756,12 @@ Predicate predicate():
 	IsPredicate isPredicate = null;
 	ArrayHasPredicate arrayHasPredicate = null;
 	BooleanFunctionPredicate booleanFunctionPredicate = null;
+	TextMatchesPredicate textMatchesPredicate = null;
 	Boolean notB = null;
 }
 {
 	booleanFunctionPredicate = booleanFunctionPredicate() { return new Predicate(booleanFunctionPredicate); }
+	| textMatchesPredicate = textMatchesPredicate() { return new Predicate(textMatchesPredicate); }
 	| ( leftHandSide = columnReference()
 		(
 			comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
@@ -1040,6 +1043,16 @@ SynapseFunctionName synapseFunctionName():
 }
 {
 	synapseFunctionName  = <current_user_function> { return SynapseFunctionName.valueOf(synapseFunctionName.image.toUpperCase()); }
+}
+
+TextMatchesPredicate textMatchesPredicate():
+{
+	CharacterStringLiteral searchExpression = null;
+}
+{
+	<text_matches><left_paren> { searchExpression = characterStringLiteral(); } <right_paren>
+	
+	{ return new TextMatchesPredicate(searchExpression); }
 }
 
 MySqlFunction mysqlFunction():

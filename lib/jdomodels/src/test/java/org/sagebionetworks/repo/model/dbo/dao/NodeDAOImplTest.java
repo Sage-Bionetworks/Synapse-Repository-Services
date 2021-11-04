@@ -1,8 +1,39 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +53,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndAlias;
-import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
@@ -60,6 +91,7 @@ import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -87,38 +119,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -163,6 +166,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private DaoObjectHelper<Node> nodeDaoHelper;
+	
+	@Autowired
+	private AccessControlListObjectHelper aclDaoHelper;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -190,6 +196,9 @@ public class NodeDAOImplTest {
 
 	@BeforeEach
 	public void before() throws Exception {
+		
+		nodeDao.truncateAll();
+		
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 		adminUser = new UserInfo(true, creatorUserGroupId);
@@ -256,6 +265,7 @@ public class NodeDAOImplTest {
 		for (String todelete : Lists.reverse(userGroupsToDelete)) {
 			userGroupDAO.delete(todelete);
 		}
+		nodeDao.truncateAll();
 	}
 	
 	private Node privateCreateNew(String name) {
@@ -266,6 +276,12 @@ public class NodeDAOImplTest {
 		return NodeTestUtils.createNew(name, creatorUserGroupId, altUserGroupId);
 	}
 	
+	
+	public String createNodeWithMultipleVersions(int numberOfVersions) throws Exception {
+		String parentId = null;
+		return createNodeWithMultipleVersions(numberOfVersions, parentId);
+	}
+	
 	/**
 	 * Helper method to create a node with multiple versions.
 	 * @param numberOfVersions
@@ -273,11 +289,13 @@ public class NodeDAOImplTest {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String createNodeWithMultipleVersions(int numberOfVersions) throws Exception {
-		Node node = privateCreateNew("createNodeWithMultipleVersions");
+	public String createNodeWithMultipleVersions(int numberOfVersions, String parentId) throws Exception {
+		Node node = privateCreateNew(UUID.randomUUID().toString());
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.0");
+		node.setParentId(parentId);
+		node.setNodeType(EntityType.file);
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -2996,7 +3014,7 @@ public class NodeDAOImplTest {
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
-		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
+		Node file = NodeTestUtils.createNew("file", creatorUserGroupId);
 		file.setNodeType(EntityType.file);
 		file.setParentId(project.getId());
 		file.setFileHandleId(fileHandle.getId());
@@ -3022,8 +3040,10 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
+		long limit = 100;
+		long offset = 0;
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
@@ -3094,14 +3114,42 @@ public class NodeDAOImplTest {
 		int maxAnnotationChars = 10;
 		
 		List<Long> ids = KeyFactory.stringToKey(ImmutableList.of(project.getId(), file.getId()));
+		long limit = 100;
+		long offset = 0;
 		// call under test
-		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		ObjectDataDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(0, fileDto.getAnnotations().size());
+	}
+	
+	@Test
+	public void testGetEntityDTOsWithMultipleVersionsAndPaginated() throws Exception {
+		int numberVersions = 3;
+		String one = createNodeWithMultipleVersions(numberVersions);
+		String two = createNodeWithMultipleVersions(numberVersions);
+		
+		List<Long> ids = KeyFactory.stringToKey(Arrays.asList(one, two));
+		// call under test
+		long limit = 3;
+		long offset = 1;
+		int maxAnnotationChars = 10;
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(ids, maxAnnotationChars, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		// 0
+		assertEquals(ids.get(0), results.get(0).getId());
+		assertEquals(2L, results.get(0).getVersion());
+		// 1
+		assertEquals(ids.get(0), results.get(1).getId());
+		assertEquals(3L, results.get(1).getVersion());
+		// 2
+		assertEquals(ids.get(1), results.get(2).getId());
+		assertEquals(1L, results.get(2).getVersion());
 	}
 	
 
@@ -3875,102 +3923,6 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
 	}
 	
-	
-	@Test
-	public void testGetSumOfChildCRCsForEachParentEmpty(){
-		// Setup some hierarchy.
-		List<Long> parentIds = new LinkedList<Long>();
-		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testGetSumOfChildCRCsForEachParent(){
-		// Setup some hierarchy.
-		// grandparent
-		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
-		grandparent = nodeDao.createNewNode(grandparent);
-		Long grandId = KeyFactory.stringToKey(grandparent.getId());
-		toDelete.add(grandparent.getId());
-		// parent
-		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
-		parent.setParentId(grandparent.getId());
-		parent = nodeDao.createNewNode(parent);
-		Long parentId = KeyFactory.stringToKey(parent.getId());
-		toDelete.add(parent.getId());
-		// child
-		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
-		child.setParentId(parent.getId());
-		child = nodeDao.createNewNode(child);
-		Long childId = KeyFactory.stringToKey(child.getId());
-		toDelete.add(child.getId());
-		
-		Long doesNotExist = -1L;
-		List<Long> parentIds = Lists.newArrayList(grandId, parentId, childId, doesNotExist);
-		// call under test
-		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		Long crc = results.get(grandId);
-		assertNotNull(results.get(grandId));
-		assertNotNull(results.get(parentId));
-		assertEquals(null, results.get(child));
-		assertEquals(null, results.get(doesNotExist));
-	}
-	
-	@Test
-	public void testGetChildrenIdAndEtag(){
-		// Setup some hierarchy.
-		// grandparent
-		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
-		grandparent = nodeDao.createNewNode(grandparent);
-		Long grandId = KeyFactory.stringToKey(grandparent.getId());
-		toDelete.add(grandparent.getId());
-		// parent
-		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
-		parent.setParentId(grandparent.getId());
-		parent.setNodeType(EntityType.folder);
-		parent = nodeDao.createNewNode(parent);
-		Long parentId = KeyFactory.stringToKey(parent.getId());
-		toDelete.add(parent.getId());
-		
-		// add an acl for the parent
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(""+parentId, adminUser, new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
-		
-		// child
-		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
-		child.setParentId(parent.getId());
-		child.setNodeType(EntityType.file);
-		child = nodeDao.createNewNode(child);
-		Long childId = KeyFactory.stringToKey(child.getId());
-		toDelete.add(child.getId());
-		// call under test
-		List<IdAndEtag> results = nodeDao.getChildren(grandId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(parentId, parent.getETag(), parentId), results.get(0));
-		// call under test
-		results = nodeDao.getChildren(parentId);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		assertEquals(new IdAndEtag(childId, child.getETag(), parentId), results.get(0));
-		// call under test
-		results = nodeDao.getChildren(childId);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testGetChildrenIdAndEtagDoesNotExist(){
-		Long doesNotExist = -1L;
-		// call under test
-		List<IdAndEtag> results = nodeDao.getChildren(doesNotExist);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
 	@Test
 	public void testGetAvailableNodesEmpty(){
 		List<Long> empty = new LinkedList<Long>();
@@ -4638,6 +4590,35 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testUpdateDataset() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L));
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		
+		Node node = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
+		assertEquals(dataset, node);
+		assertEquals(items, node.getItems());
+		
+		node.setItems(null);
+		// call under test
+		nodeDao.updateNode(node);
+		node = nodeDao.getNodeForVersion(dataset.getId(), dataset.getVersionNumber());
+		assertNotNull(node);
+		assertNull(node.getItems());		
+	}
+	
+	@Test
 	public void testGetDatasetItems() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -4688,6 +4669,59 @@ public class NodeDAOImplTest {
 		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(itemsV2, fetched);
 	}
+
+	@Test
+	public void testCreateTableWithSearchFlag() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		// Call under test
+		Node table = nodeDaoHelper.create(n -> {
+			n.setName("aTable");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.table);
+			n.setIsSearchEnabled(true);
+		});
+		
+		assertTrue(table.getIsSearchEnabled());
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		
+		assertTrue(table.getIsSearchEnabled());
+	}
+	
+	@Test
+	public void testUpdateTableWithSearchFlag() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		Node table = nodeDaoHelper.create(n -> {
+			n.setName("aTable");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.table);
+		});
+		
+		assertNull(table.getIsSearchEnabled());
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		table.setIsSearchEnabled(true);
+		
+		// Call under test
+		nodeDao.updateNode(table);
+		
+		table = nodeDao.getNodeForVersion(table.getId(), table.getVersionNumber());
+		assertTrue(table.getIsSearchEnabled());
+	}
 	
 	@Test
 	public void testGetDatasetItemsWithNotFound() {
@@ -4706,5 +4740,299 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getDatasetItems(datasetId);
 		});
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForChildren() throws Exception {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectOne.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("project_two");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectTwo.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		List<Long> idsInTwo = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId()))
+		);
+		// add a folder that should be excluded
+		Node folderInTwo = nodeDaoHelper.create(n -> {
+			n.setName("a-folder");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setNodeType(EntityType.folder);
+			n.setParentId(projectTwo.getId());
+		});
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(KeyFactory.stringToKey(projectTwo.getId()));
+	
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(idsInTwo.get(1), results.get(0).getId());
+		assertEquals(idsInTwo.get(2), results.get(1).getId());
+		// all files should have a checksum
+		assertEquals(2, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForChildrenWithParentInTrash() throws Exception {
+		// project one is in the trash
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(NodeDAOImpl.TRASH_FOLDER_ID.toString());
+		});
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("project_two");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectTwo.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		List<Long> idsInTwo = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId()))
+		);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(KeyFactory.stringToKey(projectOne.getId()),KeyFactory.stringToKey(projectTwo.getId()));
+	
+		Long limit = 100L;
+		Long offset = 0L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		assertEquals(idsInTwo.get(0), results.get(0).getId());
+		assertEquals(idsInTwo.get(1), results.get(1).getId());
+		assertEquals(idsInTwo.get(2), results.get(2).getId());
+		// all files should have a checksum
+		assertEquals(3, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptyParentIds() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Collections.emptySet();
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptySubTypes() throws Exception {
+		Set<SubType> subTypes = Collections.emptySet();
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("Must provide at least one sub-type", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullSalt() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(123L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullLimit() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = null;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullOffset() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(222L);
+		Long limit = 100L;
+		Long offset = null;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjects() throws Exception {
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectOne.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		
+		Set<Long> objectIds = idsInOne.stream().collect(Collectors.toSet());
+	
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(idsInOne.get(1), results.get(0).getId());
+		assertEquals(idsInOne.get(2), results.get(1).getId());
+		// all files should have a checksum
+		assertEquals(2, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithParentInTrash() throws Exception {
+		// project one is in the trash
+		Node projectOne = nodeDaoHelper.create(n -> {
+			n.setName("project-one");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(NodeDAOImpl.TRASH_FOLDER_ID.toString());
+		});
+		Node projectTwo = nodeDaoHelper.create(n -> {
+			n.setName("project_two");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		aclDaoHelper.create(a->{
+			a.setId(projectTwo.getId());
+			a.getResourceAccess().add(createResourceAccess(creatorUserGroupId, ACCESS_TYPE.READ));
+		});
+		int numberVersions = 3;
+		List<Long> idsInOne = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectOne.getId()))
+		);
+		List<Long> idsInTwo = Arrays.asList(
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId())),
+				KeyFactory.stringToKey(createNodeWithMultipleVersions(numberVersions, projectTwo.getId()))
+		);
+				
+		Set<Long> objectIds = new HashSet<Long>();
+		objectIds.addAll(idsInOne);
+		objectIds.addAll(idsInTwo);
+	
+		Long limit = 100L;
+		Long offset = 0L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		assertEquals(idsInTwo.get(0), results.get(0).getId());
+		assertEquals(idsInTwo.get(1), results.get(1).getId());
+		assertEquals(idsInTwo.get(2), results.get(2).getId());
+		// all files should have a checksum
+		assertEquals(3, results.stream().filter(i-> i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithEmptyObjects() throws Exception {
+		Set<Long> objectIds = Collections.emptySet();
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullSalt() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = 2L;
+		Long offset = 1L;
+		Long salt = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullLimit() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = null;
+		Long offset = 1L;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForObjectsWithNullOffset() throws Exception {
+		Set<Long> objectIds = Sets.newHashSet(22L);
+		Long limit = 100L;
+		Long offset = null;
+		Long salt = 123L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
 	}
 }

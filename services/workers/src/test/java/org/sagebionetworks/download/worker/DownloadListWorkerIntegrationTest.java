@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -147,6 +148,41 @@ public class DownloadListWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testAddToDownloadListDatasetItems() throws Exception {
+		// create file in a project with read access
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ);
+		// add file to a data set
+		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(file.getId())
+				.setVersionNumber(file.getVersionNumber()));
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setParentId(dataset.getId());
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertNotNull(response);
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+		// query to show it's there
+		DownloadListQueryRequest queryRequest = new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest());
+		asynchronousJobWorkerHelper.assertJobResponse(user, queryRequest, (DownloadListQueryResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResponseDetails());
+			assertTrue(response.getResponseDetails() instanceof AvailableFilesResponse);
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getResponseDetails();
+			assertNotNull(details.getPage());
+			List<DownloadListItemResult> page = details.getPage();
+			assertEquals(1, page.size());
+			DownloadListItemResult item = page.get(0);
+			assertEquals(file.getId(), item.getFileEntityId());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	@Test
 	public void testAddToDownloadListWorkerWithFolder() throws Exception {
 		
 		Node file = createFileHierarchy(ACCESS_TYPE.READ);
@@ -167,14 +203,14 @@ public class DownloadListWorkerIntegrationTest {
 	 * 
 	 * @return
 	 */
-	public Node createFileHierarchy(ACCESS_TYPE accessType) {
+	public Node createFileHierarchy(ACCESS_TYPE... accessTypes) {
 		Node project = nodeDaoHelper.create((n) -> {
 			n.setNodeType(EntityType.project);
 			n.setName("project");
 		});
 		aclHelper.create((a) -> {
 			a.setId(project.getId());
-			a.getResourceAccess().add(createResourceAccess(user.getId(), accessType));
+			a.getResourceAccess().add(createResourceAccess(user.getId(), accessTypes));
 		});
 		FileHandle fh = fileHandleDaoHelper.create((f) -> {
 			f.setFileName("someFile");

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -77,6 +78,8 @@ import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
+import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
@@ -348,6 +351,7 @@ public class SQLTranslatorUtils {
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
 				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
 				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
+				replaceTextMatchesPredicate(booleanPrimary);
 			}
 		}
 		// translate the group by
@@ -383,6 +387,20 @@ public class SQLTranslatorUtils {
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
 
+
+	private static void replaceTextMatchesPredicate(BooleanPrimary booleanPrimary) {
+		if (booleanPrimary.getPredicate() == null) {
+			return;
+		}
+		
+		TextMatchesPredicate predicate = booleanPrimary.getPredicate().getFirstElementOfType(TextMatchesPredicate.class);
+		
+		if (predicate == null) {
+			return;
+		}
+		
+		booleanPrimary.getPredicate().replaceChildren(new TextMatchesMySQLPredicate(predicate));
+	}
 
 	/**
 	 * Translates FROM clause and returns the original Synapse IdAndVersion that was translated
@@ -535,21 +553,18 @@ public class SQLTranslatorUtils {
 			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
-		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
-		// lookup the column name from the left-hand-side
-		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
-
-		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
-				.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName) );
+		
+		ColumnType columnType = getColumnType(columnTranslationReferenceLookup, predicate.getLeftHandSide());	
 		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
+		
 		if(rightHandSide != null){
-			ColumnType columnType = columnTranslationReference.getColumnType();
 			//for the ArrayHasPredicate, we want its corresponding non-list type to be used
 			if(predicate instanceof ArrayHasPredicate && ColumnTypeListMappings.isList(columnType)){
 				columnType = ColumnTypeListMappings.nonListType(columnType);
-			}
+			} 
+			
 			for(UnsignedLiteral element: rightHandSide){
 				translateRightHandeSide(element, columnType, parameters);
 			}
@@ -566,6 +581,26 @@ public class SQLTranslatorUtils {
 					columnNameRef.replaceChildren(new RegularIdentifier(referencedColumn.getTranslatedColumnName()));
 				});
 		}
+	}
+
+	static ColumnType getColumnType(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, ColumnReference columnReference) {
+		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
+		ValidateArgument.required(columnReference, "columnReference");
+		// We first check if the left hand side column is implicit (Not exposed to the user, for example TextMatchesPredicate)
+		// In such cases the ColumnTranslationReferenceLookup cannot be used since the user cannot query the column directly
+		// and instead we use the column type from the reference directly
+		ColumnType columnType = columnReference.getImplicitColumnType();
+		
+		if (columnType == null) {
+			// lookup the column name from the left-hand-side
+			String columnName = columnReference.toSqlWithoutQuotes();
+			
+			columnType = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
+					.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName))
+					.getColumnType();
+		}
+		
+		return columnType;
 	}
 
 	/**
@@ -878,9 +913,20 @@ public class SQLTranslatorUtils {
 			translateSingleValueFilters(builder, (ColumnSingleValueQueryFilter) filter);
 		} else if (filter instanceof ColumnMultiValueFunctionQueryFilter) {
 			translateMultiValueFunctionFilters(builder, (ColumnMultiValueFunctionQueryFilter) filter);
+		} else if (filter instanceof TextMatchesQueryFilter) {
+			translateTextMatchesQueryFilter(builder, (TextMatchesQueryFilter) filter);
 		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
+	}
+
+	static void translateTextMatchesQueryFilter(StringBuilder builder, TextMatchesQueryFilter filter) {
+		ValidateArgument.requiredNotBlank(filter.getSearchExpression(), "TextMatchesQueryFilter.searchExpression");
+		builder.append("(");
+		builder.append(TextMatchesPredicate.KEYWORD).append("(");
+		appendSingleQuotedValueToStringBuilder(builder, filter.getSearchExpression());
+		builder.append(")");
+		builder.append(")");
 	}
 
 	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){

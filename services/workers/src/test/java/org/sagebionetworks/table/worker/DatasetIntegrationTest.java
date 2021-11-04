@@ -2,12 +2,13 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -26,13 +27,19 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.worker.TestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,59 +108,137 @@ public class DatasetIntegrationTest {
 		}
 	}
 
-	@Disabled
 	@Test
 	public void testQueryDataset()
 			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 
-		String fileId = entityManager.createEntity(userInfo,
-				new FileEntity().setName("afile").setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()),
-				null);
+		int numberOfVersions = 3;
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		FileEntity fileThree = createFileWithMultipleVersions(3, stringColumn.getName(), numberOfVersions);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()),
+				fileTwo.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileThree.getId()),
+				fileThree.getEtag(), MAX_WAIT);
 
-		Annotations annos = entityManager.getAnnotations(userInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "one", AnnotationsValueType.STRING);
-		entityManager.updateAnnotations(userInfo, fileId, annos);
-
-		FileEntity file = entityManager.getEntity(userInfo, fileId, FileEntity.class);
-		file.setVersionComment("comment 2");
-		file.setVersionLabel("v2");
-		final long fileIdLong = KeyFactory.stringToKey(file.getId());
-		boolean newVersion = true;
-		String activityId = null;
-		entityManager.updateEntity(userInfo, file, newVersion, activityId);
-
-		// change the annotation for the new version
-		annos = entityManager.getAnnotations(userInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "two", AnnotationsValueType.STRING);
-		entityManager.updateAnnotations(userInfo, fileId, annos);
-
-		file = entityManager.getEntity(userInfo, fileId, FileEntity.class);
-		assertEquals(2L, file.getVersionNumber());
-
-		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(),
-				MAX_WAIT);
-
-		// add both the first and second version of the file to the dataset.s
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(file.getId()).setVersionNumber(2L));
+		// add one version from each file
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L),
+				new DatasetItem().setEntityId(fileThree.getId()).setVersionNumber(3L)
+				);
 
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
 				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
-		
-		final String fileEtag = file.getEtag();
-		
+
+
 		// call under test
 		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC",
 				(QueryResultBundle result) -> {
 					List<Row> rows = result.getQueryResult().getQueryResults().getRows();
-					assertEquals(2, rows.size());
+					assertEquals(3, rows.size());
 					// one
-					assertEquals(new Row().setRowId(fileIdLong).setVersionNumber(1L).setEtag(fileEtag)
-							.setValues(Arrays.asList("one")), rows.get(0));
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag())
+							.setValues(Arrays.asList("v-1")), rows.get(0));
 					// two
-					assertEquals(new Row().setRowId(fileIdLong).setVersionNumber(2L).setEtag(fileEtag)
-							.setValues(Arrays.asList("two")), rows.get(0));
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag())
+							.setValues(Arrays.asList("v-2")), rows.get(1));
+					// three
+					assertEquals(new Row().setRowId(KeyFactory.stringToKey(fileThree.getId())).setVersionNumber(3L).setEtag(fileThree.getEtag())
+							.setValues(Arrays.asList("v-3")), rows.get(2));
 				}, MAX_WAIT);
+	}
+
+
+	/**
+	 * Create File entity with multiple versions using the annotations for each version.
+	 *
+	 * @return
+	 */
+	public FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
+		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
+		for(int i=1; i <= numberOfVersions; i++) {
+			Annotations annos = new Annotations();
+			AnnotationsV2TestUtils.putAnnotations(annos, annotationKey, "v-"+i, AnnotationsValueType.STRING);
+			annotations.add(annos);
+		}
+
+		// create the entity
+		String fileId = null;
+		int version = 1;
+		for(Annotations annos: annotations) {
+			if(fileId == null) {
+				// create the entity
+				fileId = entityManager.createEntity(userInfo,
+						new FileEntity().setName("afile-"+fileNumber).setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()),
+						null);
+			}else {
+				// create a new version for the entity
+				FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+				entity.setVersionComment("c-"+version);
+				entity.setVersionLabel("v-"+version);
+				boolean newVersion = true;
+				String activityId = null;
+				entityManager.updateEntity(userInfo, entity, newVersion, activityId);
+			}
+			// get the ID and etag
+			FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+			annos.setId(entity.getId());
+			annos.setEtag(entity.getEtag());
+			entityManager.updateAnnotations(userInfo, fileId, annos);
+			version++;
+		}
+		return entityManager.getEntity(userInfo, fileId, FileEntity.class);
+	}
+
+	@Test
+	public void testSchemaUpdateTransaction() throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), 1);
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L)
+		);
+
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+
+		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
+				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
+
+
+		// Create a new ColumnModel
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setName("aNewColumnName");
+		newColumn.setColumnType(ColumnType.STRING);
+		newColumn.setMaximumSize(75L);
+		newColumn = columnModelManager.createColumnModel(userInfo, newColumn);
+
+		// Create a transaction request to update the schema
+		// Replace the old column with the new column
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(stringColumn.getId());
+		change.setNewColumnId(newColumn.getId());
+		schemaChangeRequest.setChanges(Collections.singletonList(change));
+
+		List<TableUpdateRequest> changes = Collections.singletonList(schemaChangeRequest);
+
+		TableUpdateTransactionRequest request = new TableUpdateTransactionRequest();
+		request.setEntityId(dataset.getId());
+		request.setChanges(changes);
+
+		List<ColumnModel> expectedSchema = Collections.singletonList(newColumn);
+
+		// call under test
+		asyncHelper.assertJobResponse(userInfo,	request,
+				(TableUpdateTransactionResponse result) -> {
+					TableSchemaChangeResponse schemaChangeResponse = (TableSchemaChangeResponse) result.getResults().get(0);
+					assertEquals(expectedSchema, schemaChangeResponse.getSchema());
+				},
+				MAX_WAIT
+		);
 	}
 
 }

@@ -31,7 +31,7 @@ public class SparseChangeSet implements TableChange {
 	Map<String, ColumnModel> schemaMap;
 	Map<String, Integer> columnIndexMap;
 	List<SparseRow> sparseRows;
-
+	
 	/**
 	 * Create a new empty change set.
 	 * 
@@ -282,6 +282,17 @@ public class SparseChangeSet implements TableChange {
 						new ListColumnRowChanges(getColumnModel(entry.getKey()), entry.getValue())
 				)
 				.collect(Collectors.toList());
+	}
+	
+	public Set<Long> getCreatedOrUpdatedRowIds(List<ColumnModel> columnModels) {
+		ValidateArgument.requiredNotEmpty(columnModels, "The columnModels");
+		return sparseRows.stream()
+			.filter((SparseRow row) -> !row.isDelete() && columnModels.stream()
+					.filter(column -> row.hasCellValue(column.getId()))
+					.findFirst().isPresent()
+			)
+			.map(SparseRow::getRowId)
+			.collect(Collectors.toSet());
 	}
 
 	/**

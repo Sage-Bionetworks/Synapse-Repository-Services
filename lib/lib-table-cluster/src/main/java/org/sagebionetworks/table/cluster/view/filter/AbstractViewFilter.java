@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -8,7 +10,6 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public abstract class AbstractViewFilter implements ViewFilter {
 
@@ -16,7 +17,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	protected final Set<SubType> subTypes;
 	protected final Set<Long> limitObjectIds;
 	protected final Set<String> excludeKeys;
-	protected final MapSqlParameterSource params;
+	protected final Map<String, Object> params;
 	
 	/**
 	 * @param mainType The main object type. Required.
@@ -33,29 +34,34 @@ public abstract class AbstractViewFilter implements ViewFilter {
 		this.subTypes = subTypes;
 		this.limitObjectIds = limitObjectIds;
 		this.excludeKeys = excludeKeys;
-		params = new MapSqlParameterSource();
-		params.addValue("mainType", mainType.name());
-		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
+		params = new HashMap<String, Object>();
+		params.put("mainType", mainType.name());
+		params.put("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
 		if (limitObjectIds != null) {
-			params.addValue("limitObjectIds", limitObjectIds);
+			params.put("limitObjectIds", limitObjectIds);
 		}
 		if (excludeKeys != null) {
-			params.addValue("excludeKeys", excludeKeys);
+			params.put("excludeKeys", excludeKeys);
 		}
 	}
 	
 	@Override
-	public MapSqlParameterSource getParameters() {
+	public Map<String, Object> getParameters() {
 		return params;
+	}
+	
+	@Override
+	public Set<SubType> getSubTypes(){
+		return subTypes;
 	}
 	
 	@Override
 	public String getFilterSql() {
 		StringBuilder builder = new StringBuilder(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)");
-		if(params.hasValue("limitObjectIds")) {
+		if(params.containsKey("limitObjectIds")) {
 			builder.append(" AND R.OBJECT_ID IN (:limitObjectIds)");
 		}
-		if(params.hasValue("excludeKeys")) {
+		if(params.containsKey("excludeKeys")) {
 			builder.append(" AND A.ANNO_KEY NOT IN (:excludeKeys)");
 		}
 		return builder.toString();
@@ -63,7 +69,12 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	
 	@Override
 	public Optional<Set<Long>> getLimitObjectIds() {
-		return Optional.of(limitObjectIds);
+		return Optional.ofNullable(limitObjectIds);
+	}
+	
+	@Override
+	public ReplicationType getReplicationType() {
+		return mainType;
 	}
 
 	@Override

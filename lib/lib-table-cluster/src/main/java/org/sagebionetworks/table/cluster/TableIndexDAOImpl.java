@@ -65,6 +65,7 @@ import javax.sql.DataSource;
 
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -73,10 +74,10 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -85,6 +86,9 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
@@ -111,6 +115,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -119,6 +124,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
 	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
+	private static String GET_ID_AND_CHECKSUMS_SQL_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/GetIdAndChecksumsTemplate.sql");
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		ObjectDataDTO dto = new ObjectDataDTO();
@@ -190,11 +196,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					+ " t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :" + OBJECT_TYPE_PARAM_NAME
 					+ " AND t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
-
-	/**
-	 * The MD5 used for tables with no schema.
-	 */
-	public static final String EMPTY_SCHEMA_MD5 = TableModelUtils.createSchemaMD5Hex(new LinkedList<String>());
 	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
@@ -202,7 +203,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-
+	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
@@ -332,12 +333,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return -1L;
 		}
 	}
+	
+	@Override
+	public boolean isSearchEnabled(IdAndVersion tableId) {
+		String sql = SQLUtils.getSearchStatusSQL(tableId);
+		try {
+			return template.queryForObject(sql, Long.class) > 0L;
+		} catch (BadSqlGrammarException e) {
+			// This is thrown if the status table was not created yet
+			return false;
+		}
+	}
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long version) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
+	
+	@Override
+	public void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSearchSQL(tableId);
+		template.update(createOrUpdateStatusSql, version, searchEnabled, version, searchEnabled);
+	}	
 	
 	@Override
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
@@ -359,7 +377,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
 		} catch (Exception e) {
 			// Spring throws this when the table is empty
-			return EMPTY_SCHEMA_MD5;
+			return TableModelUtils.EMPTY_SCHEMA_MD5;
 		}
 	}
 	
@@ -759,7 +777,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createObjectReplicationTablesIfDoesNotExist(){
+	public void createObjectReplicationTablesIfDoesNotExist() {
 		template.update(OBJECT_REPLICATION_TABLE_CREATE);
 		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
@@ -999,10 +1017,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyMap();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 
 		//additional param
-		param.addValue(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
+		param.put(ANNOTATION_KEYS_PARAM_NAME, annotationNames);
 		String sql = SQLUtils.createAnnotationMaxListLengthSQL(annotationNames, filter.getFilterSql());
 		return namedTemplate.query(sql,param, resultSet -> {
 			Map<String, Long> result = new HashMap<>();
@@ -1057,7 +1075,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// which is used for query row size estimation
 		validateMaxListLengthInAnnotationReplication(filter, currentSchema);
 				
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
 		
@@ -1077,7 +1095,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
 		StringBuilder builder = new StringBuilder();
 		
@@ -1143,10 +1161,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Collections.emptyList();
 		}
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
-		param.addValue(P_OFFSET, offset);
+		param.put(P_LIMIT, limit);
+		param.put(P_OFFSET, offset);
 		
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(filter.getFilterSql());
 		
@@ -1236,58 +1254,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new IdAndEtag(id, etag, benefactorId);
 		}, mainType.name(), parentId);
 	}
-
+	
 	@Override
-	public List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> containerIds) {
-		ValidateArgument.required(containerIds, "entityContainerIds");
-		if(containerIds.isEmpty()){
-			return new LinkedList<Long>();
-		}
-		/*
-		 * An ID that does not exist, should be treated the same as an expired
-		 * ID. Therefore, start off with all of the IDs expired, so the
-		 * non-expired IDs can be removed.
-		 */
-		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
+	public boolean isSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId) {
+		ValidateArgument.required(objectId, "objectId");
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
-		param.addValue(ID_PARAM_NAME, containerIds);
+		param.addValue(ID_PARAM_NAME, objectId);
 		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
-		// remove all that are not expired.
-		expiredId.removeAll(nonExpiredIds);
-		// return the remain.
-		return new LinkedList<Long>(expiredId);
+		return nonExpiredIds.isEmpty();
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(ReplicationType mainType, final List<Long> toSet,
-			final long newExpirationDateMS) {
+	public void setSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId,
+			Long newExpirationDateMS) {
 		ValidateArgument.required(mainType, "mainType");
-		ValidateArgument.required(toSet, "toSet");
-		if(toSet.isEmpty()){
-			return;
-		}
-		template.batchUpdate(BATCH_INSERT_REPLICATION_SYNC_EXP, new BatchPreparedStatementSetter() {
-			
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				Long idToSet = toSet.get(i);
-				int index = 1;
-				ps.setString(index++, mainType.name());
-				ps.setLong(index++, idToSet);
-				ps.setLong(index++, newExpirationDateMS);
-				ps.setLong(index++, newExpirationDateMS);
-			}
-			
-			@Override
-			public int getBatchSize() {
-				return toSet.size();
-			}
-		});
-		
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(newExpirationDateMS, "newExpirationDateMS");
+		template.update(BATCH_INSERT_REPLICATION_SYNC_EXP, mainType.name(),objectId, newExpirationDateMS, newExpirationDateMS);		
 	}
+
 
 	@Override
 	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
@@ -1370,9 +1358,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, filter.getFilterSql());
 		
-		MapSqlParameterSource param = filter.getParameters();
+		Map<String, Object> param = filter.getParameters();
 		
-		param.addValue(P_LIMIT, limit);
+		param.put(P_LIMIT, limit);
 		
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);
@@ -1415,6 +1403,129 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(mainType, "mainType");
 		String sql = SQLUtils.generateSqlToRefreshViewBenefactors(viewId);
 		template.update(sql, mainType.name());
+	}
+
+	@Override
+	public List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset) {
+		ValidateArgument.required(salt, "salt");
+		ValidateArgument.required(filter, "filter");
+		if(filter.isEmpty()) {
+			return Collections.emptyList();
+		}
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		
+		String sql = String.format(GET_ID_AND_CHECKSUMS_SQL_TEMPLATE, filter.getObjectIdFilterSql());
+		Map<String, Object> params = new HashMap<String, Object>(filter.getParameters());
+		params.put("salt", salt);
+		params.put("limit", limit);
+		params.put("offset", offset);
+		
+		return namedTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
+			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
+		});
+	}
+	
+	@Override
+	public void addSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateAddSearchColumnSql(idAndVersion);
+		template.update(sql);
+	}
+	
+	@Override
+	public void removeSearchColumn(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "The id");
+		String sql = SQLUtils.generateRemoveSearchColumnSql(idAndVersion);
+		template.update(sql);		
+	}
+	
+	@Override
+	public List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
+		ValidateArgument.required(rowIds, "rowIds");
+		
+		if (rowIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(idAndVersion, selectColumns);
+		
+		Map<String, Object> params = Collections.singletonMap(TableConstants.ROW_ID, rowIds);
+		
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
+		
+		return namedTemplate.query(sql, params, rowMapper);
+	}
+	
+	@Override
+	public List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(selectColumns, "selectColumns");
+		
+		String sql = SQLUtils.buildSelectTableDataPage(idAndVersion, selectColumns);
+		
+		Map<String, Object> params = ImmutableMap.of(
+			TableConstants.P_LIMIT, limit,
+			TableConstants.P_OFFSET, offset
+		);
+		
+		RowMapper<TableRowData> rowMapper = getTableDataMapper(selectColumns);
+		
+		return namedTemplate.query(sql, params, rowMapper);
+	}
+	
+	private RowMapper<TableRowData> getTableDataMapper(List<ColumnModel> selectColumns) {
+		return (rs, rowNum) -> {
+			int columnIndex = 1;
+			
+			// The first column is always the row id
+			Long rowId = rs.getLong(columnIndex++);
+
+			List<TypedCellValue> rowData = new ArrayList<>(selectColumns.size());
+			
+			for (ColumnModel columnModel : selectColumns) {
+				String rawValue = rs.getString(columnIndex++);
+				ColumnTypeInfo columnInfo = ColumnTypeInfo.getInfoForType(columnModel.getColumnType());
+				String value = columnInfo.parseValueForDatabaseRead(rawValue);
+				rowData.add(new TypedCellValue(columnModel.getColumnType(), value));
+			}
+			
+			return new TableRowData(rowId, rowData);
+		};
+	}
+	
+	@Override
+	public void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.requiredNotEmpty(searchContentRows, "searchContentRows");
+		
+		String updateSql = SQLUtils.buildBatchUpdateSearchContentSql(idAndVersion);
+		
+		List<Object[]> batchUpdateArgs = new ArrayList<>(searchContentRows.size());
+		
+		for (RowSearchContent searchContent : searchContentRows) {
+			batchUpdateArgs.add(new Object[] {searchContent.getSearchContent(), searchContent.getRowId()});
+		}
+
+		template.batchUpdate(updateSql, batchUpdateArgs);
+	
+	}
+	
+	@Override
+	public void clearSearchIndex(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		
+		String updateSql = SQLUtils.buildClearSearchContentSql(idAndVersion);
+		
+		template.update(updateSql);
+	}
+	
+	@Override
+	public List<RowSearchContent> fetchSearchContent(IdAndVersion id, Set<Long> rowIds) {
+		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
+		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
 	
 }

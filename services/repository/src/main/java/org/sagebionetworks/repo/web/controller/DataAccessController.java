@@ -180,7 +180,10 @@ public class DataAccessController {
 	}
 
 	/**
-	 * Retrieve a list of submissions for a given access requirement ID.
+	 * Retrieve a list of submissions for a given access requirement ID. 
+	 * 
+	 * Allows to optionally filter by submission state and/or id of an accessor setting the associated fields in the <a href="${org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest}">SubmissionPageRequest</a>.
+	 * 
 	 * Only an ACT member can perform this action.
 	 * 
 	 * @param userId

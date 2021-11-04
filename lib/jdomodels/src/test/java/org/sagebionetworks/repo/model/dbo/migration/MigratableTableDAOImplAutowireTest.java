@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -48,7 +49,9 @@ import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -78,7 +81,7 @@ public class MigratableTableDAOImplAutowireTest {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private MigratableTableDAO migratableTableDAO;
+	private MigratableTableDAOImpl migratableTableDAO;
 	
 	private List<String> filesToDelete;
 	
@@ -107,12 +110,10 @@ public class MigratableTableDAOImplAutowireTest {
 		// This does not exists but we should be able to set while foreign keys are ignored.
 		fh.setPreviewId("-123");
 		// This should fail
-		try{
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			fileHandleDao.createFile(fh);
-			fail("A foreign key should have prevented this change.");
-		}catch(Exception e){
-			// expected
-		}
+		});
+		assertEquals(DataIntegrityViolationException.class, ex.getCause().getClass());
 		// While the check is off we can violate foreign keys.
 		Boolean result = migratableTableDAO.runWithKeyChecksIgnored(new Callable<Boolean>(){
 			@Override
@@ -130,12 +131,10 @@ public class MigratableTableDAOImplAutowireTest {
 		// This does not exists but we should be able to set while foreign keys are ignored.
 		fh2.setPreviewId("-123");
 		// This should fail
-		try{
+		ex = assertThrows(IllegalArgumentException.class, () -> {
 			fileHandleDao.createFile(fh2);
-			fail("A foreign key should have prevented this change.");
-		}catch(Exception e){
-			// expected
-		}
+		});
+		assertEquals(DataIntegrityViolationException.class, ex.getCause().getClass());
 	}
 	
 	/**
@@ -706,6 +705,23 @@ public class MigratableTableDAOImplAutowireTest {
 				e.printStackTrace();
 				fail("Failed to translate: "+type+" message: "+e.getMessage());
 			}
+		}
+	}
+	
+	// Makes sure that we can extract the backup id from all the types, see https://sagebionetworks.jira.com/browse/PLFM-6943
+	@Test
+	public void testExtractBackupIdAllTypes() {
+		for(MigrationType type: MigrationType.values()) {
+			if(UNTESTABLE_TYPES.contains(type)) {
+				System.out.println("Cannot test backup id for type: "+type.name());
+				continue;
+			}
+			MigratableDatabaseObject migratableObject = migratableTableDAO.getObjectForType(type);
+			DatabaseObject<?> sample = DBOTestUtils.createSampleObjectForType(migratableObject);
+			SqlParameterSource params = migratableTableDAO.getSqlParameterSource(sample, sample.getTableMapping());
+			
+			// Call uinder test
+			migratableTableDAO.extractBackupId(type, params);
 		}
 	}
 	

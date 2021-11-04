@@ -41,6 +41,7 @@ Filtering,"To use a different escape character for LIKE regular expression we mu
 Filtering,Select all rows where column foo has a value equal to one or column bar has a value equals to two.,select * from syn123 where foo = 1 or bar = 2
 Filtering,Select all rows where column foo has a value equal to one and column bar has a value equal to two.,select * from syn123 where foo=1 and bar =2
 Filtering,Predicates can be surrounded by the '(' and ')' to enforce precedence and nesting.,select * from syn123 where (foo=1 and bar =2) or foobar = 3
+Filtering,Perform a basic full text search on a table. Full text search is available on tables only (e.g. not on views) and must be enabled first for the table., select * from syn123 where text_matches('some text')
 Date and Time Functions,Filtering on columns of type DATE using a standard string format:  'YYYY-MM-DD HH:MM:SS'.  This example selects all rows where column aDate has a value greater than '2017-05-19 22:31:01' (GMT).  ,select * from syn123 where aDate > UNIX_TIMESTAMP('2017-05-19 22:31:01')*1000
 Date and Time Functions,Filtering on columns of type DATE using an interval.  This example will select all rows have been modified in last 30 days.  Interval units can be YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND | MICROSECOND.,select * from syn123 where modified_on > unix_timestamp(NOW() - INTERVAL 30 DAY)*1000
 Date and Time Functions,"For columns of type DATE, select the date value as a standard date string in the format: 'YYYY-MM-DD HH:MM:SS'.",select FROM_UNIXTIME(aDate/1000) from syn123

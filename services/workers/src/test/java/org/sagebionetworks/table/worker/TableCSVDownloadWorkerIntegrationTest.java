@@ -325,7 +325,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		table.setColumnIds(headers);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
@@ -406,6 +406,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		Query query = new Query();
 		query.setSql(sql);
 		while(true){
+			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			try {
 				RowSet results = tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, options).getQueryResult().getQueryResults();
 				if(expectedRowCount != null) {
@@ -421,7 +422,6 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			Thread.sleep(1000);
 		}
 	}

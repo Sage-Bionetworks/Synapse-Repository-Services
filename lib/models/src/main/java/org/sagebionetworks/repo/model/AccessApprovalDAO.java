@@ -89,12 +89,13 @@ public interface AccessApprovalDAO {
 	 * 
 	 * @param accessRequirementId
 	 * @param submitterId
+	 * @param accessorId
 	 * @param expireBefore
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
+	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, String accessorId, Date expireBefore,
 			long limit, long offset);
 
 	/**

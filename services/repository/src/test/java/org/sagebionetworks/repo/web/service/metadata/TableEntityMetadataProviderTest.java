@@ -1,29 +1,44 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class TableEntityMetadataProviderTest  {
 	
 	@Mock
-	TableEntityManager tableEntityManager;
+	private NodeManager mockNodeManager;
 	
-	TableEntityMetadataProvider provider;
+	@Mock
+	private TableEntityManager tableEntityManager;
+	
+	@InjectMocks
+	private TableEntityMetadataProvider provider;
 	
 	String entityId;
 	IdAndVersion idAndVersion;
@@ -31,13 +46,10 @@ public class TableEntityMetadataProviderTest  {
 	List<String> columnIds;
 	
 	UserInfo userInfo;	
+	EntityEvent event;
 	
-	@Before
-	public void before(){
-		MockitoAnnotations.initMocks(this);
-		
-		provider = new TableEntityMetadataProvider();
-		ReflectionTestUtils.setField(provider, "tableEntityManager", tableEntityManager);
+	@BeforeEach
+	public void before() {
 		
 		columnIds = Lists.newArrayList("123");
 		
@@ -48,6 +60,8 @@ public class TableEntityMetadataProviderTest  {
 		table.setColumnIds(columnIds);
 		
 		userInfo = new UserInfo(false, 55L);
+		event = new EntityEvent();
+		event.setType(EventType.CREATE);
 	}
 	
 	@Test
@@ -61,7 +75,16 @@ public class TableEntityMetadataProviderTest  {
 	public void testCreate(){
 		// call under test
 		provider.entityCreated(userInfo, table);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, null);
+		verifyNoMoreInteractions(tableEntityManager);
+	}
+	
+	@Test
+	public void testCreateWithSearchEnabled(){
+		// call under test
+		table.setIsSearchEnabled(true);
+		provider.entityCreated(userInfo, table);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, true);
 	}
 	
 	@Test
@@ -69,15 +92,27 @@ public class TableEntityMetadataProviderTest  {
 		boolean wasNewVersionCreated = false;
 		// call under test
 		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, null);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateWithNewVersion(){
-		boolean wasNewVersionCreated = true;
+	@Test
+	public void testUpdateNoNewVersionWithSearchEnabled(){
+		boolean wasNewVersionCreated = false;
+		table.setIsSearchEnabled(true);
 		// call under test
 		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
-		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+		verify(tableEntityManager).tableUpdated(userInfo, columnIds, entityId, true);
+	}
+	
+	@Test
+	public void testUpdateWithNewVersion(){
+		boolean wasNewVersionCreated = true;
+		assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			provider.entityUpdated(userInfo, table, wasNewVersionCreated);
+		});
+		
+		verifyZeroInteractions(tableEntityManager);
 	}
 	
 	@Test
@@ -91,5 +126,53 @@ public class TableEntityMetadataProviderTest  {
 		verify(tableEntityManager).getTableSchema(expectedId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
+	
+	@Test
+	public void testValidateEntityWithNullVersionLabel() {
+		table.setVersionLabel(null);
+		
+		// Call under test
+		provider.validateEntity(table, event);
+		
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
+	}
+	
+	@Test
+	public void testValidateEntityWithNullVersionComment() {
+		table.setVersionComment(null);
+		
+		// Call under test
+		provider.validateEntity(table, event);
+		
+		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
+	}
 
+	@Test
+	public void testValidateEntityForCreateWithNullSearchEnabled() {
+		table.setIsSearchEnabled(null);
+		
+		event.setType(EventType.CREATE);
+		
+		// Call under test
+		provider.validateEntity(table, event);
+
+		assertNull(table.getIsSearchEnabled());
+	}
+	
+	@Test
+	public void testValidateEntityForUpdateWithNullSearchEnabled() {
+		table.setIsSearchEnabled(null);
+		event.setType(EventType.UPDATE);
+		
+		Node node = new Node()
+			.setIsSearchEnabled(true);
+		
+		when(mockNodeManager.getNode(anyString())).thenReturn(node);
+		
+		// Call under test
+		provider.validateEntity(table, event);
+
+		assertTrue(table.getIsSearchEnabled());
+	}
+	
 }

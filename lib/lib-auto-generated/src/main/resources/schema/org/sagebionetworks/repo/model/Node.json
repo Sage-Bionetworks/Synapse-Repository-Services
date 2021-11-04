@@ -77,6 +77,9 @@
         },
         "alias":{
             "type":"string"
+        },
+        "isSearchEnabled": {
+        	"type":"boolean"
         }
     }
 }

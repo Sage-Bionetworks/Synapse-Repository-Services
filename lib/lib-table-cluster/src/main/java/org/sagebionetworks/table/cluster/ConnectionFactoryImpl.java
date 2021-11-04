@@ -12,8 +12,10 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -38,6 +40,8 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 
 	private StackConfiguration stackConfig;
 
+	private DBUserHelper dbUserHelper;
+
 	/**
 	 * Note: The DAO is autowired so it can be profiled. See: PLFM-5984. We might
 	 * need an alternate solution to support multiple database connections in the
@@ -46,10 +50,11 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	private TableIndexDAO tableIndexDao;
 	
 	@Autowired
-	public ConnectionFactoryImpl(StackConfiguration config, InstanceDiscovery instanceDiscovery, TableIndexDAO tableIndexDao) {
+	public ConnectionFactoryImpl(StackConfiguration config, InstanceDiscovery instanceDiscovery, TableIndexDAO tableIndexDao, DBUserHelper dbuh) {
 		this.stackConfig = config;
 		this.instanceDiscovery = instanceDiscovery;
 		this.tableIndexDao = tableIndexDao;
+		this.dbUserHelper = dbuh;
 	}
 
 	@Override
@@ -78,6 +83,12 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		// ensure the index has the correct tables
 		tableIndexDao.setDataSource(singleConnectionPool);
 		tableIndexDao.createObjectReplicationTablesIfDoesNotExist();
+		createDBUser();
+	}
+
+	private void createDBUser() {
+		JdbcTemplate template = new JdbcTemplate(singleConnectionPool);
+		dbUserHelper.createDbReadOnlyUser(template);
 	}
 
 	/**

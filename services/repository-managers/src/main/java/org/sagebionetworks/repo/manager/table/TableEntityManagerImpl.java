@@ -1,12 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonServiceException.ErrorType;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.http.HttpStatus;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
@@ -31,7 +36,6 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.migration.TableRowChangeBackfillResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -68,28 +72,19 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.model.TableChange;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class TableEntityManagerImpl implements TableEntityManager {
 	
@@ -588,13 +583,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public void setTableSchema(final UserInfo userInfo, final List<String> newSchema, final String tableId) {
+	public void tableUpdated(final UserInfo userInfo, final List<String> newSchema, final String tableId, Boolean searchEnabled) {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_SECONDS);
 			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion,
 					(ProgressCallback callbackInner) -> {
-						setTableSchemaWithExclusiveLock(callbackInner, userInfo, newSchema, tableId);
+						tableUpdatedWithExclusiveLock(callbackInner, userInfo, newSchema, tableId, searchEnabled);
 						return null;
 					});
 		} catch (LockUnavilableException e) {
@@ -605,15 +600,14 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
+		
 	/**
 	 * Note: This method should only be called while holding an exclusive lock on the table.
 	 * @param userInfo
 	 * @param newSchema
 	 * @param tableId
 	 */
-	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
-			final String tableId) {
+	void tableUpdatedWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema, final String tableId, Boolean searchEnabled) {
 		// Lookup the current schema for this table
 		List<String> oldSchema = columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
@@ -622,9 +616,48 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		changeRequest.setChanges(schemaChange);
 		changeRequest.setEntityId(tableId);
 		changeRequest.setOrderedColumnIds(newSchema);
-		// Start a transaction to change the table to the new schema.
+		// Start a transaction to change the table to the new schema and/or add the search change.
 		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
+		
+		// Will add a table schema change if needed 
 		updateTableSchema(callback, userInfo, changeRequest, transactionId);
+		
+		// Will add a search change id needed
+		updateSearchStatus(userInfo, tableId, searchEnabled, transactionId);
+	}
+	
+	/**
+	 * Will add a search change to the given table and transaction if the search status changed
+	 * 
+	 * @param userInfo
+	 * @param tableId
+	 * @param searchEnabled
+	 */
+	void updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, long transactionId) {
+		// No change needed if the flag was not specified
+		if (searchEnabled == null) {
+			return;
+		}
+		// At this point only the truth knows about the search status since the table has been created/updated already and the table might not have been built yet
+		TableRowChange lastSearchChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		
+		// No change to the search status 
+		if (lastSearchChange == null && !searchEnabled) {
+			return;
+		}
+		
+		// The search status is already up to date
+		if (lastSearchChange != null && searchEnabled == lastSearchChange.getIsSearchEnabled()) {
+			return;
+		}
+		
+		tableManagerSupport.touchTable(userInfo, tableId);
+		
+		tableRowTruthDao.appendSearchChange(userInfo.getId(), tableId, transactionId, searchEnabled);
+		
+		// Trigger an update.
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
+		
 	}
 
 	@Override
@@ -949,6 +982,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 						wrapped.getRowVersion());
 				tableChange = new SchemaChange(details);
 				break;
+			case SEARCH:
+				tableChange = new SearchChange(wrapped.getIsSearchEnabled());
+				break;
 			default:
 				throw new IllegalStateException("Unknown type: " + wrapped.getChangeType());
 			}
@@ -1037,73 +1073,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(idRange, "The idRange");
 		ValidateArgument.requirement(idRange.getMinId() <= idRange.getMaxId(), "Invalid idRange, the minId must be lesser or equal than the maxId");
 		return new PaginationIterator<TableRowChange>((long limit, long offset) -> tableRowTruthDao.getTableRowChangeWithFileRefsPage(idRange, limit, offset), PAGE_SIZE_LIMIT);
-	}
-	
-	@Override
-	public TableRowChangeBackfillResponse backFillTableRowChanges() {
-		// Iterator over all the changes that have the null hasFileRefs
-		PaginationIterator<TableRowChange> it = new PaginationIterator<>((limit, offset) -> tableRowTruthDao.getTableRowChangeWithNullFileRefsPage(limit, offset), PAGE_SIZE_LIMIT);
-		
-		Long count = 0L;
-		
-		int batchSize = 10_000;
-		
-		List<Long> trueBatch = new ArrayList<>(batchSize);
-		List<Long> falseBatch = new ArrayList<>(batchSize);
-		
-		while (it.hasNext()) {
-			TableRowChange changeMetadata = it.next();
-			
-			boolean hasFileRefs = false;
-			
-			try {
-				SparseChangeSet changeSet = getSparseChangeSet(changeMetadata);
-		 		
-		 		hasFileRefs = !changeSet.getFileHandleIdsInSparseChangeSet().isEmpty();
-			 
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			} catch (NotFoundException e) {
-				hasFileRefs = false;
-			} catch (AmazonServiceException e) {
-				if (e instanceof AmazonS3Exception && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
-					hasFileRefs = false;
-				} else if (ErrorType.Service.equals(e.getErrorType())) {
-					throw new RecoverableMessageException(e);
-				} else {
-					throw e;
-				}
-			}
-			
-			if (hasFileRefs) {
-				trueBatch.add(changeMetadata.getId());
-			} else {
-				falseBatch.add(changeMetadata.getId());
-			}
-			
-			if (trueBatch.size() + falseBatch.size() >= batchSize) {
-				if (!trueBatch.isEmpty()) {
-					tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
-					trueBatch.clear();
-				}
-				if (!falseBatch.isEmpty()) {
-					tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
-					falseBatch.clear();
-				}
-			}
-			
-			count++;
-		}
-		
-		if (!trueBatch.isEmpty()) {
-			tableRowTruthDao.updateRowChangeHasFileRefsBatch(trueBatch, true);
-		}
-		
-		if (!falseBatch.isEmpty()) {
-			tableRowTruthDao.updateRowChangeHasFileRefsBatch(falseBatch, false);
-		}
-
-		return new TableRowChangeBackfillResponse().setUpdatedCount(count);
 	}
 
 }

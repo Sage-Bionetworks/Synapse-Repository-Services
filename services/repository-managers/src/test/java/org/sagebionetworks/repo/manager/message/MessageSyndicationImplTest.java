@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -8,47 +9,50 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.PublishResult;
 
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 
 /**
  * @author xschildw
  *
  */
+@ExtendWith(MockitoExtension.class)
 public class MessageSyndicationImplTest {
-	RepositoryMessagePublisher mockMsgPublisher;
-	AmazonSQS mockSqsClient;
-	DBOChangeDAO mockChgDAO;
-	MessageSyndicationImpl msgSyndicationImpl;
 	
-	@Before
-	public void before() {
-		mockMsgPublisher = Mockito.mock(RepositoryMessagePublisher.class);
-		mockSqsClient = Mockito.mock(AmazonSQS.class);
-		mockChgDAO = Mockito.mock(DBOChangeDAO.class);
-		msgSyndicationImpl = new MessageSyndicationImpl(mockMsgPublisher, mockSqsClient, mockChgDAO);
-	}
+	@Mock
+	private RepositoryMessagePublisher mockMsgPublisher;
+	@Mock
+	private AmazonSQS mockSqsClient;
+	@Mock
+	private DBOChangeDAO mockChgDAO;
+	@InjectMocks
+	private MessageSyndicationImpl msgSyndicationImpl;
 	
-	@After
-	public void after() {
-		
-	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testRefireChangeMessages() {
-		msgSyndicationImpl.rebroadcastChangeMessages(null, null);
+	@Test
+	public void testRefireChangeMessagesWithNullStartChangeNumber() {
+		assertThrows(IllegalArgumentException.class, () -> {			
+			msgSyndicationImpl.rebroadcastChangeMessages(null, null);
+		});
 	}
 	
 	@Test
@@ -94,11 +98,14 @@ public class MessageSyndicationImplTest {
 		assertEquals((startNum + numMsgs - 1l), currentChangeMsgNum);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupQueueUrlInvalid() {
 		String qName = "qName";
 		when(mockSqsClient.getQueueUrl(qName)).thenThrow(new QueueDoesNotExistException("Could not find queue."));
-		msgSyndicationImpl.lookupQueueURL(qName);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			msgSyndicationImpl.lookupQueueURL(qName);
+		});
 	}
 	
 	@Test
@@ -108,6 +115,85 @@ public class MessageSyndicationImplTest {
 		when(mockSqsClient.getQueueUrl(qName)).thenReturn(res);
 		String s = msgSyndicationImpl.lookupQueueURL(qName);
 		assertEquals(qName, s);
+	}
+	
+	@Test
+	public void testPrepareResults() {
+		
+		List<ChangeMessage> changeMessages = Arrays.asList(
+				new ChangeMessage().setChangeNumber(5L),
+				new ChangeMessage().setChangeNumber(1L)
+		);
+		
+		SendMessageBatchResult batchResult = new SendMessageBatchResult()
+				.withSuccessful(
+					new SendMessageBatchResultEntry().withId("0"),
+					new SendMessageBatchResultEntry().withId("1")
+				);
+		
+		List<PublishResult> expected = Arrays.asList(
+				new PublishResult().setChangeNumber(5L).setSuccess(true),
+				new PublishResult().setChangeNumber(1L).setSuccess(true)
+		);
+		
+		// Call under test
+		List<PublishResult> result = msgSyndicationImpl.prepareResults(changeMessages, batchResult);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testPrepareResultsOutOfOrder() {
+		
+		List<ChangeMessage> changeMessages = Arrays.asList(
+				new ChangeMessage().setChangeNumber(5L),
+				new ChangeMessage().setChangeNumber(1L)
+		);
+		
+		// The SendMessageBatchResult can contain out of order elements, in this
+		// case the result for the second message appears first in the list
+		SendMessageBatchResult batchResult = new SendMessageBatchResult()
+				.withSuccessful(
+					new SendMessageBatchResultEntry().withId("1"),
+					new SendMessageBatchResultEntry().withId("0")
+				);
+		
+		List<PublishResult> expected = Arrays.asList(
+				new PublishResult().setChangeNumber(5L).setSuccess(true),
+				new PublishResult().setChangeNumber(1L).setSuccess(true)
+		);
+		
+		// Call under test
+		List<PublishResult> result = msgSyndicationImpl.prepareResults(changeMessages, batchResult);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testPrepareResultsWithFailures() {
+		
+		List<ChangeMessage> changeMessages = Arrays.asList(
+				new ChangeMessage().setChangeNumber(5L),
+				new ChangeMessage().setChangeNumber(1L)
+		);
+		
+		SendMessageBatchResult batchResult = new SendMessageBatchResult()
+				.withFailed(
+					new BatchResultErrorEntry().withId("0")
+				)
+				.withSuccessful(
+					new SendMessageBatchResultEntry().withId("1")
+				);
+		
+		List<PublishResult> expected = Arrays.asList(
+				new PublishResult().setChangeNumber(5L).setSuccess(false),
+				new PublishResult().setChangeNumber(1L).setSuccess(true)
+		);
+		
+		// Call under test
+		List<PublishResult> result = msgSyndicationImpl.prepareResults(changeMessages, batchResult);
+		
+		assertEquals(expected, result);
 	}
 	
 	/**
@@ -125,20 +211,6 @@ public class MessageSyndicationImplTest {
 			changes.add(chgMsg);
 		}
 		return changes;
-	}
-	
-	private List<ChangeMessage> getBatchFromChanges(List<ChangeMessage> msgs, int bSize, int batchNum) {
-		List<ChangeMessage> res = new ArrayList<ChangeMessage>();
-		int startIdx = batchNum * bSize;
-		for (int i = 0; i < bSize; i++) {
-			if (startIdx+i >= msgs.size()) {
-				break;
-			}
-			ChangeMessage cMsg = msgs.get(startIdx+i);
-			res.add(cMsg);
-		}
-		
-		return res;
 	}
 
 }

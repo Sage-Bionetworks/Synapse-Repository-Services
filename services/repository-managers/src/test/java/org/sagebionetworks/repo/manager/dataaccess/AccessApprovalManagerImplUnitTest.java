@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -77,7 +79,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@BeforeEach
 	public void before() {
 		userInfo = new UserInfo(false);
-		userInfo.setId(3L);
+		userInfo.setId(4L);
 	}
 
 	@Test
@@ -100,6 +102,7 @@ public class AccessApprovalManagerImplUnitTest {
 			manager.revokeAccessApprovals(userInfo, "1", null);
 		});
 	}
+	
 
 	@Test
 	public void testRevokeAccessApprovalsWithNonACTNorAdminUser() {
@@ -162,6 +165,37 @@ public class AccessApprovalManagerImplUnitTest {
 			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
 		}
 	}
+	
+	/**
+	 * Added for PLFM-6922.
+	 */
+	@Test
+	public void testRevokeAccessApprovalsWithOwnApproval() {
+		String accessRequirementId = "2";
+		String accessorId = userInfo.getId().toString();
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		AccessRequirement accessRequirement = new ACTAccessRequirement();
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
+		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
+		
+		// Call under test
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		
+		verify(mockAccessApprovalDAO).listApprovalsByAccessor(accessRequirementId, accessorId);
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
+	}
 
 	@Test
 	public void testListAccessorGroupWithNullUserInfo() {
@@ -192,9 +226,33 @@ public class AccessApprovalManagerImplUnitTest {
 		AccessorGroupRequest request = new AccessorGroupRequest();
 		List<AccessorGroup> result = new LinkedList<AccessorGroup>();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
+		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
 		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
 		assertEquals(result, response.getResults());
+	}
+	
+	@Test
+	public void testListAccessorGroup() {
+		
+		AccessorGroupRequest request = new AccessorGroupRequest()
+				.setAccessorId("123")
+				.setSubmitterId("456")
+				.setAccessRequirementId("789")
+				.setExpireBefore(new Date())
+				.setNextPageToken(null);
+		
+		List<AccessorGroup> expected = Collections.emptyList();
+		NextPageToken expectedToken = new NextPageToken(request.getNextPageToken());
+		
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		when(mockAccessApprovalDAO.listAccessorGroup(any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(expected);
+		
+		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
+		
+		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockAccessApprovalDAO).listAccessorGroup(request.getAccessRequirementId(), request.getSubmitterId(), request.getAccessorId(), request.getExpireBefore(), expectedToken.getLimitForQuery(), expectedToken.getOffset());
+		
+		assertEquals(expected, response.getResults());
 	}
 
 	@Test

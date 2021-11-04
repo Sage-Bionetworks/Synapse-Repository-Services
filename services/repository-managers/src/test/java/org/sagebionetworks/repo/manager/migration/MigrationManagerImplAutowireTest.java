@@ -398,11 +398,6 @@ public class MigrationManagerImplAutowireTest {
 		validateProjectsRestored();
 	}
 	
-	/**
-	 * This
-	 * @throws Exception 
-	 */
-	@TemporaryCode(author="jhill",comment="To be removed after all of userGroup secondary types are converted to primary types.")
 	@Test
 	public void testUserGroupRemoveSecondarySetup() throws Exception {
 		

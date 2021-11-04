@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -46,6 +48,49 @@ public class SubmissionUtilsTest {
 		assertEquals(dto.getId(), submitter.getCurrentSubmissionId().toString());
 		assertEquals(dto.getAccessRequirementId(), submitter.getAccessRequirementId().toString());
 		assertEquals(submitter.getSubmitterId().toString(), dto.getSubmittedBy());
+	}
+	
+	@Test
+	public void testCreateDBOSubmissionAccessorChanges() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+
+		List<DBOSubmissionAccessorChange> expected = dto.getAccessorChanges().stream().map(c -> {
+			DBOSubmissionAccessorChange add = new DBOSubmissionAccessorChange();
+			add.setAccessorId(Long.valueOf(c.getUserId()));
+			add.setAccessType(c.getType().name());
+			add.setSubmissionId(Long.valueOf(dto.getId()));
+			return add;
+		}).collect(Collectors.toList());
+		
+		List<DBOSubmissionAccessorChange> result = SubmissionUtils.createDBOSubmissionAccessorChanges(dto);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateDBOSubmissionAccessorChangesWithNull() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		
+		dto.setAccessorChanges(null);
+
+		List<DBOSubmissionAccessorChange> expected = Collections.emptyList();
+		
+		List<DBOSubmissionAccessorChange> result = SubmissionUtils.createDBOSubmissionAccessorChanges(dto);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateDBOSubmissionAccessorChangesWithEmpty() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		
+		dto.setAccessorChanges(Collections.emptyList());
+
+		List<DBOSubmissionAccessorChange> expected = Collections.emptyList();
+		
+		List<DBOSubmissionAccessorChange> result = SubmissionUtils.createDBOSubmissionAccessorChanges(dto);
+		
+		assertEquals(expected, result);
 	}
 	
 	@Test

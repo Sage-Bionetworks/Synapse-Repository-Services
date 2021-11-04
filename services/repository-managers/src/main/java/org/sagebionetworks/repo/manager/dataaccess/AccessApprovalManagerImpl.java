@@ -129,8 +129,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		ValidateArgument.required(accessorId, "accessorId");
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
-			throw new UnauthorizedException("Only ACT member may delete access approvals.");
+		if (!userInfo.getId().toString().equals(accessorId) && !authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member may delete access approvals of other users.");
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
 		
@@ -157,7 +157,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
 		List<AccessorGroup> groups = accessApprovalDAO.listAccessorGroup(
-				request.getAccessRequirementId(), request.getSubmitterId(), 
+				request.getAccessRequirementId(), request.getSubmitterId(), request.getAccessorId(),
 				request.getExpireBefore(), nextPageToken.getLimitForQuery(),
 				nextPageToken.getOffset());
 		AccessorGroupResponse response = new AccessorGroupResponse();

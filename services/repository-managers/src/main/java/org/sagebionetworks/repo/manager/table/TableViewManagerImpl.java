@@ -199,7 +199,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	/**
-	 * Update an Entity using data form a view.
+	 * Update an Entity using data from a view.
 	 * 
 	 * NOTE: Each entity is updated in a separate transaction to prevent locking the
 	 * entity tables for long periods of time. This also prevents deadlock.
@@ -248,7 +248,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			// save the changes. validation of updated values will occur in this call
 			provider.updateAnnotations(user, objectId, userAnnotations);	
 			// Replicate the change
-			replicationManager.replicate(objectType, objectId);
+			replicationManager.replicate(objectType.getMainType(), objectId);
 			
 		}
 	}
@@ -603,11 +603,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @throws UnsupportedEncodingException
 	 */
 	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, ViewScopeType scopeType,
-			List<ColumnModel> viewSchema, Set<Long> allContainersInScope) {
+			List<ColumnModel> viewSchema) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(viewSchema, "viewSchema");
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 
@@ -646,9 +645,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema,
-				allContainersInScope);
+		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
 		// create a new version
 		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotOptions);
 		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())

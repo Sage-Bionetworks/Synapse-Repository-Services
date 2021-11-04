@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
@@ -18,6 +20,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER;
 
@@ -124,15 +127,6 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_SUBMISSION
 			+" WHERE "+COL_DATA_ACCESS_SUBMISSION_ID+" = ?";
-
-	private static final String SQL_LIST_SUBMISSIONS = "SELECT *"
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS
-			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
-			+ " = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = :"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
-
-	private static final String SQL_LIST_SUBMISSIONS_WITH_FILTER = SQL_LIST_SUBMISSIONS
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = :"+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE;
 
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String DESCENDING = "DESC";
@@ -304,9 +298,16 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		SubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
 		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(toCreate);
 		DBOSubmissionSubmitter submitter = SubmissionUtils.createDBOSubmissionSubmitter(toCreate, idGenerator);
+		List<DBOSubmissionAccessorChange> accessorChanges = SubmissionUtils.createDBOSubmissionAccessorChanges(toCreate);
 		basicDao.createNew(dboSubmission);
 		basicDao.createNew(status);
 		basicDao.createOrUpdate(submitter);
+		
+		// Needed for testing migration 
+		if (!accessorChanges.isEmpty()) {
+			basicDao.createBatch(accessorChanges);
+		}
+		
 		return getSubmissionStatus(toCreate.getId());
 	}
 
@@ -347,23 +348,38 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	public void delete(String id) {
 		jdbcTemplate.update(SQL_DELETE, id);
 	}
-
+	
 	@Override
-	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy,
+	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState stateFilter, String accessorId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, accessRequirementId);
-
-		String query = null;
-		if (filterBy != null) {
-			query = SQL_LIST_SUBMISSIONS_WITH_FILTER;
-			param.addValue(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE, filterBy.name());
-		} else {
-			query = SQL_LIST_SUBMISSIONS;
+		
+		// We always join on the status as we pull it in the result
+		String query = "SELECT " + TABLE_DATA_ACCESS_SUBMISSION + ".*," + TABLE_DATA_ACCESS_SUBMISSION_STATUS + ".* FROM "+TABLE_DATA_ACCESS_SUBMISSION + ", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS;
+		
+		String joinCondition = TABLE_DATA_ACCESS_SUBMISSION + "."+COL_DATA_ACCESS_SUBMISSION_ID + " = " + TABLE_DATA_ACCESS_SUBMISSION_STATUS + "." + COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID;
+		String filterCondition = COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+"=:"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
+		
+		if (accessorId != null) {
+			query += ", " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
+			joinCondition += " AND " +  TABLE_DATA_ACCESS_SUBMISSION + "." + COL_DATA_ACCESS_SUBMISSION_ID + " = " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + "." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
+			filterCondition += " AND " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + "." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID + " = :" + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
+			
+			param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID, accessorId);
 		}
+				
+		if (stateFilter != null) {
+			filterCondition += " AND " + TABLE_DATA_ACCESS_SUBMISSION_STATUS + "." +COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = :"+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE;
+			
+			param.addValue(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE, stateFilter.name());
+		}
+		
+		query += " WHERE " + joinCondition + " AND " + filterCondition;
 		query = addOrderByClause(orderBy, isAscending, query);
 		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
+		
 		return namedJdbcTemplate.query(query, param, SUBMISSION_MAPPER);
 	}
 

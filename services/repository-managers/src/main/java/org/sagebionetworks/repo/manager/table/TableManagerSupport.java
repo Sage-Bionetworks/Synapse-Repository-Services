@@ -189,34 +189,6 @@ public interface TableManagerSupport {
 	Long getViewStateNumber(IdAndVersion table);
 
 	/**
-	 * Get the set of container ids (Projects and Folders) for a view's scope. The
-	 * resulting set will include the scope containers plus all folders contained
-	 * within each scope.
-	 * 
-	 * All FileEntities within the the given view will have a parentId from the
-	 * returned set.
-	 * 
-	 * @param idAndVersion
-	 * @return
-	 */
-	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, ViewScopeType scopeType);
-
-	/**
-	 * Get the set of container ids (Projects and Folders) for a given set of scope
-	 * Ids. The resulting set will include the scope containers plus all folders
-	 * contained within each scope.
-	 * 
-	 * All FileEntities within the the given view will have a parentId from the
-	 * returned set.
-	 * 
-	 * @param scope
-	 * @return
-	 */
-	Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewScopeType scopeType);
-
-	Set<Long> getAllContainerIdsForReconciliation(IdAndVersion idAndVersion);
-
-	/**
 	 * <p>
 	 * Attempt to acquire an exclusive lock on a table. If the lock is acquired, the
 	 * passed Callable will be run while holding lock. The lock will automatically
@@ -427,5 +399,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	boolean isTableIndexStateInvalid(IdAndVersion idAndVersion);
+
+	/**
+	 * Get the flat scope for the given viewId.
+	 * @param idAndVersion IdAndVersion of the view.
+	 * @return
+	 */
+	Set<Long> getViewScope(IdAndVersion idAndVersion);
 
 }

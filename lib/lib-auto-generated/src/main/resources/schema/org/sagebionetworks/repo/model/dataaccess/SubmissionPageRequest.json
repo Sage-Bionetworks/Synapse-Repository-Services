@@ -11,7 +11,11 @@
 		},
 		"filterBy":{
 			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionState",
-			"description": "The condition to filter the returned result by."
+			"description": "Optional filter by submission state."
+		},
+		"accessorId": {
+			"type": "string",
+			"description": "Optional filter by the id of an accessor in the submission. Note that the submitter is an accessor."
 		},
 		"orderBy":{
 			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionOrder",

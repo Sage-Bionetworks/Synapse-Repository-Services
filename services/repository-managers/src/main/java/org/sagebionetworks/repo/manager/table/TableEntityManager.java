@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.migration.TableRowChangeBackfillResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -23,7 +22,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -189,14 +187,14 @@ public interface TableEntityManager {
 			throws TemporarilyUnavailableException;
 
 	/**
-	 * Set the schema of the table.
+	 * When a table is created or updated creates relevant changes for the schema and/or search if needed
 	 * 
 	 * @param userInfo
 	 * @param columnIds
 	 * @param id
 	 */
-	void setTableSchema(UserInfo userInfo, List<String> columnIds, String id);
-
+	void tableUpdated(UserInfo userInfo, List<String> columnIds, String id, Boolean searchEnabled);
+	
 	/**
 	 * Mark a table as deleted. This occurs when a table is moved to the trash. The
 	 * actual data for the table will only be deleted if the table no longer exists.
@@ -323,7 +321,5 @@ public interface TableEntityManager {
 	 * @return An iterator over the table row changes within the given range of ids that have file references (includes the changes for which the file references are unknown)
 	 */
 	Iterator<TableRowChange> newTableRowChangeWithFileRefsIterator(IdRange idRange);
-
-	@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Used for backfilling the table row change")
-	TableRowChangeBackfillResponse backFillTableRowChanges();
+	
 }

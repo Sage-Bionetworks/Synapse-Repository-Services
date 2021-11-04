@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.util.TemporaryCode;
 
 public interface SubmissionDAO {
 
@@ -87,14 +88,15 @@ public interface SubmissionDAO {
 	 * Retrieve a page of submissions
 	 * 
 	 * @param accessRequirementId
-	 * @param filterBy
+	 * @param stateFilter
+	 * @param accessorId
 	 * @param orderBy
 	 * @param isAscending
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState filterBy,
+	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState stateFilter, String accessorId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
 
 	/**

@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The condition to filter by submitter. Use NULL to ignore this filter."
 		},
+		"accessorId": {
+			"type": "string",
+			"description": "The condition to filter by accessor. Use NULL to ignore this filter."
+		},
 		"expireBefore":{
 			"type": "string",
 			"format": "date-time",

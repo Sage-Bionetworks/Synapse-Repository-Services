@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 @Service
 public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 
+	public static final int DEFINITIONS_STRING_LENGTH = "#/definitions/".length();
 	private static final String ID = "id";
 	private static final String ETAG = "etag";
 	public static final String CONCRETE_TYPE = "concreteType";
@@ -402,30 +403,68 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		}
 	}
 	
+	/**
+	 * Given a complex schema, return a map that identifies each property as a single value (true),
+	 * or multi-value (false).
+	 * @param schema
+	 * @return
+	 */
 	Map<String, Boolean> buildJsonSchemaIsSingleMap(JsonSchema schema) {
 		Map<String, Boolean> result = new HashMap<>();
+		// definitions for $refs will always be at the root.
+		Map<String, JsonSchema> definitions = schema.getDefinitions() != null ? schema.getDefinitions()
+				: new HashMap<>();
 		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
 			Map<String, JsonSchema> properties = subSchema.getProperties();
 			if (properties != null) {
 				for (String key : properties.keySet()) {
 					JsonSchema typeSchema = properties.get(key);
 					if (typeSchema != null) {
-						if (typeSchema.getType() != null) {
-							if (typeSchema.getType().equals(Type.array)) {
-								result.put(key, false);
-							} else {
-								result.put(key, true);
-							}
-						} else if (typeSchema.get_enum() != null || typeSchema.get_const() != null) {
-							// if const/enum exists, we assume it is a single in our map
-							result.put(key, true);
+						if (typeSchema.get$ref() != null) {
+							// replace the $ref with its definition.
+							typeSchema = definitions.get(getRelative$Ref(typeSchema.get$ref()));
 						}
+						result.put(key, isSingleType(typeSchema));
 					}
 				}
 			}
 		}
 		return result;
 	}
+	
+	/**
+	 * Given a full $ref path return the relative
+	 * @param $ref
+	 * @return
+	 */
+	String getRelative$Ref(String $ref) {
+		if($ref.length() < DEFINITIONS_STRING_LENGTH) {
+			return $ref;
+		}else {
+			return $ref.substring(DEFINITIONS_STRING_LENGTH);
+		}
+	}
+	
+	/**
+	 * Does the passed JsonSchema represent a single value?
+	 * If we cannot explicitly determine that a value is a single, then we will
+	 * treat it as an array (return false).
+	 * @param typeSchema
+	 * @return Will return true if the provided schema explicitly states that is is a single.  Will
+	 * return false for all other cases. 
+	 */
+	boolean isSingleType(JsonSchema typeSchema) {
+		if(typeSchema == null) {
+			return false;
+		}
+		if (typeSchema.getType() != null) {
+			return !typeSchema.getType().equals(Type.array);
+		} else {
+			// if const/enum exists, we assume it is a single in our map
+			return typeSchema.get_enum() != null || typeSchema.get_const() != null;
+		}
+	}
+	
 
 	Object stringToObject(AnnotationsValueType type, String value) {
 		switch (type) {

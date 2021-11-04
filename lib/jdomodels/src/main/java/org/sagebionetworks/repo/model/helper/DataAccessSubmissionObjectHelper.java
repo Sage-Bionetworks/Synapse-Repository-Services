@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model.helper;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.function.Consumer;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
@@ -30,6 +33,7 @@ public class DataAccessSubmissionObjectHelper implements DaoObjectHelper<Submiss
 		dto.setSubmittedOn(new Date());
 		dto.setState(SubmissionState.SUBMITTED);
 		dto.setRejectedReason("no reasons");
+		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId("5").setType(AccessType.GAIN_ACCESS)));
 		
 		consumer.accept(dto);
 		

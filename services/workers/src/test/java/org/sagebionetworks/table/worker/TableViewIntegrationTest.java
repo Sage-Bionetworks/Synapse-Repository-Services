@@ -82,10 +82,10 @@ import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -93,6 +93,7 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -105,7 +106,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -316,6 +316,31 @@ public class TableViewIntegrationTest {
 		viewScope.setViewEntityType(viewEntityType);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
+		entitiesToDelete.add(view.getId());
+		return viewId;
+	}
+	
+	/**
+	 * Create a view of the given type and scope.
+	 * 
+	 * @param type
+	 * @param scope
+	 */
+	private String createView(Long viewTypeMask, List<String> scope) {
+		// Create a new file view
+		EntityView view = new EntityView();
+		view.setName("aFileView");
+		view.setParentId(project.getId());
+		view.setColumnIds(defaultColumnIds);
+		view.setScopeIds(scope);
+		view.setViewTypeMask(viewTypeMask);
+		String viewId = entityManager.createEntity(adminUserInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(viewEntityType);
+		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
 		entitiesToDelete.add(view.getId());
 		return viewId;
@@ -1196,6 +1221,45 @@ public class TableViewIntegrationTest {
 			assertEquals(tableEtag, last.getEtag());
 		});
 		
+	}
+	
+	/**
+	 * Test for a dataset in a view (PLFM-6941).
+	 */
+	@Test
+	public void testViewWithFilesAndDatasets() throws Exception{
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask();
+		// use the default columns for this type.
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
+		// Add a table to the project
+		Dataset dataset = new Dataset();
+		dataset.setName("some dataset");
+		dataset.setParentId(project.getId());
+		String childDatasetId = entityManager.createEntity(adminUserInfo, dataset, null);
+		dataset = entityManager.getEntity(adminUserInfo, childDatasetId, Dataset.class);
+
+		List<String> scope = Lists.newArrayList(project.getId());
+		fileViewId = createView(viewTypeMask, scope);
+	
+		// wait for the view.
+		waitForEntityReplication(fileViewId, childDatasetId);
+		
+		// Query for the values as strings.
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+
+		final Long datasetId = KeyFactory.stringToKey(childDatasetId);
+		final String datasetEtag = dataset.getEtag();
+		
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {			
+			List<Row> rows = extractRows(results);
+			assertEquals(4, rows.size());
+			// The last row should be the dataset
+			Row last = rows.get(3);
+			assertEquals(datasetId, last.getRowId());
+			assertEquals(datasetEtag, last.getEtag());
+		});
 	}
 	
 	/**

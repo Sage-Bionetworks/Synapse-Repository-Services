@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
@@ -50,6 +51,7 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CurrentUserFunction;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
@@ -58,9 +60,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -69,7 +69,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.ImmutableMap;
@@ -858,11 +857,11 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
 
 		//parameter mapping should have stripped out the "syn" prefixes
-		Map<String, Object> expected = new HashMap<String, Object>(){{
-				put("b0", 123L);
-				put("b1", 456L);
-				put("b2", 789L);
-		}};
+		Map<String, Object> expected = ImmutableMap.of(
+			"b0", 123L,
+			"b1", 456L,
+			"b2", 789L
+		);
 
 		assertEquals(expected, parameters);
 	}
@@ -2063,7 +2062,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_nullEmptyList() {
+	public void testTranslateQueryFiltersWithNOrullEmptyList() {
 		assertThrows(IllegalArgumentException.class, () ->
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(null)
@@ -2076,7 +2075,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_singleColumns() {
+	public void testTranslateQueryFiltersWithSingleColumns() {
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2088,7 +2087,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_multipleColumns(){
+	public void testTranslateQueryFiltersWithMultipleColumns(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2105,7 +2104,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_singleValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndsingleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2118,7 +2117,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndmultipleValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
@@ -2131,7 +2130,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_nullEmptyColName(){
+	public void testTranslateQueryFiltersWithLikeFilterAndnullEmptyColName(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setOperator(ColumnSingleValueFilterOperator.LIKE);
 		filter.setValues(Arrays.asList("foo%", "%bar","%baz%"));
@@ -2151,7 +2150,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateQueryFilters_LikeFilter_nullEmptyValues(){
+	public void testTranslateQueryFiltersWithLikeFilterAndNullOrEmptyValues(){
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
 		filter.setColumnName("myCol");
 		StringBuilder builder = new StringBuilder();
@@ -2170,7 +2169,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithHasFilterAndmultipleValues(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS)
@@ -2183,7 +2182,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasLikeFilter_multipleValues(){
+	public void testTranslateQueryFiltersWithHasLikeFilterAndmultipleValues(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
@@ -2196,7 +2195,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasFilter_SingleValue(){
+	public void testTranslateQueryFiltersWithHasFilterAndSingleValue(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS)
@@ -2209,7 +2208,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateQueryFilters_HasLikeFilter_SingleValue(){
+	public void testTranslateQueryFiltersWithHasLikeFilterAndSingleValue(){
 		ColumnMultiValueFunctionQueryFilter filter = new ColumnMultiValueFunctionQueryFilter()
 				.setColumnName("myCol")
 				.setFunction(ColumnMultiValueFunction.HAS_LIKE)
@@ -2220,9 +2219,44 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateQueryFilters(builder, filter);
 		assertEquals("(\"myCol\" HAS_LIKE ('foo%'))", builder.toString());
 	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithTextMatchesFilter(){
+		TextMatchesQueryFilter filter = new TextMatchesQueryFilter()
+				.setSearchExpression("some search string");
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		assertEquals("(TEXT_MATCHES('some search string'))", builder.toString());
+	}
+	
+	@Test
+	public void testTranslateQueryFiltersWithTextMatchesFilterAndNullOrEmptyValue(){
+		TextMatchesQueryFilter filter = new TextMatchesQueryFilter()
+				.setSearchExpression(null);
+
+		StringBuilder builder = new StringBuilder();
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		}).getMessage();
+		
+		assertEquals("TextMatchesQueryFilter.searchExpression is required and must not be the empty string.", message);
+		
+		filter.setSearchExpression("  ");
+		
+		message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(builder, filter);
+		}).getMessage();
+		
+		assertEquals("TextMatchesQueryFilter.searchExpression is required and must not be a blank string.", message);
+	}
 
 	@Test
-	public void testTranslateQueryFilters_UnknownImplementation(){
+	public void testTranslateQueryFiltersWithUnknownImplementation(){
 		QueryFilter filter = new QueryFilter(){
 			@Override
 			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
@@ -2249,5 +2283,93 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
 		);
+	}
+	
+	@Test
+	public void testGetColumnType() throws ParseException {
+		ColumnModel column = schema.get(0);
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(column.getName()));
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(column.getColumnType(), columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithImplicitType() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("column"), ColumnType.DOUBLE);
+		
+		// Call under test
+		ColumnType columnType = SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		
+		assertEquals(ColumnType.DOUBLE, columnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNonExistingColumn() throws ParseException {
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName("nonexisting"));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("Column does not exist: nonexisting", message);
+		
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReference() throws ParseException {
+		ColumnReference columnReference = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnReference is required.", message);	
+	}
+	
+	@Test
+	public void testGetColumnTypeWithNullColumnReferenceLookup() throws ParseException {
+		columnMap = null;
+		ColumnReference columnReference = new ColumnReference(null, SqlElementUntils.createColumnName(schema.get(0).getName()));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			SQLTranslatorUtils.getColumnType(columnMap, columnReference);
+		}).getMessage();
+		
+		assertEquals("columnTranslationReferenceLookup is required.", message);
+		
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicate() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text')").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(Collections.singletonMap("b0", "some text"), parameters);
+	}
+	
+	@Test
+	public void testTranslateModelWithTextMatchesPredicateMultiple() throws ParseException{
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		QuerySpecification element = new TableQueryParser("SELECT * from syn123 where TEXT_MATCHES('some text') AND (foo = 'bar' OR TEXT_MATCHES('some other text'))").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
+		
+		String expectedSql = "SELECT * FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0) AND ( _C111_ = :b1 OR MATCH(ROW_SEARCH_CONTENT) AGAINST(:b2) )";
+		
+		assertEquals(expectedSql, element.toSql());
+		assertEquals(ImmutableMap.of("b0", "some text", "b1", "bar", "b2", "some other text"), parameters);
 	}
 }

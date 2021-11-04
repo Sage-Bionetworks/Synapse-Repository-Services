@@ -1,11 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -39,6 +45,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -47,13 +54,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
@@ -94,7 +94,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			// pre-flight includes parsing and authorization
 			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
-
+			
 			// run the query as a stream.
 			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, options);
 			// save the max rows per page.
@@ -271,6 +271,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		
+		if (query.isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
+			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
+		}
 
 		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, options.returnFacets());
 

@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -49,9 +50,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -62,6 +63,9 @@ import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
@@ -80,6 +84,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -204,6 +209,35 @@ public class TableIndexDAOImplTest {
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
+	
+	/**
+	 * Helper to generate a given number of rows and append them to the given table
+	 * 
+	 * @param tableId
+	 * @param columns
+	 * @param rowsCount
+	 * @return
+	 */
+	private List<Row> generateAndAppendRows(IdAndVersion tableId, List<ColumnModel> columns, int rowsCount) {
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(columns, rowsCount);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(columns);
+		set.setHeaders(headers);
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(range.getMinimumId() + rowsCount);
+		range.setVersionNumber(1L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(tableId, set, columns);
+		
+		return set.getRows();
+	}
+	
 	/**
 	 * Helper to apply a change set to the index.s
 	 * @param rowSet
@@ -402,7 +436,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
 		String hash = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
-		assertEquals(TableIndexDAOImpl.EMPTY_SCHEMA_MD5, hash);
+		assertEquals(TableModelUtils.EMPTY_SCHEMA_MD5, hash);
 		
 		hash = "some hash";
 		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);
@@ -908,6 +942,300 @@ public class TableIndexDAOImplTest {
 		
 		assertEquals(md5, this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
 		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithNoTable() {
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithEmptyTable() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithFalse() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testIsSearchEnabledWithTrue() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		
+		// Call under test
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
+		
+		assertTrue(result);
+	}
+	
+	@Test
+	public void testSetMaxCurrentCompleteVersionAndSearchStatusForTable() {
+		// ensure the secondary tables for this index exist
+		tableIndexDAO.createSecondaryTables(tableId);
+		
+		Long version = 123L;
+		
+		// Call under test
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		
+		assertTrue(tableIndexDAO.isSearchEnabled(tableId));
+		
+		// Call under test
+		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		
+		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
+		
+	}
+	
+	@Test
+	public void testGetTableDataForRowIds() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		List<TableRowData> expected = rows.stream().map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, columns, rowIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetTableDataForRowIdsWithSubSchema() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// We want to fetch only the first and third column data
+		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
+		
+		List<TableRowData> expected = rows.stream().map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
+			
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, subSchema, rowIds);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetTableDataPage() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+		
+	@Test
+	public void testGetTableDataPageWithOffset() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		long offset = 10;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().skip(offset).limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			for (int i=0; i<columns.size(); i++) {
+				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
+			}
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetTableDataPageWithSubSchema() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);		
+			
+		// We want to fetch only the first and third column data
+		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
+		
+		long offset = 0;
+		long limit = 10;
+		
+		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
+			List<TypedCellValue> rowData = new ArrayList<>();
+			
+			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
+			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
+			
+			return new TableRowData(row.getRowId(), rowData);
+		}).collect(Collectors.toList());
+		
+		// Call under test
+		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, subSchema, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+		
+	@Test
+	public void testUpdateSearchIndex() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		
+		List<RowSearchContent> expectedBatch = rows.stream().map(row -> 
+			new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues()))
+		).collect(Collectors.toList());
+			
+		// Call under test
+		tableIndexDAO.updateSearchIndex(tableId, expectedBatch);
+		
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+
+		assertEquals(expectedBatch, tableIndexDAO.fetchSearchContent(tableId, rowIds));
+	}
+		
+	@Test
+	public void testUpdateSearchIndexWithEmptyTable() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		tableIndexDAO.addSearchColumn(tableId);
+				
+		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
+		
+		List<RowSearchContent> batch = Arrays.asList(
+			new RowSearchContent(1L, "something"),
+			new RowSearchContent(2L, "something else")
+		);	
+					
+		// Call under test
+		tableIndexDAO.updateSearchIndex(tableId, batch);
+		
+		assertTrue(tableIndexDAO.fetchSearchContent(tableId, rowIds).isEmpty());
+	}
+	
+	@Test
+	public void testClearSearchIndex() {
+		List<ColumnModel> columns = Arrays.asList(
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
+		);
+		
+		createOrUpdateTable(columns, tableId, isView);
+		
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		// Now add some data
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
+		
+		// Now sets the search content for each row to "search content"
+		List<RowSearchContent> rowsSearchContent = rows.stream().map(row -> new RowSearchContent(row.getRowId(), "search content")).collect(Collectors.toList());
+		
+		tableIndexDAO.updateSearchIndex(tableId, rowsSearchContent);
+		
+		// Make sure we have the expected search content
+		assertEquals(rowsSearchContent, tableIndexDAO.fetchSearchContent(tableId, rowIds));
+		
+		// Call under test
+		tableIndexDAO.clearSearchIndex(tableId);
+
+		// Makes sure all the rows were cleared and set to null
+		List<RowSearchContent> expected = rows.stream().map(row -> new RowSearchContent(row.getRowId(), null)).collect(Collectors.toList());
+			
+		assertEquals(expected, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
 	
 	@Test
@@ -2623,48 +2951,24 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testReplicationExpiration() throws InterruptedException{
 		Long one = 111L;
-		Long two = 222L;
-		Long three = 333L;
-		List<Long> input = Lists.newArrayList(one,two,three);
-		// call under test
-		List<Long> expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one,two,three), expired);
+
+		// lock does not exist so it should be the same as expired.
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 		
-		// Set two and three to expire in the future
 		long now = System.currentTimeMillis();
+
+		// lock exists but expired in the past.
+		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, now-10);
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
+		
+		// setup lock to expire in the future.
 		long timeout = 4 * 1000;
 		long expires = now + timeout;
-		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(two, three), expires);
-		// set one to already be expired
-		expires = now - 1;
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, Lists.newArrayList(one), expires);
-		// one should still be expired.
-		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one), expired);
-		// wait for the two to expire
+		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, expires);
+		assertFalse(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
+		// wait for the lock to expire.
 		Thread.sleep(timeout+1);
-		// all three should be expired
-		expired = tableIndexDAO.getExpiredContainerIds(mainType, input);
-		assertNotNull(expired);
-		// all three should be expired
-		assertEquals(Lists.newArrayList(one,two,three), expired);
-	}
-	
-	@Test
-	public void testReplicationExpirationEmpty() throws InterruptedException{
-		List<Long> empty = new LinkedList<Long>();
-		// call under test
-		List<Long> results  = tableIndexDAO.getExpiredContainerIds(mainType, empty);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-		Long expires = 0L;
-		// call under test
-		tableIndexDAO.setContainerSynchronizationExpiration(mainType, empty, expires);
+		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 	}
 	
 	@Test
@@ -4273,5 +4577,211 @@ public class TableIndexDAOImplTest {
 		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
 		// call under test
 		assertEquals(v2, tableIndexDAO.getObjectDataForCurrentVersion(mainType, objectId));
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithFlatIdAndVersionFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		ObjectDataDTO v1 = oneVersion.get(0);
+		ObjectDataDTO v2 = twoVersion.get(1);
+		ObjectDataDTO v3 = threeVersion.get(0);
+		
+		// call under test
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2, v3));
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<IdVersionPair> scope = Sets.newHashSet(
+				new IdVersionPair().setId(v1.getId()).setVersion(v1.getVersion()),
+				new IdVersionPair().setId(v2.getId()).setVersion(v2.getVersion()),
+				new IdVersionPair().setId(v3.getId()).setVersion(v3.getVersion())
+		);
+		
+		ViewFilter filter = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithHierarchyFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = Sets.newHashSet(1L);
+		
+		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, parentIds);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithFlatFilter() {
+		tableId = IdAndVersion.parse("syn123");
+		isView = true;
+		Long objectIdOne = 22L;
+		Long objectIdTwo = 33L;
+		Long objectIdThree = 44L;
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
+		tableIndexDAO.deleteTable(tableId);
+		
+		int annotationCoun = 1;
+		int versionCount = 2;
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, oneVersion);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, twoVersion);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		tableIndexDAO.addObjectData(mainType, threeVersion);
+		
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(objectIdOne, objectIdTwo, objectIdThree);
+		
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertEquals(2, page.size());
+		assertEquals(objectIdTwo, page.get(0).getId());
+		assertEquals(objectIdThree, page.get(1).getId());
+		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithEmptyFilter() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Collections.emptySet();
+		
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		// call under test
+		List<IdAndChecksum> page = tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		assertNotNull(page);
+		assertTrue(page.isEmpty());
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullFilter() {
+		ViewFilter filter = null;
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("filter is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullSalt() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = null;
+		Long limit = 2L;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("salt is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullLimit() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = null;
+		Long offset = 1L;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("limit is required.", message);
+	}
+	
+	@Test
+	public void testGetIdAndChecksumsForFilterWithNullOffset() {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> scope = Sets.newHashSet(1L);
+		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
+		Long salt = 123L;
+		Long limit = 2L;
+		Long offset = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}).getMessage();
+		assertEquals("offset is required.", message);
 	}
 }

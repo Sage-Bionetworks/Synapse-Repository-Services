@@ -91,5 +91,19 @@ public class QuerySpecificationTest {
 		WhereClause whereClause = querySpec.getFirstElementOfType(WhereClause.class);
 		assertTrue(whereClause.isInContext(QuerySpecification.class));
 	}
+	
+	@Test
+	public void testIsIncludeSearchWithNoTextMatches() throws ParseException {
+		QuerySpecification querySpec = new TableQueryParser("select * from syn123 where bar is not null")
+				.querySpecification();
+		assertFalse(querySpec.isIncludeSearch());
+	}
+	
+	@Test
+	public void testIsIncludeSearchWithTextMatches() throws ParseException {
+		QuerySpecification querySpec = new TableQueryParser("select * from syn123 where text_matches('some text')")
+				.querySpecification();
+		assertTrue(querySpec.isIncludeSearch());
+	}
 
 }

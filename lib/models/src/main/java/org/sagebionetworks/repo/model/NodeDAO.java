@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -12,13 +18,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Interface for all Node C.R.U.D. operations.
@@ -531,7 +532,7 @@ public interface NodeDAO {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids, int maxAnnotationChars);
+	public List<ObjectDataDTO> getEntityDTOs(List<Long> ids, int maxAnnotationChars, long limit, long offest);
 
 	/**
 	 * 
@@ -584,21 +585,7 @@ public interface NodeDAO {
 	 */
 	public String lookupChild(String parentId, String entityName);
 
-	/**
-	 * For each parent, get the sum of CRCs of their children.
-	 *   
-	 * @return Map.key = parentId and map.value = sum of children CRCs.
-	 * 
-	 */
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
-	
-	/**
-	 * Get the Id and Etag of all of the children for the given parentId.
-	 * @param parentId
-	 * @return
-	 */
-	public List<IdAndEtag> getChildren(long parentId);
-	
+
 	/**
 	 * Touch the node and change the etag, modified on, and modified by.
 	 * 
@@ -680,5 +667,25 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<DatasetItem> getDatasetItems(Long datasetId);
+
+	/**
+	 * Get a single page of IdAndChecksums for children of the given parents.
+	 * @param parentIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit, Long offset);
+	
+	/**
+	 * Get a single page of IdAndChecksums for the given objectIds.
+	 * @param objectIds
+	 * @param subTypes
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit, Long offset);
 
 }

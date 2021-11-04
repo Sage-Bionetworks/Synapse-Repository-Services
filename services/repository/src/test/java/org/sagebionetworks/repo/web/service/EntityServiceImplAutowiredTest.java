@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -21,9 +20,9 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.RandomUtils;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
@@ -31,9 +30,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupportImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -41,6 +38,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -534,6 +532,11 @@ public class EntityServiceImplAutowiredTest  {
 		final String datsetId = dataset.getId();
 		assertEquals(scope, dataset.getItems());
 		assertEquals(schema, dataset.getColumnIds());
+		
+		// update
+		dataset.setItems(null);
+		dataset = entityService.updateEntity(adminUserId, dataset, newVersion, activityId);
+		assertNull(dataset.getItems());
 	}
 	
 	@Test
@@ -561,5 +564,81 @@ public class EntityServiceImplAutowiredTest  {
 			entityService.createEntity(adminUserId, dataset, activityId);
 		}).getMessage();
 		assertEquals("Maximum of 20,000 items in a dataset exceeded.", message);
+	}
+	
+	@Test
+	public void testCreateTableWithSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(true);
+		
+		// Call under test
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertTrue(table.getIsSearchEnabled());
+		
+	}
+	
+	@Test
+	public void testCreateTableWithNullSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(null);
+		
+		// Call under test
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertNull(table.getIsSearchEnabled());
+		
+	}
+	
+	@Test
+	public void testUpdateTableWithNullSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(false);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+		table.setIsSearchEnabled(null);
+		
+		// Call under test
+		table = entityService.updateEntity(adminUserId, table, false, null);
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+	}
+	
+	@Test
+	public void testUpdateTableWithSearchEnabled() {
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SampleTable");
+		table.setIsSearchEnabled(false);
+		
+		table = entityService.createEntity(adminUserId, table, null);
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertFalse(table.getIsSearchEnabled());
+		
+		table.setIsSearchEnabled(true);
+		
+		// Call under test
+		table = entityService.updateEntity(adminUserId, table, false, null);
+		
+		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		
+		assertTrue(table.getIsSearchEnabled());
+		
 	}
 }

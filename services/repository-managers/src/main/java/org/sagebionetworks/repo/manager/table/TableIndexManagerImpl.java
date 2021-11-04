@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -27,6 +28,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -40,49 +44,59 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.PaginationIterator;
+import org.sagebionetworks.util.PaginationProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
 
+import com.google.common.collect.Iterators;
+
 public class TableIndexManagerImpl implements TableIndexManager {
+	public static final int BATCH_SIZE = 10_000;
+
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
-
+	
+	/**
+	 * Each container can only be re-synchronized at this frequency.
+	 */
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 1000 minutes.
+	
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	private final RowSearchProcessor searchProcessor;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory){
-		if(dao == null){
-			throw new IllegalArgumentException("TableIndexDAO cannot be null");
-		}
-		if(tableManagerSupport == null){
-			throw new IllegalArgumentException("TableManagerSupport cannot be null");
-		}
-		if(metadataIndexProviderFactory == null) {
-			throw new IllegalArgumentException("MetadataIndexProviderFactory cannot be null");
-		}
-		if (objectFieldModelResolverFactory == null) {
-			throw new IllegalArgumentException("ObjectFieldModelResolverFactory cannot be null");
-		}
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, RowSearchProcessor searchProcessor){
+		ValidateArgument.required(dao, "TableIndexDao");
+		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
+		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
+		ValidateArgument.required(objectFieldModelResolverFactory, "ObjectFieldModelResolverFactory");
+		ValidateArgument.required(searchProcessor, "RowSearchProcessor");
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
+		this.searchProcessor = searchProcessor;
 	}
 	/*
 	 * (non-Javadoc)
@@ -107,39 +121,48 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * java.util.List, long)
 	 */
 	@Override
-	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset,
-			final long changeSetVersionNumber) {
+	public void applyChangeSetToIndex(final IdAndVersion tableId, final SparseChangeSet rowset, final long changeSetVersionNumber) {
 		// Validate all rows have the same version number
 		// Has this version already been applied to the table index?
-		final long currentVersion = tableIndexDao
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		final long currentVersion = tableIndexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		if (changeSetVersionNumber > currentVersion) {
+			
+			// Read the current status of the search, this is the status up to the current change
+			boolean isSearchEnabled = tableIndexDao.isSearchEnabled(tableId);
+			
 			// apply all changes in a transaction
-			tableIndexDao
-					.executeInWriteTransaction((TransactionStatus status) -> {
-							// apply all groups to the table
-							for(Grouping grouping: rowset.groupByValidValues()){
-								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
-							}
-							// Extract all file handle IDs from this set
-							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
-							if (!fileHandleIds.isEmpty()) {
-								tableIndexDao.applyFileHandleIdsToTable(
-										tableId, fileHandleIds);
-							}
-							boolean alterTemp = false;
-							//once all changes to main table are applied, populate the list-type columns with the changes.
-							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
-								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
-							}
-
-							// set the new max version for the index
-							tableIndexDao.setMaxCurrentCompleteVersionForTable(
-									tableId, changeSetVersionNumber);
-							return null;
-						}
-					);
+			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+				// apply all groups to the table
+				for(Grouping grouping: rowset.groupByValidValues()) {
+					tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
+				}
+				// Extract all file handle IDs from this set
+				Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
+				if (!fileHandleIds.isEmpty()) {
+					tableIndexDao.applyFileHandleIdsToTable(tableId, fileHandleIds);
+				}
+				boolean alterTemp = false;
+				//once all changes to main table are applied, populate the list-type columns with the changes.
+				for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
+					tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+					tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), alterTemp);
+				}
+				// Once the values are added or updated we check if the search column needs to be populated
+				if (isSearchEnabled) {
+					// We only consider the column that match the given type filter
+					List<ColumnModel> filteredColumns = getSchemaForSearchIndex(rowset.getSchema());
+					
+					if (!filteredColumns.isEmpty()) {
+						// Find out the set of row ids that added/updated values for searcheable columns
+						Set<Long> rowIds = rowset.getCreatedOrUpdatedRowIds(filteredColumns);
+						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(tableId, filteredColumns, rowIds);
+						updateSearchIndex(tableId, rowsData.iterator());
+					}
+				}
+				// set the new max version for the index
+				tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, changeSetVersionNumber);
+				return null;
+			});
 		}
 	}
 
@@ -293,22 +316,25 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 	}
 
-
-
-	@Override
-	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
+	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isTableView) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
+	}
+
+	@Override
+	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
+		
+		createTableIfDoesNotExist(tableId, isTableView);
+		
 		boolean alterTemp = false;
 		// Alter the table
 		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		if(wasSchemaChanged){
-			// Get the current schema.
-			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
-			// Determine the current schema
-			List<ColumnModel> currentSchema = SQLUtils.extractSchemaFromInfo(tableInfo);
+		
+		if (wasSchemaChanged) {
+			// Determine the current schema of the table
+			List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
 			if(currentSchema.isEmpty()){
 				// there are no columns in the table so truncate all rows.
 				tableIndexDao.truncateTable(tableId);
@@ -317,6 +343,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			List<String> columnIds = TableModelUtils.getIds(currentSchema);
 			String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(columnIds);
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+			
+			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
+				updateSearchIndex(tableId);
+			}
+			
 		}
 		return wasSchemaChanged;
 	}	
@@ -457,8 +488,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(viewId, "viewId");
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
+		Set<Long> scope = tableManagerSupport.getViewScope(idAndVersion);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scope, nextPageToken);
 	}
 	
 	@Override
@@ -481,8 +512,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, scopeType);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scopeSet, nextPageToken);
 	}
 	
 	
@@ -494,19 +524,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType,
-			Set<Long> containerIds, String nextPageToken) {
-		ValidateArgument.required(containerIds, "containerIds");
+			Set<Long> scope, String nextPageToken) {
+		ValidateArgument.required(scope, "scope");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
 		
-		if(containerIds.isEmpty()){
+		
+		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
+		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), scope);
+		
+		if(filter.isEmpty()) {
 			results.setResults(Collections.emptyList());
 			results.setNextPageToken(null);
 			return results;
 		}
-		
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(viewScopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewScopeType, containerIds);
 		
 		DefaultColumnModel defaultColumnModel = provider.getDefaultColumnModel(viewScopeType.getTypeMask());
 		
@@ -657,6 +688,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		case COLUMN:
 			applySchemaChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SchemaChange.class));
 			break;
+		case SEARCH:
+			applySearchChangeToIndex(idAndVersion, changeMetadata.loadChangeData(SearchChange.class));
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown type: "+changeMetadata.getChangeType());
 		}
@@ -700,6 +734,26 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
+	}
+	
+	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
+		// This will make sure that the table is properly created if it does not exist
+		createTableIfDoesNotExist(idAndVersion, false);
+		
+		SearchChange change = loadChangeData.getChange();
+		
+		if (change.isEnabled()) {
+			tableIndexDao.addSearchColumn(idAndVersion);
+
+			// When we enable the search on a table we unconditionally re-index the whole table
+			updateSearchIndex(idAndVersion);
+			
+		} else {
+			tableIndexDao.removeSearchColumn(idAndVersion);
+		}
+		
+		// set the new max version for the index
+		tableIndexDao.setMaxCurrentCompleteVersionAndSearchStatusForTable(idAndVersion, loadChangeData.getChangeNumber(), change.isEnabled());
 	}
 	
 	@Override
@@ -798,5 +852,182 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
 		tableIndexDao.refreshViewBenefactors(viewId, scopeType.getObjectType().getMainType());
 	}
+	
+	@Override
+	public void updateObjectReplication(ReplicationType replicationType, Iterator<ObjectDataDTO> objectData) {
+		updateObjectReplication(replicationType, objectData, BATCH_SIZE);
+	}
+	
+	void updateObjectReplication(ReplicationType replicationType, Iterator<ObjectDataDTO> objectData, int batchSize) {
 
+		Iterators.partition(objectData, batchSize).forEachRemaining(batch -> {
+			try {
+				List<Long> distinctIdsInBatch = batch.stream().map(i -> i.getId()).distinct().collect(Collectors.toList());
+				tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+					/*
+					 * We delete all rows for all objects of the given type. This ensures that any
+					 * deleted annotations or versions are also removed from the replication tables.
+					 */
+					tableIndexDao.deleteObjectData(replicationType, distinctIdsInBatch);
+
+					/*
+					 * Add back all of the remaining data in batches.
+					 */
+					tableIndexDao.addObjectData(replicationType, batch);
+					return null;
+				});
+			}catch(Exception e) {
+				// The fix for PLFM-4497 is to retry failed batches as individuals.
+				if(batch.size() > 1) {
+					// throwing a RecoverableMessageException will result in an attempt to update each object separately.
+					throw new RecoverableMessageException(e);
+				}else {
+					
+					throw new IllegalArgumentException(e);
+				}
+			}
+
+		});
+	}
+		
+	@Override
+	public void deleteObjectData(ReplicationType objectType, List<Long> toDeleteIds) {
+		if(toDeleteIds != null && !toDeleteIds.isEmpty()) {
+			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+				tableIndexDao.deleteObjectData(objectType, toDeleteIds);
+				return null;
+			});
+		}
+	}
+	
+	@Override
+	public Iterator<IdAndChecksum> streamOverIdsAndChecksums(Long salt, ViewFilter filter) {
+		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
+			return tableIndexDao.getIdAndChecksumsForFilter(salt, filter, limit, offset);
+		}, BATCH_SIZE);
+	}
+	
+	@Override
+	public boolean isViewSynchronizeLockExpired(ReplicationType type, IdAndVersion idAndVersion) {
+		return tableIndexDao.isSynchronizationLockExpiredForObject(type,idAndVersion.getId());
+	}
+
+	@Override
+	public void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion) {
+		// re-set the expiration for all containers that were synchronized.
+		long newExpirationDateMs = System.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
+		tableIndexDao.setSynchronizationLockExpiredForObject(type, idAndVersion.getId(), newExpirationDateMs);
+	}
+	
+	/**
+	 * @param tableId The id of the table
+	 * @return The schema currently used by the table in the index
+	 */
+	private List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
+		// Get the current schema.
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		// Determine the current schema
+		return SQLUtils.extractSchemaFromInfo(tableInfo);
+	}
+	
+	/**
+	 * @param schema
+	 * @return The sub-schema consisting of columns that are eligible to be added to the search index
+	 */
+	List<ColumnModel> getSchemaForSearchIndex(List<ColumnModel> schema) {
+		return schema.stream()
+				.filter(TableIndexManagerImpl::isColumnEligibleForSearchIndex)
+				.collect(Collectors.toList());
+	}
+	
+	/**
+	 * Updates the search index for the table with the given id
+	 * 
+	 * @param tableId
+	 */
+	void updateSearchIndex(IdAndVersion tableId) {
+		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
+		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
+		
+		if (searchIndexSchema.isEmpty()) {
+			// On a schema change it might happen that now no columns are eligible for indexing, for such cases
+			// we simply clear the search index
+			tableIndexDao.clearSearchIndex(tableId);
+			return;
+		}
+		
+		Iterator<TableRowData> tableRowsIterator = new PaginationIterator<>((PaginationProvider<TableRowData>) (limit, offset) -> {
+			return tableIndexDao.getTableDataPage(tableId, searchIndexSchema, limit, offset);
+		}, BATCH_SIZE);
+		
+		updateSearchIndex(tableId, tableRowsIterator);
+	}
+	
+	/**
+	 * Given an iterator over the rows of a table updates the search index re-computing the index values for each
+	 * row returned by the iterator
+	 * 
+	 * @param tableId
+	 * @param tableRowDataIterator
+	 */
+	void updateSearchIndex(IdAndVersion tableId, Iterator<TableRowData> tableRowDataIterator) {
+		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
+			List<RowSearchContent> transformedBatch = batch.stream()
+				.map(this::mapTableRowDataToSearchContent)
+				.collect(Collectors.toList());
+			
+			if (!transformedBatch.isEmpty()) {
+				tableIndexDao.updateSearchIndex(tableId, transformedBatch);
+			}
+		});
+	}
+	
+	private RowSearchContent mapTableRowDataToSearchContent(TableRowData rowData) {
+		String processedValue = searchProcessor.process(rowData.getRowValues());
+		return new RowSearchContent(rowData.getRowId(), processedValue);
+	}
+	
+	/**
+	 * A change in the schema of a table requires a full re-index of the table if:
+	 * 
+	 * 1. A column that was eligible for the search index was deleted
+	 * 2. An existing column non-eligible for the search index was updated to a column that is now eligible
+	 * 3. An existing column eligible for the search index was updated to a column that is now not eligible
+	 * 
+	 * @param tableId
+	 * @param changes
+	 * @return True if the given changes for the table require a full re-index of the search index of the table
+	 */
+	static boolean isRequireSearchIndexUpdate(IdAndVersion tableId, List<ColumnChangeDetails> changes) {
+		if (changes.isEmpty()) {
+			return false;
+		}
+		
+		for (ColumnChangeDetails change : changes) {
+			// For a new column there is not data yet so no need to re-index
+			if (change.getOldColumn() == null) {
+				continue;
+			}
+			// A deleted column: requires re-indexing only if the type of the column is eligible for the search index
+			if (change.getNewColumn() == null && isColumnEligibleForSearchIndex(change.getOldColumn())) {
+				return true;
+			}
+			// An updated column: requires re-indexing if the old column or the new column are eligible for the search index
+			if (change.getNewColumn() != null && (isColumnEligibleForSearchIndex(change.getNewColumn()) || isColumnEligibleForSearchIndex(change.getOldColumn()))) {
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
+
+	/**
+	 * @param column
+	 * @return True if the given column model has a data type that is eligible to be added to the search index
+	 */
+	private static boolean isColumnEligibleForSearchIndex(ColumnModel column) {
+		return TableConstants.SEARCH_TYPES.contains(column.getColumnType());
+	}
+	
 }

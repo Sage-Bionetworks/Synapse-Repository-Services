@@ -10,7 +10,8 @@ public enum ViewTypeMask {
 	Folder(0x08, EntityType.folder),
 	View(0x10, EntityType.entityview),
 	Docker(0x20, EntityType.dockerrepo),
-	SubmissionView(0x40, EntityType.submissionview);
+	SubmissionView(0x40, EntityType.submissionview),
+	Dataset(0x80, EntityType.dataset);
 
 	long bitMask;
 	EntityType entityType;

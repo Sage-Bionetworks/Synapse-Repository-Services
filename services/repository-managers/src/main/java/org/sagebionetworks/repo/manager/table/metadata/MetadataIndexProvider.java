@@ -1,20 +1,14 @@
 package org.sagebionetworks.repo.manager.table.metadata;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.HasViewObjectType;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
@@ -43,51 +37,6 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	 *         that are suggested for a view
 	 */
 	DefaultColumnModel getDefaultColumnModel(Long viewTypeMask);
-
-	// Used for replication
-
-	/**
-	 * Fetch the {@link ObjectDataDTO} for the objects with the given ids, the DTO
-	 * will have to include the annotations on the object. The annotations might
-	 * contain any kind of property that should be indexed and exposed as a view
-	 * (e.g. including object attributes that are not part of the standard
-	 * replication fields).
-	 * 
-	 * @param objectIds          The list of object identifiers
-	 * @param maxAnnotationChars The maximum number of chars of the value(s)
-	 *                           represented as string, should truncate the values
-	 *                           to that size
-	 * @return
-	 */
-	List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars);
-
-	/**
-	 * Given the set of ids in the scope and the type mask, computes all the
-	 * containers within the scope. The result should contain the provided set of
-	 * ids
-	 * 
-	 * @param scope          The set of ids defining the scope of a view
-	 * @param viewTypeMask   The type mask
-	 * @param containerLimit The maximum number of containers allowed for a scope,
-	 *                       if there are more containers in the scope a
-	 *                       {@link LimitExceededException} should be thrown
-	 * 
-	 * @return The expanded set of ids including all the container ids in the scope
-	 * @throws LimitExceededException If there are more than containerLimit
-	 *                                containers in the scope
-	 */
-	Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException;
-
-	/**
-	 * Provide a contextualized message when a view with the given type mask exceeds
-	 * the given limit
-	 * 
-	 * @param viewTypeMask
-	 * @param containerLimit
-	 * @return
-	 */
-	String createViewOverLimitMessage(Long viewTypeMask, int containerLimit);
 
 	// Used for annotation updates from views
 
@@ -131,65 +80,14 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 
 	// Used for reconciliation
 
-	/**
-	 * In general should return the same result as
-	 * {@link #getContainerIdsForScope(Set, Long, int)} but used for reconciliation,
-	 * in some cases the containers to reconcile might differ from the containers
-	 * used for the scope computation (e.g. project views reconcile on the root
-	 * node)
-	 * 
-	 * @param scope          The set of ids defining the scope of a view
-	 * @param viewTypeMask   The type mask
-	 * @param containerLimit The maximum number of containers allowed for a scope,
-	 *                       if there are more containers in the scope a
-	 *                       {@link LimitExceededException} should be thrown
-	 * @return The set of container ids that are used for reconciliation
-	 * @throws LimitExceededException If there are more than containerLimit
-	 *                                containers in the scope
-	 */
-	Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit)
-			throws LimitExceededException;
-
-	/**
-	 * Returns the sub-set of available containers, a container is available if it
-	 * exists and it's not trashed
-	 * 
-	 * @param containerIds
-	 * @return The
-	 */
-	Set<Long> getAvailableContainers(List<Long> containerIds);
-
-	/**
-	 * For the given container id return the <id, etag, benefactor> of the direct
-	 * children
-	 * 
-	 * @param containerId
-	 * @return The list of children metadata including the id, etag and benefactor
-	 */
-	List<IdAndEtag> getChildren(Long containerId);
-
-	/**
-	 * For each container id (e.g. ids that are allowed in the scope of the view)
-	 * get the sum of CRCs of their children.
-	 * 
-	 * <p>
-	 * In general this can be computed using the CRC32 of the CONCAT of ID, ETAG and
-	 * BENEFACTOR grouping by the container id:
-	 * <p>
-	 * SELECT PARENT_ID, SUM(CRC32(CONCAT(ID,'-',ETAG,'-', BENEFACTOR_ID))) AS 'CRC'
-	 * FROM TABLE WHERE PARENT_ID IN(:parentId) GROUP BY PARENT_ID
-	 * 
-	 * @param containerIds
-	 * @return Map.key = containerId and map.value = sum of children CRCs
-	 */
-	Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds);
 	
 	/**
-	 * Validate the view type mask
-	 * 
-	 * @param viewTypeMask The mask for the view, can be null
+	 * Validate the scope and type.
+	 * @param typeMask
+	 * @param scopeIds
+	 * @param maxContainersPerView
 	 */
-	void validateTypeMask(Long viewTypeMask);
+	void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView);
 		
 	/**
 	 * Get the view filter for the given view.
@@ -204,6 +102,8 @@ public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTyp
 	 * @param containerIds
 	 * @return
 	 */
-	ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds);
+	ViewFilter getViewFilter(Long typeMask, Set<Long> containerIds);
+
+
 
 }

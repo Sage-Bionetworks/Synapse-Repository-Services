@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,11 +15,13 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -77,19 +81,27 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
+import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
+import org.sagebionetworks.table.model.SearchChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -115,6 +127,8 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private ObjectFieldModelResolver mockObjectFieldModelResolver;
 	@Mock
+	private RowSearchProcessor mockSearchProcessor;
+	@Mock
 	private ViewFilter mockFilter;
 	@Mock
 	private ViewFilterBuilder mockFilterBuilder;
@@ -123,6 +137,9 @@ public class TableIndexManagerImplTest {
 
 	@Captor
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
+	
+	@Captor
+	ArgumentCaptor<Long> longCaptor;
 
 	TableIndexManagerImpl manager;
 	TableIndexManagerImpl managerSpy;
@@ -161,7 +178,7 @@ public class TableIndexManagerImplTest {
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory,
-				mockObjectFieldModelResolverFactory);
+				mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -216,7 +233,7 @@ public class TableIndexManagerImplTest {
 	public void testNullDao() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
@@ -224,21 +241,28 @@ public class TableIndexManagerImplTest {
 	public void testNullSupport() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
 	@Test
 	public void testNullProviderFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor);
 		});
 	}
 
 	@Test
 	public void testNullObjectFieldFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor);
+		});
+	}
+	
+	@Test
+	public void testNullSSearchProcessor() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
 		});
 	}
 
@@ -258,6 +282,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).applyFileHandleIdsToTable(tableId, Sets.newHashSet(2L, 6L));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -271,6 +296,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		verify(mockIndexDao, never()).setMaxCurrentCompleteVersionForTable(any(IdAndVersion.class), anyLong());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -297,10 +323,11 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
-	public void testApplyChangeSetToIndex_PopulateListColumns() {
+	public void testApplyChangeSetToIndexPopulateListColumns() {
 		setupExecuteInWriteTransaction();
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		// no files in the schema
@@ -334,6 +361,98 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+	}
+	
+	@Test
+	public void testApplyChangeSetToIndexWithSearchEnabled() {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockIndexDao.isSearchEnabled(tableId)).thenReturn(true);
+		
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "strList", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(101L, "str", ColumnType.STRING),
+				TableModelTestUtils.createColumn(102L, "integer", ColumnType.INTEGER)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row.setCellValue("101", "some value");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("101", "some value");
+
+		SparseRow row3 = sparseChangeSet.addEmptyRow();
+		row3.setRowId(6L);
+		row3.setCellValue("102", "1");
+		
+		TableRowData rowData = new TableRowData(102L, Arrays.asList(new TypedCellValue(schema.get(0).getColumnType(), "some data")));
+		RowSearchContent searchRowContent = new RowSearchContent(102L, "processed row");
+		
+		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(Arrays.asList(rowData, rowData));
+		when(mockSearchProcessor.process(any())).thenReturn(searchRowContent.getSearchContent());
+		
+		
+		// call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L));
+		verify(mockSearchProcessor, times(2)).process(rowData.getRowValues());
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchRowContent, searchRowContent));
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+	}
+	
+	@Test
+	public void testApplyChangeSetToIndexWithSearchEnabledAndNoUpdate() {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockIndexDao.isSearchEnabled(tableId)).thenReturn(true);
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "integer", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(101L, "double", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(102L, "integerList", ColumnType.INTEGER_LIST)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "1");
+		row.setCellValue("101", "1.0");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("101", "2.0");
+
+		SparseRow row3 = sparseChangeSet.addEmptyRow();
+		row3.setRowId(6L);
+		row3.setCellValue("102", "[1, 2, 3]");
+		
+		// call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao, times(3)).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 	}
 
 	@Test
@@ -453,17 +572,18 @@ public class TableIndexManagerImplTest {
 				.thenReturn(Collections.singletonList(existingColumn))
 				// on the second time, our new column has been added
 				.thenReturn(Arrays.asList(existingColumn, createdColumn));
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
 		boolean isTableView = false;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, columnChanges);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
+		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList(existingColumnId, newColumn.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -480,11 +600,11 @@ public class TableIndexManagerImplTest {
 		current.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
 		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, changes);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		managerSpy.updateTableSchema(tableId, isTableView, changes);
+		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
@@ -492,6 +612,7 @@ public class TableIndexManagerImplTest {
 
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
 	}
 
 	@Test
@@ -500,15 +621,97 @@ public class TableIndexManagerImplTest {
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
 		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, isTableView, changes);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		managerSpy.updateTableSchema(tableId, isTableView, changes);
+		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(any(IdAndVersion.class), anyString());
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+	}
+	
+	@Test
+	public void testUpdateTableSchemaWithSearchEnabledAndNoReindex() {
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
+		String existingColumnId = "11";
+		DatabaseColumnInfo existingColumn = new DatabaseColumnInfo();
+		existingColumn.setColumnName("_C" + existingColumnId + "_");
+		existingColumn.setColumnType(ColumnType.BOOLEAN);
+
+		DatabaseColumnInfo createdColumn = new DatabaseColumnInfo();
+		createdColumn.setColumnName("_C12_");
+		createdColumn.setColumnType(ColumnType.STRING);
+		when(mockIndexDao.getDatabaseInfo(tableId))
+				// first time called we only have 1 existing column
+				.thenReturn(Collections.singletonList(existingColumn))
+				// on the second time, our new column has been added
+				.thenReturn(Arrays.asList(existingColumn, createdColumn));
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		// Simulate a table with search enabled
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		
+		boolean isTableView = false;
+		
+		// call under test
+		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
+		
+		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		// The new schema is not empty so do not truncate.
+		verify(mockIndexDao, never()).truncateTable(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList(existingColumnId, newColumn.getId()));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+	}
+	
+	@Test
+	public void testUpdateTableSchemaWithSearchEnabledAndReindex() {
+		ColumnModel oldColumn = new ColumnModel().setId("11").setColumnType(ColumnType.INTEGER);
+		ColumnModel newColumn = new ColumnModel().setId("11").setColumnType(ColumnType.STRING);
+		
+		columnChanges = Arrays.asList(new ColumnChangeDetails(oldColumn, newColumn));
+		
+		boolean alterTemp = false;
+		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
+		DatabaseColumnInfo existingColumn = new DatabaseColumnInfo();
+		existingColumn.setColumnName("_C11_");
+		existingColumn.setColumnType(ColumnType.INTEGER);
+
+		DatabaseColumnInfo updatedColumn = new DatabaseColumnInfo();
+		updatedColumn.setColumnName("_C11_");
+		updatedColumn.setColumnType(ColumnType.STRING);
+		
+		when(mockIndexDao.getDatabaseInfo(tableId))
+				// first time called we only have 1 existing column
+				.thenReturn(Collections.singletonList(existingColumn))
+				// on the second time, our column has been updated
+				.thenReturn(Arrays.asList(updatedColumn));
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		// Simulate a table with search enabled
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		
+		boolean isTableView = false;
+		
+		// call under test
+		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
+		
+		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		
+		// The new schema is not empty so do not truncate.
+		verify(mockIndexDao, never()).truncateTable(tableId);
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList("11"));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).updateSearchIndex(tableId);
 	}
 
 	@Test
@@ -774,9 +977,13 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForContainerIsEmpty() {
+	public void testGetPossibleAnnotationDefinitionsWithEmptyFilter() {
+		
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(true);
+		
 		String token = nextPageToken.toToken();
-		containerIds = new HashSet<>();
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
 				token);
@@ -785,6 +992,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
 		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(any(), anyLong(), anyLong());
+		verify(mockFilter).isEmpty();
 	}
 
 	@Test
@@ -802,15 +1010,19 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.getViewScopeType(tableId)).thenReturn(scopeType);
 
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId.getId(), tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+		
+		verify(mockManagerSupport).getViewScopeType(tableId);
+		verify(mockManagerSupport).getViewScope(tableId);
 	}
 
 	@Test
@@ -825,24 +1037,30 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+		
+		Set<Long> expectedScope = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
+		verify(mockMetadataProvider).getViewFilter(scopeType.getTypeMask(), expectedScope);
+		verify(mockFilter).isEmpty();
+
 	}
 
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 
 		scope.setViewEntityType(null);
 
@@ -858,10 +1076,10 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsWithCustomFields() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, scopeType)).thenReturn(containerIds);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(false);
 		
 		when(mockFilter.newBuilder()).thenReturn(mockFilterBuilder);
 		when(mockFilterBuilder.addExcludeAnnotationKeys(any())).thenReturn(mockFilterBuilder);
@@ -936,12 +1154,12 @@ public class TableIndexManagerImplTest {
 
 		long changeNumber = 333l;
 		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		
 		// call under test
-		manager.applyRowChangeToIndex(tableId, change);
+		managerSpy.applyRowChangeToIndex(tableId, change);
 
-		// set schema
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, false);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		// apply change
 		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 	}
@@ -951,10 +1169,11 @@ public class TableIndexManagerImplTest {
 		long changeNumber = 333l;
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
-
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
 		// Call under test
-		manager.applySchemaChangeToIndex(tableId, change);
+		managerSpy.applySchemaChangeToIndex(tableId, change);
 
+		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		boolean alterTemp = false;
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 	}
@@ -965,11 +1184,12 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		long changeNumber = 444L;
 		TableChangeMetaData mockChange = setupMockRowChange(changeNumber);
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		
 		// call under test
-		manager.applyChangeToIndex(tableId, mockChange);
+		managerSpy.applyChangeToIndex(tableId, mockChange);
 		// set schema
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, false);
-		verify(mockIndexDao).createSecondaryTables(tableId);
+		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
 		// apply change
 		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
@@ -1004,6 +1224,43 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
 		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, newColumn, false);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null, false);
+	}
+	
+	@Test
+	public void testApplyChangeToIndexSearchEnable() throws NotFoundException, IOException {
+		long changeNumber = 123L;
+		
+		boolean enableSearch = true;
+		
+		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
+		
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).updateSearchIndex(any());
+
+		// call under test
+		managerSpy.applyChangeToIndex(tableId, mockChange);
+		
+		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(mockIndexDao).addSearchColumn(tableId);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
+		verify(managerSpy).updateSearchIndex(tableId);
+	}
+	
+	@Test
+	public void testApplyChangeToIndexSearchDisable() throws NotFoundException, IOException {
+		long changeNumber = 123L;
+		
+		boolean enableSearch = false;
+		
+		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		
+		// call under test
+		managerSpy.applyChangeToIndex(tableId, mockChange);
+		
+		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(mockIndexDao).removeSearchColumn(tableId);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 	}
 
 	@Test
@@ -2103,6 +2360,468 @@ public class TableIndexManagerImplTest {
 		});
 	}
 
+	@Test
+	public void testUpdateObjectReplication() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L),
+				new ObjectDataDTO().setId(0L).setVersion(2L),
+				new ObjectDataDTO().setId(1L).setVersion(1L),
+				new ObjectDataDTO().setId(1L).setVersion(2L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+
+		// call under test
+		manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+
+		// batch one
+		verify(mockIndexDao).deleteObjectData(type, Arrays.asList(0L,1L));
+		verify(mockIndexDao).addObjectData(type, toUpdate.subList(0, 3));
+		// batch two
+		verify(mockIndexDao).deleteObjectData(type, Arrays.asList(1L));
+		verify(mockIndexDao).addObjectData(type, toUpdate.subList(3, 4));
+	}
+	
+	
+	/**
+	 * A failure with a batch greater than one needs to be retried.
+	 */
+	@Test
+	public void testUpdateObjectReplicationWithExceptionBatchGreaterThanOne() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L),
+				new ObjectDataDTO().setId(0L).setVersion(2L),
+				new ObjectDataDTO().setId(1L).setVersion(1L),
+				new ObjectDataDTO().setId(1L).setVersion(2L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+		
+		DataIntegrityViolationException e = new DataIntegrityViolationException("something is wrong!");
+		doThrow(e).when(mockIndexDao).addObjectData(any(), any());
+		
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+		});
+		assertEquals(thrown.getCause(), e);
+	}
+	
+	/**
+	 * Failure on a single object is permanent.
+	 */
+	@Test
+	public void testUpdateObjectReplicationWithExceptionBatchOfOne() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<ObjectDataDTO> toUpdate = Arrays.asList(
+				new ObjectDataDTO().setId(0L).setVersion(1L)
+		);
+
+		int batchSize = 3;
+
+		setupExecuteInWriteTransaction();
+		
+		DataIntegrityViolationException e = new DataIntegrityViolationException("something is wrong!");
+		doThrow(e).when(mockIndexDao).addObjectData(any(), any());
+		
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateObjectReplication(type, toUpdate.iterator(), batchSize);
+		});
+		assertEquals(thrown.getCause(), e);
+	}
+	
+	@Test
+	public void testDeleteObjectData() {
+		ReplicationType type = ReplicationType.ENTITY;
+		
+		List<Long> toDeleteIds = Arrays.asList(1L,2L,3L);
+
+		setupExecuteInWriteTransaction();
+
+		// call under test
+		manager.deleteObjectData(type, toDeleteIds);
+
+		verify(mockIndexDao).deleteObjectData(type, toDeleteIds);
+	}
+	
+	@Test
+	public void testIsViewSynchronizeLockExpiredWithEmpty() {
+		ReplicationType type = ReplicationType.ENTITY;
+		when(mockIndexDao.isSynchronizationLockExpiredForObject(any(), any())).thenReturn(false);
+		// call under test
+		assertFalse(manager.isViewSynchronizeLockExpired(type, tableId));
+		verify(mockIndexDao).isSynchronizationLockExpiredForObject(type, tableId.getId());
+	}
+	
+	@Test
+	public void testIsViewSynchronizeLockExpiredWithExpired() {
+		ReplicationType type = ReplicationType.ENTITY;
+		when(mockIndexDao.isSynchronizationLockExpiredForObject(any(), any())).thenReturn(true);
+		// call under test
+		assertTrue(manager.isViewSynchronizeLockExpired(type, tableId));
+		verify(mockIndexDao).isSynchronizationLockExpiredForObject(type, tableId.getId());
+	}
+	
+	
+	@Test
+	public void testResetViewSynchronizeLock() {
+		ReplicationType type = ReplicationType.ENTITY;
+		long start = System.currentTimeMillis();
+		// call under test
+		manager.resetViewSynchronizeLock(type, tableId);
+		verify(mockIndexDao).setSynchronizationLockExpiredForObject(eq(type), eq(tableId.getId()), longCaptor.capture());
+		long expires = longCaptor.getValue();
+		long expectedExpires = start+TableIndexManagerImpl.SYNCHRONIZATION_FEQUENCY_MS;
+		assertTrue(expectedExpires >= expires);
+	}
+	
+	@Test
+	public void testCreateTableIfDoesNotExists() {
+		
+		boolean isTableView = false;
+		manager.createTableIfDoesNotExist(tableId, isTableView);
+		
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+	}
+	
+	@Test
+	public void testCreateTableIfDoesNotExistsForView() {
+		
+		boolean isTableView = true;
+		manager.createTableIfDoesNotExist(tableId, isTableView);
+		
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
+		verify(mockIndexDao).createSecondaryTables(tableId);
+	}
+	
+	@Test
+	public void testUpdateSearchIndex() {
+		
+		schema = Arrays.asList(
+				new ColumnModel().setId("44").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("45").setColumnType(ColumnType.INTEGER)
+		);
+		
+		DatabaseColumnInfo column1Info = new DatabaseColumnInfo();
+		column1Info.setColumnName("_C44_");
+		column1Info.setColumnType(ColumnType.STRING);
+		
+		DatabaseColumnInfo column2Info = new DatabaseColumnInfo();
+		column2Info.setColumnName("_C45_");
+		column2Info.setColumnType(ColumnType.INTEGER);
+		
+		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Arrays.asList(column1Info, column2Info));
+		
+		// This is the expected sub-schema for the search index
+		List<ColumnModel> expectedSearchSchema = Arrays.asList(
+			new ColumnModel().setId("44").setColumnType(ColumnType.STRING)		
+		);
+		
+		TableRowData tableRow1Data = new TableRowData(1L, 
+			expectedSearchSchema.stream().map(model -> new TypedCellValue(model.getColumnType(), "some value")).collect(Collectors.toList())
+		);
+		
+		TableRowData tableRow2Data = new TableRowData(2L, 
+			expectedSearchSchema.stream().map(model -> new TypedCellValue(model.getColumnType(), "some value")).collect(Collectors.toList())
+		);
+		
+		// The pagination iterator calls this twice unconditionally, so the second time we return an empty list
+		when(mockIndexDao.getTableDataPage(any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(tableRow1Data, tableRow2Data), Collections.emptyList());
+		
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+		
+		// Call under test
+		manager.updateSearchIndex(tableId);
+		
+		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, 0);
+		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, TableIndexManagerImpl.BATCH_SIZE);
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(new RowSearchContent(1L, "processed value"), new RowSearchContent(2L, "processed value")));
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithNoEligibleColumns() {
+		
+		schema = Arrays.asList(
+				new ColumnModel().setId("44").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setId("45").setColumnType(ColumnType.INTEGER)
+		);
+		
+		DatabaseColumnInfo column1Info = new DatabaseColumnInfo();
+		column1Info.setColumnName("_C44_");
+		column1Info.setColumnType(ColumnType.DOUBLE);
+		
+		DatabaseColumnInfo column2Info = new DatabaseColumnInfo();
+		column2Info.setColumnName("_C45_");
+		column2Info.setColumnType(ColumnType.INTEGER);
+		
+		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Arrays.asList(column1Info, column2Info));
+		
+		// Call under test
+		manager.updateSearchIndex(tableId);
+		
+		verify(mockIndexDao).clearSearchIndex(tableId);
+		verifyNoMoreInteractions(mockIndexDao);
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIterator() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
+		);
+		
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		List<RowSearchContent> expectedBatch = rows.stream().map( data -> new RowSearchContent(data.getRowId(), "processed value")).collect(Collectors.toList());
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, expectedBatch);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIteratorAndNullSearchContent() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
+		);
+		
+		when(mockSearchProcessor.process(any())).thenReturn("processed value", null);
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(new RowSearchContent(1L, "processed value"), new RowSearchContent(2L, null)));
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIteratorAndNoContent() {
+		
+		List<TableRowData> rows = Collections.emptyList();
+		
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		verifyZeroInteractions(mockSearchProcessor);
+		
+		verifyZeroInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIteratorAndMultipleBatches() {
+		
+		int size = TableIndexManagerImpl.BATCH_SIZE * 2 - TableIndexManagerImpl.BATCH_SIZE/2;
+		
+		List<TableRowData> rows = LongStream.range(0, size).boxed().map(rowId -> 
+			new TableRowData(rowId, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
+		).collect(Collectors.toList());
+		
+		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rows.iterator());
+		
+		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		
+		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+
+		List<List<TableRowData>> expectedBatches = Lists.partition(rows, TableIndexManagerImpl.BATCH_SIZE);
+		
+		for (List<TableRowData> batch : expectedBatches) {
+			List<RowSearchContent> expectedTransformedBatch = batch.stream().map( data -> new RowSearchContent(data.getRowId(), "processed value")).collect(Collectors.toList());
+			verify(mockIndexDao).updateSearchIndex(tableId, expectedTransformedBatch);
+		}
+
+		verifyNoMoreInteractions(mockIndexDao);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIteratorAndEmptyIterator() {
+		Iterator<TableRowData> rowData = Collections.emptyIterator();
+
+		// Call under test
+		manager.updateSearchIndex(tableId, rowData);
+		
+		verifyZeroInteractions(mockSearchProcessor);
+		verifyZeroInteractions(mockIndexDao);
+		
+	}
+		
+	@Test
+	public void testGetSchemaForSearchIndex() {
+		schema = TableModelTestUtils.createOneOfEachType();
+		
+		// Call under test
+		List<ColumnModel> searchSchema = manager.getSchemaForSearchIndex(schema);
+		
+		assertFalse(searchSchema.isEmpty());
+		
+		searchSchema.forEach(columnModel -> {
+			assertTrue(TableConstants.SEARCH_TYPES.contains(columnModel.getColumnType()));
+		});
+
+	}
+	
+	@Test
+	public void testGetSchemaForSearchIndexWithNoneElegible() {
+		schema = Arrays.asList(
+			TableModelTestUtils.createColumn(99L, "integer", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(101L, "double", ColumnType.DOUBLE),
+			TableModelTestUtils.createColumn(102L, "filehandleid", ColumnType.FILEHANDLEID)
+		);
+		
+		// Call under test
+		List<ColumnModel> searchSchema = manager.getSchemaForSearchIndex(schema);
+		
+		assertTrue(searchSchema.isEmpty());
+
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithMix() {
+		columnChanges = Arrays.asList(
+			// Delete of non-eligible
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.INTEGER), null),
+			// Add of a new column
+			new ColumnChangeDetails(null, new ColumnModel().setColumnType(ColumnType.STRING)),
+			// Update of non-eligible
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.DOUBLE), new ColumnModel().setColumnType(ColumnType.INTEGER)),
+			// Update to eligible
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.INTEGER), new ColumnModel().setColumnType(ColumnType.STRING))
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithDeleteAndEligible() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.STRING), null)	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithDeleteAndNotEligible() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.INTEGER), null)	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertFalse(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithNewColumn() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(null, new ColumnModel().setColumnType(ColumnType.STRING))	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertFalse(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithUpdateAndOldEligible() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.STRING), new ColumnModel().setColumnType(ColumnType.INTEGER))	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithUpdateAndNewEligible() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.INTEGER), new ColumnModel().setColumnType(ColumnType.STRING))	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithUpdateAndNoneEligible() {
+		columnChanges = Arrays.asList(
+			new ColumnChangeDetails(new ColumnModel().setColumnType(ColumnType.INTEGER), new ColumnModel().setColumnType(ColumnType.DOUBLE))	
+		);
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertFalse(result);
+		
+	}
+	
+	@Test
+	public void testIsRequireSearchIndexUpdateWithNoChanges() {
+		columnChanges = Collections.emptyList();
+		
+		// Call under test
+		boolean result = TableIndexManagerImpl.isRequireSearchIndexUpdate(tableId, columnChanges);
+		
+		assertFalse(result);
+		
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.
@@ -2161,6 +2880,18 @@ public class TableIndexManagerImplTest {
 		testChange.setChangeType(TableChangeType.COLUMN);
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
+		testChange.setChangeData(change);
+		return testChange;
+	}
+	
+	public TableChangeMetaData setupMockSearchChange(long changeNumber, boolean enableSearch) {
+
+		TestTableChangeMetaData<SearchChange> testChange = new TestTableChangeMetaData<>();
+		testChange.setChangeNumber(changeNumber);
+		testChange.seteTag("etag-" + changeNumber);
+		testChange.setChangeType(TableChangeType.SEARCH);
+
+		ChangeData<SearchChange> change = new ChangeData<SearchChange>(changeNumber, new SearchChange(enableSearch));
 		testChange.setChangeData(change);
 		return testChange;
 	}

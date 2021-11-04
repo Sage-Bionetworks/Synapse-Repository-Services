@@ -7,11 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.schema.SchemaTestUtils.loadSchemaFromClasspath;
 
-import java.io.InputStream;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationException;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 import com.google.common.collect.Lists;
 
@@ -768,32 +766,5 @@ public class JsonSchemaValidationManagerImplTest {
 		return subject;
 	}
 
-	/**
-	 * Load a schema from the classpath.
-	 * 
-	 * @param name
-	 * @return
-	 * @throws Exception
-	 */
-	public JsonSchema loadSchemaFromClasspath(String name) throws Exception {
-		String jsonString = loadStringFromClasspath(name);
-		return new JsonSchema(new JSONObjectAdapterImpl(new JSONObject(jsonString)));
-	}
-
-	/**
-	 * Load the file contents from the class path.
-	 * 
-	 * @param name
-	 * @return
-	 * @throws Exception
-	 */
-	public String loadStringFromClasspath(String name) throws Exception {
-		try (InputStream in = JsonSchemaValidationManagerImplTest.class.getClassLoader().getResourceAsStream(name);) {
-			if (in == null) {
-				throw new IllegalArgumentException("Cannot find: '" + name + "' on the classpath");
-			}
-			return IOUtils.toString(in, "UTF-8");
-		}
-	}
 
 }

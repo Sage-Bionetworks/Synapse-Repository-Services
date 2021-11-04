@@ -8,15 +8,18 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
+import org.sagebionetworks.table.cluster.search.RowSearchContent;
+import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
@@ -26,70 +29,76 @@ import org.springframework.transaction.support.TransactionCallback;
 
 /**
  * This is an abstraction for table index CRUD operations.
+ * 
  * @author John
  *
  */
 public interface TableIndexDAO {
-	
+
 	/**
 	 * Create a table with the given name if it does not exist.
+	 * 
 	 * @param tableId The ID of the table.
-	 * @param isView Is this table a View?
+	 * @param isView  Is this table a View?
 	 */
 	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView);
-	
+
 	/**
-	 * Alter the given table as needed. The table will be changed
-	 * according to the passed list of column changes.  This includes,
-	 * additions, deletions, and updates.
+	 * Alter the given table as needed. The table will be changed according to the
+	 * passed list of column changes. This includes, additions, deletions, and
+	 * updates.
 	 * 
 	 * @param tableId
 	 * @param changes
-	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
+	 * @param alterTemp When true the temporary table will be altered. When false
+	 *                  the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
 	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
-	
+
 	/**
 	 * 
 	 * @param connection
 	 * @param tableId
 	 * @return
 	 */
-	void deleteTable(IdAndVersion tableId); 
-	
+	void deleteTable(IdAndVersion tableId);
+
 	/**
 	 * Create or update the rows passed in the given RowSet.
-
+	 * 
 	 * @param grouping group of rows that change the same columns.
 	 * @return
 	 */
 	void createOrUpdateOrDeleteRows(IdAndVersion tableId, Grouping grouping);
-	
+
 	/**
 	 * Query a RowSet from the table.
+	 * 
 	 * @param query
 	 * @return
 	 */
 	RowSet query(ProgressCallback callback, SqlQuery query);
-	
+
 	/**
 	 * Run a simple count query.
+	 * 
 	 * @param sql
 	 * @param parameters
 	 * @return
 	 */
 	Long countQuery(String sql, Map<String, Object> parameters);
-	
+
 	/**
-	 * Provides the means to stream over query results without keeping the row data in memory.
+	 * Provides the means to stream over query results without keeping the row data
+	 * in memory.
 	 * 
 	 * @param query
 	 * @param handler
 	 * @return
 	 */
 	boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
-	
+
 	/**
 	 * Get the row count for this table.
 	 * 
@@ -97,15 +106,23 @@ public interface TableIndexDAO {
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
 	Long getRowCountForTable(IdAndVersion tableId);
-	
+
 	/**
 	 * Get the max complete version we currently have for this table.
 	 * 
 	 * @param tableId
 	 * @param version the max complete version to remember
-	 * @return The max complete version of the table. If the table does not exist then -1L.
+	 * @return The max complete version of the table. If the table does not exist
+	 *         then -1L.
 	 */
 	Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
+	
+	/**
+	 * 
+	 * @param tableId
+	 * @return The current status of the search enabled flag in the building process of the table
+	 */
+	boolean isSearchEnabled(IdAndVersion tableId);
 
 	/**
 	 * Set the max complete version for this table
@@ -114,6 +131,15 @@ public interface TableIndexDAO {
 	 * @param highestVersion
 	 */
 	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
+
+	/**
+	 * Set the max complete version for this table along with the search status
+	 * 
+	 * @param tableId
+	 * @param version
+	 * @param searchEnabled
+	 */
+	void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled);
 	
 	/**
 	 * Set the MD5 hex of the table's current schema.
@@ -122,22 +148,25 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 */
 	void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex);
-	
+
 	/**
 	 * Get the MD5 hex of the table's current schema.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
 	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
-	
+
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
+	 * 
 	 * @param tableId
 	 */
 	void createSecondaryTables(IdAndVersion tableId);
-	
+
 	/**
 	 * Get the connection
+	 * 
 	 * @return
 	 */
 	JdbcTemplate getConnection();
@@ -149,9 +178,10 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	<T> T executeInReadTransaction(TransactionCallback<T> callable);
-	
+
 	/**
 	 * Run the passed callable within a write transaction.
+	 * 
 	 * @param callable
 	 * @return
 	 */
@@ -164,16 +194,17 @@ public interface TableIndexDAO {
 	 * @param fileHandleIds
 	 */
 	void applyFileHandleIdsToTable(IdAndVersion tableId, Set<Long> fileHandleIds);
-	
+
 	/**
-	 * Given a set of FileHandleIds and a talbeId, get the sub-set of
-	 * FileHandleIds that are actually associated with the table.
+	 * Given a set of FileHandleIds and a talbeId, get the sub-set of FileHandleIds
+	 * that are actually associated with the table.
+	 * 
 	 * @param toTest
 	 * @param objectId
 	 * @return
 	 */
 	Set<Long> getFileHandleIdsAssociatedWithTable(Set<Long> toTest, IdAndVersion tableId);
-	
+
 	/**
 	 * Does the state of the index match the given data?
 	 * 
@@ -193,14 +224,18 @@ public interface TableIndexDAO {
 	Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
 	/**
-	 * Get list of Column ids for existing index tables a multi-value column in the provided tableId
+	 * Get list of Column ids for existing index tables a multi-value column in the
+	 * provided tableId
+	 * 
 	 * @param tableId
 	 * @return
 	 */
 	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
 
 	/**
-	 * Creates an index table for the multi-value column described in the columnModel.
+	 * Creates an index table for the multi-value column described in the
+	 * columnModel.
+	 * 
 	 * @param tableId
 	 * @param columnModel
 	 * @param alterTemp
@@ -208,7 +243,9 @@ public interface TableIndexDAO {
 	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
 
 	/**
-	 * Drop the multi-value column index table associated with the table id and column id
+	 * Drop the multi-value column index table associated with the table id and
+	 * column id
+	 * 
 	 * @param tableId
 	 * @param columnId
 	 * @param alterTemp
@@ -216,12 +253,15 @@ public interface TableIndexDAO {
 	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId, boolean alterTemp);
 
 	/**
-	 * Drop the multi-value column index table associated with the table id and column id
+	 * Drop the multi-value column index table associated with the table id and
+	 * column id
+	 * 
 	 * @param columnId
 	 * @param tableId
 	 * @param alterTemp
 	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp);
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn,
+			boolean alterTemp);
 
 	/**
 	 * Truncate all of the data in the given table.
@@ -229,8 +269,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 */
 	void truncateTable(IdAndVersion tableId);
-	
-	
+
 	/**
 	 * Get information about each column of a database table.
 	 * 
@@ -238,53 +277,56 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
-	
+
 	/**
 	 * Provide the cardinality for the given columns and table.
 	 * 
-	 * Note: A single query will be executed, and the results added to the passed info list.
+	 * Note: A single query will be executed, and the results added to the passed
+	 * info list.
 	 * 
 	 * @param list
 	 * @param tableId
 	 */
 	void provideCardinality(List<DatabaseColumnInfo> list, IdAndVersion tableId);
-	
+
 	/**
 	 * Provide the index name for each column in the table.
+	 * 
 	 * @param list
 	 * @param tableId
 	 */
 	void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId);
-	
-	
+
 	/**
-	 * The provided column data is used to optimize the indices on the given
-	 * table. Indices are added until either all columns have an index or the
-	 * maximum number of indices per table is reached. When a table has more
-	 * columns than the maximum number of indices, indices are assigned to
-	 * columns with higher cardinality before columns with low cardinality.
+	 * The provided column data is used to optimize the indices on the given table.
+	 * Indices are added until either all columns have an index or the maximum
+	 * number of indices per table is reached. When a table has more columns than
+	 * the maximum number of indices, indices are assigned to columns with higher
+	 * cardinality before columns with low cardinality.
 	 * 
-	 * @param list
-	 *            The current column information of this table used for the
-	 *            optimization.
-	 * @param tableId
-	 *            The table to optimize.
-	 * @param maxNumberOfIndex
-	 *            The maximum number of indices allowed on a single table.
+	 * @param list             The current column information of this table used for
+	 *                         the optimization.
+	 * @param tableId          The table to optimize.
+	 * @param maxNumberOfIndex The maximum number of indices allowed on a single
+	 *                         table.
 	 */
 	void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
-	
+
 	/**
 	 * Populate the separate index table for the given list column.
+	 * 
 	 * @param tableId
 	 * @param listColumn
-	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
+	 * @param rowIds     Optional. When included, only rows with the given IDs will
+	 *                   be populated.
 	 * @param alterTemp
 	 */
-	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp);
+	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds,
+			boolean alterTemp);
 
 	/**
 	 * Delete rows from an a specific list column's index table.
+	 * 
 	 * @param tableId
 	 * @param listColumn
 	 * @param rowIds
@@ -292,13 +334,15 @@ public interface TableIndexDAO {
 	void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 	/**
-		 * Create a temporary table like the given table.
-		 * @param tableId
-		 */
+	 * Create a temporary table like the given table.
+	 * 
+	 * @param tableId
+	 */
 	void createTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Copy all of the data from the original table to the temporary table.
+	 * 
 	 * @param tableId
 	 */
 	void copyAllDataToTemporaryTable(IdAndVersion tableId);
@@ -310,6 +354,7 @@ public interface TableIndexDAO {
 
 	/**
 	 * Count the rows in the temp table.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
@@ -317,23 +362,28 @@ public interface TableIndexDAO {
 
 	/**
 	 * Create a temporary multivalue column index table like the given table.
+	 * 
 	 * @param tableId
 	 */
 	void createTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
 
 	/**
-	 * Copy all of the data from the original multivalue column index table to the temporary table.
+	 * Copy all of the data from the original multivalue column index table to the
+	 * temporary table.
+	 * 
 	 * @param tableId
 	 */
 	void copyAllDataToTemporaryMultiValueColumnIndexTable(IdAndVersion tableId, String columnId);
 
 	/**
-	 * Delete all of the temporary multivalue column index table associated with the given table.
+	 * Delete all of the temporary multivalue column index table associated with the
+	 * given table.
 	 */
 	void deleteAllTemporaryMultiValueColumnIndexTable(IdAndVersion tableId);
 
 	/**
 	 * Count the rows in the temp multi value index table.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
@@ -347,22 +397,25 @@ public interface TableIndexDAO {
 
 	/**
 	 * Delete all object data with the given Ids.
-	 * @param objectsType TODO
+	 * 
+	 * @param objectsType      TODO
 	 * @param objectIds
-	 * @param progressCallback 
+	 * @param progressCallback
 	 */
 	void deleteObjectData(ReplicationType objectsType, List<Long> objectIds);
 
 	/**
 	 * Add the given object data to the index.
-	 * @param mainType TODO
+	 * 
+	 * @param mainType   TODO
 	 * @param objectDtos
 	 */
 	void addObjectData(ReplicationType mainType, List<ObjectDataDTO> objectDtos);
 
 	/**
-	 * Queries for max length of list values in a column in the temporary copy of the table
-	 * (created using {@link #createTemporaryTable(IdAndVersion)})
+	 * Queries for max length of list values in a column in the temporary copy of
+	 * the table (created using {@link #createTemporaryTable(IdAndVersion)})
+	 * 
 	 * @param tableId
 	 * @param columnId
 	 * @return max list value length of the column
@@ -376,8 +429,9 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper);
-	
+	void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
+			ObjectFieldTypeMapper fieldTypeMapper);
+
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
 	 * 
@@ -385,13 +439,12 @@ public interface TableIndexDAO {
 	 * @param scopeFilter
 	 * @param currentSchema
 	 */
-	void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema, ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
+	void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
+			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
 
-	
 	/**
 	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation
-	 * of ROW_ID + ETAG.  Used to determine if a view is synchronized with the
-	 * truth.
+	 * of ROW_ID + ETAG. Used to determine if a view is synchronized with the truth.
 	 * 
 	 * @param viewId
 	 * 
@@ -417,44 +470,35 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<ColumnModel> getPossibleColumnModelsForContainers(ViewFilter filter, Long limit, Long offset);
-	
+
 	/**
-	 * The process for synchronizing entity replication data with the truth is
-	 * expensive, so the frequency of the synchronization is limited. Since
-	 * synchronization occurs at the entity container level, each time a
-	 * container is synchronized, a new expiration date is set for that
-	 * container. The container should not be re-synchronized until the set
-	 * expiration date is past.
+	 * Is the synchronization lock expired for the given object
 	 * 
-	 * For a given set of entity container IDs, this method will return the sub-set
-	 * of containers which have expired.
-	 * 
-	 * If a given container ID does not have a set expiration, it will be returned.
-	 * 
-	 * @param entityContainerIds
+	 * @param mainType
+	 * @param objectId
 	 * @return
 	 */
-	List<Long> getExpiredContainerIds(ReplicationType mainType, List<Long> entityContainerIds);
-	
+	boolean isSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId);
+
 	/**
-	 * @see {@link #getExpiredContainerIds(List)}.
-	 * 
-	 * Set the expiration for a set of containers.
-	 * 
-	 * @param expirations
+	 * Set the synchronization lock to be expired for the given object.
+	 * @param mainType
+	 * @param objectId
+	 * @param newExpirationDateMS
 	 */
-	void setContainerSynchronizationExpiration(ReplicationType mainType, List<Long> toSet, long newExpirationDateMS);
+	void setSynchronizationLockExpiredForObject(ReplicationType mainType, Long objectId, Long newExpirationDateMS);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.
-	 *   
+	 * 
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
 	Map<Long, Long> getSumOfChildCRCsForEachParent(ReplicationType mainType, List<Long> parentIds);
 
 	/**
 	 * Get the Id and Etag for each child of the given parentId.
-	 * @param mainType TODO
+	 * 
+	 * @param mainType           TODO
 	 * @param outOfSynchParentId
 	 * @return
 	 */
@@ -479,6 +523,7 @@ public interface TableIndexDAO {
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
+	 * 
 	 * @return
 	 */
 	void streamSynapseStorageStats(ReplicationType mainType, Callback<SynapseStorageProjectStats> callback);
@@ -515,9 +560,9 @@ public interface TableIndexDAO {
 	 * replication table.</li>
 	 * </ul>
 	 * 
-	 * @param viewId The id of the view to check.
+	 * @param viewId      The id of the view to check.
 	 * @param scopeFilter the filter to be applied to the view scope
-	 * @param limit Limit the number of rows returned. 
+	 * @param limit       Limit the number of rows returned.
 	 * @return
 	 */
 	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, ViewFilter filter, long limit);
@@ -528,27 +573,16 @@ public interface TableIndexDAO {
 	 * @param viewId
 	 * @param idsToDelete
 	 */
-	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
-	
-	// For testing:
-	
-	/**
-	 * Clear all expirations.
-	 */
-	void truncateReplicationSyncExpiration();
+	void deleteRowsFromViewBatch(IdAndVersion viewId, Long... idsToDelete);
 
-	/** 
-	 * Cleanup all the index tables
-	 */
-	void truncateIndex();
-	
 	/**
 	 * @return the entity DTO for a given entity ID
 	 */
 	ObjectDataDTO getObjectData(ReplicationType mainType, Long objectId, Long objectVersion);
-	
+
 	/**
 	 * Get the ObjectDataDTO for the current version of an object.
+	 * 
 	 * @param mainType
 	 * @param objectId
 	 * @return
@@ -556,9 +590,84 @@ public interface TableIndexDAO {
 	ObjectDataDTO getObjectDataForCurrentVersion(ReplicationType mainType, Long objectId);
 
 	/**
-	 * Ensure the benefactor ID within the given view snapshot are up-to-date with object replication.
+	 * Ensure the benefactor ID within the given view snapshot are up-to-date with
+	 * object replication.
+	 * 
 	 * @param viewId
 	 */
 	void refreshViewBenefactors(IdAndVersion viewId, ReplicationType mainType);
+
+	/**
+	 * Get a single page of IdAndChecksums from the replication table using the
+	 * provided filter.
+	 * 
+	 * @param salt
+	 * @param filter
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
+	
+	/**
+	 * Adds a special SEARCH_CONTENT FT column to the table index 
+	 * @param idAndVersion
+	 */
+	void addSearchColumn(IdAndVersion idAndVersion);
+	
+	/**
+	 * Removes the special SEARCH_CONTENT FT column from the table index 
+	 * @param idAndVersion
+	 */
+	void removeSearchColumn(IdAndVersion idAndVersion);
+	
+	/**
+	 * @param idAndVersion The id of the table
+	 * @param selectColumns The columns to fetch
+	 * @param rowIds The id of the rows to restrict the data to
+	 * @return A batch over the table row content matching the given set of columns for the rows with the given ids 
+	 */
+	List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds);
+	
+	/**
+	 * 
+	 * @param idAndVersion The id of the table
+	 * @param selectColumns The columns to fetch
+	 * @param limit
+	 * @param offset
+	 * @return A page of table row content matching the given set of columns paginated according to the given limit and offset (ordered by row id)
+	 */
+	List<TableRowData> getTableDataPage(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, long limit, long offset);
+	
+	/**
+	 * Updates the search index content for the given batch of rows
+	 * @param idAndVersion The id of the table
+	 * @param searchContentRows The batch of rows to update
+	 */
+	void updateSearchIndex(IdAndVersion idAndVersion, List<RowSearchContent> searchContentRows);
+	
+	/**
+	 * Clear all the content of the search index for the table with the given id
+	 * @param idAndVersion The id of the table
+	 */
+	void clearSearchIndex(IdAndVersion idAndVersion);
+
+	// For testing:
+
+	/**
+	 * Clear all expirations.
+	 */
+	void truncateReplicationSyncExpiration();
+
+	/**
+	 * Cleanup all the index tables
+	 */
+	void truncateIndex();
+	
+	/**
+	 * fetch the current search content for the given set of rows
+	 */
+	List<RowSearchContent> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
+
 
 }

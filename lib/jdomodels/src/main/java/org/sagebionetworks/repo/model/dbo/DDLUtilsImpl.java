@@ -46,8 +46,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	
 	/**
 	 * If the given table does not already exist, then create it using the provided SQL file
-	 * @param databaseTableName
-	 * @param DDLSqlFileName
+	 * @param mapping
 	 * @throws IOException 
 	 */
 	public boolean validateTableExists(TableMapping mapping) throws IOException{

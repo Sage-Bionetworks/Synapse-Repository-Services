@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.junit.jupiter.api.BeforeEach;
@@ -907,6 +908,19 @@ public class SQLQueryTest {
 		Map<String, Object> expectedParams = new HashMap<>(4);
 		expectedParams.put("b0", 1000L);
 		assertEquals(expectedParams, query.getParameters());
+	}
+	
+	@Test
+	public void testQueryWithTextMatches() throws ParseException {
+		sql = "select foo from syn123 WHERE TEXT_MATCHES('some text')";
+		SqlQuery query = new SqlQueryBuilder(sql, userId)
+				.tableSchema(tableSchema)
+				.tableType(EntityType.table)
+				.build();
+		
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)", query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+		assertTrue(query.isIncludeSearch());
 	}
 
 }

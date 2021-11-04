@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This is a utility for Data Definition Language (DDL) statements.

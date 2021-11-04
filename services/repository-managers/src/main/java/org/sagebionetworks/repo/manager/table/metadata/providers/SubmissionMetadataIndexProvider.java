@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -12,7 +10,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -20,12 +17,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -110,23 +105,7 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
 		return DEFAULT_COLUMNS;
 	}
-
-	@Override
-	public List<ObjectDataDTO> getObjectData(List<Long> objectIds, int maxAnnotationChars) {
-		return submissionDao.getSubmissionData(objectIds, maxAnnotationChars);
-	}
-
-	@Override
-	public Set<Long> getContainerIdsForScope(Set<Long> scope, Long viewTypeMask, int containerLimit) {
-		// The submissions are not hierarchical, so the scope cannot be expanded
-		return scope;
-	}
-
-	@Override
-	public String createViewOverLimitMessage(Long viewTypeMask, int containerLimit) {
-		return String.format(SCOPE_SIZE_LIMITED_EXCEEDED, containerLimit);
-	}
-
+	
 	@Override
 	public Optional<Annotations> getAnnotations(UserInfo userInfo, String objectId) {
 		// Fetch the current status
@@ -170,40 +149,21 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public Set<Long> getContainerIdsForReconciliation(Set<Long> scope, Long viewTypeMask, int containerLimit) {
-		// Always reconcile on the scope
-		return getContainerIdsForScope(scope, viewTypeMask, containerLimit);
-	}
-
-	@Override
-	public Set<Long> getAvailableContainers(List<Long> containerIds) {
-		return evaluationDao.getAvailableEvaluations(containerIds);
-	}
-
-	@Override
-	public List<IdAndEtag> getChildren(Long containerId) {
-		return submissionDao.getSubmissionIdAndEtag(containerId);
-	}
-
-	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachContainer(List<Long> containerIds) {
-		return submissionDao.getSumOfSubmissionCRCsForEachEvaluation(containerIds);
-	}
-
-	@Override
-	public void validateTypeMask(Long viewTypeMask) {
-		// Nothing to validate, the mask is not used
-	}
-
-	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), scope);
 	}
 
 	@Override
-	public ViewFilter getViewFilter(ViewScopeType viewScopeType, Set<Long> containerIds) {
+	public ViewFilter getViewFilter(Long viewTypeMask, Set<Long> containerIds) {
 		return new HierarchicaFilter(ReplicationType.SUBMISSION, getSubTypes(), containerIds);
 	}
 
+	@Override
+	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
+		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
+			throw new IllegalArgumentException(String.format(SCOPE_SIZE_LIMITED_EXCEEDED, maxContainersPerView));
+		}
+	}
+	
 }

@@ -253,6 +253,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repository.database.password");
 	}
 
+	public String getDbReadOnlyUserName() {
+		return configuration.getProperty("org.sagebionetworks.repository.db.readonlyusername");
+	}
+
+	public String getDbReadOnlyPassword() {
+		return configuration.getProperty("org.sagebionetworks.repository.db.readonlypassword");
+	}
+
 	/**
 	 * Should the connection pool connections be validated?
 	 * 
