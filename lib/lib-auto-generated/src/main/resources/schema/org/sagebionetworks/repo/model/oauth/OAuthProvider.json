@@ -9,6 +9,10 @@
         {
             "name": "ORCID",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "NIH_OAUTH_2_0",
+            "description": "TODO: Auto-generated description"
         }
     ]
 }
