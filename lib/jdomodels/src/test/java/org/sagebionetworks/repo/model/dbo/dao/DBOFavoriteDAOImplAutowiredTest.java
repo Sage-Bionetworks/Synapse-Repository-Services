@@ -262,6 +262,10 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		Favorite fav2 = createFavorite(node2Id);		
 		Favorite fav1created = favoriteDao.add(fav1);
 		favoritesToDelete.add(fav1created);
+
+		// Sleep for 100ms to ensure the favorites have distinct timestamps
+		Thread.sleep(100);
+
 		Favorite fav2created = favoriteDao.add(fav2);
 		favoritesToDelete.add(fav2created);
 

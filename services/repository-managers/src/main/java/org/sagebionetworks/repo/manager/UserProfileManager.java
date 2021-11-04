@@ -91,8 +91,8 @@ public interface UserProfileManager {
 	 * Retrieve users list of favorites, paginated
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
-													   int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException,
-			InvalidModelException, NotFoundException;
+			int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection)
+			throws DatastoreException, InvalidModelException, NotFoundException;
 
 	
 	/**

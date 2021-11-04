@@ -211,8 +211,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Override
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
-													   int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException,
-			InvalidModelException, NotFoundException {
+			int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection)
+			throws DatastoreException, InvalidModelException, NotFoundException {
 		if (authorizationManager.isAnonymousUser(userInfo)) {
 			return PaginatedResults.createWithLimitAndOffset(Collections.EMPTY_LIST, (long)limit,(long)offset);
 		}

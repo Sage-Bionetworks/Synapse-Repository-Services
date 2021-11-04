@@ -66,6 +66,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class UserProfileController {
 
+	private static final String SORT_BY_FAVORITES_DEFAULT = SortBy.FAVORITED_ON.toString();
+	private static final String SORT_DIRECTION_FAVORITES_DEFAULT = org.sagebionetworks.repo.model.favorite.SortDirection.DESC.toString();
+
 	@Autowired
 	ServiceProvider serviceProvider;
 
@@ -446,8 +449,8 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = "FAVORITED_ON") String sortBy,
-			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = "DESC") String sortDirection
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_FAVORITES) String sortBy,
+			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_ON_FAVORITES) String sortDirection
 	)
 
 			throws NotFoundException, DatastoreException, UnauthorizedException {

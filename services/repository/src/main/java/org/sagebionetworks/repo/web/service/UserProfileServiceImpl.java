@@ -219,9 +219,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit,
-                                                       int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException, InvalidModelException,
-			NotFoundException {
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset, SortBy sortBy,
+			org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException,
+			InvalidModelException,NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.getFavorites(userInfo, limit, offset, sortBy, sortDirection);
 	}

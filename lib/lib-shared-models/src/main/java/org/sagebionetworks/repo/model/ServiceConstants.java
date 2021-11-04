@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.model.favorite.SortBy;
+
 /**
  * Constants for query parameter keys, header names, and field names used by the
  * service controllers.
@@ -100,6 +102,10 @@ public class ServiceConstants {
 	 * Default value for the sort parameter, which is to not sort
 	 */
 	public static final String DEFAULT_SORT_BY_PARAM = "NONE";
+
+	public static final String DEFAULT_SORT_BY_FAVORITES = "FAVORITED_ON";
+	public static final String DEFAULT_SORT_ON_FAVORITES = "DESC";
+
 
 	/**
 	 * Request parameter used to indicate whether the sort direction is
