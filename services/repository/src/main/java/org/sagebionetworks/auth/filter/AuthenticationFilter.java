@@ -24,9 +24,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationMethod;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -71,7 +71,7 @@ public class AuthenticationFilter implements Filter {
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
 
-		AuthorizationMethod authorizationMethod = null;
+		AuthenticationMethod authenticationMethod = null;
 
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
@@ -81,7 +81,7 @@ public class AuthenticationFilter implements Filter {
 		if (isTokenEmptyOrNull(accessToken)) {
 			accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 		} else {
-			authorizationMethod = AuthorizationMethod.SESSIONTOKEN;
+			authenticationMethod = AuthenticationMethod.SESSIONTOKEN;
 		}
 
 		Long userId = null;
@@ -99,14 +99,14 @@ public class AuthenticationFilter implements Filter {
 				return;
 			}
 			accessToken=oidcTokenHelper.createInternalTotalAccessToken(userId);
-			authorizationMethod = AuthorizationMethod.APIKEY;
+			authenticationMethod = AuthenticationMethod.APIKEY;
 		} else {
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
 					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
-					if (authorizationMethod == null) { // accessToken came in as sessionToken
-						authorizationMethod = AuthorizationMethod.BEARERTOKEN;
+					if (authenticationMethod == null) { // accessToken came in as sessionToken
+						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
 				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
@@ -123,8 +123,8 @@ public class AuthenticationFilter implements Filter {
 			}
 		}
 
-		if (authorizationMethod == null/* && HttpAuthUtil.usesBasicAuthentication(req)*/) {
-			authorizationMethod = AuthorizationMethod.BASIC;
+		if (authenticationMethod == null/* && HttpAuthUtil.usesBasicAuthentication(req)*/) {
+			authenticationMethod = AuthenticationMethod.BASIC;
 		}
 
 		// there are multiple paths to this point, but all require creating a userId
@@ -141,7 +141,7 @@ public class AuthenticationFilter implements Filter {
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
-			HttpAuthUtil.setAuthorizationMethod(modHeaders, authorizationMethod);
+			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

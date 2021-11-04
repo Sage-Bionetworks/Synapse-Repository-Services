@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.AuthenticationType;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 
@@ -78,9 +78,9 @@ class HttpAuthUtilTest {
 	}
 
 	@Test
-	void testGetAuthorizationMethod() {
+	void testGetAuthenticationMethod() {
 		// Correct case
-		when(httpRequest.getHeader("authorizationMethod")).thenReturn(AuthenticationType.BASIC.name());
+		when(httpRequest.getHeader("authenticationMethod")).thenReturn(AuthenticationMethod.BASIC.name());
 		assertEquals("BASIC", HttpAuthUtil.getAuthorizationMethod(httpRequest));
 	}
 
@@ -220,7 +220,7 @@ class HttpAuthUtilTest {
 		String nonAuthHeaderValue = "application/json";
 
 		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Synapse-Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", "authorizationMethod", nonAuthHeader)));
+				"Synapse-Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", "authenticationMethod", nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test

@@ -115,7 +115,7 @@ public class AccessInterceptorTest {
 	
 	@Test
 	public void testHappyCase() throws Exception {
-		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
+		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
 		//doReturn("SESSIONTOKEN").when(mockRequest.getHeader("authorizationMethod"));
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
@@ -147,7 +147,7 @@ public class AccessInterceptorTest {
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
 //		assertEquals(AuthenticationType.SESSIONTOKEN.name(), result.getAuthorizationMethod());
-		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME);
+		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME);
 	}
 	
 	@Test
@@ -222,7 +222,7 @@ public class AccessInterceptorTest {
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
 		assertNull(result.getBasicAuthUsername());
-		assertEquals("BEARERTOKEN", result.getAuthorizationMethod());
+		assertEquals("BEARERTOKEN", result.getAuthenticationMethod());
 	}
 
 	@Test
@@ -247,6 +247,6 @@ public class AccessInterceptorTest {
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
-		assertEquals("BASICAUTH", result.getAuthorizationMethod());
+		assertEquals("BASICAUTH", result.getAuthenticationMethod());
 	}
 }

@@ -16,8 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationMethod;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
@@ -32,7 +32,7 @@ public class HttpAuthUtil {
 	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
 
 	public static String getAuthorizationMethod(HttpServletRequest httpRequest) {
-		String authType = httpRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME);
+		String authType = httpRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME);
 		return authType;
 	}
 
@@ -105,9 +105,9 @@ public class HttpAuthUtil {
 				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
 	}
 
-	public static void setAuthorizationMethod(Map<String, String[]> headers, AuthorizationMethod authMethod) {
+	public static void setAuthenticationMethod(Map<String, String[]> headers, AuthenticationMethod authMethod) {
 		if (authMethod != null) {
-			headers.put(AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME,
+			headers.put(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME,
 					new String[] {authMethod.name()});
 		}
 	}
@@ -131,7 +131,7 @@ public class HttpAuthUtil {
 					AuthorizationConstants.SIGNATURE.toLowerCase(),
 					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_AUTHORIZATION_METHOD_HEADER_NAME.toLowerCase()
+					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase()
 			});
 	
 	/*
