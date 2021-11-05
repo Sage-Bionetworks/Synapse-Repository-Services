@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasList;
@@ -218,11 +219,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit,
-			int offset) throws DatastoreException, InvalidModelException,
-			NotFoundException {
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset, SortBy sortBy,
+			org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException,
+			InvalidModelException,NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getFavorites(userInfo, limit, offset);
+		return userProfileManager.getFavorites(userInfo, limit, offset, sortBy, sortDirection);
 	}
 	
 	@Override

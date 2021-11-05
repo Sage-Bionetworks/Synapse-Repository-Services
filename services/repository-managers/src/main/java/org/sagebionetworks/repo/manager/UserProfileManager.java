@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -90,8 +91,8 @@ public interface UserProfileManager {
 	 * Retrieve users list of favorites, paginated
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
-			int limit, int offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
+			int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection)
+			throws DatastoreException, InvalidModelException, NotFoundException;
 
 	
 	/**
