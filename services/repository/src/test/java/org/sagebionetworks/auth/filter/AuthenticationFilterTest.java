@@ -149,7 +149,7 @@ public class AuthenticationFilterTest {
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), anonymous);
-		assertEquals(AuthenticationMethod.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	/**
@@ -171,7 +171,7 @@ public class AuthenticationFilterTest {
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertTrue(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(anonymous));
-		assertEquals(AuthenticationMethod.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	
@@ -189,7 +189,7 @@ public class AuthenticationFilterTest {
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), sessionUsername);
-		assertEquals(AuthenticationMethod.BASIC.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	@Test
@@ -363,7 +363,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
-		assertEquals(AuthenticationMethod.BASIC.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 
 

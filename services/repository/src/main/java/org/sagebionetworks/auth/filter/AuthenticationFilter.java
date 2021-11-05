@@ -123,9 +123,9 @@ public class AuthenticationFilter implements Filter {
 			}
 		}
 
-		if (authenticationMethod == null/* && HttpAuthUtil.usesBasicAuthentication(req)*/) {
+		if (authenticationMethod == null && HttpAuthUtil.usesBasicAuthentication(req)) {
 			authenticationMethod = AuthenticationMethod.BASIC;
-		}
+		} // else it's anonymous
 
 		// there are multiple paths to this point, but all require creating a userId
 		ValidateArgument.required(userId, "userId");
