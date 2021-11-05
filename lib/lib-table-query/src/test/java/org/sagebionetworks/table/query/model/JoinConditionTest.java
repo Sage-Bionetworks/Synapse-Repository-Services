@@ -17,6 +17,6 @@ class JoinConditionTest {
 	@Test
 	public void testJoinConditionWithPerenteses() throws ParseException {
 		JoinCondition joinCondition = new TableQueryParser("on (t1.foo = t2.foo)").joinCondition();
-		assertEquals("ON (t1.foo = t2.foo)", joinCondition.toSql());
+		assertEquals("ON ( t1.foo = t2.foo )", joinCondition.toSql());
 	}
 }

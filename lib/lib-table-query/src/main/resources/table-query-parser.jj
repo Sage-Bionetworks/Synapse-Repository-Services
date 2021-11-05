@@ -196,7 +196,7 @@ TOKEN [IGNORE_CASE]: {
 | < on: "ON">
 | < inner: "INNER">
 | < left: "LEFT">
-| < right: "right">
+| < right: "RIGHT">
 | < outer: "OUTER">
 }
 
@@ -618,7 +618,7 @@ QualifiedJoin qualifiedJoin(TableReference lhs):
 	JoinCondition joinCondition = null;
 }
 {
-	[ joinType = joinType() ] <join> tableNameRHS = tableName() joinCondition = joinCondition()
+	[ joinType = joinType() ] <join> tableNameRHS = tableName() [ joinCondition = joinCondition() ]
 	{ return new QualifiedJoin(lhs, joinType, new TableReference(tableNameRHS), joinCondition); }
 }
 JoinType joinType():

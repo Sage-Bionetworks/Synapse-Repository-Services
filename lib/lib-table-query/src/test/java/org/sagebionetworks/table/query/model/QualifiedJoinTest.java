@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.ParseException;
@@ -40,17 +38,11 @@ class QualifiedJoinTest {
 		assertEquals("tableA RIGHT OUTER JOIN tableB ON tableA.id = tableB.id",join.toSql());
 	}
 	
-	/**
-	 * ON is required.
-	 */
 	@Test
 	public void testParseWithNoOn() throws ParseException {
 		TableReference lhs = new TableQueryParser("tableA").tableReference();
-		String message = assertThrows(ParseException.class, ()->{
-			new TableQueryParser("join tableB").qualifiedJoin(lhs);
-		}).getMessage();
-		assertTrue(message.contains("Was expecting:"));
-		assertTrue(message.contains("\"ON\" ..."));
+		QualifiedJoin join = new TableQueryParser("join tableB").qualifiedJoin(lhs);
+		assertEquals("tableA JOIN tableB",join.toSql());
 	}
 
 	@Test

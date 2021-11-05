@@ -37,8 +37,10 @@ public class QualifiedJoin extends SQLElement {
 		}
 		builder.append(" JOIN ");
 		tableReferenceRHS.toSql(builder, parameters);
-		builder.append(" ");
-		joinCondition.toSql(builder, parameters);
+		if(joinCondition != null) {
+			builder.append(" ");
+			joinCondition.toSql(builder, parameters);
+		}
 	}
 
 	@Override
