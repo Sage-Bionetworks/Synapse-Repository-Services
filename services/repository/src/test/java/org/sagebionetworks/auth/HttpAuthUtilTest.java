@@ -81,7 +81,7 @@ class HttpAuthUtilTest {
 	void testGetAuthenticationMethod() {
 		// Correct case
 		when(httpRequest.getHeader("authenticationMethod")).thenReturn(AuthenticationMethod.BASIC.name());
-		assertEquals("BASIC", HttpAuthUtil.getAuthorizationMethod(httpRequest));
+		assertEquals("BASIC", HttpAuthUtil.getAuthenticationMethod(httpRequest));
 	}
 
 	@Test
