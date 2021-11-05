@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.favorite.SortBy;
-
 /**
  * Constants for query parameter keys, header names, and field names used by the
  * service controllers.

@@ -66,9 +66,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class UserProfileController {
 
-	private static final String SORT_BY_FAVORITES_DEFAULT = SortBy.FAVORITED_ON.toString();
-	private static final String SORT_DIRECTION_FAVORITES_DEFAULT = org.sagebionetworks.repo.model.favorite.SortDirection.DESC.toString();
-
 	@Autowired
 	ServiceProvider serviceProvider;
 
