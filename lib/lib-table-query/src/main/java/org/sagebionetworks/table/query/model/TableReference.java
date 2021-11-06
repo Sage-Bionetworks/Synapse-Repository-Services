@@ -14,6 +14,18 @@ public class TableReference extends SimpleBranch {
 	}
 
 	public String getTableName() {
-		return child.toSql();
+		if(child instanceof TableName) {
+			return child.toSql();
+		}else {
+			throw new IllegalArgumentException("JOIN not supported in this context");
+		}
+	}
+	
+	/**
+	 * Does this table reference have one or more joins?
+	 * @return
+	 */
+	public boolean hasJoin() {
+		return child.getFirstElementOfType(QualifiedJoin.class) != null;
 	}
 }
