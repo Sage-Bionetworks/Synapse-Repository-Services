@@ -661,8 +661,10 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testTranslateTableReferenceWithJoin() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
-		SQLTranslatorUtils.translate(element);
-		assertEquals("T123_456",element.getTableReference().getTableName());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.translate(element);
+		}).getMessage();
+		assertEquals("JOIN not supported in this context", message);
 	}
 	
 	@Test
