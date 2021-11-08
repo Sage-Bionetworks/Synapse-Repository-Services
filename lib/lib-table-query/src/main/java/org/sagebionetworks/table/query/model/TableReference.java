@@ -8,12 +8,24 @@ public class TableReference extends SimpleBranch {
 	public TableReference(TableName tableName) {
 		super(tableName);
 	}
-
-	//not used by parser.
-	//also skipped <joined table> part of the spec and heads directly to <qualified join>
-	public TableReference(QualifiedJoin joinedTable) {super(joinedTable);}
+	
+	public TableReference(QualifiedJoin qualifiedJoin) {
+		super(qualifiedJoin);
+	}
 
 	public String getTableName() {
-		return child.toSql();
+		if(child instanceof TableName) {
+			return child.toSql();
+		}else {
+			throw new IllegalArgumentException("JOIN not supported in this context");
+		}
+	}
+	
+	/**
+	 * Does this table reference have one or more joins?
+	 * @return
+	 */
+	public boolean hasJoin() {
+		return child.getFirstElementOfType(QualifiedJoin.class) != null;
 	}
 }

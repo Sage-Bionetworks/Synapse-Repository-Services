@@ -922,5 +922,17 @@ public class SQLQueryTest {
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 		assertTrue(query.isIncludeSearch());
 	}
+	
+	@Test
+	public void testTranslateWithJoin() throws ParseException {
+		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn.foo is not null";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SqlQuery query = new SqlQueryBuilder(sql, userId)
+					.tableSchema(tableSchema)
+					.tableType(EntityType.table)
+					.build();
+		}).getMessage();
+		assertEquals("JOIN not supported in this context", message);
+	}
 
 }
