@@ -1894,6 +1894,25 @@ public class TableEntityManagerTest {
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
+	// Test to reproduce PLFM-7024
+	@Test
+	public void testUpdateSearchStatusWithNoChangeUsingNewBoolean() {
+		// Disable search and previous search change already disabled
+		TableRowChange lastSearchChange = new TableRowChange().setIsSearchEnabled(false);
+		
+		when(mockTruthDao.getLastTableRowChange(any(), any())).thenReturn(lastSearchChange);
+		
+		// Using "new" to reproduce PLFM-7024
+		Boolean searchEnabled = new Boolean(false);
+		
+		// call under test
+		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
 	@Test
 	public void testUpdateSearchStatusAndSearchDisabledAndExistingChangeEnabled() {
 		// Disable search and previous search change enabled

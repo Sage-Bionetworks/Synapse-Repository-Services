@@ -647,7 +647,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		
 		// The search status is already up to date
-		if (lastSearchChange != null && searchEnabled == lastSearchChange.getIsSearchEnabled()) {
+		if (lastSearchChange != null && searchEnabled.equals(lastSearchChange.getIsSearchEnabled())) {
 			return;
 		}
 		
@@ -659,7 +659,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
 		
 	}
-
+	
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
 		if(change instanceof TableSchemaChangeRequest){

@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -277,6 +278,13 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
+	
+	/**
+	 * @param tableId
+	 * @param columnName The physical name of the column
+	 * @return An optional containing the database level information about the column with the given name 
+	 */
+	Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName);
 
 	/**
 	 * Provide the cardinality for the given columns and table.
@@ -668,6 +676,5 @@ public interface TableIndexDAO {
 	 * fetch the current search content for the given set of rows
 	 */
 	List<RowSearchContent> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
-
 
 }
