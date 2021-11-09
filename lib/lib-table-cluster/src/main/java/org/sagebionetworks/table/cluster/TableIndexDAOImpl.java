@@ -99,6 +99,7 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -203,6 +204,23 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
+
+	private static final RowMapper<DatabaseColumnInfo> DB_COL_INFO_MAPPER = (rs, rowNum) -> {
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(rs.getString(FIELD));
+		String key = rs.getString(KEY);
+		info.setHasIndex(!"".equals(key));
+		String typeString = rs.getString("Type");
+		info.setType(MySqlColumnType.parserType(typeString));
+		if(info.getType() != null && info.getType().hasSize()){
+			info.setMaxSize(MySqlColumnType.parseSize(typeString));
+		}
+		String comment = rs.getString("Comment");
+		if(comment != null && !"".equals(comment)){
+			info.setColumnType(ColumnType.valueOf(comment));
+		}
+		return info;
+	};
 	
 	private DataSourceTransactionManager transactionManager;
 	private TransactionTemplate writeTransactionTemplate;
@@ -595,31 +613,25 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		try {
 			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 			// Bind variables do not seem to work here
-			return template.query(SQL_SHOW_COLUMNS + tableName, new RowMapper<DatabaseColumnInfo>() {
-				@Override
-				public DatabaseColumnInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-					DatabaseColumnInfo info = new DatabaseColumnInfo();
-					info.setColumnName(rs.getString(FIELD));
-					String key = rs.getString(KEY);
-					info.setHasIndex(!"".equals(key));
-					String typeString = rs.getString("Type");
-					info.setType(MySqlColumnType.parserType(typeString));
-					if(info.getType() != null && info.getType().hasSize()){
-						info.setMaxSize(MySqlColumnType.parseSize(typeString));
-					}
-					String comment = rs.getString("Comment");
-					if(comment != null && !"".equals(comment)){
-						info.setColumnType(ColumnType.valueOf(comment));
-					}
-					return info;
-				}
-			});
+			return template.query(SQL_SHOW_COLUMNS + tableName, DB_COL_INFO_MAPPER);
 		} catch (BadSqlGrammarException e) {
-			// Spring throws this when the table does not
+			// Spring throws this when the table does not exist
 			return new LinkedList<DatabaseColumnInfo>();
 		}
 	}
 
+	@Override
+	public Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName) {
+		try {
+			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
+			// Bind variables do not seem to work here
+			DatabaseColumnInfo columnInfo = template.queryForObject(SQL_SHOW_COLUMNS + tableName + " WHERE `" + FIELD + "` = ?", DB_COL_INFO_MAPPER, columnName);
+			return Optional.ofNullable(columnInfo);
+		} catch (BadSqlGrammarException | EmptyResultDataAccessException e) {
+			// Spring throws this when the table does not exist
+			return Optional.empty();
+		}
+	}
 
 	@Override
 	public void provideCardinality(final List<DatabaseColumnInfo> list,
