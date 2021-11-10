@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +74,7 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLTranslatorUtilsTest {
@@ -657,6 +659,15 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateTableReferenceWithJoin() throws ParseException{
+		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.translate(element);
+		}).getMessage();
+		assertEquals("JOIN not supported in this context", message);
+	}
+	
+	@Test
 	public void testTranslateSelectSimple() throws ParseException{
 		ValueExpressionPrimary column = new TableQueryParser("foo").valueExpressionPrimary();
 		SQLTranslatorUtils.translateSelect(column, columnMap);
@@ -953,6 +964,33 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
 
 	}
+	
+	@Test
+	public void testAppendJoinsToFromClause() throws ParseException {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		FromClause fromClause = new TableQueryParser("from syn123").fromClause();
+		Set<String> columnIdsToJoin = Collections.emptySet();
+		SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+	}
+	
+	@Test
+	public void testAppendJoinsToFromClauseWithEmptyIdsAndJoin() throws ParseException {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
+		Set<String> columnIdsToJoin = Collections.emptySet();
+		SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+	}
+	
+	@Test
+	public void testAppendJoinsToFromClauseWithColumnIdsAndJoin() throws ParseException {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
+		Set<String> columnIdsToJoin = Sets.newHashSet("11");
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+		}).getMessage();
+		assertEquals("UNEST cannot be used with a JOIN", message);
+	}
 
 	@Test
 	public void tesTranslateArrayFunction_columnNotFound() throws ParseException {
@@ -967,6 +1005,23 @@ public class SQLTranslatorUtilsTest {
 		}).getMessage();
 
 		assertEquals("Unknown column reference: _C987654_", errorMessage);
+	}
+	
+	@Test
+	public void tesTranslateArrayFunctionWithJoin() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+		
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(_C111_) FROM T123 join T456 ORDER BY UNNEST(_C111_)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("UNEST cannot be used with a JOIN", errorMessage);
 	}
 
 	@Test

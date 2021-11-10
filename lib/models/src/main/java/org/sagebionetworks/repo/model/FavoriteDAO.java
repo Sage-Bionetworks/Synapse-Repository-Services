@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.favorite.SortBy;
+import org.sagebionetworks.repo.model.favorite.SortDirection;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
@@ -40,7 +42,7 @@ public interface FavoriteDAO {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<EntityHeader> getFavoritesEntityHeader(String principalId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+	public PaginatedResults<EntityHeader> getFavoritesEntityHeader(String principalId, int limit, int offset, SortBy sortBy, SortDirection sortDirection) throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
 	 * For backup purposes

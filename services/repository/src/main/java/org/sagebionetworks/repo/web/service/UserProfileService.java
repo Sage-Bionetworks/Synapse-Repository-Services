@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
@@ -22,6 +21,7 @@ import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
@@ -168,7 +168,7 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset, SortBy sortBy, org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
 	 * Retrieve sorted list of projects, paginated

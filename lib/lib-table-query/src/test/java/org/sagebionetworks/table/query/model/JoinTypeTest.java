@@ -3,16 +3,38 @@ package org.sagebionetworks.table.query.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.table.query.TableQueryParser;
 
 class JoinTypeTest {
-
+	
 	@Test
-	public void testToSql_nullJoinType(){
-		// should not add anything to String builder if constructed w/ null
-		StringBuilder builder = new StringBuilder();
-		JoinType joinType = new JoinType(null);
-		joinType.toSql(builder, new ToSqlParameters(false));
-		assertEquals(0, builder.length());
+	public void testInnerJoin() throws Exception {
+		JoinType joinType = new TableQueryParser("inner").joinType();
+		assertEquals("INNER",joinType.toSql());
+	}
+	
+	@Test
+	public void testLeftJoinWithoutExplicitOuter() throws Exception {
+		JoinType joinType = new TableQueryParser("left").joinType();
+		assertEquals("LEFT",joinType.toSql());
+	}
+	
+	@Test
+	public void testLeftJoinWithExplicitOuter() throws Exception {
+		JoinType joinType = new TableQueryParser("left outer").joinType();
+		assertEquals("LEFT OUTER",joinType.toSql());
+	}
+	
+	@Test
+	public void testRightJoinWithoutExplicitOuter() throws Exception {
+		JoinType joinType = new TableQueryParser("right").joinType();
+		assertEquals("RIGHT",joinType.toSql());
+	}
+	
+	@Test
+	public void testRightJoinWithExplicitOuter() throws Exception {
+		JoinType joinType = new TableQueryParser("right outer").joinType();
+		assertEquals("RIGHT OUTER",joinType.toSql());
 	}
 
 	@Test

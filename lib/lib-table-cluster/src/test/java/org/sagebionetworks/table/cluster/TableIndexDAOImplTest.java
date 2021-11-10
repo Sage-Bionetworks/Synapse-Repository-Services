@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REP
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
@@ -25,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -64,8 +66,8 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.search.TableRowData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
@@ -1645,6 +1647,63 @@ public class TableIndexDAOImplTest {
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId);
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
+	}
+	
+	@Test
+	public void testGetDatabaseColumnInfo(){
+		ColumnModel column = new ColumnModel();
+		
+		column.setId("12");
+		column.setName("foo");
+		column.setColumnType(ColumnType.INTEGER);
+		
+		createOrUpdateTable(Arrays.asList(column), tableId, isView);
+		
+		String columnName = SQLUtils.getColumnNameForId(column.getId());
+		
+		// table does not exist
+		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
+		
+		assertTrue(info.isPresent());
+	}
+	
+	@Test
+	public void testGetDatabaseColumnInfoForMetaDataColumns(){
+				
+		createOrUpdateTable(Collections.emptyList(), tableId, isView);
+		
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		List<String> metaDataColumns = Arrays.asList(ROW_ID, ROW_VERSION, ROW_SEARCH_CONTENT);
+
+		for (String columnName : metaDataColumns) {
+			// table does not exist
+			Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
+			
+			assertTrue(info.isPresent());
+		}
+	}
+	
+	@Test
+	public void testGetDatabaseColumnWithNonExistingTable(){
+		// table does not exist
+		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, ROW_ID);
+		assertFalse(info.isPresent());
+	}
+		
+	@Test
+	public void testGetDatabaseColumnInfoWithNonExistingColumn(){
+				
+		createOrUpdateTable(Collections.emptyList(), tableId, isView);
+		
+		tableIndexDAO.addSearchColumn(tableId);
+		
+		String columnName = "nonExisting";
+		
+		// table does not exist
+		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
+			
+		assertFalse(info.isPresent());
 	}
 	
 	@Test

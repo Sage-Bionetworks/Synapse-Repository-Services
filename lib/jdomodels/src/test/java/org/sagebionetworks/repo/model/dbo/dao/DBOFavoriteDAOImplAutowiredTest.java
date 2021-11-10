@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.favorite.SortBy;
+import org.sagebionetworks.repo.model.favorite.SortDirection;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -231,8 +233,8 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		// make two nodes & two favorites
 		EntityType node1Type = EntityType.project;
 		EntityType node2Type = EntityType.file;
-		String node1Name = "node1";
-		String node2Name = "node2";
+		String node1Name = "abc";
+		String node2Name = "xyz";
 		
 		Node node1 = new Node();
 		node1.setName(node1Name);
@@ -260,10 +262,14 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		Favorite fav2 = createFavorite(node2Id);		
 		Favorite fav1created = favoriteDao.add(fav1);
 		favoritesToDelete.add(fav1created);
+
+		// Sleep for 100ms to ensure the favorites have distinct timestamps
+		Thread.sleep(100);
+
 		Favorite fav2created = favoriteDao.add(fav2);
 		favoritesToDelete.add(fav2created);
 
-		PaginatedResults<EntityHeader> favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0);
+		PaginatedResults<EntityHeader> favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0, SortBy.FAVORITED_ON, SortDirection.ASC);
 
 		assertEquals(2, favs.getTotalNumberOfResults());		
 		assertEquals(2, favs.getResults().size());
@@ -283,14 +289,34 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		// Test limit and offset (PLFM-6616)
 		int limit = 1;
 		int offset = 0;
-		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset, SortBy.FAVORITED_ON, SortDirection.ASC);
 		assertEquals(1, favs.getResults().size());
 		assertEquals(node1Id, favs.getResults().get(0).getId());
 
 		offset = 1;
-		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset);
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), limit, offset, SortBy.FAVORITED_ON, SortDirection.ASC);
 		assertEquals(1, favs.getResults().size());
 		assertEquals(node2Id, favs.getResults().get(0).getId());
+
+		// test sorting
+		// FAVORITED_ON, descending
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0, SortBy.FAVORITED_ON, SortDirection.DESC);
+		assertEquals(2, favs.getResults().size());
+		assertEquals(node2Id, favs.getResults().get(0).getId());
+		assertEquals(node1Id, favs.getResults().get(1).getId());
+
+		// NAME, ascending
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0, SortBy.NAME, SortDirection.ASC);
+		assertEquals(2, favs.getResults().size());
+		assertEquals(node1Id, favs.getResults().get(0).getId());
+		assertEquals(node2Id, favs.getResults().get(1).getId());
+
+		// NAME, descending
+		favs = favoriteDao.getFavoritesEntityHeader(creatorUserGroupId.toString(), Integer.MAX_VALUE, 0, SortBy.NAME, SortDirection.DESC);
+		assertEquals(2, favs.getResults().size());
+		assertEquals(node2Id, favs.getResults().get(0).getId());
+		assertEquals(node1Id, favs.getResults().get(1).getId());
+
 	}
 
 	@Test

@@ -449,8 +449,11 @@ public class SQLTranslatorUtils {
 		appendJoinsToFromClause(idAndVersion, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
 	}
 
-	private static void appendJoinsToFromClause(IdAndVersion idAndVersion, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
+	static void appendJoinsToFromClause(IdAndVersion idAndVersion, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
 		TableReference currentTableReference = fromClause.getTableReference();
+		if(currentTableReference.hasJoin() && !columnIdsToJoin.isEmpty()) {
+			throw new IllegalArgumentException("UNEST cannot be used with a JOIN");
+		}
 		String mainTableName = currentTableReference.toSql();
 
 		//chain additional tables to join via right-recursion

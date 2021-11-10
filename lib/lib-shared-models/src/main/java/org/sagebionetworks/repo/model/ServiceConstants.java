@@ -94,10 +94,16 @@ public class ServiceConstants {
 	 * this was a reasonable choice.
 	 */
 	public static final String SORT_BY_PARAM = "sort";
+	public static final String SORT_DIRECTION_PARAM = "sortDirection";
+
 	/**
 	 * Default value for the sort parameter, which is to not sort
 	 */
 	public static final String DEFAULT_SORT_BY_PARAM = "NONE";
+
+	public static final String DEFAULT_SORT_BY_FAVORITES = "FAVORITED_ON";
+	public static final String DEFAULT_SORT_ON_FAVORITES = "DESC";
+
 
 	/**
 	 * Request parameter used to indicate whether the sort direction is

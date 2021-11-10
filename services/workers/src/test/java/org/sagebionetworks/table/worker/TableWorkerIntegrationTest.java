@@ -3192,6 +3192,26 @@ public class TableWorkerIntegrationTest {
 		});
 	}
 	
+	// Test to rerproduce PLFM-7024
+	@Test
+	public void testEnableSearchIdempotent() throws Exception {
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(projectId);
+		table.setIsSearchEnabled(true);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
+		
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+		
+		// Update a second time, note the use of "new" Boolean (reproduce PLFM-7024
+		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, new Boolean(true));
+		
+		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
+		
+	}
+	
 	@Test
 	public void testDisableSearch() throws Exception {
 		createSchemaOneOfEachType();

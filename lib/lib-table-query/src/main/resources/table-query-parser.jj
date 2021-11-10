@@ -192,6 +192,12 @@ TOKEN [IGNORE_CASE]: {
 | < is_infinity: "ISINFINITY">
 | < separator: "SEPARATOR">
 | < text_matches: "TEXT_MATCHES">
+| < join: "JOIN">
+| < on: "ON">
+| < inner: "INNER">
+| < left: "LEFT">
+| < right: "RIGHT">
+| < outer: "OUTER">
 }
 
 /* Aggregate functions */
@@ -595,10 +601,49 @@ FromClause fromClause():
 TableReference tableReference():
 {
 	TableName tableName = null;
+	QualifiedJoin qualifiedJoin = null;
+	TableReference last = null;
 }
 {
-	tableName = tableName()
-	{ return new TableReference(tableName); }
+	tableName = tableName() { last = new TableReference(tableName); }
+	(
+		qualifiedJoin = qualifiedJoin(last) { last = new TableReference(qualifiedJoin); }
+	)*
+	{ return last; }
+}
+QualifiedJoin qualifiedJoin(TableReference lhs):
+{
+	JoinType joinType = null;
+	TableName tableNameRHS = null;
+	JoinCondition joinCondition = null;
+}
+{
+	[ joinType = joinType() ] <join> tableNameRHS = tableName() [ joinCondition = joinCondition() ]
+	{ return new QualifiedJoin(lhs, joinType, new TableReference(tableNameRHS), joinCondition); }
+}
+JoinType joinType():
+{
+	OuterJoinType outerJoinType = null;
+	boolean isExplicitOuterJoin = false;
+}
+{
+	<inner> { return new JoinType(); }
+	| outerJoinType = outerJoinType() [ <outer> { isExplicitOuterJoin = true;} ]
+	 { return new JoinType(outerJoinType, isExplicitOuterJoin); }
+}
+OuterJoinType outerJoinType():
+{}
+{
+	<left> { return OuterJoinType.LEFT; }
+	| <right> { return OuterJoinType.RIGHT; }
+}
+JoinCondition joinCondition():
+{
+	SearchCondition searchCondition = null;
+}
+{
+	<on> searchCondition = searchCondition()
+	{ return new JoinCondition(searchCondition); }
 }
 ColumnName columnName():
 {
