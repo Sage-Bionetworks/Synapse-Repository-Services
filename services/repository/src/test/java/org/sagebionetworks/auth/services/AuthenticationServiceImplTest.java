@@ -124,11 +124,24 @@ public class AuthenticationServiceImplTest {
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
 		verify(mockAuthenticationManager).setTermsOfUseAcceptance(userId, true);
 	}
-	
+
 	@Test
 	public void testGetOAuthAuthenticationUrl(){
 		OAuthUrlRequest request = new OAuthUrlRequest();
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("http://domain.com");
+		request.setState("some state");
+		String authUrl = "https://auth.org";
+		when(mockOAuthManager.getAuthorizationUrl(request.getProvider(), request.getRedirectUrl(), request.getState())).thenReturn(authUrl);
+		OAuthUrlResponse response = service.getOAuthAuthenticationUrl(request);
+		assertNotNull(response);
+		assertEquals(authUrl, response.getAuthorizationUrl());
+	}
+
+	@Test
+	public void testGetNIHOAuthAuthenticationUrl(){
+		OAuthUrlRequest request = new OAuthUrlRequest();
+		request.setProvider(OAuthProvider.NIH_OAUTH_2_0);
 		request.setRedirectUrl("http://domain.com");
 		request.setState("some state");
 		String authUrl = "https://auth.org";
