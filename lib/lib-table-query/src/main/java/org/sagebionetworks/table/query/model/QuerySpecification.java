@@ -79,8 +79,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	public String getTableName() {
 		if(tableExpression != null){
 			return tableExpression
-					.getFirstElementOfType(TableReference.class)
-					.getTableName();
+					.getFirstElementOfType(TableName.class).toSql();
 		}
 		return null;
 

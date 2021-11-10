@@ -925,7 +925,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testTranslateWithJoin() throws ParseException {
-		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn.foo is not null";
+		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn1.foo is not null";
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			SqlQuery query = new SqlQueryBuilder(sql, userId)
 					.tableSchema(tableSchema)

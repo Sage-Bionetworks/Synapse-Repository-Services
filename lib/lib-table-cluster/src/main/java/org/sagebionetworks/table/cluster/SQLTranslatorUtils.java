@@ -77,6 +77,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
@@ -868,7 +869,7 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	private static TableReference tableReferenceForName(String tableName){
-		return new TableReference(new TableName(new RegularIdentifier(tableName)));
+		return new TableReference(new TableNameCorrelation(new TableName(new RegularIdentifier(tableName)), null));
 	}
 
 	/**

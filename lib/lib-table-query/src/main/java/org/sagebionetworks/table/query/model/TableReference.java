@@ -5,7 +5,7 @@ package org.sagebionetworks.table.query.model;
  */
 public class TableReference extends SimpleBranch {
 
-	public TableReference(TableName tableName) {
+	public TableReference(TableNameCorrelation tableName) {
 		super(tableName);
 	}
 	
@@ -14,7 +14,7 @@ public class TableReference extends SimpleBranch {
 	}
 
 	public String getTableName() {
-		if(child instanceof TableName) {
+		if(child instanceof TableNameCorrelation) {
 			return child.toSql();
 		}else {
 			throw new IllegalArgumentException("JOIN not supported in this context");
