@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -322,5 +323,10 @@ public class TableConstants {
 	 * Marker for a table's label indicating the version is 'in progress'.
 	 */
 	public static final String IN_PROGRESS = "in progress";
+	
+	public static final String JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE = "The JOIN keyword is not supported in this context";
+
+	public static final Supplier<IllegalArgumentException> JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT = () -> new IllegalArgumentException(
+			JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 	
 }

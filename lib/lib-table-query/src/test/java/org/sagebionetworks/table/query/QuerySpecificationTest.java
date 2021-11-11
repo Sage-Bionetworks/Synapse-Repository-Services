@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.Element;
@@ -51,10 +52,17 @@ public class QuerySpecificationTest {
 	}
 
 	@Test
-	public void testGetTableName() throws ParseException {
+	public void testGetSingleTableName() throws ParseException {
 		QuerySpecification element = new TableQueryParser("select distinct three, four from syn123")
 				.querySpecification();
-		assertEquals("syn123", element.getTableName());
+		assertEquals(Optional.of("syn123"), element.getSingleTableName());
+	}
+	
+	@Test
+	public void testGetSingleTableNameWithJoin() throws ParseException {
+		QuerySpecification element = new TableQueryParser("select * from syn123 join syn456")
+				.querySpecification();
+		assertEquals(Optional.empty(), element.getSingleTableName());
 	}
 
 	@Test

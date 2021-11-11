@@ -117,6 +117,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -1385,6 +1386,22 @@ public class DownloadListManagerImplTest {
 					usersDownloadListCapacity);
 		}).getMessage();
 		assertTrue(message.contains("<regular_identifier> \"this \"\" at line 1, column 1."));
+
+		verifyNoMoreInteractions(mockTableQueryManager, mockDownloadListDao);
+	}
+	
+	@Test
+	public void testAddQueryResultsToDownloadListWithJoiny() throws Exception {
+		Query query = new Query().setSql("select * from syn123 join syn456");
+		boolean userVersion = true;
+		long maxQueryPageSize = 10L;
+		long usersDownloadListCapacity = 100L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query, userVersion, maxQueryPageSize,
+					usersDownloadListCapacity);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 
 		verifyNoMoreInteractions(mockTableQueryManager, mockDownloadListDao);
 	}

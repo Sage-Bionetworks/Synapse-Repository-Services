@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.TokenMgrError;
@@ -127,7 +128,7 @@ public class TableQueryUtils {
 	public static String extractTableIdFromSql(String sql){
 		ValidateArgument.required(sql, "SQL string");
 		try {
-			return new TableQueryParser(sql).querySpecification().getTableExpression().getFromClause().getTableReference().getTableName();
+			return new TableQueryParser(sql).querySpecification().getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		} catch (TokenMgrError e) {
 			throw new IllegalArgumentException("The provided SQL query could not be parsed.",e);
 		}catch (ParseException e) {

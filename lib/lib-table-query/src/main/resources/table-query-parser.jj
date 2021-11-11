@@ -600,12 +600,12 @@ FromClause fromClause():
 }
 TableReference tableReference():
 {
-	TableName tableName = null;
+	TableNameCorrelation tableName = null;
 	QualifiedJoin qualifiedJoin = null;
 	TableReference last = null;
 }
 {
-	tableName = tableName() { last = new TableReference(tableName); }
+	tableName = tableNameCorrelation() { last = new TableReference(tableName); }
 	(
 		qualifiedJoin = qualifiedJoin(last) { last = new TableReference(qualifiedJoin); }
 	)*
@@ -614,11 +614,11 @@ TableReference tableReference():
 QualifiedJoin qualifiedJoin(TableReference lhs):
 {
 	JoinType joinType = null;
-	TableName tableNameRHS = null;
+	TableNameCorrelation tableNameRHS = null;
 	JoinCondition joinCondition = null;
 }
 {
-	[ joinType = joinType() ] <join> tableNameRHS = tableName() [ joinCondition = joinCondition() ]
+	[ joinType = joinType() ] <join> tableNameRHS = tableNameCorrelation() [ joinCondition = joinCondition() ]
 	{ return new QualifiedJoin(lhs, joinType, new TableReference(tableNameRHS), joinCondition); }
 }
 JoinType joinType():
@@ -666,6 +666,32 @@ TableName tableName():
 {
 	entityId = entityId() { return new TableName(entityId); }
 	| regularIdentifier = regularIdentifier() { return new TableName(regularIdentifier); }
+}
+TableNameCorrelation tableNameCorrelation():
+{
+	TableName tableName = null;
+	CorrelationSpecification correlationSpecification = null;
+}
+{
+	tableName = tableName() [ correlationSpecification = correlationSpecification() ]
+	{ return new TableNameCorrelation(tableName, correlationSpecification); }
+}
+CorrelationSpecification correlationSpecification():
+{
+	boolean hasAs = false;
+	CorrelationName correlationName = null;
+}
+{
+	[ <as> { hasAs = true;} ]  correlationName = correlationName()
+	{ return new CorrelationSpecification(hasAs, correlationName); }
+}
+CorrelationName correlationName():
+{
+	Identifier identifier = null;
+}
+{
+	identifier = identifier()
+	{ return new CorrelationName(identifier); }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }

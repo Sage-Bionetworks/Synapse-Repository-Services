@@ -429,7 +429,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
-			IdAndVersion idAndVersion = IdAndVersion.parse(model.getTableName());
+			IdAndVersion idAndVersion = IdAndVersion.parse(model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 			EntityType tableType = tableQueryManager.getTableEntityType(idAndVersion);
 			if (!EntityType.entityview.equals(tableType)) {
 				throw new IllegalArgumentException(String.format("'%s' is not a file view", idAndVersion.toString()));

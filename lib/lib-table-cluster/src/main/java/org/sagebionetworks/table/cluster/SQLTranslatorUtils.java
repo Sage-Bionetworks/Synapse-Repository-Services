@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
@@ -77,6 +78,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
@@ -408,7 +410,8 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	static IdAndVersion translate(FromClause fromClause) {
-		IdAndVersion originalSynId = IdAndVersion.parse(fromClause.getTableReference().getTableName());
+		IdAndVersion originalSynId = IdAndVersion
+				.parse(fromClause.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		//replace from clause
 		fromClause.setTableReference(tableReferenceForName(SQLUtils.getTableNameForId(originalSynId, TableType.INDEX)));
 		return originalSynId;
@@ -868,7 +871,7 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	private static TableReference tableReferenceForName(String tableName){
-		return new TableReference(new TableName(new RegularIdentifier(tableName)));
+		return new TableReference(new TableNameCorrelation(new TableName(new RegularIdentifier(tableName)), null));
 	}
 
 	/**

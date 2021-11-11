@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * This matches &ltquery specification&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class QuerySpecification extends SQLElement implements HasAggregate {
+public class QuerySpecification extends SQLElement implements HasAggregate, HasSingleTableName {
 
 	SetQuantifier setQuantifier;
 	SelectList selectList;
@@ -71,18 +73,12 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 		}
 		return false;
 	}
-	
-	/**
-	 * Get the name of this table.
-	 * @return
-	 */
-	public String getTableName() {
-		if(tableExpression != null){
-			return tableExpression
-					.getFirstElementOfType(TableReference.class)
-					.getTableName();
-		}
-		return null;
 
+	@Override
+	public Optional<String> getSingleTableName() {
+		if(tableExpression == null) {
+			return Optional.empty();
+		}
+		return tableExpression.getSingleTableName();
 	}
 }

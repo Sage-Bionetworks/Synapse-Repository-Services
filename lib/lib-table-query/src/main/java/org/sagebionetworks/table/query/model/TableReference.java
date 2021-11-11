@@ -1,24 +1,18 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * This matches &lttable reference&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class TableReference extends SimpleBranch {
+public class TableReference extends SimpleBranch implements HasSingleTableName {
 
-	public TableReference(TableName tableName) {
+	public TableReference(TableNameCorrelation tableName) {
 		super(tableName);
 	}
 	
 	public TableReference(QualifiedJoin qualifiedJoin) {
 		super(qualifiedJoin);
-	}
-
-	public String getTableName() {
-		if(child instanceof TableName) {
-			return child.toSql();
-		}else {
-			throw new IllegalArgumentException("JOIN not supported in this context");
-		}
 	}
 	
 	/**
@@ -27,5 +21,13 @@ public class TableReference extends SimpleBranch {
 	 */
 	public boolean hasJoin() {
 		return child.getFirstElementOfType(QualifiedJoin.class) != null;
+	}
+
+	@Override
+	public Optional<String> getSingleTableName() {
+		if(!(child instanceof HasSingleTableName)) {
+			return Optional.empty();
+		}
+		return ((HasSingleTableName)child).getSingleTableName();
 	}
 }

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -925,14 +926,14 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testTranslateWithJoin() throws ParseException {
-		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn.foo is not null";
+		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn1.foo is not null";
 		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SqlQuery query = new SqlQueryBuilder(sql, userId)
+			new SqlQueryBuilder(sql, userId)
 					.tableSchema(tableSchema)
 					.tableType(EntityType.table)
 					.build();
 		}).getMessage();
-		assertEquals("JOIN not supported in this context", message);
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 
 }

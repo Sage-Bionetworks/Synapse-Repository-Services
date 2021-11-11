@@ -2,6 +2,8 @@ package org.sagebionetworks.table.query.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -12,6 +14,13 @@ class TableReferenceTest {
 	public void testTableName() throws ParseException {
 		TableReference reference = new TableQueryParser("tableA").tableReference();
 		assertEquals("tableA", reference.toSql());
+		assertFalse(reference.hasJoin());
+	}
+	
+	@Test
+	public void testTableNameWithAs() throws ParseException {
+		TableReference reference = new TableQueryParser("tableA as A").tableReference();
+		assertEquals("tableA AS A", reference.toSql());
 		assertFalse(reference.hasJoin());
 	}
 
@@ -27,6 +36,14 @@ class TableReferenceTest {
 		TableReference reference = new TableQueryParser(
 				"a join b on a.i = b.i inner join c on a.e = c.e left join d on a.i = d.i").tableReference();
 		assertEquals("a JOIN b ON a.i = b.i INNER JOIN c ON a.e = c.e LEFT JOIN d ON a.i = d.i", reference.toSql());
+		assertTrue(reference.hasJoin());
+	}
+	
+	@Test
+	public void testJoinRecursiveWithAlias() throws ParseException {
+		TableReference reference = new TableQueryParser(
+				"syn123 as a join syn456 b on a.i = b.i inner join syn789 c on a.e = c.e left join  syn222 d on a.i = d.i").tableReference();
+		assertEquals("syn123 AS a JOIN syn456 b ON a.i = b.i INNER JOIN syn789 c ON a.e = c.e LEFT JOIN syn222 d ON a.i = d.i", reference.toSql());
 		assertTrue(reference.hasJoin());
 	}
 
@@ -45,5 +62,18 @@ class TableReferenceTest {
 
 		assertEquals("tableA " + "JOIN tableB ON tableA.id = tableB.id " + "JOIN tableC ON tableA.id = tableC.id",
 				joinedTables.toSql());
+	}
+	
+	@Test
+	public void testGetTableName() throws ParseException {
+		TableReference reference = new TableQueryParser("tableA").tableReference();
+		assertEquals("tableA", reference.getSingleTableName().get());
+		assertFalse(reference.hasJoin());
+	}
+	
+	@Test
+	public void testGetTableNameWithJoin() throws ParseException {
+		TableReference reference = new TableQueryParser("tableA join tableB").tableReference();
+		assertEquals(Optional.empty(), reference.getSingleTableName());
 	}
 }
