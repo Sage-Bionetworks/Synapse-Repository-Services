@@ -150,7 +150,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		QuerySpecification model = parserQuery(query.getSql());
 		// We now have the table's ID.
-		String tableId = model.getTableName();
+		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
 		// 2. Validate the user has read access on this table
@@ -659,7 +659,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
-		String tableId = query.getTableName();
+		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		// Get a connection to the table.
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);

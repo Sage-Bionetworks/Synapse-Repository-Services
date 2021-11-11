@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * This matches &ltfrom clause&gt in:
  * <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class FromClause extends SQLElement {
+public class FromClause extends SQLElement implements HasSingleTableName {
 
 	private TableReference tableReference;
 
@@ -30,6 +32,14 @@ public class FromClause extends SQLElement {
 	@Override
 	public Iterable<Element> getChildren() {
 		return SQLElement.buildChildren(tableReference);
+	}
+
+	@Override
+	public Optional<String> getSingleTableName() {
+		if(tableReference == null) {
+			return Optional.empty();
+		}
+		return tableReference.getSingleTableName();
 	}
 
 }

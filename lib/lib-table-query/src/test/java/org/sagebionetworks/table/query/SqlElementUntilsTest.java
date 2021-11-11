@@ -242,7 +242,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testEntityIdRightHandSide() throws ParseException{
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = syn456");
-		assertEquals("syn123", model.getTableName());
+		assertEquals("syn123", model.getSingleTableName().get());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
 		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());
@@ -251,7 +251,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testEntityIdRightHandSideSingeQuotes() throws ParseException{
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = 'syn456'");
-		assertEquals("syn123", model.getTableName());
+		assertEquals("syn123", model.getSingleTableName().get());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
 		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());
@@ -260,7 +260,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testEntityIdRightHandSideDoubleQuotes() throws ParseException{
 		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = \"syn456\"");
-		assertEquals("syn123", model.getTableName());
+		assertEquals("syn123", model.getSingleTableName().get());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
 		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());

@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * Note: TableNameCorrelation is not part of the specification. The issue with
  * the original specification is {@link TableReference} can contain a
@@ -9,7 +11,7 @@ package org.sagebionetworks.table.query.model;
  * {@link TableName} with an optional AS {@link CorrelationSpecification}.
  *
  */
-public class TableNameCorrelation extends SQLElement {
+public class TableNameCorrelation extends SQLElement implements HasSingleTableName {
 
 	private final TableName tableName;
 	private final CorrelationSpecification correlationSpecification;
@@ -32,6 +34,11 @@ public class TableNameCorrelation extends SQLElement {
 			builder.append(" ");
 			correlationSpecification.toSql(builder, parameters);
 		}
+	}
+
+	@Override
+	public Optional<String> getSingleTableName() {
+		return tableName.getSingleTableName();
 	}
 
 }

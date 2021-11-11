@@ -81,7 +81,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1057,18 +1056,26 @@ public class TableQueryManagerImplTest {
 	public void testQueryPreflightEmptySchema() throws Exception {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
-		List<SortItem> sortList= null;
-		// call under test
-		try {
-			Query query = new Query();
-			query.setSql("select * from "+tableId);
-			Long maxBytesPerPage = null;
+		Query query = new Query();
+		query.setSql("select * from "+tableId);
+		Long maxBytesPerPage = null;
+		EmptyResultException e = assertThrows(EmptyResultException.class, ()->{
 			// call under test
 			manager.queryPreflight(user, query, maxBytesPerPage);
-			fail("Should have failed since the schema is empty");
-		} catch (EmptyResultException e) {
-			assertEquals(tableId, e.getTableId());
-		}
+		});
+		assertEquals(tableId, e.getTableId());
+	}
+	
+	@Test
+	public void testQueryPreflightWithJoin() throws Exception {
+		Query query = new Query();
+		query.setSql("select * from syn123 join syn456");
+		Long maxBytesPerPage = Long.MAX_VALUE;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.queryPreflight(user, query, maxBytesPerPage);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
 	@Test
@@ -1697,6 +1704,16 @@ public class TableQueryManagerImplTest {
 		QuerySpecification result = manager.addRowLevelFilter(user, query);
 		assertNotNull(result);
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", result.toSql());
+	}
+	
+	@Test
+	public void testAddRowLevelFilterWithJoin() throws Exception {
+		QuerySpecification query = new TableQueryParser("select * from syn123 join syn456").querySpecification();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.addRowLevelFilter(user, query);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 
 	@Test

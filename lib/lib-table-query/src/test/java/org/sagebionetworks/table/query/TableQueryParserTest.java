@@ -278,8 +278,7 @@ public class TableQueryParserTest {
 		assertNotNull(sq.getTableExpression());
 		assertNotNull(sq.getTableExpression().getFromClause());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference());
-		assertNotNull(sq.getTableExpression().getFromClause().getTableReference().getTableName());
-		assertEquals("syn123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
+		assertEquals("syn123", sq.getSingleTableName().get());
 	}
 	
 	@Test
@@ -290,8 +289,7 @@ public class TableQueryParserTest {
 		assertNotNull(sq.getTableExpression());
 		assertNotNull(sq.getTableExpression().getFromClause());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference());
-		assertNotNull(sq.getTableExpression().getFromClause().getTableReference().getTableName());
-		assertEquals("syn123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
+		assertEquals("syn123", sq.getSingleTableName().get());
 	}
 	
 	

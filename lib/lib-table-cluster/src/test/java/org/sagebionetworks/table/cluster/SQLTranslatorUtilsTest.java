@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -648,14 +649,23 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateFromClause() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123",element.getTableReference().getTableName());
+		assertEquals("T123",element.getSingleTableName().get());
 	}
-	
+
 	@Test
 	public void testTranslateTableReferenceVerion() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123.456").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123_456",element.getTableReference().getTableName());
+		assertEquals("T123_456",element.getSingleTableName().get());
+	}
+	
+	@Test
+	public void testTranslateFromClauseWithJoin() throws ParseException{
+		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.translate(element);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
 	@Test
@@ -664,7 +674,7 @@ public class SQLTranslatorUtilsTest {
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			SQLTranslatorUtils.translate(element);
 		}).getMessage();
-		assertEquals("JOIN not supported in this context", message);
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
 	@Test

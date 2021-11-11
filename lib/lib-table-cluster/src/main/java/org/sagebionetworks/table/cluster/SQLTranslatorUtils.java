@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
@@ -409,7 +410,8 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	static IdAndVersion translate(FromClause fromClause) {
-		IdAndVersion originalSynId = IdAndVersion.parse(fromClause.getTableReference().getTableName());
+		IdAndVersion originalSynId = IdAndVersion
+				.parse(fromClause.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		//replace from clause
 		fromClause.setTableReference(tableReferenceForName(SQLUtils.getTableNameForId(originalSynId, TableType.INDEX)));
 		return originalSynId;

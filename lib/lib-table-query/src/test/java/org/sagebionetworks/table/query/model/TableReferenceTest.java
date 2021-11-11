@@ -2,6 +2,8 @@ package org.sagebionetworks.table.query.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -65,16 +67,13 @@ class TableReferenceTest {
 	@Test
 	public void testGetTableName() throws ParseException {
 		TableReference reference = new TableQueryParser("tableA").tableReference();
-		assertEquals("tableA", reference.getTableName());
+		assertEquals("tableA", reference.getSingleTableName().get());
 		assertFalse(reference.hasJoin());
 	}
 	
 	@Test
 	public void testGetTableNameWithJoin() throws ParseException {
 		TableReference reference = new TableQueryParser("tableA join tableB").tableReference();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			reference.getTableName();
-		}).getMessage();
-		assertEquals("JOIN not supported in this context", message);
+		assertEquals(Optional.empty(), reference.getSingleTableName());
 	}
 }

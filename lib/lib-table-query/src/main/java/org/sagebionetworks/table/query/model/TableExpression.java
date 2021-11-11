@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * This matches &lttable expression&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class TableExpression extends SQLElement implements HasAggregate {
+public class TableExpression extends SQLElement implements HasAggregate, HasSingleTableName {
 
 	FromClause fromClause;
 	WhereClause whereClause;
@@ -100,5 +102,13 @@ public class TableExpression extends SQLElement implements HasAggregate {
 	 */
 	public void replaceWhere(WhereClause where) {
 		this.whereClause = where;
+	}
+
+	@Override
+	public Optional<String> getSingleTableName() {
+		if(fromClause == null) {
+			return Optional.empty();
+		}
+		return fromClause.getSingleTableName();
 	}
 }

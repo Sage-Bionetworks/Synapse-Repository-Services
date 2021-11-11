@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 
 import java.util.List;
 
@@ -73,6 +74,15 @@ public class TableQueryUtilsTest {
 	public void testExtractTableIdFromSql(){
 		String resultTableId = TableQueryUtils.extractTableIdFromSql(sql);
 		assertEquals(tableId, resultTableId);
+	}
+	
+	@Test
+	public void testExtractTableIdFromSqlWithJoin(){
+		sql = "select * from syn123 join syn456";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.extractTableIdFromSql(sql);
+		}).getMessage();
+		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
 	@Test
