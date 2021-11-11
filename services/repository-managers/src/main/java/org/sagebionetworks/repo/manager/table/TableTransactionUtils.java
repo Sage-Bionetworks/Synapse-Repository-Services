@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.util.ValidateArgument;
@@ -20,6 +21,12 @@ public class TableTransactionUtils {
 	public static void validateRequest(TableUpdateTransactionRequest request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
+		
+		// Makes sure we are not trying to update a specific version of a table/view (e.g. a snapshot)
+		IdAndVersion tableVersionId = IdAndVersion.parse(request.getEntityId());
+		
+		ValidateArgument.requirement(!tableVersionId.getVersion().isPresent(), "A snapshot is immutable and cannot be updated.");
+		
 		if (request.getCreateSnapshot() == null && request.getSnapshotOptions() != null) {
 			throw new IllegalArgumentException("Included SnapshotOptions but the createSnapshot boolean is null");
 		}
