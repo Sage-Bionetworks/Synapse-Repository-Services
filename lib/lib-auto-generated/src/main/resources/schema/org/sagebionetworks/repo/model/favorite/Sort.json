@@ -1,0 +1,34 @@
+{
+    "description": "Defines a Favorites sort. We don't actually use this object, just the enumerations defined within it. See PLFM-7033.",
+    "properties": {
+      "sortBy": {
+        "id": "org.sagebionetworks.repo.model.favorite.SortBy",
+        "type": "string",
+        "name": "SortBy",
+        "enum": [{
+          "name": "FAVORITED_ON",
+          "description": "Order the list of favorites based on the datetime that the entity was added as a favorite."
+        },
+          {
+            "name": "NAME",
+            "description": "Order the list of favorites lexicographically by name."
+          }]
+      },
+      "sortDirection": {
+        "id": "org.sagebionetworks.repo.model.favorite.SortDirection",
+        "description": "Direction of a sort.",
+        "name": "SortDirection",
+        "type": "string",
+        "enum": [
+          {
+            "name": "ASC",
+            "description": "Sort ascending."
+          },
+          {
+            "name": "DESC",
+            "description": "Sort descending."
+          }
+        ]
+      }
+    }
+}

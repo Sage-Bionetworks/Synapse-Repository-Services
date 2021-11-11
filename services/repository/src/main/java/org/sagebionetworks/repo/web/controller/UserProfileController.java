@@ -435,6 +435,10 @@ public class UserProfileController {
 	 * 			The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
 	 *          Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
+	 * @param sort
+	 * 			Determines which field to use to sort the retrieved favorites. See <a href="${org.sagebionetworks.repo.model.favorite.SortBy}">SortBy</a>. <p><i>Default is "FAVORITED_ON"</i></p>.
+	 * @param sortDirection
+	 * 			The direction for sorting the retrieved favorites. See <a href="${org.sagebionetworks.repo.model.favorite.SortDirection}">SortDirection</a>. <p><i>Default is "DESC"</i></p>.
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
@@ -446,12 +450,12 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_FAVORITES) String sortBy,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_FAVORITES) String sort,
 			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_ON_FAVORITES) String sortDirection
 	)
 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		SortBy sortByEnum = SortBy.valueOf(sortBy.toUpperCase());
+		SortBy sortByEnum = SortBy.valueOf(sort.toUpperCase());
 		org.sagebionetworks.repo.model.favorite.SortDirection sortDirectionEnum = org.sagebionetworks.repo.model.favorite.SortDirection.valueOf(sortDirection.toUpperCase());
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sortByEnum, sortDirectionEnum);
 	}
