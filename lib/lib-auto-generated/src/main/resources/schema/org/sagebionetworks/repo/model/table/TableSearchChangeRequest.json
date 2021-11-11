@@ -1,0 +1,14 @@
+{
+	"description": "An AsynchronousRequestBody to change the search configuration of a table.",
+	"implements":[
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
+		}
+	],
+	"properties": {
+		"searchEnabled": {
+			"description":"Specifies if the search should be enabled or disabled on the table",
+			"type": "boolean"
+		}
+	}
+}
