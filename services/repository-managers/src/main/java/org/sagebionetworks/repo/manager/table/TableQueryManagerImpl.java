@@ -156,18 +156,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 2. Validate the user has read access on this table
 		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
 
-		// 3. Get the table's schema
-		List<ColumnModel> columnModels = tableManagerSupport.getTableSchema(idAndVersion);
-		if (columnModels.isEmpty()) {
-			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
-		}
 		// 4. Add row level filter as needed.
 		if (EntityTypeUtils.isViewType(tableType)) {
 			// Table views must have a row level filter applied to the query
 			model = addRowLevelFilter(user, model);
 		}
 		// Return the prepared query.
-		return new SqlQueryBuilder(model, user.getId()).tableSchema(columnModels).overrideOffset(query.getOffset())
+		return new SqlQueryBuilder(model, user.getId()).schemaProvider(tableManagerSupport).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
 				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();

@@ -20,13 +20,14 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business
  * logic common to all table managers.
  *
  */
-public interface TableManagerSupport {
+public interface TableManagerSupport extends SchemaProvider {
 
 	/**
 	 * Get the status of a table. This method is guaranteed to return a table's
@@ -364,14 +365,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
-
-	/**
-	 * Get the schema for the given id and version combination.
-	 * 
-	 * @param idAndVersion
-	 * @return
-	 */
-	List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
 
 	/**
 	 * Will update the tableStatus.changedOn for the given table if its state is

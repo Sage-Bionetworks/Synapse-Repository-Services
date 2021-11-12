@@ -143,13 +143,11 @@ public class FacetModel {
 	static SqlQuery generateFacetFilteredQuery(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
-		Long userId = 1L;
 		try{
 			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
 
-			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getTableSchema(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
+			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getSchemaProvider(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
 					.includeEntityEtag(sqlQuery.includeEntityEtag())
-					.includeRowIdAndRowVersion(sqlQuery.includesRowIdAndVersion())
 					.tableType(sqlQuery.getTableType())
 					.selectedFacets(sqlQuery.getSelectedFacets())
 					.build();

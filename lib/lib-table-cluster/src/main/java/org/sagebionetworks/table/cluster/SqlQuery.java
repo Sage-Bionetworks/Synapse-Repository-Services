@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
@@ -35,81 +36,83 @@ public class SqlQuery {
 	 * The input SQL is parsed into this object model.
 	 *
 	 */
-	QuerySpecification model;
+	private QuerySpecification model;
 
 	/**
 	 * The model transformed to execute against the actual table.
 	 */
-	QuerySpecification transformedModel;
+	private final QuerySpecification transformedModel;
 
 	/**
 	 * The full list of all of the columns of this table
 	 */
-	List<ColumnModel> tableSchema;
+	private List<ColumnModel> tableSchema;
+	
+	private final SchemaProvider schemaProvider;
 
 	/**
 	 * This map will contain all of the bind variable values for the translated query.
 	 */
-	Map<String, Object> parameters;
+	private final Map<String, Object> parameters;
 
 	/**
 	 * The map of column names to column models.
 	 */
-	LinkedHashMap<String, ColumnModel> columnNameToModelMap;
+	private final LinkedHashMap<String, ColumnModel> columnNameToModelMap;
 
 	/**
 	 * The translated SQL.
 	 */
-	String outputSQL;
+	private final String outputSQL;
 
 	/**
 	 * The Id of the table.
 	 */
-	String tableId;
+	private final String tableId;
 
 	/**
 	 * The maximum size of each query result row returned by this query.
 	 */
-	int maxRowSizeBytes;
+	private final int maxRowSizeBytes;
 
 	/**
 	 * The maximum number of rows per page for the given query
 	 */
-	Long maxRowsPerPage;
+	private Long maxRowsPerPage;
 
 	/**
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
-	boolean includesRowIdAndVersion;
+	private final boolean includesRowIdAndVersion;
 
 	/**
 	 * Should the query results include the row's etag?
 	 * Note: This is true for view queries.
 	 */
-	boolean includeEntityEtag;
+	private final boolean includeEntityEtag;
 
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
 	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
 	 * will be null when isAggregatedResults = true.
 	 */
-	boolean isAggregatedResult;
+	private final boolean isAggregatedResult;
 
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
-	List<SelectColumn> selectColumns;
+	private final List<SelectColumn> selectColumns;
 
-	Long overrideOffset;
-	Long overrideLimit;
-	Long maxBytesPerPage;
-	Long userId;
+	private final Long overrideOffset;
+	private final Long overrideLimit;
+	private final Long maxBytesPerPage;
+	private final Long userId;
 
-	List<FacetColumnRequest> selectedFacets;
+	private final List<FacetColumnRequest> selectedFacets;
 
-	EntityType tableType;
+	private final EntityType tableType;
 	
-	private boolean isIncludeSearch;
+	private final boolean isIncludeSearch;
 
 	/**
 	 * @param tableId
@@ -119,7 +122,7 @@ public class SqlQuery {
 	 */
 	SqlQuery(
 			QuerySpecification parsedModel,
-			List<ColumnModel> tableSchema,
+			SchemaProvider schemaProvider,
 			Long overrideOffset,
 			Long overrideLimit,
 			Long maxBytesPerPage,
@@ -130,13 +133,14 @@ public class SqlQuery {
 			List<QueryFilter> additionalFilters,
 			Long userId
 			) {
-		ValidateArgument.required(tableSchema, "TableSchema");
+		ValidateArgument.required(schemaProvider, "schemaProvider");
+		this.model = parsedModel;
+		this.schemaProvider = schemaProvider;
+		this.tableId = parsedModel.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		this.tableSchema = schemaProvider.getTableSchema(IdAndVersion.parse(tableId));
 		if(tableSchema.isEmpty()){
 			throw new IllegalArgumentException("Table schema cannot be empty");
 		}
-		this.tableSchema = tableSchema;
-		this.model = parsedModel;
-		this.tableId = parsedModel.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
@@ -377,5 +381,9 @@ public class SqlQuery {
 	
 	public boolean isIncludeSearch() {
 		return isIncludeSearch;
+	}
+	
+	public SchemaProvider getSchemaProvider() {
+		return schemaProvider;
 	}
 }
