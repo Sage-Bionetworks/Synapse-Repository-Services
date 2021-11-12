@@ -1,5 +1,5 @@
 {
-  "description": "Direction of a sort.",
+  "description": "Direction to sort favorited items.",
   "name": "SortDirection",
   "type": "string",
   "enum": [

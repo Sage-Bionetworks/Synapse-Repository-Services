@@ -1,11 +1,15 @@
 {
-	"type": "string",
-	"enum": [{
-		"name": "FAVORITED_ON",
-		"description": "Order the list of favorites based on the datetime that the entity was added as a favorite."
-	},
-	{
-		"name": "NAME",
-		"description": "Order the list of favorites lexicographically by name."
-	}]
+  "type": "string",
+  "name": "SortBy",
+  "description": "Property used to sort favorites.",
+  "enum": [
+    {
+      "name": "FAVORITED_ON",
+      "description": "Order the list of favorites based on the datetime that the entity was added as a favorite."
+    },
+    {
+      "name": "NAME",
+      "description": "Order the list of favorites lexicographically by name."
+    }
+  ]
 }

@@ -331,7 +331,7 @@ public class UserProfileController {
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
-	 * 
+	 *
 	 * @param userId
 	 * @param id
 	 *            The ID of the FileEntity to get.
@@ -435,6 +435,10 @@ public class UserProfileController {
 	 * 			The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
 	 *          Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
+	 * @param sort
+	 * 			Determines which field to use to sort the retrieved favorites. See <a href="${org.sagebionetworks.repo.model.favorite.SortBy}">SortBy</a>. <p><i>Default is "FAVORITED_ON"</i></p>.
+	 * @param sortDirection
+	 * 			The direction for sorting the retrieved favorites. See <a href="${org.sagebionetworks.repo.model.favorite.SortDirection}">SortDirection</a>. <p><i>Default is "DESC"</i></p>.
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
@@ -446,14 +450,18 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_FAVORITES) String sortBy,
-			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_ON_FAVORITES) String sortDirection
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) SortBy sort,
+			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false) org.sagebionetworks.repo.model.favorite.SortDirection sortDirection
 	)
 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		SortBy sortByEnum = SortBy.valueOf(sortBy.toUpperCase());
-		org.sagebionetworks.repo.model.favorite.SortDirection sortDirectionEnum = org.sagebionetworks.repo.model.favorite.SortDirection.valueOf(sortDirection.toUpperCase());
-		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sortByEnum, sortDirectionEnum);
+		if (sort == null) {
+			sort = SortBy.FAVORITED_ON;
+		}
+		if (sortDirection == null) {
+			sortDirection = org.sagebionetworks.repo.model.favorite.SortDirection.DESC;
+		}
+		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sort, sortDirection);
 	}
 
 	public static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {

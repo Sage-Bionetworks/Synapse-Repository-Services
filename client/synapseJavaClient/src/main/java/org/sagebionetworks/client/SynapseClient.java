@@ -140,6 +140,7 @@ import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -1104,8 +1105,10 @@ public interface SynapseClient extends BaseClient {
 
 	public void removeFavorite(String entityId) throws SynapseException;
 
-	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
-			throws SynapseException;
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset) throws SynapseException;
+
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset, SortBy sortBy,
+		    org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws SynapseException;
 
 	public ProjectHeaderList getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			String nextPageToken) throws SynapseException;
