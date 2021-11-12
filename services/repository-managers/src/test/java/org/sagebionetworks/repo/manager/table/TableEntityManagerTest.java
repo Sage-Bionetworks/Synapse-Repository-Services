@@ -1173,6 +1173,15 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
+	public void testIsTemporaryTableNeededToValidateTableSearchChangeRequest(){
+		TableSearchChangeRequest request = new TableSearchChangeRequest();
+		request.setEntityId(tableId);
+		request.setSearchEnabled(true);
+		// call under test
+		assertFalse(manager.isTemporaryTableNeededToValidate(request));
+	}
+	
+	@Test
 	public void testIsTemporaryTableNeededToValidateUnknown(){
 		TableUpdateRequest mockRequest = Mockito.mock(TableUpdateRequest.class);
 

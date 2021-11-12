@@ -692,17 +692,20 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
-		if(change instanceof TableSchemaChangeRequest){
+		if (change instanceof TableSchemaChangeRequest) {
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
-			// If one or more of the existing columns will change then a temporary table is needed to validate the change.
+			// If one or more of the existing columns will change then a temporary table is needed to validate
+			// the change.
 			return containsColumnUpdate(schemaChange.getChanges());
-		}else if(change instanceof UploadToTableRequest){
+		} else if (change instanceof UploadToTableRequest) {
 			// might switch to true to support uniqueness constraints.
 			return false;
-		}else if(change instanceof AppendableRowSetRequest){
+		} else if (change instanceof AppendableRowSetRequest) {
 			return false;
-		}else{
-			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
+		} else if (change instanceof TableSearchChangeRequest) {
+			return false;
+		} else {
+			throw new IllegalArgumentException("Unknown change type: " + change.getClass().getName());
 		}
 	}
 	
