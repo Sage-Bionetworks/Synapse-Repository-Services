@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -56,6 +57,8 @@ import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableSearchChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSearchChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -625,30 +628,31 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Will add a search change id needed
 		updateSearchStatus(userInfo, tableId, searchEnabled, transactionId);
 	}
-	
+		
 	/**
 	 * Will add a search change to the given table and transaction if the search status changed
 	 * 
 	 * @param userInfo
 	 * @param tableId
 	 * @param searchEnabled
+	 * @return True if the search status was changed, false otherwise
 	 */
-	void updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, long transactionId) {
+	boolean updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, long transactionId) {
 		// No change needed if the flag was not specified
 		if (searchEnabled == null) {
-			return;
+			return false;
 		}
 		// At this point only the truth knows about the search status since the table has been created/updated already and the table might not have been built yet
 		TableRowChange lastSearchChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		
 		// No change to the search status 
 		if (lastSearchChange == null && !searchEnabled) {
-			return;
+			return false;
 		}
 		
 		// The search status is already up to date
 		if (lastSearchChange != null && searchEnabled.equals(lastSearchChange.getIsSearchEnabled())) {
-			return;
+			return false;
 		}
 		
 		tableManagerSupport.touchTable(userInfo, tableId);
@@ -658,21 +662,50 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
 		
+		return true;
+		
+	}
+	
+	/**
+	 * Updates the search status of a table through a search change request, makes sure to also update the table entity property
+	 * 
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @param transactionId
+	 * @return
+	 */
+	TableUpdateResponse updateSearchStatus(UserInfo userInfo, TableSearchChangeRequest change, long transactionId) {
+		boolean statusChanged = updateSearchStatus(userInfo, change.getEntityId(), change.getSearchEnabled(), transactionId);
+		
+		if (statusChanged) {
+			// Make sure to align the searchEnabled property in the node representing the table
+			Node tableNode = nodeManager.getNode(userInfo, change.getEntityId());
+			
+			tableNode.setIsSearchEnabled(change.getSearchEnabled());
+			
+			nodeManager.update(userInfo, tableNode, null, false);
+		}
+		
+		return new TableSearchChangeResponse().setSearchEnabled(change.getSearchEnabled());
 	}
 	
 	@Override
 	public boolean isTemporaryTableNeededToValidate(TableUpdateRequest change) {
-		if(change instanceof TableSchemaChangeRequest){
+		if (change instanceof TableSchemaChangeRequest) {
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
-			// If one or more of the existing columns will change then a temporary table is needed to validate the change.
+			// If one or more of the existing columns will change then a temporary table is needed to validate
+			// the change.
 			return containsColumnUpdate(schemaChange.getChanges());
-		}else if(change instanceof UploadToTableRequest){
+		} else if (change instanceof UploadToTableRequest) {
 			// might switch to true to support uniqueness constraints.
 			return false;
-		}else if(change instanceof AppendableRowSetRequest){
+		} else if (change instanceof AppendableRowSetRequest) {
 			return false;
-		}else{
-			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
+		} else if (change instanceof TableSearchChangeRequest) {
+			return false;
+		} else {
+			throw new IllegalArgumentException("Unknown change type: " + change.getClass().getName());
 		}
 	}
 	
@@ -703,24 +736,25 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public void validateUpdateRequest(ProgressCallback callback,
-			UserInfo userInfo, TableUpdateRequest change,
+	public void validateUpdateRequest(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
 			TableIndexManager indexManager) {
 		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(change, "change");
-		if(change instanceof TableSchemaChangeRequest){
-			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
-		}else if(change instanceof UploadToTableRequest){
+		if (change instanceof TableSchemaChangeRequest) {
+			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest) change, indexManager);
+		} else if (change instanceof UploadToTableRequest) {
 			// nothing to validate
-		}else if(change instanceof AppendableRowSetRequest){
+		} else if (change instanceof AppendableRowSetRequest) {
 			// nothing to validate
-		}else{
-			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
+		} else if (change instanceof TableSearchChangeRequest) {
+			ValidateArgument.required(((TableSearchChangeRequest) change).getSearchEnabled(), "The searchEnabled value");
+		} else {
+			throw new IllegalArgumentException("Unknown request type: " + change.getClass().getName());
 		}
-		
+
 	}
-	
+
 	/**
 	 * Validation for a schema change request.
 	 * @param callback
@@ -748,19 +782,20 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public TableUpdateResponse updateTable(ProgressCallback callback,
-			UserInfo userInfo, TableUpdateRequest change, long transactionId) {
+	public TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change, long transactionId) {
 		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(change, "change");
-		if(change instanceof TableSchemaChangeRequest){
-			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest)change, transactionId);
-		}else if(change instanceof UploadToTableRequest){
-			return uploadToTable(callback, userInfo, (UploadToTableRequest)change, transactionId);
-		}else if(change instanceof AppendableRowSetRequest){
-			return appendToTable(callback, userInfo, (AppendableRowSetRequest)change, transactionId);
-		}else{
-			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
+		if (change instanceof TableSchemaChangeRequest) {
+			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest) change, transactionId);
+		} else if (change instanceof UploadToTableRequest) {
+			return uploadToTable(callback, userInfo, (UploadToTableRequest) change, transactionId);
+		} else if (change instanceof AppendableRowSetRequest) {
+			return appendToTable(callback, userInfo, (AppendableRowSetRequest) change, transactionId);
+		} else if (change instanceof TableSearchChangeRequest) {
+			return updateSearchStatus(userInfo, (TableSearchChangeRequest) change, transactionId);
+		} else {
+			throw new IllegalArgumentException("Unknown request type: " + change.getClass().getName());
 		}
 	}
 	

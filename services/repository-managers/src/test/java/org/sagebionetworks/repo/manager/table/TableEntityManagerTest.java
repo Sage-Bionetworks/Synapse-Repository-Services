@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -94,6 +95,8 @@ import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableSearchChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSearchChangeResponse;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -1170,6 +1173,15 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
+	public void testIsTemporaryTableNeededToValidateTableSearchChangeRequest(){
+		TableSearchChangeRequest request = new TableSearchChangeRequest();
+		request.setEntityId(tableId);
+		request.setSearchEnabled(true);
+		// call under test
+		assertFalse(manager.isTemporaryTableNeededToValidate(request));
+	}
+	
+	@Test
 	public void testIsTemporaryTableNeededToValidateUnknown(){
 		TableUpdateRequest mockRequest = Mockito.mock(TableUpdateRequest.class);
 
@@ -1229,6 +1241,26 @@ public class TableEntityManagerTest {
 		// Call under test
 		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
 	}
+	
+	@Test
+	public void testValidateUpdateTableSearchChangeRequest(){
+		TableUpdateRequest request = new TableSearchChangeRequest().setSearchEnabled(true);
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+	}
+	
+	@Test
+	public void testValidateUpdateTableSearchChangeRequestWithNoValue(){
+		TableUpdateRequest request = new TableSearchChangeRequest().setSearchEnabled(null);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
+		}).getMessage();
+		
+		assertEquals("The searchEnabled value is required.", message);
+	}
+	
 	
 	@Test
 	public void testValidateUpdateRequestSchema(){
@@ -1307,7 +1339,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.ROW);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 	}
-	
+		
 	@Test
 	public void testUpdateTableNullProgress() throws IOException{
 		mockProgressCallbackVoid = null;
@@ -1813,7 +1845,7 @@ public class TableEntityManagerTest {
 		when(mockTableTransactionDao.startTransaction(any(), any())).thenReturn(transactionId);
 		
 		doReturn(new TableSchemaChangeResponse()).when(managerSpy).updateTableSchema(any(), any(), any(), anyLong());
-		doNothing().when(managerSpy).updateSearchStatus(any(), any(), any(), anyLong());
+		when(managerSpy.updateSearchStatus(any(), any(), any(), anyLong())).thenReturn(true);
 		
 		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
 		changeRequest.setChanges(TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema));
@@ -1840,7 +1872,9 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = true;
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertTrue(result);
 		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, true);
@@ -1858,7 +1892,9 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = true;
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertFalse(result);
 		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verifyNoMoreInteractions(mockTruthDao);
@@ -1871,7 +1907,9 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = null;
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertFalse(result);
 		
 		verifyZeroInteractions(mockTruthDao);
 		verifyZeroInteractions(mockTableManagerSupport);
@@ -1887,7 +1925,9 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = false;
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertFalse(result);
 		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verifyNoMoreInteractions(mockTruthDao);
@@ -1906,7 +1946,9 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = new Boolean(false);
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertFalse(result);
 		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verifyNoMoreInteractions(mockTruthDao);
@@ -1923,12 +1965,63 @@ public class TableEntityManagerTest {
 		Boolean searchEnabled = false;
 		
 		// call under test
-		manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		boolean result = manager.updateSearchStatus(user, tableId, searchEnabled, transactionId);
+		
+		assertTrue(result);
 		
 		verify(mockTruthDao).getLastTableRowChange(tableId, TableChangeType.SEARCH);
 		verify(mockTruthDao).appendSearchChange(user.getId(), tableId, transactionId, false);
 		verify(mockTableManagerSupport).touchTable(user, tableId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
+	
+	@Test
+	public void testUpdateSearchStatusFromSearchChangeRequestWithNoNodeChange() {
+		
+		when(managerSpy.updateSearchStatus(any(), any(), any(), anyLong())).thenReturn(false);
+		
+		TableSearchChangeRequest searchChangeRequest = new TableSearchChangeRequest()
+				.setEntityId(tableId)
+				.setSearchEnabled(true);
+		
+		TableUpdateResponse expectedResult = new TableSearchChangeResponse().setSearchEnabled(searchChangeRequest.getSearchEnabled());
+		
+		// Call under test
+		TableUpdateResponse result = managerSpy.updateSearchStatus(user, searchChangeRequest, transactionId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(managerSpy).updateSearchStatus(user, tableId, searchChangeRequest.getSearchEnabled(), transactionId);
+		verifyZeroInteractions(mockNodeManager);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchStatusFromSearchChangeRequestWithNodeChange() {
+		
+		when(managerSpy.updateSearchStatus(any(), any(), any(), anyLong())).thenReturn(true);
+		
+		TableSearchChangeRequest searchChangeRequest = new TableSearchChangeRequest()
+				.setEntityId(tableId)
+				.setSearchEnabled(true);
+		
+		Node originalTableNode = new Node();
+		Node expectedTableNode = new Node().setIsSearchEnabled(searchChangeRequest.getSearchEnabled());
+		
+		when(mockNodeManager.getNode(any(), any())).thenReturn(originalTableNode);
+		
+		TableUpdateResponse expectedResult = new TableSearchChangeResponse().setSearchEnabled(searchChangeRequest.getSearchEnabled());
+		
+		// Call under test
+		TableUpdateResponse result = managerSpy.updateSearchStatus(user, searchChangeRequest, transactionId);
+		
+		assertEquals(expectedResult, result);
+		
+		verify(managerSpy).updateSearchStatus(user, tableId, searchChangeRequest.getSearchEnabled(), transactionId);
+		verify(mockNodeManager).getNode(user, tableId);
+		verify(mockNodeManager).update(user, expectedTableNode, null, false);
+		verifyZeroInteractions(mockNodeManager);
+		
 	}
 	
 	@Test

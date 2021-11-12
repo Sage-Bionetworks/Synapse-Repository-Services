@@ -135,4 +135,18 @@ public class TableTransactionUtilsTest {
 		// call under test.
 		TableTransactionUtils.validateRequest(request);
 	}
+	
+	@Test
+	public void testValidateRequestWithSnapshot() {
+		tableId = "syn123.1";
+		
+		request.setEntityId(tableId);
+		uploadRequest.setEntityId(tableId);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			TableTransactionUtils.validateRequest(request);
+		}).getMessage();
+		
+		assertEquals("A snapshot is immutable and cannot be updated.", message);
+	}
 }

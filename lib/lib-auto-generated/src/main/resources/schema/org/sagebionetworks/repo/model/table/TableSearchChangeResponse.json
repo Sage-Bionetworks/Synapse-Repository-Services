@@ -1,0 +1,14 @@
+{
+	"description": "A response to a table search change request.",
+	"implements":[
+        {
+            "$ref": "org.sagebionetworks.repo.model.table.TableUpdateResponse"
+        }
+    ],
+	"properties": {
+		"searchEnabled": {
+		    "description":"The resulting status of the search after the change.",
+			"type": "boolean"
+		}
+	}
+}

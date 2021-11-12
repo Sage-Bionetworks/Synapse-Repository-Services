@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +49,8 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
+import org.sagebionetworks.repo.model.table.TableSearchChangeRequest;
+import org.sagebionetworks.repo.model.table.TableSearchChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -212,7 +215,7 @@ public class TableTransactionWorkerIntegrationTest {
 	 * @throws AssertionError 
 	 */
 	@Test
-	public void testSchemaChange_listColumnMaxSizeTooSmall() throws Exception {
+	public void testSchemaChangelWithLstColumnMaxSizeTooSmall() throws Exception {
 		// Reproduces PLFM-6190
 
 		// string List column
@@ -603,6 +606,42 @@ public class TableTransactionWorkerIntegrationTest {
 		});
 
 		assertTrue(ex.getMessage().contains("does not exist"));
+	}
+	
+	@Test
+	public void testTableSearchChangeRequest() throws Exception {
+	
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		String entityId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		
+		String currentEtag = table.getEtag();
+		
+		assertNull(table.getIsSearchEnabled());
+		
+		toDelete.add(entityId);
+
+		TableUpdateTransactionRequest transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(Arrays.asList(
+			new TableSearchChangeRequest().setSearchEnabled(true)
+		));
+		
+		
+		TableUpdateTransactionResponse expectedResponse = new TableUpdateTransactionResponse()
+				.setResults(Arrays.asList(new TableSearchChangeResponse().setSearchEnabled(true)));
+		
+		// wait for the change to complete
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertEquals(expectedResponse, response);
+		});
+		
+		table = entityManager.getEntity(adminUserInfo, entityId, TableEntity.class);
+		
+		assertNotEquals(currentEtag, table.getEtag());
+		assertTrue(table.getIsSearchEnabled());
+
 	}
 	
 	/**
