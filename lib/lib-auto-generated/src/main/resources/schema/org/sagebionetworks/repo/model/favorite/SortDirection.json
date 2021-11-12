@@ -1,0 +1,15 @@
+{
+  "description": "Direction to sort favorited items.",
+  "name": "SortDirection",
+  "type": "string",
+  "enum": [
+    {
+      "name": "ASC",
+      "description": "Sort ascending."
+    },
+    {
+      "name": "DESC",
+      "description": "Sort descending."
+    }
+  ]
+}

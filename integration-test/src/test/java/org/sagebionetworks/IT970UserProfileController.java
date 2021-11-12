@@ -25,6 +25,8 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.favorite.SortBy;
+import org.sagebionetworks.repo.model.favorite.SortDirection;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -110,7 +112,12 @@ public class IT970UserProfileController {
 		PaginatedResults<EntityHeader> favs = synapse.getFavorites(Integer.MAX_VALUE, 0);
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
-		
+
+		// retrieve using sort params (sort order/direction are tested in the DAO)
+		favs = synapse.getFavorites(Integer.MAX_VALUE, 0, SortBy.NAME, SortDirection.ASC);
+		assertEquals(1, favs.getTotalNumberOfResults());
+		assertEquals(1, favs.getResults().size());
+
 		// remove
 		synapse.removeFavorite(entity.getId());		
 		// validate remove

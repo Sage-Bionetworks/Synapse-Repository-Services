@@ -331,7 +331,7 @@ public class UserProfileController {
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
-	 * 
+	 *
 	 * @param userId
 	 * @param id
 	 *            The ID of the FileEntity to get.
@@ -450,14 +450,18 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_FAVORITES) String sort,
-			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_ON_FAVORITES) String sortDirection
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) SortBy sort,
+			@RequestParam(value = ServiceConstants.SORT_DIRECTION_PARAM, required = false) org.sagebionetworks.repo.model.favorite.SortDirection sortDirection
 	)
 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		SortBy sortByEnum = SortBy.valueOf(sort.toUpperCase());
-		org.sagebionetworks.repo.model.favorite.SortDirection sortDirectionEnum = org.sagebionetworks.repo.model.favorite.SortDirection.valueOf(sortDirection.toUpperCase());
-		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sortByEnum, sortDirectionEnum);
+		if (sort == null) {
+			sort = SortBy.FAVORITED_ON;
+		}
+		if (sortDirection == null) {
+			sortDirection = org.sagebionetworks.repo.model.favorite.SortDirection.DESC;
+		}
+		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset, sort, sortDirection);
 	}
 
 	public static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {

@@ -177,6 +177,7 @@ import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
+import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -3453,6 +3454,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			Integer offset) throws SynapseException {
 		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset
 				+ "&limit=" + limit;
+		return getPaginatedResults(getRepoEndpoint(), url, EntityHeader.class);
+	}
+
+	/**
+	 * Retrieve this user's Favorites list
+	 *
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset, SortBy sortBy,
+		   org.sagebionetworks.repo.model.favorite.SortDirection sortDirection) throws SynapseException {
+		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset
+				+ "&limit=" + limit
+				+ "&sort=" + sortBy.name()
+				+ "&sortDirection=" + sortDirection.name();
 		return getPaginatedResults(getRepoEndpoint(), url, EntityHeader.class);
 	}
 
