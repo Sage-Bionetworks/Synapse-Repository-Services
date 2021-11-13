@@ -177,5 +177,12 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException 
 	 */
 	public ColumnModel createColumnModel(ColumnModel columnModel);
+
+	/**
+	 * Get the column count for the given table
+	 * @param idAndVersion
+	 * @return
+	 */
+	public long getTableSchemaCount(IdAndVersion idAndVersion);
 }
 

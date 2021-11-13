@@ -77,6 +77,12 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) throws DatastoreException;
 	
 	/**
+	 * Get the number of columns bound to the given object Id.
+	 * @return
+	 */
+	long getColumnModelCountForObject(IdAndVersion idAndVersion);
+	
+	/**
 	 * Get the column IDs for the given Object.
 	 * 
 	 * @param tableId

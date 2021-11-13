@@ -289,6 +289,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightAuthorized() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
@@ -398,6 +399,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightWithAuthorizationTableEntity() throws Exception{
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
@@ -417,6 +419,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightWithAuthorizationFileView() throws Exception{
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -757,7 +760,7 @@ public class TableQueryManagerImplTest {
 	@Test 
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
@@ -775,6 +778,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryIndexNotAvailable() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
@@ -797,6 +801,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -872,6 +877,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryBundleFacets() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -959,6 +965,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightSelectStar() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 	
@@ -975,6 +982,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightOverrideSort() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		
@@ -994,6 +1002,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryPreflight_AdditionalQueryFilters() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 
@@ -1016,7 +1025,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflight_AdditionalQueryFiltersWithHasLike() throws Exception {
-		
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 
@@ -1039,7 +1048,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflight_AdditionalQueryFiltersWithHas() throws Exception {
-		
+
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 
@@ -1063,7 +1073,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightEmptySchema() throws Exception {
 		// Return no columns
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
 		Long maxBytesPerPage = null;
@@ -1090,6 +1100,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamDownload() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1114,6 +1125,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamDownloadDefaultValues() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1145,6 +1157,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamDownloadViewIncludeEtag() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1181,6 +1194,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamDownloadTableIncludeEtag() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1214,6 +1228,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamDownloadIncludeEtagWithoutRowId() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1267,7 +1282,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
 		// Return no columns
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
@@ -1417,6 +1432,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1496,6 +1512,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageWithEtag() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1566,6 +1583,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
@@ -1597,6 +1615,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
 		when(mockTableIndexDAO.countQuery(anyString(), anyMap())).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);

@@ -510,5 +510,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public ColumnModel createColumnModel(ColumnModel columnModel) {
 		return columnModelDao.createColumnModel(columnModel);
 	}
+
+	@Override
+	public long getTableSchemaCount(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelCountForObject(idAndVersion);
+	}
 	
 }

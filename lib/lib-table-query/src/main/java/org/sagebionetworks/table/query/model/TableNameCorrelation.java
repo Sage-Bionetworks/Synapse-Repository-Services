@@ -40,5 +40,13 @@ public class TableNameCorrelation extends SQLElement implements HasSingleTableNa
 	public Optional<String> getSingleTableName() {
 		return tableName.getSingleTableName();
 	}
+	
+	public TableName getTableName() {
+		return tableName;
+	}
+	
+	public Optional<CorrelationSpecification> getCorrelationSpecification(){
+		return Optional.ofNullable(correlationSpecification);
+	}
 
 }

@@ -409,7 +409,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				rows.add(row);
 			}
 		});
-		rowSet.setTableId(query.getTableId());
+		rowSet.setTableId(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return rowSet;
 	}
 	

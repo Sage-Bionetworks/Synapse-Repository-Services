@@ -70,6 +70,10 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			+ TABLE_BOUND_COLUMN_ORDINAL + " BO WHERE BO." + COL_BOUND_CM_ORD_OBJECT_ID + " = ? AND BO."
 			+ COL_BOUND_CM_ORD_OBJECT_VERSION + " = ? ORDER BY BO." + COL_BOUND_CM_ORD_ORDINAL + " ASC";
 	
+	private static final String SQL_GET_COLUMN_COUNT_FOR_OBJECT = "SELECT COUNT(*) FROM "
+			+ TABLE_BOUND_COLUMN_ORDINAL + " BO WHERE BO." + COL_BOUND_CM_ORD_OBJECT_ID + " = ? AND BO."
+			+ COL_BOUND_CM_ORD_OBJECT_VERSION + " = ?";
+	
 	private static final String SQL_DELETE_BOUND_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ? AND "+COL_BOUND_CM_ORD_OBJECT_VERSION+" = ?";
 	private static final String SQL_DELETE_COLUMN_MODEL = "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" = ?";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
@@ -109,6 +113,12 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public List<String> getColumnModelIdsForObject(IdAndVersion idAndVersion) {
 		return jdbcTemplate.queryForList(SQL_GET_COLUMN_ID_FOR_OBJECT, String.class, idAndVersion.getId(),
+				idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
+	}
+	
+	@Override
+	public long getColumnModelCountForObject(IdAndVersion idAndVersion) {
+		return jdbcTemplate.queryForObject(SQL_GET_COLUMN_COUNT_FOR_OBJECT, Long.class, idAndVersion.getId(),
 				idAndVersion.getVersion().orElse(DBOBoundColumnOrdinal.DEFAULT_NULL_VERSION));
 	}
 	

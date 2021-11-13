@@ -23,6 +23,8 @@ public class SqlQueryBuilder {
 	private List<FacetColumnRequest> selectedFacets;
 	private List<QueryFilter> additionalFilters;
 	private Long userId;
+	// Joins are now allowed by default.
+	private boolean allowJoins = false;
 	
 	/**
 	 * Start with the SQL.
@@ -100,10 +102,22 @@ public class SqlQueryBuilder {
 		this.additionalFilters = filters;
 		return this;
 	}
+	
+	/**
+	 * AllowJoins is false by default. If allowJions is false and the SQL contains a
+	 * JOIN, then an IllegalArgumentException will be thrown.
+	 * 
+	 * @param allowJoins
+	 * @return
+	 */
+	public SqlQueryBuilder allowJoins(boolean allowJoins) {
+		this.allowJoins = allowJoins;
+		return this;
+	}
 
 	public SqlQuery build(){
 		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
-				includeEntityEtag, tableType, selectedFacets, additionalFilters, userId);
+				includeEntityEtag, tableType, selectedFacets, additionalFilters, userId, allowJoins);
 	}
 
 

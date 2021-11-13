@@ -522,4 +522,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return viewScopeDao.getViewScope(idAndVersion.getId());
 	}
 
+	@Override
+	public long getTableSchemaCount(IdAndVersion idAndVersion) {
+		return columnModelManager.getTableSchemaCount(idAndVersion);
+	}
+
 }

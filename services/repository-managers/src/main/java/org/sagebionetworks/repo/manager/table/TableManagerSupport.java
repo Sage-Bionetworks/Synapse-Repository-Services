@@ -400,4 +400,11 @@ public interface TableManagerSupport extends SchemaProvider {
 	 */
 	Set<Long> getViewScope(IdAndVersion idAndVersion);
 
+	/**
+	 * Get the count of the number of columns bound to this table.
+	 * @param idAndVersion
+	 * @return
+	 */
+	long getTableSchemaCount(IdAndVersion idAndVersion);
+
 }
