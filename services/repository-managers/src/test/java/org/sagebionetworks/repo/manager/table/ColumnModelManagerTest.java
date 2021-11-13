@@ -1317,6 +1317,47 @@ public class ColumnModelManagerTest {
 	}
 	
 	@Test
+	public void testGetTableSchemaCountWithoutVersion() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelCountForObject(any())).thenReturn(10L);
+		// call under test
+		long count = columnModelManager.getTableSchemaCount(idAndVersion);
+		assertEquals(10L, count);
+		verify(mockColumnModelDAO).getColumnModelCountForObject(idAndVersion);
+		verify(mockNodeDao, never()).getCurrentRevisionNumber(any(String.class));
+	}
+	
+	@Test
+	public void testGetTableSchemaCountWithVersionNotCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version does not match the passed version
+		when(mockNodeDao.getCurrentRevisionNumber(any())).thenReturn(46L);
+		when(mockColumnModelDAO.getColumnModelCountForObject(any())).thenReturn(10L);
+		// call under test
+		long count = columnModelManager.getTableSchemaCount(idAndVersion);
+		assertEquals(10L, count);
+		verify(mockColumnModelDAO).getColumnModelCountForObject(idAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
+	}
+	
+	/**
+	 * When getting the schema for the current version the version number passed to the dao is null.
+	 */
+	@Test
+	public void testGetTableSchemaCountWithVersionCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version matches the passed version.
+		when(mockNodeDao.getCurrentRevisionNumber(any())).thenReturn(45L);
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelCountForObject(any())).thenReturn(10L);
+		// call under test
+		long count = columnModelManager.getTableSchemaCount(idAndVersion);
+		assertEquals(10L, count);
+		verify(mockColumnModelDAO).getColumnModelCountForObject(expectedIdAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
+	}
+	
+	@Test
 	public void testGetColumnIdsForTableWithoutVersion() {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		when(mockColumnModelDAO.getColumnModelIdsForObject(idAndVersion)).thenReturn(expectedNewSchemaIds);

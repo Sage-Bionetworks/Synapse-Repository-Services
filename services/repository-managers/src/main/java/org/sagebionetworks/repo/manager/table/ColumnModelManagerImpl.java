@@ -505,15 +505,15 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
 		return columnModelDao.getColumnModelsForObject(removeVersionAsNeeded(idAndVersion));
 	}
+	
+	@Override
+	public long getTableSchemaCount(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelCountForObject(removeVersionAsNeeded(idAndVersion));
+	}
 
 	@Override
 	public ColumnModel createColumnModel(ColumnModel columnModel) {
 		return columnModelDao.createColumnModel(columnModel);
 	}
 
-	@Override
-	public long getTableSchemaCount(IdAndVersion idAndVersion) {
-		return columnModelDao.getColumnModelCountForObject(idAndVersion);
-	}
-	
 }
