@@ -27,6 +27,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
@@ -115,7 +116,6 @@ public class AccessInterceptorTest {
 	@Test
 	public void testHappyCase() throws Exception {
 		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
-		//doReturn("SESSIONTOKEN").when(mockRequest.getHeader("authorizationMethod"));
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		interceptor.setReturnObjectId("returnId");
@@ -145,7 +145,7 @@ public class AccessInterceptorTest {
 		assertEquals("returnId", result.getReturnObjectId());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
-//		assertEquals(AuthenticationType.SESSIONTOKEN.name(), result.getAuthorizationMethod());
+		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), result.getAuthenticationMethod());
 		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME);
 	}
 	

@@ -4,19 +4,19 @@
   "enum": [
     {
       "name": "BASIC",
-      "description": "TODO: Auto-generated description"
+      "description": "Basic authentication"
     },
     {
       "name": "BEARERTOKEN",
-      "description": "TODO: Auto-generated description"
+      "description": "Bearer token authentication"
     },
     {
       "name": "APIKEY",
-      "description": "TODO: Auto-generated description"
+      "description": "API key authentication"
     },
     {
       "name": "SESSIONTOKEN",
-      "description": "TODO: Auto-generated description"
+      "description": "Session token authentication"
     }
   ]
 }
