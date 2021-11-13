@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
@@ -17,18 +18,21 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.sagebionetworks.util.TestClock;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -51,13 +55,28 @@ public class AccessInterceptorTest {
 	HttpServletResponse mockResponse;
 	@Mock
 	StackConfiguration mockConfiguration;
+	@Mock
 	Object mockHandler;
-	UserInfo mockUserInfo;
-	StubAccessRecorder stubRecorder;
+
+	UserInfo userInfo;
+
+	@Mock
+	AccessRecorder mockRecorder;
+
+	@InjectMocks
 	AccessInterceptor interceptor;
-	OIDCTokenHelper oidcTokenHelper;
+
+	@Mock
+	OIDCTokenHelper mockOidcTokenHelper;
+
 	Long userId;
-	TestClock testClock = new TestClock();
+
+	@Mock
+	TestClock mockClock;
+
+	@Captor
+	ArgumentCaptor<AccessRecord> recordCaptor;
+
 	int instanceNumber;
 	String stack;
 
@@ -69,20 +88,13 @@ public class AccessInterceptorTest {
 	@BeforeEach
 	public void before() throws Exception {
 		userId = 12345L;
-		mockHandler = Mockito.mock(Object.class);
-		mockUserInfo = new UserInfo(false, 123L);
-		stubRecorder = new StubAccessRecorder();
-		interceptor = new AccessInterceptor();
-		oidcTokenHelper = Mockito.mock(OIDCTokenHelper.class);
-		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);
-		ReflectionTestUtils.setField(interceptor, "clock", testClock);
-		ReflectionTestUtils.setField(interceptor, "stackConfiguration", mockConfiguration);
-		ReflectionTestUtils.setField(interceptor, "oidcTokenHelper", oidcTokenHelper);
+		userInfo = new UserInfo(false, 123L);
 
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());
 		when(mockRequest.getRequestURI()).thenReturn("/entity/syn789");
 		when(mockRequest.getMethod()).thenReturn("DELETE");
+		when(mockRequest.getHeader(any())).thenReturn(null);
 		when(mockRequest.getHeader("Host")).thenReturn("localhost8080");
 		when(mockRequest.getHeader("User-Agent")).thenReturn("HAL 2000");
 		when(mockRequest.getRemoteAddr()).thenReturn("moon.org");
@@ -96,28 +108,25 @@ public class AccessInterceptorTest {
 		when(mockConfiguration.getStackInstanceNumber()).thenReturn(instanceNumber);
 		stack = "dev";
 		when(mockConfiguration.getStack()).thenReturn(stack);
+		when(mockClock.currentTimeMillis()).thenReturn(100L, 200L);
 	}
 	
 	
 	
 	@Test
-	public void testHappyCase() throws Exception{
-		long start = testClock.currentTimeMillis();
+	public void testHappyCase() throws Exception {
+		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		interceptor.setReturnObjectId("returnId");
-		// Wait to add some elapse time
-		testClock.sleep(234);
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
 		// Now get the results from the stub
-		assertNotNull(stubRecorder.getSavedRecords());
-		assertEquals(1, stubRecorder.getSavedRecords().size());
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 		assertNotNull(result);
-		assertTrue(result.getTimestamp() >= start);
-		assertEquals(234L, result.getElapseMS().longValue());
+		assertEquals(100L, result.getElapseMS().longValue());
 		assertTrue(result.getSuccess());
 		assertNotNull(result.getSessionId());
 		assertEquals("/entity/syn789", result.getRequestURL());
@@ -136,69 +145,53 @@ public class AccessInterceptorTest {
 		assertEquals("returnId", result.getReturnObjectId());
 		assertNull(result.getOauthClientId()); // request was made without an OAuth client
 		assertNull(result.getBasicAuthUsername());
+		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), result.getAuthenticationMethod());
+		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME);
 	}
 	
 	@Test
 	public void testHappyCaseWithException() throws Exception{
-		long start = testClock.currentTimeMillis();
-		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		// Wait to add some elapse time
-		testClock.sleep(234);
 		// finish the call
 		String error = "Something went horribly wrong!!!";
 		Exception exception = new IllegalArgumentException(error);
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
 		// Now get the results from the stub
-		assertNotNull(stubRecorder.getSavedRecords());
-		assertEquals(1, stubRecorder.getSavedRecords().size());
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 		assertNotNull(result);
-		assertTrue(result.getTimestamp() >= start);
-		assertEquals(234L, result.getElapseMS().longValue());
+		assertEquals(100L, result.getElapseMS().longValue());
 		assertFalse(result.getSuccess());
 	}
 	
 	@Test
 	public void testStatusCode200() throws Exception{
-		long start = testClock.currentTimeMillis();
-		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		// Wait to add some elapse time
-		testClock.sleep(234);
 		// return a 200
 		// setup response
 		when(mockResponse.getStatus()).thenReturn(200);
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
 		// Now get the results from the stub
-		assertNotNull(stubRecorder.getSavedRecords());
-		assertEquals(1, stubRecorder.getSavedRecords().size());
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 		assertNotNull(result);
-		assertTrue(result.getTimestamp() >= start);
-		assertEquals(234L, result.getElapseMS().longValue());
+		assertEquals(100L, result.getElapseMS().longValue());
 		assertTrue(result.getSuccess(), "200 is a success");
 		assertEquals(new Long(200), result.getResponseStatus());
 	}
 	
 	@Test
 	public void testStatusCode400() throws Exception{
-		long start = testClock.currentTimeMillis();
-		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-		// Wait to add some elapse time
-		testClock.sleep(234);
 		// return a 200
 		// setup response
 		when(mockResponse.getStatus()).thenReturn(400);
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
 		// Now get the results from the stub
-		assertNotNull(stubRecorder.getSavedRecords());
-		assertEquals(1, stubRecorder.getSavedRecords().size());
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 		assertNotNull(result);
-		assertTrue(result.getTimestamp() >= start);
-		assertEquals(234L, result.getElapseMS().longValue());
+		assertEquals(100L, result.getElapseMS().longValue());
 		assertFalse(result.getSuccess(), "400 is not a success");
 		assertEquals(new Long(400), result.getResponseStatus());
 	}
@@ -207,25 +200,28 @@ public class AccessInterceptorTest {
 	public void testGetOAuthClientIdFromBearerJwt() throws Exception {
 		// Put the client ID in the JWT access token
 		when(mockRequest.getHeader("Authorization")).thenReturn(BEARER_TOKEN_HEADER);
+		when(mockRequest.getHeader("authenticationMethod")).thenReturn("BEARERTOKEN");
 		Claims claims = new DefaultClaims();
 		claims.setAudience(OAUTH_CLIENT_ID);
 		Jwt<JwsHeader,Claims> jwt = new DefaultJwt(null, claims);
-		when(oidcTokenHelper.parseJWT(any())).thenReturn(jwt);
+		when(mockOidcTokenHelper.parseJWT(any())).thenReturn(jwt);
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		interceptor.setReturnObjectId("returnId");
 		// Wait to add some elapse time
-		testClock.sleep(234);
+		mockClock.sleep(234);
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
 		// Now get the results from the stub
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
 		assertNull(result.getBasicAuthUsername());
+		assertEquals("BEARERTOKEN", result.getAuthenticationMethod());
 	}
 
 	@Test
@@ -233,20 +229,23 @@ public class AccessInterceptorTest {
 		// Put the client ID in the basic auth header.
 		when(mockRequest.getHeader("Authorization")).thenReturn(BASIC_AUTH_HEADER);
 		when(mockRequest.getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER)).thenReturn(OAUTH_CLIENT_ID_BASIC);
+		when(mockRequest.getHeader("authenticationMethod")).thenReturn("BASICAUTH");
 
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
 		interceptor.setReturnObjectId("returnId");
 		// Wait to add some elapse time
-		testClock.sleep(234);
+		mockClock.sleep(234);
 		// finish the call
 		Exception exception = null;
 		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, exception);
 		// Now get the results from the stub
-		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		verify(mockRecorder).save(recordCaptor.capture());
+		AccessRecord result = recordCaptor.getValue();
 
 		// Other fields are tested in testHappyCase
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getOauthClientId());
 		assertEquals(OAUTH_CLIENT_ID_BASIC, result.getBasicAuthUsername());
+		assertEquals("BASICAUTH", result.getAuthenticationMethod());
 	}
 }

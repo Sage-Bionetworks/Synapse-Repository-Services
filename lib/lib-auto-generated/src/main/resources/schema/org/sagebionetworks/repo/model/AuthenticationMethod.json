@@ -1,0 +1,22 @@
+{
+  "description": "JSON enum for the types of authentication in Synapse",
+  "type": "string",
+  "enum": [
+    {
+      "name": "BASIC",
+      "description": "Basic authentication"
+    },
+    {
+      "name": "BEARERTOKEN",
+      "description": "Bearer token authentication"
+    },
+    {
+      "name": "APIKEY",
+      "description": "API key authentication"
+    },
+    {
+      "name": "SESSIONTOKEN",
+      "description": "Session token authentication"
+    }
+  ]
+}

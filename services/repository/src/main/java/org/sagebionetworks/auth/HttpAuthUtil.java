@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.OAuthErrorResponse;
@@ -29,6 +30,11 @@ import org.springframework.http.HttpStatus;
 public class HttpAuthUtil {
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
 	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
+
+	public static String getAuthenticationMethod(HttpServletRequest httpRequest) {
+		String authType = httpRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME);
+		return authType;
+	}
 
 	public static boolean usesBasicAuthentication(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
@@ -98,7 +104,14 @@ public class HttpAuthUtil {
 		headers.put(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, 
 				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
 	}
-	
+
+	public static void setAuthenticationMethod(Map<String, String[]> headers, AuthenticationMethod authMethod) {
+		if (authMethod != null) {
+			headers.put(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME,
+					new String[] {authMethod.name()});
+		}
+	}
+
 	/**
 	 * Sets the given service name as the value of the special synapse header service name
 	 * 
@@ -117,7 +130,8 @@ public class HttpAuthUtil {
 					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
 					AuthorizationConstants.SIGNATURE.toLowerCase(),
 					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase()
+					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
+					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase()
 			});
 	
 	/*

@@ -88,6 +88,10 @@
 		"basicAuthUsername": {
 			"type": "string",
 			"description": "The username used in the authorization header of the request, if the request used basic authentication."
-		}
+		},
+        "authenticationMethod": {
+			"type": "string",
+			"description": "The authentication method"
+        }
 	}
 }

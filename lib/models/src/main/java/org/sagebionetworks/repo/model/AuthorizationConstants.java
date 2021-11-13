@@ -63,7 +63,10 @@ public class AuthorizationConstants {
 	 */
 	public static final String USER_ID_HEADER = "userId";
 	public static final String SIGNATURE_TIMESTAMP = "signatureTimestamp";
-	public static final String SIGNATURE = "signature";	
+	public static final String SIGNATURE = "signature";
+
+	// A header indicating the method of authorization used that's injected by the Authentication filter
+	public static final String SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME = "authenticationMethod";
 	
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
 

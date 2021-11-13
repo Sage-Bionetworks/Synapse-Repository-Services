@@ -99,6 +99,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		if (HttpAuthUtil.usesBasicAuthentication(request)) {
 			data.setBasicAuthUsername(HttpAuthUtil.getBasicAuthenticationCredentials(request).get().getUserName());
 		}
+		data.setAuthenticationMethod(request.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 		// push the session id to the logging thread context
 		ThreadContext.put(SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.

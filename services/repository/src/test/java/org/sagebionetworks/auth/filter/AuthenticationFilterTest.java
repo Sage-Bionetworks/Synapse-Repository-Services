@@ -43,6 +43,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -144,10 +145,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Should default to anonymous
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), anonymous);
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	/**
@@ -165,10 +167,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Should default to anonymous
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertTrue(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(anonymous));
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	
@@ -182,10 +185,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Session token should not be recognized
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), sessionUsername);
+		assertNull(modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	@Test
@@ -207,10 +211,11 @@ public class AuthenticationFilterTest {
 
 		// Signature should match
 		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
-		ServletRequest modRequest = filterChain.getRequest();
+		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
 		assertNotNull(modRequest);
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		assertEquals(userId.toString(), passedAlongUsername);
+		assertEquals(AuthenticationMethod.APIKEY.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 	
 	@Test
@@ -270,6 +275,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals(AuthenticationMethod.BEARERTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 
 	@Test
@@ -286,6 +292,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 
 	@Test
@@ -356,6 +363,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 
 
