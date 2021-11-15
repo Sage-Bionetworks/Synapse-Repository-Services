@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -483,9 +484,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		String sql = SQLUtils.buildSelectRowIds(tableId, rows, columns);
+		SchemaProvider schemaProvider = (IdAndVersion id) -> {
+			return columns;
+		};
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
 		try {
-			SqlQuery query = new SqlQueryBuilder(sql, columns, userInfo.getId()).build();
+			SqlQuery query = new SqlQueryBuilder(sql, schemaProvider, userInfo.getId()).build();
 			indexDao.queryAsStream(null, query, new  RowHandler() {
 				@Override
 				public void nextRow(Row row) {

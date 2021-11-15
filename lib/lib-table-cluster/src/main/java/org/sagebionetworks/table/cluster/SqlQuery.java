@@ -1,14 +1,20 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -17,11 +23,6 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
-
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Represents a SQL query for a table.
@@ -35,81 +36,76 @@ public class SqlQuery {
 	 * The input SQL is parsed into this object model.
 	 *
 	 */
-	QuerySpecification model;
+	private QuerySpecification model;
 
 	/**
 	 * The model transformed to execute against the actual table.
 	 */
-	QuerySpecification transformedModel;
-
-	/**
-	 * The full list of all of the columns of this table
-	 */
-	List<ColumnModel> tableSchema;
+	private final QuerySpecification transformedModel;
+	
+	private final SchemaProvider schemaProvider;
 
 	/**
 	 * This map will contain all of the bind variable values for the translated query.
 	 */
-	Map<String, Object> parameters;
+	private final Map<String, Object> parameters;
 
 	/**
 	 * The map of column names to column models.
 	 */
-	LinkedHashMap<String, ColumnModel> columnNameToModelMap;
+	private final LinkedHashMap<String, ColumnModel> columnNameToModelMap;
 
 	/**
 	 * The translated SQL.
 	 */
-	String outputSQL;
+	private final String outputSQL;
 
-	/**
-	 * The Id of the table.
-	 */
-	String tableId;
 
 	/**
 	 * The maximum size of each query result row returned by this query.
 	 */
-	int maxRowSizeBytes;
+	private final int maxRowSizeBytes;
 
 	/**
 	 * The maximum number of rows per page for the given query
 	 */
-	Long maxRowsPerPage;
+	private Long maxRowsPerPage;
 
 	/**
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
-	boolean includesRowIdAndVersion;
+	private final boolean includesRowIdAndVersion;
 
 	/**
 	 * Should the query results include the row's etag?
 	 * Note: This is true for view queries.
 	 */
-	boolean includeEntityEtag;
+	private final boolean includeEntityEtag;
 
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
 	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
 	 * will be null when isAggregatedResults = true.
 	 */
-	boolean isAggregatedResult;
+	private final boolean isAggregatedResult;
 
 	/**
 	 * The list of all columns referenced in the select column.
 	 */
-	List<SelectColumn> selectColumns;
+	private final List<SelectColumn> selectColumns;
 
-	Long overrideOffset;
-	Long overrideLimit;
-	Long maxBytesPerPage;
-	Long userId;
+	private final Long overrideOffset;
+	private final Long overrideLimit;
+	private final Long maxBytesPerPage;
+	private final Long userId;
 
-	List<FacetColumnRequest> selectedFacets;
+	private final List<FacetColumnRequest> selectedFacets;
 
-	EntityType tableType;
+	private final EntityType tableType;
 	
-	private boolean isIncludeSearch;
+	private final boolean isIncludeSearch;
+	
+	private final TableAndColumnMapper tableAndColumnMapper;
 
 	/**
 	 * @param tableId
@@ -119,7 +115,7 @@ public class SqlQuery {
 	 */
 	SqlQuery(
 			QuerySpecification parsedModel,
-			List<ColumnModel> tableSchema,
+			SchemaProvider schemaProvider,
 			Long overrideOffset,
 			Long overrideLimit,
 			Long maxBytesPerPage,
@@ -128,15 +124,13 @@ public class SqlQuery {
 			EntityType tableType,
 			List<FacetColumnRequest> selectedFacets,
 			List<QueryFilter> additionalFilters,
-			Long userId
+			Long userId,
+			boolean allowJoins
 			) {
-		ValidateArgument.required(tableSchema, "TableSchema");
-		if(tableSchema.isEmpty()){
-			throw new IllegalArgumentException("Table schema cannot be empty");
-		}
-		this.tableSchema = tableSchema;
+		ValidateArgument.required(schemaProvider, "schemaProvider");
 		this.model = parsedModel;
-		this.tableId = parsedModel.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		this.schemaProvider = schemaProvider;
+		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
@@ -169,13 +163,13 @@ public class SqlQuery {
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();
 
-
-		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
-		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(tableSchema);
+		List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
+		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(unionOfSchemas);
+		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(unionOfSchemas);
 
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
+			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(unionOfSchemas);
 			this.model.replaceSelectList(expandedSelectList);
 		}
 
@@ -288,11 +282,18 @@ public class SqlQuery {
 	}
 
 	/**
-	 * The ID of the table.
+	 * Get the single TableId from the query.
+	 * Note: If the SQL includes a JOIN, this will return an Optional.empty();
+	 * 
 	 * @return
 	 */
-	public String getTableId() {
-		return tableId;
+	public Optional<String> getSingleTableId() {
+		List<IdAndVersion> tableIds = tableAndColumnMapper.getTableIds();
+		if(tableIds.size() == 1) {
+			return Optional.of(tableIds.get(0).toString());
+		}else {
+			return Optional.empty();
+		}
 	}
 
 	/**
@@ -308,7 +309,7 @@ public class SqlQuery {
 	 * @return
 	 */
 	public List<ColumnModel> getTableSchema() {
-		return tableSchema;
+		return tableAndColumnMapper.getUnionOfAllTableSchemas();
 	}
 
 	/**
@@ -377,5 +378,9 @@ public class SqlQuery {
 	
 	public boolean isIncludeSearch() {
 		return isIncludeSearch;
+	}
+	
+	public SchemaProvider getSchemaProvider() {
+		return schemaProvider;
 	}
 }

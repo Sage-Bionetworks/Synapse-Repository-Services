@@ -84,7 +84,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(pagination.toSql());
 		
 		try {
-			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema(), originalQuery.getUserId()).build();
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getSchemaProvider(), originalQuery.getUserId()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

@@ -135,4 +135,41 @@ public class DerivedColumnTest {
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar) as \"foo\"");
 		assertEquals(Arrays.asList(element.getAsClause(), element.getValueExpression()), element.getChildren());
 	}
+	
+	@Test
+	public void testWithTableName() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("syn123.bar");
+		assertEquals("syn123.bar", element.toSql());
+	}
+	
+	@Test
+	public void testWithTableNameAndAlias() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("syn123.bar as foo");
+		assertEquals("syn123.bar AS foo", element.toSql());
+	}
+	
+	@Test
+	public void testWithTableNameAndAliasInFunction() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(syn123.bar) as foo");
+		assertEquals("MAX(syn123.bar) AS foo", element.toSql());
+	}
+	
+	@Test
+	public void testWithTableAlias() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("r.bar");
+		assertEquals("r.bar", element.toSql());
+	}
+	
+	@Test
+	public void testWithTableAliaAndAs() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("r.bar as goo");
+		assertEquals("r.bar AS goo", element.toSql());
+	}
+	
+	@Test
+	public void testWithTableAliaAndAsInFunction() throws ParseException {
+		DerivedColumn element = SqlElementUntils.createDerivedColumn("min(r.bar) as goo");
+		assertEquals("MIN(r.bar) AS goo", element.toSql());
+	}
+	
 }

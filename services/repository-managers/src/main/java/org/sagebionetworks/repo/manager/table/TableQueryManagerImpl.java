@@ -155,19 +155,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		// 2. Validate the user has read access on this table
 		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
-
-		// 3. Get the table's schema
-		List<ColumnModel> columnModels = tableManagerSupport.getTableSchema(idAndVersion);
-		if (columnModels.isEmpty()) {
+		
+		// 3. Get the table's schema count
+		long count = tableManagerSupport.getTableSchemaCount(idAndVersion);
+		if (count < 1L) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
+
 		// 4. Add row level filter as needed.
 		if (EntityTypeUtils.isViewType(tableType)) {
 			// Table views must have a row level filter applied to the query
 			model = addRowLevelFilter(user, model);
 		}
 		// Return the prepared query.
-		return new SqlQueryBuilder(model, user.getId()).tableSchema(columnModels).overrideOffset(query.getOffset())
+		return new SqlQueryBuilder(model, user.getId()).schemaProvider(tableManagerSupport).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
 				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
 				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
@@ -197,10 +198,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException {
 		// run with a read lock on the table and include the current etag.
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+		IdAndVersion idAndVersion = IdAndVersion.parse(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
 					// We can only run this query if the table is available.
-					final TableStatus status = validateTableIsAvailable(query.getTableId());
+					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
 					// run the query
 					QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query,
 							rowHandler, options);
@@ -269,7 +270,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setSelectColumns(query.getSelectColumns());
 		}
 
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getTableId());
+		IdAndVersion idAndVersion = IdAndVersion
+				.parse(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		
 		if (query.isIncludeSearch() && !indexDao.isSearchEnabled(idAndVersion)) {
@@ -486,7 +488,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		indexDao.queryAsStream(callback, query, rowHandler);
 		RowSet results = new RowSet();
 		results.setHeaders(query.getSelectColumns());
-		results.setTableId(query.getTableId());
+		results.setTableId(query.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return results;
 	}
 

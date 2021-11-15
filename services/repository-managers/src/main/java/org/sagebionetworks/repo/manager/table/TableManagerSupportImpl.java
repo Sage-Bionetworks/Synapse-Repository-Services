@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -519,6 +520,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public Set<Long> getViewScope(IdAndVersion idAndVersion) {
 		return viewScopeDao.getViewScope(idAndVersion.getId());
+	}
+
+	@Override
+	public long getTableSchemaCount(IdAndVersion idAndVersion) {
+		return columnModelManager.getTableSchemaCount(idAndVersion);
 	}
 
 }

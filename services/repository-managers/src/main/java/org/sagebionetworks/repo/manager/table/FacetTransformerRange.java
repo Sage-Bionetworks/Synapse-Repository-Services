@@ -74,7 +74,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
-			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema(), originalQuery.getUserId()).build();
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getSchemaProvider(), originalQuery.getUserId()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

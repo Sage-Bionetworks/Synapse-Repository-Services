@@ -136,6 +136,45 @@ public class DBOColumnModelImplTest {
 		assertNotNull(list);
 		assertTrue(list.isEmpty());
 	}
+	
+	@Test
+	public void testGetColumnModelCountForObjectWithDoesNotExist() {
+		long count = columnModelDao.getColumnModelCountForObject(idAndVersion);
+		assertEquals(0L, count);
+	}
+	
+	@Test
+	public void testGetColumnModelCountForObjecWithExists() {
+		List<ColumnModel> toBind = Lists.newArrayList(two, three);
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
+		long count = columnModelDao.getColumnModelCountForObject(idAndVersion);
+		assertEquals(2L, count);
+	}
+	
+	@Test
+	public void testGetColumnModelCountForObjecWithMultipleVersios() {
+		IdAndVersion defaultId = IdAndVersion.parse("syn123");
+		IdAndVersion versionOne = IdAndVersion.parse("syn123.1");
+		IdAndVersion versionTwo = IdAndVersion.parse("syn123.2");
+		IdAndVersion versionThree = IdAndVersion.parse("syn123.3");
+		
+		List<ColumnModel> defaultSchema = Lists.newArrayList(one);
+		List<ColumnModel> vOneSchema = Lists.newArrayList(one, two);
+		List<ColumnModel> vTwoSchema = Lists.newArrayList(one, two, three);
+		List<ColumnModel> vThreeSchema = Collections.emptyList();
+
+		columnModelDao.bindColumnToObject(defaultSchema, defaultId);
+		columnModelDao.bindColumnToObject(vOneSchema, versionOne);
+		columnModelDao.bindColumnToObject(vTwoSchema, versionTwo);
+		columnModelDao.bindColumnToObject(vThreeSchema, versionThree);
+		
+		// call under test
+		assertEquals(1L, columnModelDao.getColumnModelCountForObject(defaultId));
+		assertEquals(2L, columnModelDao.getColumnModelCountForObject(versionOne));
+		assertEquals(3L, columnModelDao.getColumnModelCountForObject(versionTwo));
+		assertEquals(0L, columnModelDao.getColumnModelCountForObject(versionThree));
+	}
+	
 
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{

@@ -4,12 +4,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
@@ -95,11 +97,11 @@ public class FacetModelTest {
 
 		userId = 1L;
 
-		simpleQuery = new SqlQueryBuilder("select * from " + tableId, facetSchema, userId).build();
+		simpleQuery = new SqlQueryBuilder("select * from " + tableId, schemaProvider(facetSchema), userId).build();
 		selectedFacets = Lists.newArrayList((FacetColumnRequest)rangeRequest, (FacetColumnRequest)valuesRequest);
 
 		query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
-				facetSchema, userId).build();
+				schemaProvider(facetSchema), userId).build();
 	}
 	/////////////////////
 	// Constructor tests
@@ -294,7 +296,7 @@ public class FacetModelTest {
 	@Test
 	public void testGenerateFacetFilteredQueryNonEmptyFacetColumnsList() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
-				facetSchema, userId).build();
+				schemaProvider(facetSchema), userId).build();
 
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 
@@ -335,6 +337,17 @@ public class FacetModelTest {
 		assertEquals(2, result.size());
 		assertTrue(result.get(0) instanceof FacetTransformerRange);
 		assertTrue(result.get(1) instanceof FacetTransformerValueCounts);
+	}
+	
+	/**
+	 * Helper to create a schema provider for the given schema.
+	 * @param schema
+	 * @return
+	 */
+	SchemaProvider schemaProvider(List<ColumnModel> schema) {
+		return (IdAndVersion tableId) -> {
+			return schema;
+		};
 	}
 	
 }
