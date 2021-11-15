@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
@@ -16,18 +16,20 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 
 public class OAuthManagerImplUnitTest {
 	
-	private OAuthManagerImpl oauthManager;
-	private OAuthProviderBinding providerBinding;
-	private OAuthProvider ORCID_PROVIDER_ENUM = OAuthProvider.ORCID;
-	private OAuthProvider NIH_PROVIDER_ENUM = OAuthProvider.NIH_OAUTH_2_0;
+	private static OAuthManagerImpl oauthManager;
+	private static OAuthProviderBinding providerBinding;
+	private static OAuthProviderBinding nihProviderBinding;
+	private static OAuthProvider ORCID_PROVIDER_ENUM = OAuthProvider.ORCID;
+	private static OAuthProvider NIH_PROVIDER_ENUM = OAuthProvider.NIH_OAUTH_2_0;
 
-	@Before
-	public void before() throws Exception {
+	@BeforeAll
+	public static void beforeAll() throws Exception {
 		oauthManager = new OAuthManagerImpl();
 		Map<OAuthProvider, OAuthProviderBinding> providerMap = new HashMap<OAuthProvider, OAuthProviderBinding>();
 		providerBinding = Mockito.mock(OAuthProviderBinding.class);
+		nihProviderBinding = Mockito.mock(OAuthProviderBinding.class);
 		providerMap.put(ORCID_PROVIDER_ENUM, providerBinding);
-		providerMap.put(NIH_PROVIDER_ENUM, providerBinding); // TODO: does this need to be a different provider binding?
+		providerMap.put(NIH_PROVIDER_ENUM, nihProviderBinding);
 		oauthManager.setProviderMap(providerMap);
 	}
 
@@ -56,7 +58,7 @@ public class OAuthManagerImplUnitTest {
 		String state = "some state#@%";
 		String authUrl = "http://foo.bar.com?response_type=code&redirect_uri="+redirUrl;
 		String expected = authUrl+"&state="+URLEncoder.encode(state);
-		when(providerBinding.getAuthorizationUrl(redirUrl)).thenReturn(authUrl);
+		when(nihProviderBinding.getAuthorizationUrl(redirUrl)).thenReturn(authUrl);
 		assertEquals(expected, oauthManager.getAuthorizationUrl(NIH_PROVIDER_ENUM, redirUrl, state));
 	}
 

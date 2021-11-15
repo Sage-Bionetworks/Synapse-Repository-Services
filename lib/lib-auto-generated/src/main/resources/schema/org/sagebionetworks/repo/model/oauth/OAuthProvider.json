@@ -4,15 +4,15 @@
     "enum": [
         {
             "name": "GOOGLE_OAUTH_2_0",
-            "description": "TODO: Auto-generated description"
+            "description": "Google OAuth 2.0 implementation of OAuth Provider."
         },
         {
             "name": "ORCID",
-            "description": "TODO: Auto-generated description"
+            "description": "ORCID OAuth 2.0 implementation of OAuth Provider."
         },
         {
             "name": "NIH_OAUTH_2_0",
-            "description": "TODO: Auto-generated description"
+            "description": "NIH Researcher Auth Service implementation of OAuth Provider."
         }
     ]
 }

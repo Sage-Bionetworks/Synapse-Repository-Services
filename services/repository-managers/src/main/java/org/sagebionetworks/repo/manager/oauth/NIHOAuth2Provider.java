@@ -24,7 +24,7 @@ public class NIHOAuth2Provider implements OAuthProviderBinding{
     private static final String TOKEN_URL = "https://www.auth.nih BLAH BLAH PLACE HOLDER /auth/oauth/v2/token"; // TODO
 
     private static final String MESSAGE = " Message: ";
-    private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
+    private static final String FAILED_PREFIX = "Failed to get User's information from NIH. Code: ";
     private static final String NIH_OAUTH_USER_INFO_API_URL = "https://www.auth.nih BLAH BLAH PLACE HOLDER /openid/connect/v1.1/userinfo"; // TODO
 
     private String clientId;
@@ -81,6 +81,6 @@ public class NIHOAuth2Provider implements OAuthProviderBinding{
 
     @Override
     public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
-        throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the NIH- OAuth provider.");
+        throw new IllegalArgumentException("Retrieving alias is not supported in Synapse for the NIH OAuth provider.");
     }
 }
