@@ -258,7 +258,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	public String getDbReadOnlyPassword() {
-		return configuration.getProperty("org.sagebionetworks.repository.db.readonlypassword");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repository.db.readonlypassword");
 	}
 
 	/**
