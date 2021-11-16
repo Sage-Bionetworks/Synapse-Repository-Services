@@ -93,6 +93,11 @@
 		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientSecret" index="1" />
 	</bean>
 
+	<bean id="nihOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.NIHOAuth2Provider">
+		<constructor-arg ref="stackConfiguration.oAuth2NIHClientId" index="0" />
+		<constructor-arg ref="stackConfiguration.oAuth2NIHClientSecret" index="1" />
+	</bean>
+
 	<bean id="tokenGenerator"
 		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
 		factory-method="singleton"/>
@@ -106,6 +111,9 @@
 				<entry
 					key="ORCID"
 					value-ref="orcidOAuth2Provider" />
+				<entry
+						key="NIH_OAUTH_2_0"
+						value-ref="nihOAuth2Provider" />
 			</map>
 		</property>
 

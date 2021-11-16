@@ -508,6 +508,18 @@ public interface StackConfiguration {
 	public String getOAuth2ORCIDClientSecret();
 
 	/**
+	 *
+	 * @return
+	 */
+	public String getOAuth2NIHClientId();
+
+	/**
+	 *
+	 * @return
+	 */
+	public String getOAuth2NIHClientSecret();
+
+	/**
 	 * Get the max bytes per HTTP request for a table.
 	 * 
 	 * @return

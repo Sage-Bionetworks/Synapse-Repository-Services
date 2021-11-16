@@ -798,6 +798,22 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
+	 *
+	 * @return
+	 */
+	public String getOAuth2NIHClientId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.client.id");
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public String getOAuth2NIHClientSecret() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.client.secret");
+	}
+
+	/**
 	 * Get the max bytes per HTTP request for a table.
 	 * 
 	 * @return
