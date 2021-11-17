@@ -730,19 +730,6 @@ public class SqlElementUntils {
 	}
 	
 	/**
-	 * Create an unconditionally double quoted derived column
-	 * @param columnName
-	 * @return
-	 */
-	public static DerivedColumn createDoubleQuotedDerivedColumn(String columnName){
-		try {
-			return new TableQueryParser(wrapInDoubleQuotes(columnName)).derivedColumn();
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-	
-	/**
 	 * Create a non-quoted derived column.
 	 * @param columnName
 	 * @return

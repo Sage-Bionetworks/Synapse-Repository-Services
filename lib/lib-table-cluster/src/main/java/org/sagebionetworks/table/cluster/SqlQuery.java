@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -131,6 +132,9 @@ public class SqlQuery {
 		this.model = parsedModel;
 		this.schemaProvider = schemaProvider;
 		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
+		if(!allowJoins && this.tableAndColumnMapper.getTableIds().size() > 1) {
+			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
+		}
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.selectedFacets = selectedFacets;
 		this.overrideLimit = overrideLimit;
@@ -169,7 +173,7 @@ public class SqlQuery {
 
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
-			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(unionOfSchemas);
+			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
 			this.model.replaceSelectList(expandedSelectList);
 		}
 

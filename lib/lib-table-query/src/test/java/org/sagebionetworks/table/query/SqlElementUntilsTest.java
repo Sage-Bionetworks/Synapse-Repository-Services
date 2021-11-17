@@ -416,23 +416,6 @@ public class SqlElementUntilsTest {
 	///////////////////////////////////////////////
 	// createDoubleQuotedDerivedColumn() tests
 	///////////////////////////////////////////////
-
-	public void testCreateDoubleQuotedDerivedColumn_nameIsSingleWord() throws ParseException {
-		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo");
-		assertEquals("\"foo\"", dr.toSql());
-	}
-
-	@Test
-	public void testCreateDoubleQuotedDerivedColumn_nameIncludesSpaces() throws ParseException {
-		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo bar");
-		assertEquals("\"foo bar\"", dr.toSql());
-	}
-
-	@Test
-	public void testCreateDoubleQuotedDerivedColumn_nameIncludesDoubleQuotes() throws ParseException {
-		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo\"bar\"");
-		assertEquals("\"foo\"\"bar\"\"\"", dr.toSql());
-	}
 	
 	@Test
 	public void testCreateNonQuotedDerivedColumn(){
