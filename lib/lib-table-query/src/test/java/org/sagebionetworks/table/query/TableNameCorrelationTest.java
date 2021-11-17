@@ -52,7 +52,7 @@ public class TableNameCorrelationTest {
 	@Test
 	public void testGetTableAliasWithoutAs() throws ParseException {
 		TableNameCorrelation tableName = new TableQueryParser("T123 foo").tableNameCorrelation();
-		assertEquals("foo", tableName.getTableAlias().orElse(null));
+		assertEquals("f", tableName.getTableAlias().orElse(null));
 	}
 	
 	@Test
