@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -179,7 +178,7 @@ public class TableFileHandleScannerAutowireTest {
 			columnIds = model.stream().map(ColumnModel::getId).collect(Collectors.toList());
 		}
 		
-		Table table = new TableEntity();
+		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
 		table.setColumnIds(columnIds);
 		

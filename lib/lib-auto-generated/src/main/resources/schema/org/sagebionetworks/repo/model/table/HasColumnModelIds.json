@@ -1,0 +1,13 @@
+{
+	"description": "The object that implements this interface contains a list of column model ids.",
+	"type": "interface",
+	"properties": {
+		"columnIds": {
+		    "description":"The list of ColumnModel IDs that define the schema of the object.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -1,18 +1,10 @@
 {
-	"description": "JSON schema for Table interface",
+	"description": "JSON schema that defines a common interface for all the table type entities.",
 	"type": "interface",
 	"implements": [
 		{
 			"$ref":"org.sagebionetworks.repo.model.VersionableEntity"
 		}
 	],
-	"properties": {
-		"columnIds": {
-		    "description":"The list of ColumnModel IDs that define the schema for this table.",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		}
-	}
+	"properties": { }
 }
