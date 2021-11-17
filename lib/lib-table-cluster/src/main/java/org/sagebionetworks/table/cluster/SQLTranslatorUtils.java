@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -230,20 +229,6 @@ public class SQLTranslatorUtils {
 		default:
 			return false;
 		}
-	}
-	
-	/**
-	 * Create a select list from a given table schema.
-	 * @param schema
-	 * @return
-	 */
-	public static SelectList createSelectListFromSchema(List<ColumnModel> schema){
-		ValidateArgument.required(schema, "schema");
-		List<DerivedColumn> columns = new ArrayList<DerivedColumn>(schema.size());
-		for(ColumnModel cm: schema){
-			columns.add(SqlElementUntils.createDoubleQuotedDerivedColumn(cm.getName()));
-		}
-		return new SelectList(columns);
 	}
 	
 	/**

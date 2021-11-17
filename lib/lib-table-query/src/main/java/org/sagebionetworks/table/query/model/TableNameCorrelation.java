@@ -48,5 +48,18 @@ public class TableNameCorrelation extends SQLElement implements HasSingleTableNa
 	public Optional<CorrelationSpecification> getCorrelationSpecification(){
 		return Optional.ofNullable(correlationSpecification);
 	}
+	
+	/**
+	 * Get the table alias if it was included.
+	 * If no table alias was included, then Optional.empty() will be returned.
+	 * @return
+	 */
+	public Optional<String> getTableAlias(){
+		if(correlationSpecification == null) {
+			return Optional.empty();
+		}else {
+			return Optional.of(correlationSpecification.getCorrelationName().toSql());
+		}
+	}
 
 }

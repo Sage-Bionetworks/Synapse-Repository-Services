@@ -30,5 +30,9 @@ public class CorrelationSpecification extends SQLElement {
 		}
 		correlationName.toSql(builder, parameters);
 	}
+	
+	public CorrelationName getCorrelationName() {
+		return this.correlationName;
+	}
 
 }

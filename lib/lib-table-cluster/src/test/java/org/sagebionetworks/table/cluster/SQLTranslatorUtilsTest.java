@@ -449,35 +449,7 @@ public class SQLTranslatorUtilsTest {
 			assertTrue(message.contains("Unknown column"));
 		}
 	}
-	
-	@Test
-	public void testCreateSelectListFromSchema(){
-		// call under test.
-		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
-		assertNotNull(results);
-		assertEquals("\"foo\", \"has space\"", results.toSql());
-	}
-	
-	@Test
-	public void testCreateSelectListFromSchemaPLFM_4161(){
-		ColumnModel cm = new ColumnModel();
-		cm.setName("5ormore");
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setId("111");
-		// call under test.
-		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(cm));
-		assertNotNull(results);
-		assertEquals("\"5ormore\"", results.toSql());
-	}
-	
-	@Test
-	public void testCreateSelectListFromSchemaNull(){
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test.
-			SQLTranslatorUtils.createSelectListFromSchema(null);
-		});
-	}
-	
+		
 	@Test
 	public void testGetSelectColumnsSelectStar() throws ParseException{
 		boolean isAggregate = false;

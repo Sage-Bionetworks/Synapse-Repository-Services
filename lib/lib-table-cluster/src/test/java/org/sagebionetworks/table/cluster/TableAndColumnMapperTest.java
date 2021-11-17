@@ -1,9 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 
 public class TableAndColumnMapperTest {
 
@@ -24,12 +27,15 @@ public class TableAndColumnMapperTest {
 
 	@BeforeEach
 	public void before() {
-		allColumns = Arrays.asList(TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING),
+		allColumns = Arrays.asList(
+				TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING),
 				TableModelTestUtils.createColumn(222L, "has space", ColumnType.STRING),
-				TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING),
+				TableModelTestUtils.createColumn(333L, "bar", ColumnType.INTEGER),
 				TableModelTestUtils.createColumn(444L, "foo_bar", ColumnType.STRING),
 				TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING),
-				TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE));
+				TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE),
+				TableModelTestUtils.createColumn(777L, "has\"quote", ColumnType.STRING)
+		);
 	}
 
 	@Test
@@ -80,7 +86,76 @@ public class TableAndColumnMapperTest {
 		}).getMessage();
 		assertEquals("SchemaProvider is required.", message);
 	}
+	
+	@Test
+	public void testConstructorWithEmptySchema() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Collections.emptyList());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			new TableAndColumnMapper(model, createSchemaProvider(map));
+		}).getMessage();
+		assertEquals("Schema for syn123 is empty.", message);
+	}
+	
+	@Test
+	public void testBuildSelectAllColumns() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), allColumns);
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		
+		// call under test
+		SelectList selectList = mapper.buildSelectAllColumns();
+		assertNotNull(selectList);
+		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\"", selectList.toSql());
+	}
 
+	
+	@Test
+	public void testBuildSelectAllColumnsWithJoinWithoutAlias() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		
+		// call under test
+		SelectList selectList = mapper.buildSelectAllColumns();
+		assertNotNull(selectList);
+		assertEquals("syn123.\"foo\", syn123.\"has space\", syn456.\"bar\", syn456.\"foo_bar\"", selectList.toSql());
+	}
+	
+	@Test
+	public void testBuildSelectAllColumnsWithJoinWithAlias() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		
+		// call under test
+		SelectList selectList = mapper.buildSelectAllColumns();
+		assertNotNull(selectList);
+		assertEquals("t.\"foo\", t.\"has space\", r.\"bar\", r.\"foo_bar\"", selectList.toSql());
+	}
+	
+	@Test
+	public void testBuildSelectAllColumnsWithJoinWithMixedAlias() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		
+		// call under test
+		SelectList selectList = mapper.buildSelectAllColumns();
+		assertNotNull(selectList);
+		assertEquals("t.\"foo\", t.\"has space\", syn456.\"bar\", syn456.\"foo_bar\"", selectList.toSql());
+	}
+	
 	/**
 	 * Helper to create a schema provider from the given map.
 	 * 
