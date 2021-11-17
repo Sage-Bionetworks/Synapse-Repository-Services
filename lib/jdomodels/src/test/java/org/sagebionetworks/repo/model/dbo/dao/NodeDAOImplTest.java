@@ -4743,6 +4743,65 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testCreateAndGetMaterializedView() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		toDelete.add(project.getId());
+		
+		String sql = "SELECT * FROM syn123";
+		
+		// call under test
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		
+		// call under test
+		Node fromVersion = nodeDao.getNodeForVersion(materializedView.getId(), materializedView.getVersionNumber());
+		assertEquals(materializedView, fromVersion);
+	}
+	
+	@Test
+	public void testUpdateMaterializedView() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		String sql = "SELECT * FROM syn123";
+		
+		Node materializedView = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.materializedview);
+			n.setDefiningSQL(sql);
+		});
+		
+		Node node = nodeDao.getNodeForVersion(materializedView.getId(), materializedView.getVersionNumber());
+		
+		assertEquals(materializedView, node);
+		
+		String updatedSql = sql + " WHERE foo = 'bar'";
+		
+		node.setDefiningSQL(updatedSql);
+		
+		// call under test
+		nodeDao.updateNode(node);
+		
+		node = nodeDao.getNodeForVersion(materializedView.getId(), materializedView.getVersionNumber());
+		
+		assertEquals(updatedSql, node.getDefiningSQL());	
+	}
+	
+	@Test
 	public void testGetIdsAndChecksumsForChildren() throws Exception {
 		Node projectOne = nodeDaoHelper.create(n -> {
 			n.setName("project-one");

@@ -95,6 +95,7 @@ public class NodeUtils {
 		rev.setItems(writeItemsToJson(dto.getItems()));
 		rev.setReference(compressReference(dto.getReference()));
 		rev.setIsSearchEnabled(dto.getIsSearchEnabled());
+		rev.setDefiningSQL(dto.getDefiningSQL());
 	}
 	
 	/**
@@ -182,6 +183,7 @@ public class NodeUtils {
 		dbo.setReference(compressReference(dto.getReference()));
 		dbo.setItems(writeItemsToJson(dto.getItems()));
 		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
+		dbo.setDefiningSQL(dto.getDefiningSQL());
 		return dbo;
 	}
 	
@@ -302,6 +304,7 @@ public class NodeUtils {
 		}
 		dto.setItems(readJsonToItems(rev.getItems()));
 		dto.setIsSearchEnabled(rev.getIsSearchEnabled());
+		dto.setDefiningSQL(rev.getDefiningSQL());
 	}
 	
 	/**

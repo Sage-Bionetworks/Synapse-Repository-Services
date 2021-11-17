@@ -376,6 +376,8 @@ public class NodeUtilsTest {
 		assertEquals(
 				"[{\"entityId\":\"syn555\",\"versionNumber\":2},{\"entityId\":\"syn777\",\"versionNumber\":4}]",
 				dbo.getItems());
+		assertTrue(dbo.getIsSearchEnabled());
+		assertEquals("SELECT * FROM syn123", dbo.getDefiningSQL());
 	}
 
 	@Test
@@ -442,6 +444,8 @@ public class NodeUtilsTest {
 		reference.setTargetVersionNumber(4L);
 		node.setReference(reference);
 		node.setVersionComment("aComment");
+		node.setIsSearchEnabled(true);
+		node.setDefiningSQL("SELECT * FROM syn123");
 		return node;
 	}
 

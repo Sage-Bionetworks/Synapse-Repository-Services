@@ -50,7 +50,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
 			new FieldColumn("type", COL_NODE_TYPE),
 			new FieldColumn("alias", COL_NODE_ALIAS),
-			};
+	};
 	
 	private static final RowMapper<DBONode> ROW_MAPPER = new DBONodeMapper();
 	
