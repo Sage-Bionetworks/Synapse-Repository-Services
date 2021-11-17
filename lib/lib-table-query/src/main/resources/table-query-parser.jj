@@ -687,11 +687,11 @@ CorrelationSpecification correlationSpecification():
 }
 CorrelationName correlationName():
 {
-	Identifier identifier = null;
+	RegularIdentifier regularIdentifier = null;
 }
 {
-	identifier = identifier()
-	{ return new CorrelationName(identifier); }
+	regularIdentifier = regularIdentifier()
+	{ return new CorrelationName(regularIdentifier); }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }

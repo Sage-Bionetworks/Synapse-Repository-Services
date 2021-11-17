@@ -39,20 +39,20 @@ public class TableNameCorrelationTest {
 	
 	@Test
 	public void testDerivedWithCorrolation() throws ParseException {
-		TableNameCorrelation tableName = new TableQueryParser("T123 as `has space`").tableNameCorrelation();
-		assertEquals("T123 AS `has space`", tableName.toSql());
+		TableNameCorrelation tableName = new TableQueryParser("T123 as foo").tableNameCorrelation();
+		assertEquals("T123 AS foo", tableName.toSql());
 	}
 	
 	@Test
 	public void testGetTableAliasWithAs() throws ParseException {
-		TableNameCorrelation tableName = new TableQueryParser("T123 as `has space`").tableNameCorrelation();
-		assertEquals("`has space`", tableName.getTableAlias().orElse(null));
+		TableNameCorrelation tableName = new TableQueryParser("T123 as foo").tableNameCorrelation();
+		assertEquals("foo", tableName.getTableAlias().orElse(null));
 	}
 	
 	@Test
 	public void testGetTableAliasWithoutAs() throws ParseException {
-		TableNameCorrelation tableName = new TableQueryParser("T123 `has space`").tableNameCorrelation();
-		assertEquals("`has space`", tableName.getTableAlias().orElse(null));
+		TableNameCorrelation tableName = new TableQueryParser("T123 foo").tableNameCorrelation();
+		assertEquals("foo", tableName.getTableAlias().orElse(null));
 	}
 	
 	@Test
