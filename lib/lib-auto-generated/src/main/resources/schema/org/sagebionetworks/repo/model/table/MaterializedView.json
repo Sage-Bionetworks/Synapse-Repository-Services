@@ -1,0 +1,21 @@
+{
+	"description": "A materialized view is a type of view that automatically built from a Synapse SQL query. The SQL of the materialized view may contain JOIN clauses on multiple tables.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.View"
+		}
+	],
+	"properties": {
+		"definingSQL": {
+			"description": "The synapse SQL statement that defines the view. The SQL may contain JOIN clauses on multiple tables. The schema of the view is determined by the SELECT clause in the SQL.",
+			"type": "string"
+		},
+		"columnIds": {
+		    "description":"The list of computed ColumnModel IDs that define the schema for this materialized view. Note that this property is automatically computed by the back-end from the SQL SELECT clause.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
