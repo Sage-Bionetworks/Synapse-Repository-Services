@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.Arrays;
 
@@ -31,6 +33,19 @@ public class ColumnReferenceTest {
 	@Test
 	public void testGetChidren() throws ParseException {
 		ColumnReference element = new TableQueryParser("\"has space\".\"has\"\"quote\"").columnReference();
-		assertEquals(Arrays.asList(element.getNameLHS(), element.getNameRHS()), element.getChildren());
+		assertEquals(Arrays.asList(element.getNameLHS().get(), element.getNameRHS()), element.getChildren());
+	}
+	
+	@Test
+	public void testNameLHSWithLHS() throws ParseException {
+		ColumnReference element = new TableQueryParser("lhs.rhs").columnReference();
+		assertTrue(element.getNameLHS().isPresent());
+		assertEquals("lhs", element.getNameLHS().get().toSql());
+	}
+	
+	@Test
+	public void testNameLHSWithoutLHS() throws ParseException {
+		ColumnReference element = new TableQueryParser("rhs").columnReference();
+		assertFalse(element.getNameLHS().isPresent());
 	}
 }

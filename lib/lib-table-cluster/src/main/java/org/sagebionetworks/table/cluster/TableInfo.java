@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
@@ -17,13 +19,15 @@ public class TableInfo {
 	private final IdAndVersion tableIdAndVersion;
 	private final String tableAlias;
 	private final String translatedTableName;
+	private final List<ColumnModel> tableSchema;
 
-	public TableInfo(TableNameCorrelation tableNameCorrelation) {
+	public TableInfo(TableNameCorrelation tableNameCorrelation, List<ColumnModel> schema) {
 		ValidateArgument.required(tableNameCorrelation, "TableNameCorrelation");
 		originalTableName = tableNameCorrelation.getTableName().toSql();
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		this.tableSchema = schema;
 	}
 
 	/**
@@ -60,61 +64,12 @@ public class TableInfo {
 		return translatedTableName;
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((originalTableName == null) ? 0 : originalTableName.hashCode());
-		result = prime * result + ((tableAlias == null) ? 0 : tableAlias.hashCode());
-		result = prime * result + ((tableIdAndVersion == null) ? 0 : tableIdAndVersion.hashCode());
-		result = prime * result + ((translatedTableName == null) ? 0 : translatedTableName.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof TableInfo)) {
-			return false;
-		}
-		TableInfo other = (TableInfo) obj;
-		if (originalTableName == null) {
-			if (other.originalTableName != null) {
-				return false;
-			}
-		} else if (!originalTableName.equals(other.originalTableName)) {
-			return false;
-		}
-		if (tableAlias == null) {
-			if (other.tableAlias != null) {
-				return false;
-			}
-		} else if (!tableAlias.equals(other.tableAlias)) {
-			return false;
-		}
-		if (tableIdAndVersion == null) {
-			if (other.tableIdAndVersion != null) {
-				return false;
-			}
-		} else if (!tableIdAndVersion.equals(other.tableIdAndVersion)) {
-			return false;
-		}
-		if (translatedTableName == null) {
-			if (other.translatedTableName != null) {
-				return false;
-			}
-		} else if (!translatedTableName.equals(other.translatedTableName)) {
-			return false;
-		}
-		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "TableInfo [originalTableName=" + originalTableName + ", tableIdAndVersion=" + tableIdAndVersion
-				+ ", tableAlias=" + tableAlias + ", translatedTableName=" + translatedTableName + "]";
+	/**
+	 * Get the schema associated with this table.
+	 * @return the tableSchema
+	 */
+	public List<ColumnModel> getTableSchema() {
+		return tableSchema;
 	}
 
 }

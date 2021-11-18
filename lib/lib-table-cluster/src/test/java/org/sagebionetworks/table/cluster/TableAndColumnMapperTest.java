@@ -45,7 +45,7 @@ public class TableAndColumnMapperTest {
 		map.put(IdAndVersion.parse("syn123"), allColumns);
 
 		// call under test
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		assertEquals(Arrays.asList(IdAndVersion.parse("syn123")), mapper.getTableIds());
 		assertEquals(allColumns, mapper.getUnionOfAllTableSchemas());
 	}
@@ -57,7 +57,7 @@ public class TableAndColumnMapperTest {
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1), allColumns.get(2)));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(3), allColumns.get(4), allColumns.get(5)));
 		// call under test
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		assertEquals(Arrays.asList(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")), mapper.getTableIds());
 		assertEquals(allColumns.subList(0, 6), mapper.getUnionOfAllTableSchemas());
 	}
@@ -70,7 +70,7 @@ public class TableAndColumnMapperTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			new TableAndColumnMapper(model, createSchemaProvider(map));
+			new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		}).getMessage();
 		assertEquals("QuerySpecification is required.", message);
 	}
@@ -95,7 +95,7 @@ public class TableAndColumnMapperTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			new TableAndColumnMapper(model, createSchemaProvider(map));
+			new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		}).getMessage();
 		assertEquals("Schema for syn123 is empty.", message);
 	}
@@ -105,7 +105,7 @@ public class TableAndColumnMapperTest {
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), allColumns);
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -120,7 +120,7 @@ public class TableAndColumnMapperTest {
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -134,7 +134,7 @@ public class TableAndColumnMapperTest {
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -148,7 +148,7 @@ public class TableAndColumnMapperTest {
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, createSchemaProvider(map));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
 		
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
@@ -156,15 +156,4 @@ public class TableAndColumnMapperTest {
 		assertEquals("t.\"foo\", t.\"has space\", syn456.\"bar\", syn456.\"foo_bar\"", selectList.toSql());
 	}
 	
-	/**
-	 * Helper to create a schema provider from the given map.
-	 * 
-	 * @param map
-	 * @return
-	 */
-	public SchemaProvider createSchemaProvider(Map<IdAndVersion, List<ColumnModel>> map) {
-		return (IdAndVersion i) -> {
-			return map.get(i);
-		};
-	}
 }

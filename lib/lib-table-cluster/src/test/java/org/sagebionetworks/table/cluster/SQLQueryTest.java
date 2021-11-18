@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -926,15 +927,33 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testTranslateWithJoin() throws ParseException {
+	public void testTranslateWithJoinWithAlowJoinFalse() throws ParseException {
 		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn1.foo is not null";
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			new SqlQueryBuilder(sql, userId)
 					.schemaProvider(schemaProvider(tableSchema))
+					.allowJoins(false)
 					.tableType(EntityType.table)
 					.build();
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
+	}
+	
+	@Test
+	public void testTranslateWithJoinWithAlowJoinTrue() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+		
+		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar is not null";
+		SqlQuery query = new SqlQueryBuilder(sql, userId)
+				.schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true)
+				.tableType(EntityType.table)
+				.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)", query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+		assertTrue(query.isIncludeSearch());
 	}
 	
 	/**
