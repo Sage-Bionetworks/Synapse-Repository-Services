@@ -182,6 +182,19 @@ public class TableAndColumnMapperTest {
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(allColumns.get(3))),
 				mapper.lookupColumnReference(columnReference));
 	}
+	
+	@Test
+	public void testLookupColumnReferenceWithMultipleTablesNoMatch() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("syn456.nothere").columnReference();
+		// call under test
+		assertEquals(Optional.empty(),	mapper.lookupColumnReference(columnReference));
+	}
 
 	@Test
 	public void testLookupColumnReferenceWithNullLHSAndMultipleTables() throws ParseException {

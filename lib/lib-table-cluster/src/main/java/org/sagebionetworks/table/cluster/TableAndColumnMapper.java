@@ -105,6 +105,6 @@ public class TableAndColumnMapper {
 		if(!columnReference.getNameLHS().isPresent() && tables.size() > 1) {
 			throw new IllegalArgumentException("Expected a table name or table alias for column: "+columnReference.toSql());
 		}
-		return tables.stream().map(t->t.lookupColumnReference(columnReference)).filter(o->o.isPresent()).findFirst().get();
+		return tables.stream().map(t->t.lookupColumnReference(columnReference)).filter(Optional::isPresent).map(Optional::get).findFirst();
 	}
 }
