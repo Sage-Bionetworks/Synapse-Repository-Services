@@ -253,6 +253,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					dockerRepository.setIsManaged(false);
 					dockerRepository.setRepositoryName("foo/bar");
 				}
+				if (object instanceof MaterializedView) {
+					((MaterializedView) object).setDefiningSQL("SELECT * FROM syn123");
+				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());

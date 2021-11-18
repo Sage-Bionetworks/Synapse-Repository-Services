@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
@@ -45,6 +46,13 @@ public class MetadataProviderFactoryTest {
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(SubmissionView.class));
 		assertNotNull(providers);
 		assertEquals(1, providers.size());
+	}
+	
+	@Test
+	public void testGetMaterializedViewMetadataProvider() {
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(MaterializedView.class));
+		assertNotNull(providers);
+		assertEquals(1, providers.size());		
 	}
 
 
