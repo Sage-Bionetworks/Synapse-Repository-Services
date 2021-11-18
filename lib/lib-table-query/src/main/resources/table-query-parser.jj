@@ -32,7 +32,13 @@ public class TableQueryParser {
 	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		return parser.querySpecification();
+		QuerySpecification parsedQuery = parser.querySpecification();
+		
+		if (parsedQuery.getTableExpression() == null) {
+			throw new ParseException("The query must specify a table.");
+		}
+		
+		return parsedQuery;
 	}
 }
 

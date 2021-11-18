@@ -474,5 +474,14 @@ public class TableQueryParserTest {
 				.parserQuery("select * from syn1 join syn2 join syn3 on (syn1.id = syn2.id and syn2.b = syn3.b)");
 		assertEquals("SELECT * FROM syn1 JOIN syn2 JOIN syn3 ON ( syn1.id = syn2.id AND syn2.b = syn3.b )", element.toSql());
 	}
+	
+	@Test
+	public void testParseQueryWithNoTableInQuery() throws ParseException {
+		String message = assertThrows(ParseException.class, () -> {	
+			TableQueryParser.parserQuery("SELECT *");
+		}).getMessage();
+
+		assertEquals("The query must specify a table.", message);
+	}
 
 }
