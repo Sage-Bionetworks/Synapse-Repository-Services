@@ -1,9 +1,17 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -17,13 +25,17 @@ public class TableInfo {
 	private final IdAndVersion tableIdAndVersion;
 	private final String tableAlias;
 	private final String translatedTableName;
+	private final List<ColumnModel> tableSchema;
+	private final List<ColumnTranslationReference> translationReferences;
 
-	public TableInfo(TableNameCorrelation tableNameCorrelation) {
+	public TableInfo(TableNameCorrelation tableNameCorrelation, List<ColumnModel> schema) {
 		ValidateArgument.required(tableNameCorrelation, "TableNameCorrelation");
 		originalTableName = tableNameCorrelation.getTableName().toSql();
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		this.tableSchema = schema;
+		this.translationReferences = schema.stream().map(c-> new SchemaColumnTranslationReference(c)).collect(Collectors.toList());
 	}
 
 	/**
@@ -60,61 +72,41 @@ public class TableInfo {
 		return translatedTableName;
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((originalTableName == null) ? 0 : originalTableName.hashCode());
-		result = prime * result + ((tableAlias == null) ? 0 : tableAlias.hashCode());
-		result = prime * result + ((tableIdAndVersion == null) ? 0 : tableIdAndVersion.hashCode());
-		result = prime * result + ((translatedTableName == null) ? 0 : translatedTableName.hashCode());
-		return result;
+	/**
+	 * Get the schema associated with this table.
+	 * @return the tableSchema
+	 */
+	public List<ColumnModel> getTableSchema() {
+		return tableSchema;
 	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
+	
+	/**
+	 * Attempt to match the given ColumnReference to a column of this table.
+	 * @param columnReference
+	 * @return
+	 */
+	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
+		if (columnReference == null) {
+			return Optional.empty();
 		}
-		if (!(obj instanceof TableInfo)) {
-			return false;
-		}
-		TableInfo other = (TableInfo) obj;
-		if (originalTableName == null) {
-			if (other.originalTableName != null) {
-				return false;
+		Optional<ColumnName> lhsOptional = columnReference.getNameLHS();
+		if (lhsOptional.isPresent()) {
+			String unquotedLHS = lhsOptional.get().toSqlWithoutQuotes();
+			// if we have a LHS it must match either the table name or table alias.
+			if (!unquotedLHS.equals(originalTableName) && !unquotedLHS.equals(tableAlias)) {
+				return Optional.empty();
 			}
-		} else if (!originalTableName.equals(other.originalTableName)) {
-			return false;
 		}
-		if (tableAlias == null) {
-			if (other.tableAlias != null) {
-				return false;
-			}
-		} else if (!tableAlias.equals(other.tableAlias)) {
-			return false;
+		String rhs = columnReference.getNameRHS().toSqlWithoutQuotes();
+		Optional<ColumnTranslationReference> optional = translationReferences.stream()
+				.filter(t -> rhs.equals(t.getTranslatedColumnName()) || rhs.equals(t.getUserQueryColumnName()))
+				.findFirst();
+		if(optional.isPresent()) {
+			return optional;
+		}else {
+			// attempt to match to row metadata
+			return RowMetadataColumnTranslationReference.lookupColumnReference(rhs);
 		}
-		if (tableIdAndVersion == null) {
-			if (other.tableIdAndVersion != null) {
-				return false;
-			}
-		} else if (!tableIdAndVersion.equals(other.tableIdAndVersion)) {
-			return false;
-		}
-		if (translatedTableName == null) {
-			if (other.translatedTableName != null) {
-				return false;
-			}
-		} else if (!translatedTableName.equals(other.translatedTableName)) {
-			return false;
-		}
-		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "TableInfo [originalTableName=" + originalTableName + ", tableIdAndVersion=" + tableIdAndVersion
-				+ ", tableAlias=" + tableAlias + ", translatedTableName=" + translatedTableName + "]";
 	}
 
 }

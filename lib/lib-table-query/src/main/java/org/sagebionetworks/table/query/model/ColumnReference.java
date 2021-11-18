@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 /**
@@ -26,8 +28,8 @@ public class ColumnReference extends SQLElement {
 		this(nameLHSOrRHS, nameRHS, null);
 	}
 
-	public ColumnName getNameLHS() {
-		return nameLHS;
+	public Optional<ColumnName> getNameLHS() {
+		return Optional.ofNullable(nameLHS);
 	}
 
 	public ColumnName getNameRHS() {
