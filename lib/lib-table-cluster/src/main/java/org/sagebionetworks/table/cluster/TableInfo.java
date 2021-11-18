@@ -2,10 +2,16 @@ package org.sagebionetworks.table.cluster;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.query.model.ColumnName;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -20,6 +26,7 @@ public class TableInfo {
 	private final String tableAlias;
 	private final String translatedTableName;
 	private final List<ColumnModel> tableSchema;
+	private final List<ColumnTranslationReference> translationReferences;
 
 	public TableInfo(TableNameCorrelation tableNameCorrelation, List<ColumnModel> schema) {
 		ValidateArgument.required(tableNameCorrelation, "TableNameCorrelation");
@@ -28,6 +35,7 @@ public class TableInfo {
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		this.tableSchema = schema;
+		this.translationReferences = schema.stream().map(c-> new SchemaColumnTranslationReference(c)).collect(Collectors.toList());
 	}
 
 	/**
@@ -70,6 +78,35 @@ public class TableInfo {
 	 */
 	public List<ColumnModel> getTableSchema() {
 		return tableSchema;
+	}
+	
+	/**
+	 * Attempt to match the given ColumnReference to a column of this table.
+	 * @param columnReference
+	 * @return
+	 */
+	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
+		if (columnReference == null) {
+			return Optional.empty();
+		}
+		Optional<ColumnName> lhsOptional = columnReference.getNameLHS();
+		if (lhsOptional.isPresent()) {
+			String unquotedLHS = lhsOptional.get().toSqlWithoutQuotes();
+			// if we have a LHS it must match either the table name or table alias.
+			if (!unquotedLHS.equals(originalTableName) && !unquotedLHS.equals(tableAlias)) {
+				return Optional.empty();
+			}
+		}
+		String rhs = columnReference.getNameRHS().toSqlWithoutQuotes();
+		Optional<ColumnTranslationReference> optional = translationReferences.stream()
+				.filter(t -> rhs.equals(t.getTranslatedColumnName()) || rhs.equals(t.getUserQueryColumnName()))
+				.findFirst();
+		if(optional.isPresent()) {
+			return optional;
+		}else {
+			// attempt to match to row metadata
+			return RowMetadataColumnTranslationReference.lookupColumnReference(rhs);
+		}
 	}
 
 }

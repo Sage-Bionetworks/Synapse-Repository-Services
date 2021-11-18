@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -90,9 +91,20 @@ public class TableAndColumnMapper {
 		}
 	}
 	
-	public ColumnTranslationReference lookupColumnReference(ColumnReference columnReference) {
-		
-		
-		return null;
+	/**
+	 * Attempt to resolve the given ColumnReference to one of the columns one of the referenced tables.
+	 * Optional.empty() returned if no match was found.s
+	 * 
+	 * @param columnReference
+	 * @return
+	 */
+	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
+		if(columnReference == null) {
+			return Optional.empty();
+		}
+		if(!columnReference.getNameLHS().isPresent() && tables.size() > 1) {
+			throw new IllegalArgumentException("Expected a table name or table alias for column: "+columnReference.toSql());
+		}
+		return tables.stream().map(t->t.lookupColumnReference(columnReference)).filter(o->o.isPresent()).findFirst().get();
 	}
 }
