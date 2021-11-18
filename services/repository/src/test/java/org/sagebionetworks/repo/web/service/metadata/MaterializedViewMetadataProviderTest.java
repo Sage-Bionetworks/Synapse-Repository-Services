@@ -106,12 +106,14 @@ public class MaterializedViewMetadataProviderTest {
 		
 		when(mockView.getDefiningSQL()).thenReturn(sql);
 		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			provider.validateEntity(mockView, mockEvent);
-		}).getMessage();
+		});
 		
-		assertEquals("The query must specify a table.", message);
+		assertTrue(ex.getCause() instanceof ParseException);
+		
+		assertTrue(ex.getMessage().startsWith("Encountered \"<EOF>\" at line 1, column 10."));
 		verify(mockView).getDefiningSQL();
 	}
 	

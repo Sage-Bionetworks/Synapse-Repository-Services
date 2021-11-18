@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -112,6 +113,16 @@ public class QuerySpecificationTest {
 		QuerySpecification querySpec = new TableQueryParser("select * from syn123 where text_matches('some text')")
 				.querySpecification();
 		assertTrue(querySpec.isIncludeSearch());
+	}
+	
+	@Test
+	public void testWithoutTableExpression() throws ParseException {
+		String message = assertThrows(ParseException.class, () -> {			
+			new TableQueryParser("select *").querySpecification();
+		}).getMessage();
+		
+		assertTrue(message.contains("Encountered \"<EOF>\" at line 1, column 8."));
+		assertTrue(message.contains("\"FROM\""));	
 	}
 
 }

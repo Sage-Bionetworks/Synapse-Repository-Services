@@ -32,13 +32,7 @@ public class TableQueryParser {
 	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		QuerySpecification parsedQuery = parser.querySpecification();
-		
-		if (parsedQuery.getTableExpression() == null) {
-			throw new ParseException("The query must specify a table.");
-		}
-		
-		return parsedQuery;
+		return parser.querySpecification();
 	}
 }
 
@@ -541,7 +535,7 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() [ tableExpression = tableExpression() ] <EOF>
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
