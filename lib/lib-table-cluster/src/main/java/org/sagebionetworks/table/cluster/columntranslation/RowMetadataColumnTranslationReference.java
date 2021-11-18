@@ -40,18 +40,14 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 	}
 
 	/**
-	 * Attempt to match the given right-hand-side with one of the columns of this enumeration.
+	 * Attempt to match the given right-hand-side with one of the columns of this
+	 * enumeration.
+	 * 
 	 * @param rhs
 	 * @return
 	 */
 	public static Optional<ColumnTranslationReference> lookupColumnReference(String rhs) {
-		Optional<RowMetadataColumnTranslationReference> result = Arrays
-				.stream(RowMetadataColumnTranslationReference.values()).filter(r -> rhs.equalsIgnoreCase(r.columnName))
-				.findFirst();
-		if(result.isPresent()) {
-			return Optional.of((ColumnTranslationReference)result.get());
-		}else {
-			return Optional.empty();
-		}
+		return Arrays.stream(RowMetadataColumnTranslationReference.values())
+				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> (ColumnTranslationReference) r);
 	}
 }
