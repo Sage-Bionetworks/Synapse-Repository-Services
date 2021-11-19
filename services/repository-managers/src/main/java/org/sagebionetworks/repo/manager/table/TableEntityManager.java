@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * Abstraction for Table Row management.
@@ -49,8 +48,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback,
-			long transactionId) throws DatastoreException, NotFoundException, IOException;
+	RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Append or update a set of partial rows to a table.
@@ -64,16 +62,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	RowReferenceSet appendPartialRows(UserInfo user, String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete,
-			ProgressCallback progressCallback, long transactionId)
-			throws DatastoreException, NotFoundException, IOException;
-
-	/**
-	 * Delete a set of rows from a table.
-	 * 
-	 */
-	RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
-			throws DatastoreException, NotFoundException, IOException;
+	RowReferenceSet appendPartialRows(UserInfo user, String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Append all rows from the provided iterator into the a table. This method will
@@ -98,9 +87,15 @@ public interface TableEntityManager {
 	 * @throws IOException
 	 */
 	TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns,
-			Iterator<SparseRowDto> rowStream, String etag, RowReferenceSet results, ProgressCallback progressCallback,
-			long transactionId) throws DatastoreException, NotFoundException, IOException;
+			Iterator<SparseRowDto> rowStream, String etag, RowReferenceSet results, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException;
 
+	/**
+	 * Delete a set of rows from a table.
+	 * 
+	 */
+	RowReferenceSet deleteRows(UserInfo user, String tableId, RowSelection rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException;
+	
 	/**
 	 * List the changes that have been applied to a table.
 	 * 
@@ -235,10 +230,10 @@ public interface TableEntityManager {
 	 * @param callback
 	 * @param userInfo
 	 * @param change
+	 * @param txContext
 	 * @return
 	 */
-	TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change,
-			long transactionId);
+	TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change, TableTransactionContext txContext);
 
 	/**
 	 * Get the schema for the table.
@@ -283,11 +278,10 @@ public interface TableEntityManager {
 	 * 
 	 * @param userInfo
 	 * @param versionRequest
-	 * @param transactionId
+	 * @param txContext
 	 * @return The version number of the newly created version.
 	 */
-	long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
-			long transactionId);
+	long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest, TableTransactionContext txContext);
 	
 	/**
 	 * Get the transaction Id for a table version.

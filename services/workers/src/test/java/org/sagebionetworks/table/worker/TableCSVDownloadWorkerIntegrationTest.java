@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -45,7 +46,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -109,7 +109,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	@Autowired
 	TableViewManager tableViewManager;
 	@Autowired
-	TableTransactionDao tableTransactionDao;
+	TableTransactionManager transactionManager;
 	@Autowired
 	DefaultColumnModelMapper columnModelMapper;
 	
@@ -337,9 +337,13 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
-		long transactionId = tableTransactionDao.startTransaction(tableId, adminUserInfo.getId());
-		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
-				null, null, null, transactionId);
+		transactionManager.executeInTransaction(adminUserInfo, tableId, txContext -> {			
+			try {
+				return tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, txContext);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		});
 		return input;
 	}
 	
