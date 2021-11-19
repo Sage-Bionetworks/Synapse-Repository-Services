@@ -23,7 +23,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * Maps the relationship between each table and its columns.
  *
  */
-public class TableAndColumnMapper {
+public class TableAndColumnMapper implements ColumnLookup {
 
 	private final List<TableInfo> tables;
 
@@ -98,6 +98,7 @@ public class TableAndColumnMapper {
 	 * @param columnReference
 	 * @return
 	 */
+	@Override
 	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
 		if(columnReference == null) {
 			return Optional.empty();
@@ -107,4 +108,5 @@ public class TableAndColumnMapper {
 		}
 		return tables.stream().map(t->t.lookupColumnReference(columnReference)).filter(Optional::isPresent).map(Optional::get).findFirst();
 	}
+	
 }

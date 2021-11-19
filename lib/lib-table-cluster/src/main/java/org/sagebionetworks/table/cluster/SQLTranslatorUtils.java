@@ -110,8 +110,8 @@ public class SQLTranslatorUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, boolean isAggregate) {
-		ValidateArgument.required(columnTranslationReferenceLookup, "all columns");
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnLookup lookup, boolean isAggregate) {
+		ValidateArgument.required(lookup, "ColumnLookup");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
 			throw new IllegalStateException("The columns should have been expanded before getting here");
@@ -119,7 +119,7 @@ public class SQLTranslatorUtils {
 		List<SelectColumn> selects = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 		boolean isAtLeastOneColumnIdNull = false;
 		for (DerivedColumn dc : selectList.getColumns()) {
-			SelectColumn model = getSelectColumns(dc, columnTranslationReferenceLookup);
+			SelectColumn model = getSelectColumns(dc, lookup);
 			selects.add(model);
 			if(model.getId() == null){
 				isAtLeastOneColumnIdNull = true;
@@ -143,7 +143,7 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 * @return
 	 */
-	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnTranslationReferenceLookup columnTranslationReferenceLookup){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnLookup lookup){
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
@@ -154,8 +154,9 @@ public class SQLTranslatorUtils {
 		
 		ColumnTranslationReference translationReference = null;
 		if(referencedColumn != null){
+			ColumnReference columnReference = derivedColumn.getFirstElementOfType(ColumnReference.class);
 			// Does the reference match an actual column name?
-			translationReference = columnTranslationReferenceLookup.forUserQueryColumnName(referencedColumn.toSqlWithoutQuotes()).orElse(null);
+			translationReference = lookup.lookupColumnReference(columnReference).orElse(null);
 		}
 		// Lookup the base type starting only with the column referenced.
 		ColumnType columnType = getBaseColulmnType(referencedColumn);

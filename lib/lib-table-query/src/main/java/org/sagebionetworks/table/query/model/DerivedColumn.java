@@ -20,6 +20,10 @@ public class DerivedColumn extends SQLElement {
 	public AsClause getAsClause() {
 		return asClause;
 	}
+	
+	public boolean hasAsClause() {
+		return asClause != null;
+	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {

@@ -19,7 +19,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * An immutable representation of table information from a SQL query.
  *
  */
-public class TableInfo {
+public class TableInfo implements ColumnLookup {
 
 	private final String originalTableName;
 	private final IdAndVersion tableIdAndVersion;
@@ -85,6 +85,7 @@ public class TableInfo {
 	 * @param columnReference
 	 * @return
 	 */
+	@Override
 	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
 		if (columnReference == null) {
 			return Optional.empty();

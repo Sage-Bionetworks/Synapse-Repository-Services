@@ -192,7 +192,7 @@ public class SqlQuery {
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.
-		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnTranslationReferenceLookup, this.isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), tableAndColumnMapper, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 		if(maxBytesPerPage != null){
