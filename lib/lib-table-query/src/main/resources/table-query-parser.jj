@@ -535,7 +535,7 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() [ tableExpression = tableExpression() ] <EOF>
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():

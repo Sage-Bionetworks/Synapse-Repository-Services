@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -187,6 +188,16 @@ public class NodeTranslationUtilsTest {
 		
 		Dataset clone = cloneUsingNodeTranslation(dataset);
 		assertEquals(dataset, clone);
+	}
+	
+	@Test
+	public void testMaterializedViewTranslation() throws InstantiationException, IllegalAccessException {
+		MaterializedView view = new MaterializedView();
+		view.setName("a-materialzied-view");
+		view.setDefiningSQL("SELECT * FROM syn123");
+		
+		MaterializedView clone = cloneUsingNodeTranslation(view);
+		assertEquals(view, clone);
 	}
 
 	/**

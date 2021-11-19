@@ -46,6 +46,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
 	public static final String COL_REVISION_ITEMS			= "ITEMS";
 	public static final String COL_REVISION_SEARCH_ENABLED	= "SEARCH_ENABLED";
+	public static final String COL_REVISION_DEFINING_SQL	= "DEFINING_SQL";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";

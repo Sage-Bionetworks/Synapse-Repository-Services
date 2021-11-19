@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -564,6 +565,60 @@ public class EntityServiceImplAutowiredTest  {
 			entityService.createEntity(adminUserId, dataset, activityId);
 		}).getMessage();
 		assertEquals("Maximum of 20,000 items in a dataset exceeded.", message);
+	}
+	
+	@Test
+	public void testMaterializedViewCRUD() {
+		boolean newVersion = false;
+		String activityId = null;
+		
+		MaterializedView materializedView = new MaterializedView();
+		
+		materializedView.setName("materializedView");
+		materializedView.setParentId(project.getId());
+		materializedView.setDefiningSQL("SELECT * FROM syn123");
+		
+		// call under test (create and get)
+		materializedView = entityService.createEntity(adminUserId, materializedView, activityId);
+		
+		assertEquals(materializedView, entityService.getEntity(adminUserId, materializedView.getId()));
+		
+		String updatedSQL = materializedView.getDefiningSQL() + " WHERE foo = 'bar'";
+		
+		materializedView.setDefiningSQL(updatedSQL);
+		
+		// call under test (update)
+		materializedView = entityService.updateEntity(adminUserId, materializedView, newVersion, activityId);
+		
+		assertEquals(updatedSQL, materializedView.getDefiningSQL());
+		
+		String id = materializedView.getId();
+		
+		// call under test (delete)
+		entityService.deleteEntity(adminUserId, id);
+		
+		assertThrows(NotFoundException.class, ()-> {
+			entityService.getEntity(adminUserId, id);
+		});
+	}
+	
+	@Test
+	public void testMaterializedViewWithNullSQL() {
+		String activityId = null;
+		
+		MaterializedView materializedView = new MaterializedView();
+		
+		materializedView.setName("materializedView");
+		materializedView.setParentId(project.getId());
+		materializedView.setDefiningSQL(null);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test (create and get)
+			entityService.createEntity(adminUserId, materializedView, activityId);
+		}).getMessage();
+		
+		assertEquals("The materialized view definingSQL is required and must not be the empty string.", message);
+		
 	}
 	
 	@Test

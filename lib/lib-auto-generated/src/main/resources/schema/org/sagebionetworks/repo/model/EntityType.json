@@ -37,6 +37,10 @@
         {
             "name": "dataset",
             "description": "A dataset is a view of a list of entities."
+        },
+        {
+            "name": "materializedview",
+            "description": "A materialized view is a view whose content is defined by a Synapse SQL query."
         }
     ]
 }

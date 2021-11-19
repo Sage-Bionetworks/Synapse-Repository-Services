@@ -100,6 +100,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * "${org.sagebionetworks.repo.model.table.SubmissionView}">SubmissionView</a></li>
  * <li><a href=
  * "${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a></li>
+ * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.MaterializedView}">MaterializedView</a></li>
  * </ul>
  * </p>
  * <p>
@@ -189,8 +191,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * Despite being <a href=
  * "${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>,
- * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a> and
- * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> are
+ * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a>,
+ * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> and 
+ * <a href="${org.sagebionetworks.repo.model.table.MaterializedView}">Materialized Views</a> are
  * versioned using snapshots: see
  * <a href="${POST.entity.id.table.snapshot}">POST
  * /entity/{id}/table/snapshot</a> and

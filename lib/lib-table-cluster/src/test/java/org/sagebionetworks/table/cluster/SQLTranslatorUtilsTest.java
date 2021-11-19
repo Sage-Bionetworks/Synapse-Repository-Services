@@ -1738,10 +1738,10 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelSelectArithmetic() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select -(2+2)*10").querySpecification();
+		QuerySpecification element = new TableQueryParser("select -(2+2)*10 FROM syn123").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap, userId);
-		assertEquals("SELECT -(2+2)*10",element.toSql());
+		assertEquals("SELECT -(2+2)*10 FROM T123",element.toSql());
 	}
 	
 	@Test

@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
@@ -59,8 +60,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
 		new FieldColumn("reference", COL_REVISION_REF_BLOB),
 		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON),
-		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED)
-		};
+		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
+		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL)
+	};
 
 	@Override
 	public TableMapping<DBORevision> getTableMapping() {
@@ -108,6 +110,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private byte[] reference;
 	private String userAnnotationsJSON;
 	private Boolean isSearchEnabled;
+	private String definingSQL;
+	
 	// used for migration only
 
 	public Long getOwner() {
@@ -195,12 +199,39 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.userAnnotationsJSON = userAnnotationsJSON;
 	}
 	
+	/**
+	 * @return the items
+	 */
+	public String getItems() {
+		return items;
+	}
+	/**
+	 * @param items the items to set
+	 */
+	public void setItems(String items) {
+		this.items = items;
+	}
+	
 	public Boolean getIsSearchEnabled() {
 		return isSearchEnabled;
 	}
 	
 	public void setIsSearchEnabled(Boolean isSearchEnabled) {
 		this.isSearchEnabled = isSearchEnabled;
+	}
+	
+	/**
+	 * @return The SQL defining a materialized view
+	 */
+	public String getDefiningSQL() {
+		return definingSQL;
+	}
+	
+	/**
+	 * @param definingSQL The SQL that defines a materialized view
+	 */
+	public void setDefiningSQL(String definingSQL) {
+		this.definingSQL = definingSQL;
 	}
 
 	@Override
@@ -225,19 +256,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
-
-	/**
-	 * @return the items
-	 */
-	public String getItems() {
-		return items;
-	}
-	/**
-	 * @param items the items to set
-	 */
-	public void setItems(String items) {
-		this.items = items;
-	}
 	
 	@Override
 	public boolean equals(Object obj) {
@@ -252,7 +270,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		}
 		DBORevision other = (DBORevision) obj;
 		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
-				&& Objects.equals(comment, other.comment) && Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
+				&& Objects.equals(comment, other.comment) && Objects.equals(definingSQL, other.definingSQL)
+				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
 				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(isSearchEnabled, other.isSearchEnabled)
 				&& Objects.equals(items, other.items) && Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
@@ -268,8 +287,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(reference);
 		result = prime * result + Arrays.hashCode(scopeIds);
-		result = prime * result + Objects.hash(activityId, comment, fileHandleId, isSearchEnabled, items, label, modifiedBy, modifiedOn,
-				owner, revisionNumber, userAnnotationsJSON);
+		result = prime * result + Objects.hash(activityId, comment, definingSQL, fileHandleId, isSearchEnabled, items, label, modifiedBy,
+				modifiedOn, owner, revisionNumber, userAnnotationsJSON);
 		return result;
 	}
 
@@ -279,6 +298,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				+ ", comment=" + comment + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId
 				+ ", columnModelIds=" + Arrays.toString(columnModelIds) + ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items
 				+ ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference)
-				+ ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + "]";
+				+ ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL
+				+ "]";
 	}
 }

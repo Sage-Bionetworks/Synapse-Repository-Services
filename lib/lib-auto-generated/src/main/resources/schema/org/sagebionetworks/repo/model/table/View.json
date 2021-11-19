@@ -4,6 +4,9 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.table.Table"
+		},
+		{
+			"$ref":"org.sagebionetworks.repo.model.table.HasColumnModelIds"
 		}
 	]
 }

@@ -79,7 +79,12 @@
             "type":"string"
         },
         "isSearchEnabled": {
+        	"description":"For table entities, specifies if the full text search index is enabled or not.",
         	"type":"boolean"
+        },
+        "definingSQL": {
+        	"description":"For materialized views, specifies the SQL defining the materialized view.",
+        	"type": "string"
         }
     }
 }

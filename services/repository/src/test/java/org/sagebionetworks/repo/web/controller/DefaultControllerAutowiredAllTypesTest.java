@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -251,6 +252,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					DockerRepository dockerRepository = (DockerRepository)object;
 					dockerRepository.setIsManaged(false);
 					dockerRepository.setRepositoryName("foo/bar");
+				}
+				if (object instanceof MaterializedView) {
+					((MaterializedView) object).setDefiningSQL("SELECT * FROM syn123");
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
@@ -699,7 +703,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	}
 	
 	public boolean isTableOrView(Entity entity) {
-		return entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView || entity instanceof Dataset;
+		return entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView || entity instanceof Dataset || entity instanceof MaterializedView;
 	}
 	
 }
