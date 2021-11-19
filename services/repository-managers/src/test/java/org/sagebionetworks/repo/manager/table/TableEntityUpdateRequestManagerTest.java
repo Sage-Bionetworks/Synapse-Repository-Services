@@ -47,7 +47,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
-public class TableEntityTransactionManagerTest {
+public class TableEntityUpdateRequestManagerTest {
 
 	@Mock
 	TableManagerSupport tableManagerSupport;
@@ -67,7 +67,7 @@ public class TableEntityTransactionManagerTest {
 	TableTransactionDao mockTransactionDao;
 
 	@InjectMocks
-	TableEntityTransactionManager manager;
+	TableEntityUpdateRequestManager manager;
 
 	TableStatus status;
 

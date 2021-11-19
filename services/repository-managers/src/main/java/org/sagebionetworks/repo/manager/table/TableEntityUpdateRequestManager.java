@@ -22,7 +22,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-public class TableEntityTransactionManager implements TableTransactionManager {
+public class TableEntityUpdateRequestManager implements TableUpdateRequestManager {
 	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
@@ -43,7 +43,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 		String tableId = request.getEntityId();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table before locking.

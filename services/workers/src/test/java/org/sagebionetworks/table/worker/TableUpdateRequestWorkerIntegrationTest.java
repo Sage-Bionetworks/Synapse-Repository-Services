@@ -64,7 +64,7 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class TableTransactionWorkerIntegrationTest {
+public class TableUpdateRequestWorkerIntegrationTest {
 	
 	public static final int MAX_WAIT_MS = 1000 * 60;
 	

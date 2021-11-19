@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 
 @ExtendWith(MockitoExtension.class)
-public class TableTransactionUtilsTest {
+public class TableUpdateRequestUtilsTest {
 
 	String tableId;
 	TableUpdateTransactionRequest request;
@@ -42,14 +42,14 @@ public class TableTransactionUtilsTest {
 	@Test
 	public void testValidateRequestValid() {
 		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 	}
 
 	@Test
 	public void testValidateRequestMissingId() {
 		uploadRequest.setEntityId(null);
 		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 		// the root table ID is passed to each change if null
 		assertEquals(tableId, uploadRequest.getEntityId());
 	}
@@ -59,7 +59,7 @@ public class TableTransactionUtilsTest {
 		uploadRequest.setEntityId("doesNotMatch");
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		});
 	}
 
@@ -68,7 +68,7 @@ public class TableTransactionUtilsTest {
 		request = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		});
 	}
 
@@ -77,7 +77,7 @@ public class TableTransactionUtilsTest {
 		request.setEntityId(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		});
 	}
 	
@@ -87,7 +87,7 @@ public class TableTransactionUtilsTest {
 		request.setCreateSnapshot(null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		}).getMessage();
 		assertEquals("Must include be at least one change or create a snapshot.", message);
 	}
@@ -98,7 +98,7 @@ public class TableTransactionUtilsTest {
 		request.setCreateSnapshot(false);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		}).getMessage();
 		assertEquals("Must include be at least one change or create a snapshot.", message);
 	}
@@ -109,7 +109,7 @@ public class TableTransactionUtilsTest {
 		request.setCreateSnapshot(null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test.
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		}).getMessage();
 		assertEquals("Must include be at least one change or create a snapshot.", message);
 	}
@@ -122,7 +122,7 @@ public class TableTransactionUtilsTest {
 		request.setChanges(new LinkedList<TableUpdateRequest>());
 		request.setCreateSnapshot(true);
 		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 	}
 	
 	/**
@@ -133,7 +133,7 @@ public class TableTransactionUtilsTest {
 		request.setChanges(null);
 		request.setCreateSnapshot(true);
 		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 	}
 	
 	@Test
@@ -144,7 +144,7 @@ public class TableTransactionUtilsTest {
 		uploadRequest.setEntityId(tableId);
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			TableTransactionUtils.validateRequest(request);
+			TableUpdateRequestUtils.validateRequest(request);
 		}).getMessage();
 		
 		assertEquals("A snapshot is immutable and cannot be updated.", message);

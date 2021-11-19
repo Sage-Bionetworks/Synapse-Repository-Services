@@ -48,7 +48,7 @@
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
     <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
-    <import resource="classpath:table-update-transaction-worker-sqs-spb.xml"/>
+    <import resource="classpath:table-update-request-worker-sqs-spb.xml"/>
     <import resource="classpath:migration-sqs-spb.xml" />
     <import resource="classpath:entity-hierarchy-change-worker-spb.xml" />
     <import resource="classpath:object-replication-worker-spb.xml"/>
@@ -104,7 +104,7 @@
 		<!-- workers publish messages too -->
 		<ref bean="messagePublisherTrigger" />
 		<ref bean="tableViewWorkerTrigger" />
-		<ref bean="tableTransactionMessageTrigger" />
+		<ref bean="tableUpdateRequestWorkerTrigger" />
 		<ref bean="entityHierarchyChangeWorkerTrigger" />
 		<ref bean="objectReplicationWorkerTrigger" />
 		<ref bean="objectReplicationReconciliationWorkerTrigger" />

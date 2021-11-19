@@ -47,7 +47,7 @@ import org.springframework.stereotype.Service;
  *
  */
 @Service
-public class TableViewTransactionManager implements TableTransactionManager, UploadRowProcessor {
+public class TableViewUpdateRequestManager implements TableUpdateRequestManager, UploadRowProcessor {
 	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
@@ -66,7 +66,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 			throws RecoverableMessageException, TableUnavailableException {
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 		String tableId = request.getEntityId();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table.

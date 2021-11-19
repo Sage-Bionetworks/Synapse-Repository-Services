@@ -12,7 +12,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  * @author John
  *
  */
-public interface TableTransactionManager {
+public interface TableUpdateRequestManager {
 
 	/**
 	 * Update table within a single transaction.
