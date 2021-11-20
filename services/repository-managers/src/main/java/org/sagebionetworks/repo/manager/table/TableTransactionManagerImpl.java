@@ -33,7 +33,7 @@ public class TableTransactionManagerImpl implements TableTransactionManager {
 		
 		IdAndVersion parsedId = IdAndVersion.parse(tableId);
 		
-		TableTransactionContext txContext = new TableTransactionContextImpl(tableId, user.getId());
+		TableTransactionContext txContext = new LazyTableTransactionContext(tableId, user.getId());
 		
 		T returnValue = function.apply(txContext);
 				
@@ -47,56 +47,47 @@ public class TableTransactionManagerImpl implements TableTransactionManager {
 	
 	@Override
 	public Optional<TableTransactionContext> getLastTransactionContext(String tableId) {
-		return tableRowTruthDao.getLastTransactionId(tableId).map(txId -> new TableTransactionContext() {
-
-			@Override
-			public boolean isTransactionStarted() {
-				return true;
-			}
-
-			@Override
-			public long getTransactionId() {
-				return txId;
-			}
-		});
+		ValidateArgument.required(tableId, "The tableId");
+		return tableRowTruthDao.getLastTransactionId(tableId).map(ExistingTransactionContext::new);
 	}
 	
 	@Override
 	public void linkVersionToTransaction(TableTransactionContext txContext, IdAndVersion tableId) {
-		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(txContext, "The transaction context");
+		ValidateArgument.required(tableId, "The tableId");
 		ValidateArgument.requirement(txContext.isTransactionStarted(), "The transaction was not started.");
-		
-		long version = tableId.getVersion().orElseThrow(() -> new IllegalArgumentException("The table must have a version"));
-		
+
+		long version = tableId.getVersion().orElseThrow(() -> new IllegalArgumentException("The table must have a version."));
+
 		// Lock the parent row and check the table is associated with the transaction.
 		long transactionTableId = transactionDao.getTableIdWithLock(txContext.getTransactionId());
-		
-		if (tableId.getId().equals(transactionTableId)) {
-			throw new IllegalArgumentException("Transaction: "+txContext.getTransactionId()+" is not associated with table: "+tableId.getId());
+
+		if (!tableId.getId().equals(transactionTableId)) {
+			throw new IllegalArgumentException("Transaction: " + txContext.getTransactionId() + " is not associated with table: " + tableId.getId());
 		}
-		
+
 		transactionDao.linkTransactionToVersion(txContext.getTransactionId(), version);
-		
+
 		// bump the parent etag so the change can migrate.
 		transactionDao.updateTransactionEtag(txContext.getTransactionId());
-		
 	}
 	
-	private class TableTransactionContextImpl implements TableTransactionContext {
+	
+	private class LazyTableTransactionContext implements TableTransactionContext {
 		
 		private String tableId;
 		private Long userId;
 		private long transactionId;
 		private boolean transactionStarted = false;
 		
-		public TableTransactionContextImpl(String tableId, Long userId) {
+		public LazyTableTransactionContext(String tableId, Long userId) {
 			this.tableId = tableId;
 			this.userId = userId;
 		}
 		
 		@Override
 		public long getTransactionId() {
-			if (!isTransactionStarted()) {				
+			if (!transactionStarted) {				
 				transactionId = transactionDao.startTransaction(tableId, userId);
 				transactionStarted = true;
 			}
@@ -108,6 +99,25 @@ public class TableTransactionManagerImpl implements TableTransactionManager {
 			return transactionStarted;
 		}
 		
+	}
+
+	private class ExistingTransactionContext implements TableTransactionContext {
+		
+		private long transactionId;
+		
+		public ExistingTransactionContext(long transactionId) {
+			this.transactionId = transactionId;
+		}
+		
+		@Override
+		public long getTransactionId() {
+			return transactionId;
+		}
+		
+		@Override
+		public boolean isTransactionStarted() {
+			return true;
+		}
 	}
 
 }
