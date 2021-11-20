@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.sagebionetworks.repo.model.UserInfo;
@@ -20,19 +19,11 @@ public interface TableTransactionManager {
 	 * @return
 	 */
 	<T> T executeInTransaction(UserInfo user, String tableId, Function<TableTransactionContext, T> function);
-	
+		
 	/**
-	 * @param tableId
-	 * @return A transaction context referring to the last transaction on the given table if any
+	 * Permanently binds the given table version to the last transaction of the table, the table must have at least one change
+	 * @param tableId The id with version for the table
 	 */
-	Optional<TableTransactionContext> getLastTransactionContext(String tableId);
-	
-	/**
-	 * Permanently binds the given table version to the transaction associated with the given context
-	 * 
-	 * @param txContext
-	 * @param tableId
-	 */
-	void linkVersionToTransaction(TableTransactionContext txContext, IdAndVersion tableId);
+	void linkVersionToLatestTransaction(IdAndVersion tableId);
 	
 }

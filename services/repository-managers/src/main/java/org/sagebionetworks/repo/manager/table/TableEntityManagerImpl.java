@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -863,7 +862,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		List<ColumnModel> newSchema = null;
 		if (!currentSchemaIds.equals(newSchemaIds)) {
 			// This will 
-			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), txContext.getTransactionId());
+			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), txContext);
 		}else {
 			// The schema will not change so return the current schema.
 			newSchema = columModelManager.getColumnModelsForObject(idAndVersion);
@@ -883,9 +882,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param transactionId
 	 * @return
 	 */
-	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds, List<ColumnChange> changes, long transactionId) {
+	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds, List<ColumnChange> changes, TableTransactionContext txContext) {
 		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, tableId);
-		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes, transactionId);
+		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes, txContext.getTransactionId());
 		return newSchema;
 	}
 
@@ -1010,22 +1009,6 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 
 	}
-
-	@WriteTransaction
-	@Override
-	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableIdString, SnapshotRequest snapshotRequest, TableTransactionContext txContext) {
-		// create a new version
-		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableIdString, snapshotRequest);
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).setVersion(snapshotVersion).build();
-		
-		transactionManager.linkVersionToTransaction(txContext, idAndVersion);
-
-		// bind the current schema to the version
-		columModelManager.bindCurrentColumnsToVersion(idAndVersion);
-		
-		return snapshotVersion;
-	}
 	
 	@Override
 	public Optional<Long> getTransactionForVersion(String tableId, long version) {
@@ -1043,22 +1026,25 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		
 		ObjectType type = tableManagerSupport.getTableType(idAndVersion);
-		if(ObjectType.ENTITY_VIEW.equals(type)) {
+		
+		if (ObjectType.ENTITY_VIEW.equals(type)) {
 			throw new IllegalArgumentException("EntityView snapshots can only be created via an asynchronous table transaction job.");
 		}
 		
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
-		// Table must have at least one transaction, such as setting the table's schema.
-		TableTransactionContext txContext = transactionManager.getLastTransactionContext(tableId).orElseThrow(() -> 
-			new IllegalArgumentException("This table: "+tableId+" does not have a schema so a snapshot cannot be created.")
-		);
 		
-		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableId, request, txContext);
+		// create a new version
+		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, request);
 		
-		SnapshotResponse response = new SnapshotResponse();
-		response.setSnapshotVersionNumber(snapshotVersion);
-		return response;
+		IdAndVersion snapshotIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotVersion).build(); 
+		
+		// bind the current schema to the version
+		columModelManager.bindCurrentColumnsToVersion(snapshotIdAndVersion);
+		
+		transactionManager.linkVersionToLatestTransaction(snapshotIdAndVersion);
+		
+		return new SnapshotResponse().setSnapshotVersionNumber(snapshotVersion);
 	}
 	
 	@Override

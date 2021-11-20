@@ -271,17 +271,6 @@ public interface TableEntityManager {
 	 * @return
 	 */
 	List<TableChangeMetaData> getTableChangePage(String tableId, long limit, long offset);
-
-	/**
-	 * Create a new version of the given table an bind the new version to the
-	 * provided transaction id.
-	 * 
-	 * @param userInfo
-	 * @param versionRequest
-	 * @param txContext
-	 * @return The version number of the newly created version.
-	 */
-	long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest, TableTransactionContext txContext);
 	
 	/**
 	 * Get the transaction Id for a table version.

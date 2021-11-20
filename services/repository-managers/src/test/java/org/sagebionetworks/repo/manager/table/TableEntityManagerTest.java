@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -2017,44 +2016,24 @@ public class TableEntityManagerTest {
 		verifyZeroInteractions(mockNodeManager);
 		
 	}
-	
-	@Test
-	public void testCreateSnapshotBindToTransaction() {
-		long newVersionNumber = 333L;
-		when(mockNodeManager.createSnapshotAndVersion(any(UserInfo.class), anyString(), any(SnapshotRequest.class)))
-				.thenReturn(newVersionNumber);
-		// call under test
-		long resultVersionNumber = manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, mockTransactionContext);
-		assertEquals(newVersionNumber, resultVersionNumber);
-		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
-		verify(mockTransactionManager).linkVersionToTransaction(mockTransactionContext, IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(newVersionNumber).build());
-		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn"+tableIdLong+"."+newVersionNumber);
-		verify(mockColumModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
-	}
-	
-	@Test
-	public void testCreateSnapshotBindToTransactionNullInfo() throws Exception {
-		snapshotRequest = null;
-		// call under test
-		manager.createSnapshotAndBindToTransaction(user, tableId, snapshotRequest, mockTransactionContext);
-		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
-	}
-	
+		
 	@Test
 	public void testCreateTableSnapshot() {
 		Long snapshotVersion = 441L;
 		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTableManagerSupport.getTableType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.TABLE);
-		when(mockTransactionManager.getLastTransactionContext(any())).thenReturn(Optional.of(mockTransactionContext));
 		
 		// call under test
 		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
 		assertNotNull(response);
 		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockTransactionManager).getLastTransactionContext(tableId);
-		verify(mockTransactionManager).linkVersionToTransaction(mockTransactionContext, IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotVersion).build());
 		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
+		
+		IdAndVersion snapshotIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotVersion).build(); 
+		
+		verify(mockTransactionManager).linkVersionToLatestTransaction(snapshotIdAndVersion);
+		verify(mockColumModelManager).bindCurrentColumnsToVersion(snapshotIdAndVersion);
 	}
 	
 	@Test
@@ -2069,16 +2048,7 @@ public class TableEntityManagerTest {
 			assertTrue(e.getMessage().contains("EntityView"));
 		}
 	}
-	
-	@Test
-	public void testCreateTableSnapshotNoTransaction() {
-		when(mockTransactionManager.getLastTransactionContext(any())).thenReturn(Optional.empty());
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.createTableSnapshot(user, tableId, snapshotRequest);
-		});
-	}
-	
+		
 	@Test
 	public void testCreateTableSnapshotNullUser() {
 		user = null;

@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,30 +46,25 @@ public class TableTransactionManagerImpl implements TableTransactionManager {
 	}
 	
 	@Override
-	public Optional<TableTransactionContext> getLastTransactionContext(String tableId) {
+	@WriteTransaction
+	public void linkVersionToLatestTransaction(IdAndVersion tableId) {
 		ValidateArgument.required(tableId, "The tableId");
-		return tableRowTruthDao.getLastTransactionId(tableId).map(ExistingTransactionContext::new);
-	}
-	
-	@Override
-	public void linkVersionToTransaction(TableTransactionContext txContext, IdAndVersion tableId) {
-		ValidateArgument.required(txContext, "The transaction context");
-		ValidateArgument.required(tableId, "The tableId");
-		ValidateArgument.requirement(txContext.isTransactionStarted(), "The transaction was not started.");
 
 		long version = tableId.getVersion().orElseThrow(() -> new IllegalArgumentException("The table must have a version."));
+		
+		long lastTransactionId = tableRowTruthDao.getLastTransactionId(tableId.getId().toString()).orElseThrow(() -> new IllegalArgumentException(
+				"This table: " + tableId + " does not have a schema so a snapshot cannot be created."
+		));
 
-		// Lock the parent row and check the table is associated with the transaction.
-		long transactionTableId = transactionDao.getTableIdWithLock(txContext.getTransactionId());
+		transactionDao.getTableIdWithLock(lastTransactionId);
 
-		if (!tableId.getId().equals(transactionTableId)) {
-			throw new IllegalArgumentException("Transaction: " + txContext.getTransactionId() + " is not associated with table: " + tableId.getId());
-		}
-
-		transactionDao.linkTransactionToVersion(txContext.getTransactionId(), version);
+		transactionDao.linkTransactionToVersion(lastTransactionId, version);
 
 		// bump the parent etag so the change can migrate.
-		transactionDao.updateTransactionEtag(txContext.getTransactionId());
+		transactionDao.updateTransactionEtag(lastTransactionId);
+		
+		// trigger the build of new version (see: PLFM-5957)
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	
@@ -99,25 +94,6 @@ public class TableTransactionManagerImpl implements TableTransactionManager {
 			return transactionStarted;
 		}
 		
-	}
-
-	private class ExistingTransactionContext implements TableTransactionContext {
-		
-		private long transactionId;
-		
-		public ExistingTransactionContext(long transactionId) {
-			this.transactionId = transactionId;
-		}
-		
-		@Override
-		public long getTransactionId() {
-			return transactionId;
-		}
-		
-		@Override
-		public boolean isTransactionStarted() {
-			return true;
-		}
 	}
 
 }

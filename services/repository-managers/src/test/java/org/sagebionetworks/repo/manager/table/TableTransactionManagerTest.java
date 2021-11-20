@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
@@ -102,8 +101,6 @@ public class TableTransactionManagerTest {
 		
 	}
 	
-
-	
 	@Test
 	public void testExecuteInTransactionWithNoUser() {
 
@@ -115,6 +112,9 @@ public class TableTransactionManagerTest {
 		}).getMessage();
 		
 		assertEquals("The user is required.", message);
+		
+		verifyZeroInteractions(mockTransactionDao);
+		verifyZeroInteractions(mockManagerSupport);
 	}
 	
 	@Test
@@ -128,6 +128,9 @@ public class TableTransactionManagerTest {
 		}).getMessage();
 		
 		assertEquals("The tableId is required.", message);
+		
+		verifyZeroInteractions(mockTransactionDao);
+		verifyZeroInteractions(mockManagerSupport);
 	}
 	
 	@Test
@@ -139,118 +142,57 @@ public class TableTransactionManagerTest {
 		}).getMessage();
 		
 		assertEquals("The function to execute is required.", message);
+		
+		verifyZeroInteractions(mockTransactionDao);
+		verifyZeroInteractions(mockManagerSupport);
 	}
-	
+		
 	@Test
-	public void testGetLastTransactionContext() {
-		when(mockTruthDao.getLastTransactionId(any())).thenReturn(Optional.of(transactionId));
-	
-		// Call under test
-		Optional<TableTransactionContext> result = manager.getLastTransactionContext(tableId);
-		
-		assertTrue(result.isPresent());
-		assertEquals(transactionId, result.get().getTransactionId());
-		
-		verify(mockTruthDao).getLastTransactionId(tableId);
-	}
-	
-	@Test
-	public void testGetLastTransactionContextWithNoTable() {
-		
-		tableId = null;
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.getLastTransactionContext(tableId);
-		}).getMessage();
-		
-		assertEquals("The tableId is required.", message);
-		
-	}
-	
-	@Test
-	public void testLinkTransactionToVersion() {
+	public void testLinkVersionToLatestTransaction() {
 		
 		idAndVersion = IdAndVersion.parse("123.1");
 		
-		when(mockTxContext.getTransactionId()).thenReturn(transactionId);
-		when(mockTxContext.isTransactionStarted()).thenReturn(true);
+		when(mockTruthDao.getLastTransactionId(any())).thenReturn(Optional.of(transactionId));
 		when(mockTransactionDao.getTableIdWithLock(anyLong())).thenReturn(idAndVersion.getId());
 	
 		// Call under test
-		manager.linkVersionToTransaction(mockTxContext, idAndVersion);
+		manager.linkVersionToLatestTransaction(idAndVersion);
 		
 		verify(mockTransactionDao).linkTransactionToVersion(transactionId, idAndVersion.getVersion().get());
 		verify(mockTransactionDao).updateTransactionEtag(transactionId);
+		verify(mockManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
-	public void testLinkTransactionToVersionWithNoContext() {
+	public void testLinkVersionToLatestTransactionWithNoTransaction() {
 		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		idAndVersion = IdAndVersion.parse("123.1");
+		
+		when(mockTruthDao.getLastTransactionId(any())).thenReturn(Optional.empty());
+	
+		assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.linkVersionToTransaction(null, idAndVersion);
-		}).getMessage();
+			manager.linkVersionToLatestTransaction(idAndVersion);
+		});
 		
-		assertEquals("The transaction context is required.", message);
+		verifyZeroInteractions(mockTransactionDao);
+		verifyZeroInteractions(mockManagerSupport);
 	}
-	
+		
 	@Test
-	public void testLinkTransactionToVersionWithNoId() {
+	public void testLinkVersionToLatestTransactionWithNoId() {
 		
 		idAndVersion = null;
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			manager.linkVersionToTransaction(mockTxContext, idAndVersion);
+			manager.linkVersionToLatestTransaction(idAndVersion);
 		}).getMessage();
 		
 		assertEquals("The tableId is required.", message);
+		
+		verifyZeroInteractions(mockTransactionDao);
+		verifyZeroInteractions(mockManagerSupport);
 	}
 	
-	@Test
-	public void testLinkTransactionToVersionWithTransactionNotStarted() {
-		
-		when(mockTxContext.isTransactionStarted()).thenReturn(false);
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.linkVersionToTransaction(mockTxContext, idAndVersion);
-		}).getMessage();
-		
-		assertEquals("The transaction was not started.", message);
-	}
-	
-	@Test
-	public void testLinkTransactionToVersionWithNoVersion() {
-		when(mockTxContext.isTransactionStarted()).thenReturn(true);
-		
-		idAndVersion = IdAndVersion.parse("123");
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.linkVersionToTransaction(mockTxContext, idAndVersion);
-		}).getMessage();
-		
-		assertEquals("The table must have a version.", message);
-	}
-	
-	@Test
-	public void testLinkTransactionToVersionWithWrongTable() {
-		
-		when(mockTxContext.isTransactionStarted()).thenReturn(true);
-		when(mockTxContext.getTransactionId()).thenReturn(transactionId);
-		when(mockTransactionDao.getTableIdWithLock(anyLong())).thenReturn(1234546L);
-		
-		idAndVersion = IdAndVersion.parse("123.2");
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.linkVersionToTransaction(mockTxContext, idAndVersion);
-		}).getMessage();
-		
-		assertEquals("Transaction: " + transactionId + " is not associated with table: " + tableId, message);
-		
-		verify(mockTransactionDao).getTableIdWithLock(transactionId);
-	}
 }

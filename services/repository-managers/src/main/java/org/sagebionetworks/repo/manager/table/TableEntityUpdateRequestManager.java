@@ -7,6 +7,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -96,9 +98,10 @@ public class TableEntityUpdateRequestManager implements TableUpdateRequestManage
 	 * @param userInfo
 	 * @param request
 	 */
-	void validateUpdateRequests(ProgressCallback callback,
-			UserInfo userInfo, TableUpdateTransactionRequest request) {
-
+	void validateUpdateRequests(ProgressCallback callback, UserInfo userInfo, TableUpdateTransactionRequest request) {
+		if (request.getChanges() == null) {
+			return;
+		}
 		// Determine if a temporary table is needed to validate any of the requests.
 		boolean isTemporaryTableNeeded = isTemporaryTableNeeded(callback, request);
 		
@@ -143,8 +146,7 @@ public class TableEntityUpdateRequestManager implements TableUpdateRequestManage
 	 * @param request
 	 * @return
 	 */
-	boolean isTemporaryTableNeeded(ProgressCallback callback,
-			TableUpdateTransactionRequest request) {
+	boolean isTemporaryTableNeeded(ProgressCallback callback, TableUpdateTransactionRequest request) {
 		for(TableUpdateRequest change: request.getChanges()){
 			boolean tempNeeded = tableEntityManager.isTemporaryTableNeededToValidate(change);
 			if(tempNeeded){
@@ -177,11 +179,10 @@ public class TableEntityUpdateRequestManager implements TableUpdateRequestManage
 					results.add(changeResponse);
 				}
 			}
-			if (request.getCreateSnapshot() != null
-					&& Boolean.TRUE.equals(request.getCreateSnapshot())) {
-				Long snapshotVersion = tableEntityManager.createSnapshotAndBindToTransaction(userInfo, request.getEntityId(),
-						request.getSnapshotOptions(), txContext);
-				response.setSnapshotVersionNumber(snapshotVersion);
+			if (request.getCreateSnapshot() != null && Boolean.TRUE.equals(request.getCreateSnapshot())) {
+				SnapshotRequest snapshotRequest = request.getSnapshotOptions() == null ? new SnapshotRequest() : request.getSnapshotOptions();
+				SnapshotResponse snapshotResponse = tableEntityManager.createTableSnapshot(userInfo, request.getEntityId(), snapshotRequest);
+				response.setSnapshotVersionNumber(snapshotResponse.getSnapshotVersionNumber());
 			}
 			return response;
 			
