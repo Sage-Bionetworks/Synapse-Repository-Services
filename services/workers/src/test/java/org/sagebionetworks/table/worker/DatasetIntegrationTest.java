@@ -32,9 +32,12 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -151,6 +154,45 @@ public class DatasetIntegrationTest {
 							.setValues(Arrays.asList("v-3")), rows.get(2));
 				}, MAX_WAIT);
 	}
+	
+	// Reproduce PLFM-7025
+	@Test
+	public void testQueryDatasetWithFileSize()
+			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
+
+		int numberOfVersions = 2;
+		
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()),
+				fileTwo.getEtag(), MAX_WAIT);
+		
+		// add one version from each file
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		);
+
+		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
+				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
+
+		Query query = new Query();
+		query.setSql("SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC");
+		query.setIncludeEntityEtag(true);
+		
+		QueryOptions options = new QueryOptions()
+				.withRunQuery(true)
+				.withRunSumFileSizes(true);
+		
+		SumFileSizes expectedSumFiles = new SumFileSizes().setSumFileSizesBytes(fileHandle.getContentSize() * 2).setGreaterThan(false);
+		
+		asyncHelper.assertQueryResult(userInfo, query, options, (QueryResultBundle result) -> {
+			assertEquals(expectedSumFiles, result.getSumFileSizes());
+		}, MAX_WAIT);
+	}
 
 
 	/**
@@ -158,7 +200,7 @@ public class DatasetIntegrationTest {
 	 *
 	 * @return
 	 */
-	public FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
+	private FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
 		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
 		for(int i=1; i <= numberOfVersions; i++) {
 			Annotations annos = new Annotations();
