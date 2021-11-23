@@ -155,7 +155,7 @@ public class TableFileHandleScannerAutowireTest {
 		tableTransactionManager.executeInTransaction(user, tableId, txContext -> {
 			try {
 				return tableManager.appendRows(user, tableId, rowSet, txContext);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}	
 		});

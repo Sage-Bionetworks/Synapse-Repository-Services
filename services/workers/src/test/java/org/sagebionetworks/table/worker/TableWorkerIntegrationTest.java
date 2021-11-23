@@ -78,7 +78,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -3609,7 +3608,7 @@ public class TableWorkerIntegrationTest {
 		return transactionManager.executeInTransaction(user, tableId, txContext -> {
 			try {
 				return tableEntityManager.appendRows(user, tableId, delta, txContext);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
@@ -3643,7 +3642,7 @@ public class TableWorkerIntegrationTest {
 		return transactionManager.executeInTransaction(user, tableId, txContext -> {
 			try {
 				return tableEntityManager.appendPartialRows(user, tableId, rowsToAppendOrUpdateOrDelete, txContext);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
@@ -3668,7 +3667,7 @@ public class TableWorkerIntegrationTest {
 		return transactionManager.executeInTransaction(user, tableId, txContext -> {
 			try {
 				return tableEntityManager.appendRowsAsStream(user, tableId, columns, rowStream, etag, results, txContext);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});

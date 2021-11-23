@@ -340,7 +340,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		transactionManager.executeInTransaction(adminUserInfo, tableId, txContext -> {			
 			try {
 				return tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, txContext);
-			} catch (Exception e) {
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
