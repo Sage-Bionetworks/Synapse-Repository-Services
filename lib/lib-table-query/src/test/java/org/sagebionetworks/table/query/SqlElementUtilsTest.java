@@ -308,8 +308,8 @@ public class SqlElementUtilsTest {
 		long limit = 100;
 		QuerySpecification model = new TableQueryParser("select * from T123 WHERE _C2_ = 'BAR' ORDER BY _C1_").querySpecification();
 		// call under test
-		String countSql = SqlElementUtils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
+		String countSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(model, limit);
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
 	}
 	
 	@Test
@@ -317,8 +317,8 @@ public class SqlElementUtilsTest {
 		long limit = 100;
 		QuerySpecification model = new TableQueryParser("select * from T123 limit 200 offset 100").querySpecification();
 		// call under test
-		String countSql = SqlElementUtils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100", countSql);
+		String countSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(model, limit);
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 LIMIT 100", countSql);
 	}
 	
 	@Test

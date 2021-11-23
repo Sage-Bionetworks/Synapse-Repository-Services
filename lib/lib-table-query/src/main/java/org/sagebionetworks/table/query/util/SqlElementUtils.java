@@ -608,14 +608,14 @@ public class SqlElementUtils {
 	}
 	
 	/**
-	 * Build the SQL to select the ROW_IDs for the given query with the provided limit.
+	 * Build the SQL to select the ROW_ID and ROW_VERSION for the given query with the provided limit.
 	 * 
 	 * @param model
 	 * @param limit
 	 * @return
 	 * @throws SimpleAggregateQueryException
 	 */
-	public static String buildSqlSelectRowIds(QuerySpecification model, long maxLimit) throws SimpleAggregateQueryException {
+	public static String buildSqlSelectRowIdAndVersions(QuerySpecification model, long maxLimit) throws SimpleAggregateQueryException {
 		TableExpression tableExpression = null;
 		FromClause fromClause = model.getTableExpression().getFromClause();
 		WhereClause whereClause = model.getTableExpression().getWhereClause();
@@ -631,6 +631,8 @@ public class SqlElementUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		builder.append(TableConstants.ROW_ID);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_VERSION);
 		// clear pagination, group by, order by
 		tableExpression = new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination);
 		builder.append(" ");

@@ -487,9 +487,16 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUtils.buildSqlSelectRowIds(query.getTransformedModel(), limit);
-		List<Long> rowIds = tableIndexDAO.getRowIds(rowIdSql, query.getParameters());
-		assertEquals(Lists.newArrayList(100L,101L), rowIds);
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTransformedModel(), limit);
+		
+		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(
+				IdAndVersion.parse("100.3"),
+				IdAndVersion.parse("101.3")
+		);
+		
+		List<IdAndVersion> rowIdAndVersions = tableIndexDAO.getRowIdAndVersions(rowIdSql, query.getParameters());
+		
+		assertEquals(expectedRowIdAdVersions, rowIdAndVersions);
 		
 		// the first row
 		Row row = results.getRows().get(0);
@@ -2972,7 +2979,11 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Lists.newArrayList(file1.getId(), file2.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Arrays.asList(
+				IdAndVersion.parse(file1.getIdVersion()),
+				IdAndVersion.parse(file2.getIdVersion())
+		));
+		
 		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
 	}
 	
@@ -2991,13 +3002,25 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(folder));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Lists.newArrayList(folder.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Arrays.asList(IdAndVersion.parse(folder.getIdVersion())));
 		assertEquals(0L, fileSizes);
 	}
 	
 	@Test
+	public void testGetSumOfFileSizesNoVersion(){
+		List<IdAndVersion> list = Arrays.asList(IdAndVersion.parse("123.1"), IdAndVersion.parse("456"));
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			tableIndexDAO.getSumOfFileSizes(mainType, list);
+		}).getMessage();
+		
+		assertEquals("The object with id syn456 must specify a version.", errorMessage);
+	}
+	
+	@Test
 	public void testGetSumOfFileSizesEmpty(){
-		List<Long> list = new LinkedList<>();
+		List<IdAndVersion> list = Collections.emptyList();
 		// call under test
 		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, list);
 		assertEquals(0, fileSizes);
@@ -3005,11 +3028,11 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetSumOfFileSizesNull(){
-		List<Long> list = null;
+		List<IdAndVersion> list = null;
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			 tableIndexDAO.getSumOfFileSizes(mainType, list);;
+			 tableIndexDAO.getSumOfFileSizes(mainType, list);
 		});
 	}
 	
