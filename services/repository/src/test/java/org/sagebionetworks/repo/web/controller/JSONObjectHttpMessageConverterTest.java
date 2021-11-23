@@ -9,12 +9,12 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpInputMessage;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 class JSONObjectHttpMessageConverterTest {
 	
 	@Mock
@@ -28,7 +28,7 @@ class JSONObjectHttpMessageConverterTest {
 	@Test
 	void testReadObjectHappyCase() throws Exception {
 		
-		mockMessageBody("{\foo\":\"bar\"}");
+		mockMessageBody("{\"foo\":\"bar\"}");
 		
 		JSONObjectHttpMessageConverter converter = new JSONObjectHttpMessageConverter();
 		
