@@ -12,24 +12,24 @@ import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class ArrayHasPredicateTest {
 
 	@Test
 	public void testArrayHasPredicateToSQL() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
-		InPredicateValue ArrayHasPredicateValue = SqlElementUntils.createInPredicateValue("(1)");
+		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
 		ArrayHasPredicate element = new ArrayHasPredicate(columnReferenceLHS, not, ArrayHasPredicateValue);
 		assertEquals("bar HAS ( 1 )", element.toString());
 	}
 
 	@Test
 	public void testArrayHasPredicateToSQLNot() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = Boolean.TRUE;
-		InPredicateValue ArrayHasPredicateValue = SqlElementUntils.createInPredicateValue("(1, 2)");
+		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1, 2)");
 		ArrayHasPredicate element = new ArrayHasPredicate(columnReferenceLHS, not, ArrayHasPredicateValue);
 		assertEquals("bar NOT HAS ( 1, 2 )", element.toString());
 	}

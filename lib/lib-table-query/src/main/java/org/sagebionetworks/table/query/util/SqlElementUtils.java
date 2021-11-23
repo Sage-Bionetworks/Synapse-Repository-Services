@@ -60,7 +60,7 @@ import com.google.common.collect.Maps;
  * @author John
  *
  */
-public class SqlElementUntils {
+public class SqlElementUtils {
 	
 	/**
 	 * Create a value expression from an input SQL.

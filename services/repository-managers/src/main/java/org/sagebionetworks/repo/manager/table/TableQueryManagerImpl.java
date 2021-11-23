@@ -48,7 +48,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -501,7 +501,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	long runCountQuery(SqlQuery query, TableIndexDAO indexDao) {
 		try {
 			// create the count SQL from the already transformed model.
-			String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
+			String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
 			// execute the count query
 			Long count = indexDao.countQuery(countSql, query.getParameters());
 
@@ -544,7 +544,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// actual values are only provided for entity views.
 			try {
 				// first get the rowIds for the given query up to the limit + 1.
-				String sqlSelectIds = SqlElementUntils.buildSqlSelectRowIds(query.getTransformedModel(), MAX_ROWS_PER_CALL+1L);
+				String sqlSelectIds = SqlElementUtils.buildSqlSelectRowIds(query.getTransformedModel(), MAX_ROWS_PER_CALL+1L);
 				List<Long> rowIds = indexDao.getRowIds(sqlSelectIds, query.getParameters());
 				boolean isGreaterThan = rowIds.size() > MAX_ROWS_PER_CALL;
 				result.setGreaterThan(isGreaterThan);

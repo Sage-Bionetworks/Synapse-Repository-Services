@@ -79,7 +79,7 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -482,12 +482,12 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(2, results.getRows().size());
 		// test the count
-		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
+		String countSql = SqlElementUtils.createCountSql(query.getTransformedModel());
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
 		assertEquals(new Long(2), count);
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUntils.buildSqlSelectRowIds(query.getTransformedModel(), limit);
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIds(query.getTransformedModel(), limit);
 		List<Long> rowIds = tableIndexDAO.getRowIds(rowIdSql, query.getParameters());
 		assertEquals(Lists.newArrayList(100L,101L), rowIds);
 		

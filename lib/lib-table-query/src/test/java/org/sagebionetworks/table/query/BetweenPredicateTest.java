@@ -12,7 +12,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 import com.google.common.collect.Lists;
 
@@ -20,10 +20,10 @@ public class BetweenPredicateTest {
 
 	@Test
 	public void testBetweenPredicateToSQL() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
-		RowValueConstructor betweenRowValueConstructor = SqlElementUntils.createRowValueConstructor("1.0");
-		RowValueConstructor andRowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("2.0");
+		RowValueConstructor betweenRowValueConstructor = SqlElementUtils.createRowValueConstructor("1.0");
+		RowValueConstructor andRowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("2.0");
 		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor,
 				andRowValueConstructorRHS);
 		assertEquals("bar BETWEEN 1.0 AND 2.0", element.toString());
@@ -31,10 +31,10 @@ public class BetweenPredicateTest {
 
 	@Test
 	public void testBetweenPredicateToSQLNot() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = Boolean.TRUE;
-		RowValueConstructor betweenRowValueConstructor = SqlElementUntils.createRowValueConstructor("1.0");
-		RowValueConstructor andRowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("2.0");
+		RowValueConstructor betweenRowValueConstructor = SqlElementUtils.createRowValueConstructor("1.0");
+		RowValueConstructor andRowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("2.0");
 		BetweenPredicate element = new BetweenPredicate(columnReferenceLHS, not, betweenRowValueConstructor,
 				andRowValueConstructorRHS);
 		assertEquals("bar NOT BETWEEN 1.0 AND 2.0", element.toString());

@@ -7,13 +7,13 @@ import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class OrderByClauseTest {
 
 	@Test
 	public void testToSQl() throws ParseException {
-		SortSpecificationList list = SqlElementUntils.createSortSpecificationList("foo, bar");
+		SortSpecificationList list = SqlElementUtils.createSortSpecificationList("foo, bar");
 		OrderByClause element = new OrderByClause(list);
 		assertEquals("ORDER BY foo, bar", element.toString());
 	}
