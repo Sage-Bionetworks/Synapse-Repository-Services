@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -39,7 +40,11 @@ public class JSONObjectHttpMessageConverter implements HttpMessageConverter<JSON
 	public JSONObject read(Class<? extends JSONObject> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
 		String json = IOUtils.toString(inputMessage.getBody(), StandardCharsets.UTF_8);
-		return new JSONObject(json);
+		try {
+			return new JSONObject(json);
+		} catch (JSONException e) {
+			throw new IllegalArgumentException("Request body is not valid JSON.", e);
+		}
 	}
 
 	@Override
