@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.json.JSONArray;
@@ -29,6 +28,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.doubles.DoubleUtils;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
@@ -471,15 +471,16 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 		case STRING:
 			return value;
 		case DOUBLE:
-			// NaN is not a valid value in JSON, so we convert it to string "NaN"
-			if (Double.toString(Double.NaN).equals(value)) {
-				return Double.toString(Double.NaN);
-			} else if (Double.toString(Double.POSITIVE_INFINITY).equals(value)) {
-				return Double.toString(Double.POSITIVE_INFINITY);
-			} else if (Double.toString(Double.NEGATIVE_INFINITY).equals(value)) {
-				return Double.toString(Double.NEGATIVE_INFINITY);
+			// For consistency use the same parser for annotation validation that allows relaxed parsing of special values (See PLFM-7015), so values such as "nan" or "+Inf" are accepted
+			Double doubleValue = DoubleUtils.fromString(value);
+			
+			if (Double.isFinite(doubleValue)) {
+				return doubleValue;
+			} else {
+				// NaN, Infinite etc are not valid double values in JSON, so we convert them to their string representation instead.
+				return doubleValue.toString();
 			}
-			return Double.parseDouble(value);
+			
 		case LONG:
 			return Long.parseLong(value);
 		case TIMESTAMP_MS:
