@@ -1006,35 +1006,6 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForView() {
-		when(mockManagerSupport.getViewScopeType(tableId)).thenReturn(scopeType);
-
-		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
-		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
-		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
-		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
-		when(mockFilter.isEmpty()).thenReturn(false);
-
-		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId.getId(), tokenString);
-		assertNotNull(results);
-		assertEquals(null, results.getNextPageToken());
-		assertEquals(schema, results.getResults());
-		
-		verify(mockManagerSupport).getViewScopeType(tableId);
-		verify(mockManagerSupport).getViewScope(tableId);
-	}
-
-	@Test
-	public void testGetPossibleAnnotationDefinitionsForViewNullId() {
-		Long viewId = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.getPossibleColumnModelsForView(viewId, tokenString);
-		});
-	}
-
-	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);

@@ -20,9 +20,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Row;
@@ -38,7 +36,6 @@ import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.TableSqlProcessor;
@@ -235,17 +232,6 @@ public class TableServicesImpl implements TableServices {
 		return tableManagerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
 	}
 	
-	@Override
-	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
-		Long viewIdLong = KeyFactory.stringToKey(viewId);
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewIdLong, nextPageToken);
-	}
-
-	@Override
-	public ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope, String nextPageToken) {
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scope, nextPageToken);
-	}
-
 	@Override
 	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException {
 		ValidateArgument.required(request, "request");

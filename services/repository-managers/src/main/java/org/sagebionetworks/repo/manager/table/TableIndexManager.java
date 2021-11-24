@@ -199,16 +199,6 @@ public interface TableIndexManager {
 	ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken);
 
 	/**
-	 * Get the possible ColumnModel definitions based on annotations for a given
-	 * view.
-	 * 
-	 * @param viewId        The id of the view to fetch annotation definitions for.
-	 * @param nextPageToken Optional: Controls pagination.
-	 * @return A ColumnModel for each distinct annotation for the given scope.
-	 */
-	ColumnModelPage getPossibleColumnModelsForView(Long viewId, String nextPageToken);
-
-	/**
 	 * Build the index for the given table using the provided change metadata up to
 	 * and including the provided target change number.
 	 * 

@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
@@ -515,11 +514,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// The table is in an invalid state if the last applied change etag does not
 		// match any of the change etags in the tables history.
 		return !tableTruthDao.isEtagInTablesChangeHistory(idAndVersion.getId().toString(), lastChangeEtag.get());
-	}
-
-	@Override
-	public Set<Long> getViewScope(IdAndVersion idAndVersion) {
-		return viewScopeDao.getViewScope(idAndVersion.getId());
 	}
 
 	@Override
