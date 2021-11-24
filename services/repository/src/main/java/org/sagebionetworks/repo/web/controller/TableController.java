@@ -1315,18 +1315,14 @@ public class TableController {
 	 * of ColumnModels for the given scope.  The nextPageToken will be null when there are no more pages of results.
 	 * 
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.GONE)
 	@RequiredScope({view})
 	@RequestMapping(value = UrlHelpers.TABLE_COLUMNS_OF_SCOPE, method = RequestMethod.POST)
 	@Deprecated
-	public @ResponseBody
-	ColumnModelPage getPossibleColumnModelsForView(
+	public @ResponseBody String getPossibleColumnModelsForView(
 			@RequestBody ViewScope viewScope,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
-		ValidateArgument.required(viewScope, "viewScope");
-		return serviceProvider.getTableServices()
-				.getPossibleColumnModelsForScopeIds(viewScope,
-						nextPageToken);
+		return "This service has been removed and is now an asynchronous service. See " + UrlHelpers.VIEW_COLUMNS_FROM_SCOPE_ASYNC_START + " (https://rest-docs.synapse.org/rest/POST/column/view/scope/async/start.html).";
 	}
 	
 	/**

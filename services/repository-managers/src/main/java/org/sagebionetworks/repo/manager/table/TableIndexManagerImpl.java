@@ -481,17 +481,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
 	}
-	
-	@Override
-	public ColumnModelPage getPossibleColumnModelsForView(
-			final Long viewId, String nextPageToken) {
-		ValidateArgument.required(viewId, "viewId");
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
-		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		Set<Long> scope = tableManagerSupport.getViewScope(idAndVersion);
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scope, nextPageToken);
-	}
-	
+		
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken) {
 		ValidateArgument.required(scope, "scope");
