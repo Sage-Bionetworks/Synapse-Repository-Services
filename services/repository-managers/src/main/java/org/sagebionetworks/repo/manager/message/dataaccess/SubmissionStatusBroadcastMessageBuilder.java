@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.StringJoiner;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.markdown.MarkdownClientException;
@@ -25,7 +24,7 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessageBuilder{
 
 	public static final String GREETING = "Hello %1$s,\n\n";
-	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
+	public static final String APPROVED_TITLE = "Synapse Notification: Your request has been approved";
 	
 	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request. There may be additional requirements to complete before you may access this resource; "
 			+ "[please view and complete any additional requirements](https://www.synapse.org/#!AccessRequirements:ID=%2$s&TYPE=%3$s).\n\n" 
