@@ -8,13 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.TruthValue;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class BooleanTestTest {
 
 	@Test
 	public void testBooleanTestSQLPrimaryOnly() throws ParseException{
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo <> 'bar'");
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo <> 'bar'");
 		Boolean is = null;
 		Boolean not = null;
 		TruthValue truthValue = null;
@@ -25,7 +25,7 @@ public class BooleanTestTest {
 	
 	@Test
 	public void testBooleanTestSQLPrimaryIsTrue() throws ParseException{
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is null");
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo is null");
 		Boolean is = Boolean.TRUE;
 		Boolean not = null;
 		TruthValue truthValue = TruthValue.TRUE;
@@ -36,7 +36,7 @@ public class BooleanTestTest {
 	
 	@Test
 	public void testBooleanTestSQLPrimaryIsNotKnown() throws ParseException{
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo > 1");
+		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("foo > 1");
 		Boolean is = Boolean.TRUE;
 		Boolean not = Boolean.TRUE;
 		TruthValue truthValue = TruthValue.UNKNOWN;

@@ -18,25 +18,25 @@ import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class ArrayHasLikePredicateTest {
 
 	@Test
 	public void testArrayHasLikePredicateToSQL() throws ParseException{
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
-		InPredicateValue ArrayHasPredicateValue =  SqlElementUntils.createInPredicateValue("(1)");
+		InPredicateValue ArrayHasPredicateValue =  SqlElementUtils.createInPredicateValue("(1)");
 		ArrayHasPredicate element = new ArrayHasLikePredicate(columnReferenceLHS, not, ArrayHasPredicateValue, null);
 		assertEquals("bar HAS_LIKE ( 1 )", element.toString());
 	}
 	
 	@Test
 	public void testArrayHasLikePredicateToSQLWithEscape() throws ParseException{
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("bar");
 		Boolean not = null;
-		InPredicateValue ArrayHasPredicateValue = SqlElementUntils.createInPredicateValue("(1)");
-		EscapeCharacter escape = SqlElementUntils.createEscapeCharacter("'_'");
+		InPredicateValue ArrayHasPredicateValue = SqlElementUtils.createInPredicateValue("(1)");
+		EscapeCharacter escape = SqlElementUtils.createEscapeCharacter("'_'");
 		ArrayHasPredicate element = new ArrayHasLikePredicate(columnReferenceLHS, not, ArrayHasPredicateValue, escape);
 		assertEquals("bar HAS_LIKE ( 1 ) ESCAPE '_'", element.toString());
 	}

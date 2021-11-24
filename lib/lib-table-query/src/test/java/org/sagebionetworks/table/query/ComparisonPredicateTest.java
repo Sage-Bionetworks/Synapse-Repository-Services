@@ -13,7 +13,7 @@ import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 import com.google.common.collect.Lists;
 
@@ -21,9 +21,9 @@ public class ComparisonPredicateTest {
 
 	@Test
 	public void testComparisonPredicateToSQL() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		CompOp compOp = CompOp.NOT_EQUALS_OPERATOR;
-		RowValueConstructor rowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("1");
+		RowValueConstructor rowValueConstructorRHS = SqlElementUtils.createRowValueConstructor("1");
 		ComparisonPredicate element = new ComparisonPredicate(columnReferenceLHS, compOp, rowValueConstructorRHS);
 		assertEquals("foo <> 1", element.toString());
 	}

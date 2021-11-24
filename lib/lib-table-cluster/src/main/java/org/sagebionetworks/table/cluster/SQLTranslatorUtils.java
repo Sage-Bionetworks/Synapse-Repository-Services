@@ -86,7 +86,7 @@ import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
@@ -240,10 +240,10 @@ public class SQLTranslatorUtils {
 	public static SelectList addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
 		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
 		selectColumns.addAll(selectList.getColumns());
-		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_ID));
-		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_VERSION));
+		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
+		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
 		if(includeEtag){
-			selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_ETAG));
+			selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
 		}
 		return new SelectList(selectColumns);
 	}
@@ -427,7 +427,7 @@ public class SQLTranslatorUtils {
 				columnIdsToJoin.add(columnTranslationReference.getId());
 
 				//replace "UNNEST(_C123_)" with column "_C123__UNNEST"
-				ColumnReference replacementColumn = SqlElementUntils.createColumnReference(
+				ColumnReference replacementColumn = SqlElementUtils.createColumnReference(
 						SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())
 				);
 				valueExpressionPrimary.replaceChildren(replacementColumn);
@@ -713,7 +713,7 @@ public class SQLTranslatorUtils {
 		try {
 			
 			String rowIdRefColumnName = SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId());
-			ColumnReference unnestedColumn = SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
+			ColumnReference unnestedColumn = SqlElementUtils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
 			
 			QuerySpecification subquery;
 			
@@ -726,7 +726,7 @@ public class SQLTranslatorUtils {
 			
 			//replace the "HAS" with "IN" predicate containing the subquery
 			Predicate replacementPredicate = new Predicate(new InPredicate(
-					SqlElementUntils.createColumnReference(ROW_ID),
+					SqlElementUtils.createColumnReference(ROW_ID),
 					arrayHasPredicate.getNot(),
 					new InPredicateValue(subquery)));
 

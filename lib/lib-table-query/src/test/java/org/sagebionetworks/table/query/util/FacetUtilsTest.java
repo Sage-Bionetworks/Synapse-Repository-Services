@@ -91,7 +91,7 @@ public class FacetUtilsTest {
 		supportedFacetColumns = new HashSet<>();
 		requestedFacetColumns = new HashSet<>();
 
-		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
+		whereClause = new WhereClause(SqlElementUtils.createSearchCondition("water=wet AND sky=blue"));
 		facetSearchConditionString = "(tabs > spaces)";
 		stringBuilder = new StringBuilder();
 		

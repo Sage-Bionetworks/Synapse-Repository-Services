@@ -182,7 +182,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
 			+ " FROM " + OBJECT_REPLICATION_TABLE 
 			+ " WHERE " + OBJECT_REPLICATION_COL_OBJECT_TYPE + " =:" + OBJECT_TYPE_PARAM_NAME 
-			+ " AND " + OBJECT_REPLICATION_COL_OBJECT_ID + " IN (:" +ID_PARAM_NAME+ ")";
+			+ " AND (" + OBJECT_REPLICATION_COL_OBJECT_ID + ", " + OBJECT_REPLICATION_COL_OBJECT_VERSION +") IN (:" +ID_PARAM_NAME+ ")";
 
 	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
 			"SELECT t1."+OBJECT_REPLICATION_COL_PROJECT_ID + ", t2." + OBJECT_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
@@ -1290,22 +1290,29 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 
 	@Override
-	public List<Long> getRowIds(String sql, Map<String, Object> parameters) {
+	public List<IdAndVersion> getRowIdAndVersions(String sql, Map<String, Object> parameters) {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
-		return namedTemplate.queryForList(sql, new MapSqlParameterSource(parameters), Long.class);
+		return namedTemplate.query(sql, new MapSqlParameterSource(parameters), (ResultSet rs, int rowNum) -> 
+			IdAndVersion.newBuilder().setId(rs.getLong(1)).setVersion(rs.getLong(2)).build()
+		);
 	}
 
 	@Override
-	public long getSumOfFileSizes(ReplicationType mainType, List<Long> rowIds) {
-		ValidateArgument.required(rowIds, "rowIds");
-		if(rowIds.isEmpty()) {
+	public long getSumOfFileSizes(ReplicationType mainType, List<IdAndVersion> rowIdAndVersions) {
+		ValidateArgument.required(rowIdAndVersions, "rowIdAndVersions");
+		if(rowIdAndVersions.isEmpty()) {
 			return 0L;
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OBJECT_TYPE_PARAM_NAME, mainType.name());
-		params.addValue(ID_PARAM_NAME, rowIds);
+		
+		List<Long[]> idAndVersionParam = rowIdAndVersions.stream()
+				.map((IdAndVersion id) -> new Long[] {id.getId(), id.getVersion().orElseThrow(() -> new IllegalArgumentException("The object with id " + id + " must specify a version."))})
+				.collect(Collectors.toList());
+		
+		params.addValue(ID_PARAM_NAME, idAndVersionParam);
 
 		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, params, Long.class);
 		

@@ -513,21 +513,21 @@ public interface TableIndexDAO {
 	List<IdAndEtag> getObjectChildren(ReplicationType mainType, Long parentId);
 
 	/**
-	 * Get the rowIds for the given query.
+	 * Get the rowId and versions for the given query.
 	 * 
-	 * @param sqlSelectIds
+	 * @param sqlSelectIdAndVersions
 	 * @param parameters
 	 * @return
 	 */
-	List<Long> getRowIds(String sqlSelectIds, Map<String, Object> parameters);
+	List<IdAndVersion> getRowIdAndVersions(String sqlSelectIdAndVersions, Map<String, Object> parameters);
 
 	/**
-	 * Get the sum of the files sizes for the given row IDs.
+	 * Get the sum of the files sizes for the given row ID and versions.
 	 * 
-	 * @param rowIds
+	 * @param rowIdAndVersions
 	 * @return
 	 */
-	long getSumOfFileSizes(ReplicationType mainType, List<Long> rowIds);
+	long getSumOfFileSizes(ReplicationType mainType, List<IdAndVersion> rowIdAndVersions);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.

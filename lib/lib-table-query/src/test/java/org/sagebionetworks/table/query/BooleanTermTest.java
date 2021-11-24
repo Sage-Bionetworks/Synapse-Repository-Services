@@ -7,34 +7,34 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanTerm;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class BooleanTermTest {
 
 	@Test
 	public void testBooleanTermToSQLSingle() throws ParseException{
-		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=1");
+		List<BooleanFactor> list = SqlElementUtils.createBooleanFactors("foo=1");
 		BooleanTerm element = new BooleanTerm(list);
 		assertEquals("foo = 1", element.toString());
 	}
 	
 	@Test
 	public void testBooleanTermNegativeToSQLSingle() throws ParseException {
-		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=-1");
+		List<BooleanFactor> list = SqlElementUtils.createBooleanFactors("foo=-1");
 		BooleanTerm element = new BooleanTerm(list);
 		assertEquals("foo = -1", element.toString());
 	}
 
 	@Test
 	public void testBooleanTermNegativeDoubleToSQLSingle() throws ParseException {
-		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo>-.1");
+		List<BooleanFactor> list = SqlElementUtils.createBooleanFactors("foo>-.1");
 		BooleanTerm element = new BooleanTerm(list);
 		assertEquals("foo > -0.1", element.toString());
 	}
 
 	@Test
 	public void testBooleanTermToSQLMultiple() throws ParseException{
-		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo=1", "bar=2");
+		List<BooleanFactor> list = SqlElementUtils.createBooleanFactors("foo=1", "bar=2");
 		BooleanTerm element = new BooleanTerm(list);
 		assertEquals("foo = 1 AND bar = 2", element.toString());
 	}

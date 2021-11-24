@@ -52,7 +52,7 @@ public class TableSqlProcessor {
 		OrderByClause obc = model.getTableExpression().getOrderByClause();
 		OrderByClause newCluase = new OrderByClause(new SortSpecificationList());
 		// This will be the sort key for the column
-		SortKey columnNameKey = SqlElementUntils.createSortKey(columnName);
+		SortKey columnNameKey = SqlElementUtils.createSortKey(columnName);
 		// Is this sort column already in the list?
 		OrderingSpecification currentOrder = getCurrentDirection(obc,
 				columnNameKey);

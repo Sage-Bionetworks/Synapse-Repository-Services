@@ -67,7 +67,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -1701,7 +1701,7 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append(SqlElementUntils.wrapInDoubleQuotes(cm.getName()));
+			builder.append(SqlElementUtils.wrapInDoubleQuotes(cm.getName()));
 			first = false;
 		}
 		builder.append(" FROM ");
