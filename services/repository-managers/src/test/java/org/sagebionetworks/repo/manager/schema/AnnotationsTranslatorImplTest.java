@@ -1107,7 +1107,7 @@ public class AnnotationsTranslatorImplTest {
 		// See PLFM-6872 -- NaN is not a valid JSON value, so we replace it with the string "NaN"
 		schema = null;
 		Annotations toWrite = new Annotations();
-		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","NaN"), AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","NaN", "nan"), AnnotationsValueType.DOUBLE);
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
@@ -1115,8 +1115,32 @@ public class AnnotationsTranslatorImplTest {
 		assertNotNull(array);
 		// If the array includes Double.NaN, it will throw an error on write.
 		assertDoesNotThrow(() -> {array.write(new StringWriter());});
-		assertEquals(2, array.length());
+		assertEquals(3, array.length());
 		assertEquals(new Double(1.22), array.getDouble(0));
 		assertEquals("NaN", array.getString(1));
+		assertEquals("NaN", array.getString(2));
+	}
+	
+	@Test
+	public void testWriteAnnotationsToJSONObjectWithInfinityValue() {
+		// See PLFM-6872 -- NaN is not a valid JSON value, so we replace it with the string "NaN"
+		schema = null;
+		Annotations toWrite = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("infinity", "Infinity", "Inf", "+Inf", "-Infinity", "-infinity", "-Inf"), AnnotationsValueType.DOUBLE);
+		JSONObject json = new JSONObject();
+		// call under test
+		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
+		JSONArray array = json.getJSONArray("aListOfDoubles");
+		assertNotNull(array);
+		// If the array includes Double.NaN, it will throw an error on write.
+		assertDoesNotThrow(() -> {array.write(new StringWriter());});
+		assertEquals(7, array.length());
+		assertEquals("Infinity", array.getString(0));
+		assertEquals("Infinity", array.getString(1));
+		assertEquals("Infinity", array.getString(2));
+		assertEquals("Infinity", array.getString(3));
+		assertEquals("-Infinity", array.getString(4));
+		assertEquals("-Infinity", array.getString(5));
+		assertEquals("-Infinity", array.getString(6));
 	}
 }

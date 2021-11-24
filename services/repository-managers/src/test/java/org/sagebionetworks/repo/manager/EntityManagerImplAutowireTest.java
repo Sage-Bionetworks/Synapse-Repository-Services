@@ -532,7 +532,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
-		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", Arrays.asList("NaN", "Infinity", "-Infinity"),
+		AnnotationsV2TestUtils.putAnnotations(annotations, "listOfDoubles", Arrays.asList("NaN", "nan", "Infinity", "infinity", "-Infinity", "-infinity"),
 				AnnotationsValueType.DOUBLE);
 		entityManager.updateAnnotations(userInfo, pid, annotations);
 		project = entityManager.getEntity(userInfo, pid, Project.class);
@@ -540,9 +540,13 @@ public class EntityManagerImplAutowireTest {
 		// Call under test - PLFM-6872
 		// Verify that we get an object back and can read it
 		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		
 		assertEquals("NaN", toUpdate.getJSONArray("listOfDoubles").get(0));
-		assertEquals("Infinity", toUpdate.getJSONArray("listOfDoubles").get(1));
-		assertEquals("-Infinity", toUpdate.getJSONArray("listOfDoubles").get(2));
+		assertEquals("NaN", toUpdate.getJSONArray("listOfDoubles").get(1));
+		assertEquals("Infinity", toUpdate.getJSONArray("listOfDoubles").get(2));
+		assertEquals("Infinity", toUpdate.getJSONArray("listOfDoubles").get(3));
+		assertEquals("-Infinity", toUpdate.getJSONArray("listOfDoubles").get(4));
+		assertEquals("-Infinity", toUpdate.getJSONArray("listOfDoubles").get(5));
 
 
 
@@ -555,8 +559,11 @@ public class EntityManagerImplAutowireTest {
 		JSONArray doubleArray = result.getJSONArray("listOfDoubles");
 		assertNotNull(doubleArray);
 		assertEquals("NaN", doubleArray.get(0));
-		assertEquals("Infinity", doubleArray.get(1));
-		assertEquals("-Infinity", doubleArray.get(2));
+		assertEquals("NaN", doubleArray.get(1));
+		assertEquals("Infinity", doubleArray.get(2));
+		assertEquals("Infinity", doubleArray.get(3));
+		assertEquals("-Infinity", doubleArray.get(4));
+		assertEquals("-Infinity", doubleArray.get(5));
 
 		Annotations afterAnnotations = entityManager.getAnnotations(adminUserInfo, pid);
 		assertNotNull(afterAnnotations);
@@ -566,6 +573,6 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(1, map.size());
 		AnnotationsValue value = map.get("listOfDoubles");
 		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
-		assertEquals(Arrays.asList("NaN","Infinity", "-Infinity"), value.getValue());
+		assertEquals(Arrays.asList("NaN", "NaN", "Infinity", "Infinity", "-Infinity", "-Infinity"), value.getValue());
 	}
 }
