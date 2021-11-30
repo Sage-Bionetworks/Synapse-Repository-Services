@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -85,7 +84,6 @@ import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -109,27 +107,27 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public static final int READ_LOCK_TIMEOUT_SEC = 60;
 	
 	@Autowired
-	TableRowTruthDAO tableRowTruthDao;
+	private TableRowTruthDAO tableRowTruthDao;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	private ConnectionFactory tableConnectionFactory;
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	@Autowired
-	ColumnModelManager columModelManager;
+	private ColumnModelManager columModelManager;
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 	@Autowired
-	TransactionTemplate readCommitedTransactionTemplate;
+	private TableUploadManager tableUploadManager;
 	@Autowired
-	TableUploadManager tableUploadManager;
+	private TableTransactionDao tableTransactionDao;
 	@Autowired
-	TableTransactionDao tableTransactionDao;
+	private NodeManager nodeManager;
 	@Autowired
-	NodeManager nodeManager;
+	private EventsCollector statisticsCollector;
 	@Autowired
-	EventsCollector statisticsCollector;
+	private TableTransactionManager transactionManager;
 	
 	/**
 	 * Injected via spring
@@ -152,8 +150,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback, long transactionId)
-			throws DatastoreException, NotFoundException, IOException {
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(delta, "RowSet");
@@ -164,15 +161,13 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		RowReferenceSet results = new RowReferenceSet();
 		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(delta, currentSchema);
 		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
-		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), delta.getEtag(), results, progressCallback, transactionId);
+		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), delta.getEtag(), results, txContext);
 		return results;
 	}
 	
 	@WriteTransaction
 	@Override
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
-			PartialRowSet partial, ProgressCallback progressCallback, long transactionId)
-			throws DatastoreException, NotFoundException, IOException {
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, PartialRowSet partial, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
 		Validate.required(partial, "RowsToAppendOrUpdate");
@@ -189,7 +184,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		TableRowChange lastRowChange = tableRowTruthDao.getLastTableRowChange(tableId, TableChangeType.ROW);
 		SparseChangeSetDto dto = TableModelUtils.createSparseChangeSetFromPartialRowSet(lastRowChange, partial);
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), results.getEtag(), results, progressCallback, transactionId);
+		appendRowsAsStream(user, tableId, currentSchema, dto.getRows().iterator(), results.getEtag(), results, txContext);
 		return results;
 	}
 	
@@ -213,17 +208,22 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			// A delete row has an ID and no values.
 			row.setRowId(rowId);
 		}
-		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
-		RowReferenceSet result = appendRowsToTable(user, columns, changeSet, transactionId);
-		// The table has change so we must reset the state.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-		return result;
+		
+		return transactionManager.executeInTransaction(user, tableId, txContext -> {
+			RowReferenceSet result;
+			try {
+				result = appendRowsToTable(user, columns, changeSet, txContext);
+			} catch (IOException e) {
+				throw new IllegalStateException(e);
+			}
+			return result;
+		});
+		
 	}
 
 	@WriteTransaction
 	@Override
-	public TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
-			RowReferenceSet results, ProgressCallback progressCallback, long transactionId) throws DatastoreException, NotFoundException, IOException {
+	public TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag, RowReferenceSet results, TableTransactionContext txContext) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(columns, "columns");
@@ -256,7 +256,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Send this batch and keep the etag.
 				SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch, etag);
-				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback, transactionId);
+				etag = appendBatchOfRowsToTable(user, columns, delta, results, txContext);
 				// Clear the batch
 				batch.clear();
 				batchSizeBytes = 0;
@@ -266,10 +266,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
 			SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch, etag);
-			etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback, transactionId);
+			etag = appendBatchOfRowsToTable(user, columns, delta, results, txContext);
 		}
-		// The table has change so we must reset the state.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		// Done
 		UploadToTableResult result = new UploadToTableResult();
 		result.setRowsProcessed(rowCount);
@@ -302,10 +300,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @throws IOException
 	 * @throws ReadOnlyException If the stack status is anything other than READ_WRITE
 	 */
-	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, SparseChangeSet delta, RowReferenceSet results,
-			ProgressCallback progressCallback, long transactionId)
+	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, SparseChangeSet delta, RowReferenceSet results, TableTransactionContext txContext)
 			throws IOException, ReadOnlyException {
-		RowReferenceSet rrs = appendRowsToTable(user, columns, delta, transactionId);
+		RowReferenceSet rrs = appendRowsToTable(user, columns, delta, txContext);
 		if(results != null){
 			results.setEtag(rrs.getEtag());
 			results.setHeaders(TableModelUtils.getSelectColumns(columns));
@@ -330,7 +327,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @throws IOException
 	 */
 	RowReferenceSet appendRowsToTable(UserInfo user, List<ColumnModel> columns,
-			SparseChangeSet delta, long transactionId) throws IOException {
+			SparseChangeSet delta, TableTransactionContext txContext) throws IOException {
 		// See PLFM-3041
 		checkStackWiteStatus();
 
@@ -372,7 +369,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 		final boolean hasFileRefs = !newFileIds.isEmpty();
 		
-		tableRowTruthDao.appendRowSetToTable(userId.toString(), tableId, range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), transactionId, hasFileRefs);
+		tableRowTruthDao.appendRowSetToTable(userId.toString(), tableId, range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), txContext.getTransactionId(), hasFileRefs);
 		
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
@@ -623,14 +620,17 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		changeRequest.setChanges(schemaChange);
 		changeRequest.setEntityId(tableId);
 		changeRequest.setOrderedColumnIds(newSchema);
-		// Start a transaction to change the table to the new schema and/or add the search change.
-		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
 		
-		// Will add a table schema change if needed 
-		updateTableSchema(callback, userInfo, changeRequest, transactionId);
-		
-		// Will add a search change id needed
-		updateSearchStatus(userInfo, tableId, searchEnabled, transactionId);
+		transactionManager.executeInTransaction(userInfo, tableId, txContext -> {
+			// Will add a table schema change if needed 
+			updateTableSchema(userInfo, changeRequest, txContext);
+			
+			// Will add a search change id needed
+			updateSearchStatus(userInfo, tableId, searchEnabled, txContext);
+			
+			return null;
+		});
+
 	}
 		
 	/**
@@ -641,7 +641,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param searchEnabled
 	 * @return True if the search status was changed, false otherwise
 	 */
-	boolean updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, long transactionId) {
+	boolean updateSearchStatus(UserInfo userInfo, String tableId, Boolean searchEnabled, TableTransactionContext txContext) {
 		// No change needed if the flag was not specified
 		if (searchEnabled == null) {
 			return false;
@@ -659,12 +659,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			return false;
 		}
 		
-		tableManagerSupport.touchTable(userInfo, tableId);
-		
-		tableRowTruthDao.appendSearchChange(userInfo.getId(), tableId, transactionId, searchEnabled);
-		
-		// Trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(IdAndVersion.parse(tableId));
+		tableRowTruthDao.appendSearchChange(userInfo.getId(), tableId, txContext.getTransactionId(), searchEnabled);
 		
 		return true;
 		
@@ -679,8 +674,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param transactionId
 	 * @return
 	 */
-	TableUpdateResponse updateSearchStatus(UserInfo userInfo, TableSearchChangeRequest change, long transactionId) {
-		boolean statusChanged = updateSearchStatus(userInfo, change.getEntityId(), change.getSearchEnabled(), transactionId);
+	TableUpdateResponse updateSearchStatus(UserInfo userInfo, TableSearchChangeRequest change, TableTransactionContext txContext) {
+		boolean statusChanged = updateSearchStatus(userInfo, change.getEntityId(), change.getSearchEnabled(), txContext);
 		
 		if (statusChanged) {
 			// Make sure to align the searchEnabled property in the node representing the table
@@ -786,18 +781,18 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 
 	@Override
-	public TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change, long transactionId) {
+	public TableUpdateResponse updateTable(ProgressCallback callback, UserInfo userInfo, TableUpdateRequest change, TableTransactionContext txContext) {
 		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(change, "change");
 		if (change instanceof TableSchemaChangeRequest) {
-			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest) change, transactionId);
+			return updateTableSchema(userInfo, (TableSchemaChangeRequest) change, txContext);
 		} else if (change instanceof UploadToTableRequest) {
-			return uploadToTable(callback, userInfo, (UploadToTableRequest) change, transactionId);
+			return uploadToTable(callback, userInfo, (UploadToTableRequest) change, txContext);
 		} else if (change instanceof AppendableRowSetRequest) {
-			return appendToTable(callback, userInfo, (AppendableRowSetRequest) change, transactionId);
+			return appendToTable(userInfo, (AppendableRowSetRequest) change, txContext);
 		} else if (change instanceof TableSearchChangeRequest) {
-			return updateSearchStatus(userInfo, (TableSearchChangeRequest) change, transactionId);
+			return updateSearchStatus(userInfo, (TableSearchChangeRequest) change, txContext);
 		} else {
 			throw new IllegalArgumentException("Unknown request type: " + change.getClass().getName());
 		}
@@ -805,22 +800,20 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	
 	/**
 	 * Append a rowset to a table from a transaction.
-	 * @param callback
 	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
-	TableUpdateResponse appendToTable(ProgressCallback callback,
-			UserInfo userInfo, AppendableRowSetRequest request, long transactionId) {
+	TableUpdateResponse appendToTable(UserInfo userInfo, AppendableRowSetRequest request, TableTransactionContext txContext) {
 		ValidateArgument.required(request.getToAppend(), "AppendableRowSetRequest.toAppend");
 		try {
 			RowReferenceSet results = null;
 			if(request.getToAppend() instanceof PartialRowSet){
 				PartialRowSet partialRowSet = (PartialRowSet) request.getToAppend();
-				results =  appendPartialRows(userInfo, partialRowSet.getTableId(), partialRowSet, callback, transactionId);
+				results =  appendPartialRows(userInfo, partialRowSet.getTableId(), partialRowSet, txContext);
 			}else if(request.getToAppend() instanceof RowSet){
 				RowSet rowSet = (RowSet)request.getToAppend();
-				results = appendRows(userInfo, rowSet.getTableId(), rowSet, callback, transactionId);
+				results = appendRows(userInfo, rowSet.getTableId(), rowSet, txContext);
 			}else{
 				throw new IllegalArgumentException("Unknown RowSet type: "+request.getToAppend().getClass().getName());
 			}
@@ -845,18 +838,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @return
 	 * @throws IOException 
 	 */
-	TableUpdateResponse uploadToTable(ProgressCallback callback,
-			UserInfo userInfo, UploadToTableRequest change, long transactionId) {
-		// Touch an lock on the table.
-		tableManagerSupport.touchTable(userInfo, change.getTableId());
+	TableUpdateResponse uploadToTable(ProgressCallback callback, UserInfo userInfo, UploadToTableRequest change, TableTransactionContext txContext) {
 		// upload the CSV to the table.
-		return tableUploadManager.uploadCSV(callback, userInfo, change, new UploadRowProcessor() {
-			@Override
-			public TableUpdateResponse processRows(UserInfo user, String tableId, List<ColumnModel> tableSchema,
-					Iterator<SparseRowDto> rowStream, String updateEtag, ProgressCallback progressCallback)
-					throws DatastoreException, NotFoundException, IOException {
-				return appendRowsAsStream(user, tableId, tableSchema, rowStream, updateEtag, null, progressCallback, transactionId);
-			}});
+		return tableUploadManager.uploadCSV(callback, userInfo, change, (user, tableId, tableSchema, rowStream, updateEtag, progressCallback) -> 
+			appendRowsAsStream(user, tableId, tableSchema, rowStream, updateEtag, null, txContext)
+		);
 	}
 
 
@@ -868,8 +854,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	TableSchemaChangeResponse updateTableSchema(ProgressCallback callback,
-			UserInfo userInfo, TableSchemaChangeRequest changes, long transactionId) {
+	TableSchemaChangeResponse updateTableSchema(UserInfo userInfo, TableSchemaChangeRequest changes, TableTransactionContext txContext) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// First determine if this will be an actual change to the schema.
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
@@ -877,7 +862,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		List<ColumnModel> newSchema = null;
 		if (!currentSchemaIds.equals(newSchemaIds)) {
 			// This will 
-			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), transactionId);
+			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), txContext);
 		}else {
 			// The schema will not change so return the current schema.
 			newSchema = columModelManager.getColumnModelsForObject(idAndVersion);
@@ -897,16 +882,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @param transactionId
 	 * @return
 	 */
-	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds,
-			List<ColumnChange> changes, long transactionId) {
-		// This is a change.
-		tableManagerSupport.touchTable(userInfo, tableId);
+	List<ColumnModel> applySchemaChangeToTable(UserInfo userInfo, String tableId, List<String> newSchemaIds, List<ColumnChange> changes, TableTransactionContext txContext) {
 		List<ColumnModel> newSchema = columModelManager.bindColumnsToDefaultVersionOfObject(newSchemaIds, tableId);
-		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes,
-				transactionId);
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		// trigger an update.
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		tableRowTruthDao.appendSchemaChangeToTable("" + userInfo.getId(), tableId, newSchemaIds, changes, txContext.getTransactionId());
 		return newSchema;
 	}
 
@@ -1031,44 +1009,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		}
 
 	}
-
-	@WriteTransaction
-	@Override
-	public long createSnapshotAndBindToTransaction(UserInfo userInfo, String tableId, SnapshotRequest snapshotRequest,
-			long transactionId) {
-		// create a new version
-		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotRequest);
-		linkVersionToTransaction(tableId, snapshotVersion, transactionId);
-		return snapshotVersion;
-	}
 	
-	/**
-	 * Link a table version to a transaction.
-	 * 
-	 * @param tableIdString
-	 * @param version
-	 * @param transactionId
-	 */
-	void linkVersionToTransaction(String tableIdString, long version, long transactionId) {
-		ValidateArgument.required(tableIdString, "tableId");
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		// Lock the parent row and check the table is associated with the transaction.
-		long transactionTableId = tableTransactionDao.getTableIdWithLock(transactionId);
-		if(transactionTableId != tableId) {
-			throw new IllegalArgumentException("Transaction: "+transactionId+" is not associated with table: "+tableIdString);
-		}
-		tableTransactionDao.linkTransactionToVersion(transactionId, version);
-		// bump the parent etag so the change can migrate.
-		tableTransactionDao.updateTransactionEtag(transactionId);
-		
-		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(tableId).setVersion(version).build();
-		// bind the current schema to the version
-		columModelManager.bindCurrentColumnsToVersion(resultingIdAndVersion);
-		// trigger the build of new version (see: PLFM-5957)
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
-	}
-
-
 	@Override
 	public Optional<Long> getTransactionForVersion(String tableId, long version) {
 		return tableTransactionDao.getTransactionForVersion(tableId, version);
@@ -1085,21 +1026,25 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		
 		ObjectType type = tableManagerSupport.getTableType(idAndVersion);
-		if(ObjectType.ENTITY_VIEW.equals(type)) {
+		
+		if (ObjectType.ENTITY_VIEW.equals(type)) {
 			throw new IllegalArgumentException("EntityView snapshots can only be created via an asynchronous table transaction job.");
 		}
 		
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
-		// Table must have at least one transaction, such as setting the table's schema.
-		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
-		if(!lastTransactionNumber.isPresent()) {
-			throw new IllegalArgumentException("This table: "+tableId+" does not have a schema so a snapshot cannot be created.");
-		}
-		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableId, request, lastTransactionNumber.get());
-		SnapshotResponse response = new SnapshotResponse();
-		response.setSnapshotVersionNumber(snapshotVersion);
-		return response;
+		
+		// create a new version
+		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, request);
+		
+		IdAndVersion snapshotIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId()).setVersion(snapshotVersion).build(); 
+		
+		// bind the current schema to the version
+		columModelManager.bindCurrentColumnsToVersion(snapshotIdAndVersion);
+		
+		transactionManager.linkVersionToLatestTransaction(snapshotIdAndVersion);
+		
+		return new SnapshotResponse().setSnapshotVersionNumber(snapshotVersion);
 	}
 	
 	@Override

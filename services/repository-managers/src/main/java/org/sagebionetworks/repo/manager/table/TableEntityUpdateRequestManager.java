@@ -6,8 +6,9 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -22,18 +23,18 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-public class TableEntityTransactionManager implements TableTransactionManager {
+public class TableEntityUpdateRequestManager implements TableUpdateRequestManager {
 	
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 	@Autowired
-	TransactionTemplate readCommitedTransactionTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 	@Autowired
-	TableEntityManager tableEntityManager;
+	private TableEntityManager tableEntityManager;
 	@Autowired
-	TableIndexConnectionFactory tableIndexConnectionFactory;
+	private TableIndexConnectionFactory tableIndexConnectionFactory;
 	@Autowired
-	TableTransactionDao transactionDao;
+	private TableTransactionManager transactionManager;
 
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
@@ -43,7 +44,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
-		TableTransactionUtils.validateRequest(request);
+		TableUpdateRequestUtils.validateRequest(request);
 		String tableId = request.getEntityId();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table before locking.
@@ -97,9 +98,10 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @param userInfo
 	 * @param request
 	 */
-	void validateUpdateRequests(ProgressCallback callback,
-			UserInfo userInfo, TableUpdateTransactionRequest request) {
-
+	void validateUpdateRequests(ProgressCallback callback, UserInfo userInfo, TableUpdateTransactionRequest request) {
+		if (request.getChanges() == null) {
+			return;
+		}
 		// Determine if a temporary table is needed to validate any of the requests.
 		boolean isTemporaryTableNeeded = isTemporaryTableNeeded(callback, request);
 		
@@ -144,8 +146,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @param request
 	 * @return
 	 */
-	boolean isTemporaryTableNeeded(ProgressCallback callback,
-			TableUpdateTransactionRequest request) {
+	boolean isTemporaryTableNeeded(ProgressCallback callback, TableUpdateTransactionRequest request) {
 		for(TableUpdateRequest change: request.getChanges()){
 			boolean tempNeeded = tableEntityManager.isTemporaryTableNeededToValidate(change);
 			if(tempNeeded){
@@ -167,25 +168,25 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TableUpdateTransactionResponse doIntransactionUpdateTable(TransactionStatus status,
 			ProgressCallback callback, UserInfo userInfo,
 			TableUpdateTransactionRequest request) {
-		// Start a new table transaction and get a transaction number.
-		long transactionId = transactionDao.startTransaction(request.getEntityId(), userInfo.getId());
-		// execute each request
-		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
-		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
-		response.setResults(results);
-		if(request.getChanges() != null) {
-			for(TableUpdateRequest change: request.getChanges()){
-				TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
-				results.add(changeResponse);
+		return transactionManager.executeInTransaction(userInfo, request.getEntityId(), txContext -> {
+			// execute each request
+			List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
+			TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
+			response.setResults(results);
+			if(request.getChanges() != null) {
+				for(TableUpdateRequest change: request.getChanges()){
+					TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, txContext);
+					results.add(changeResponse);
+				}
 			}
-		}
-		if (request.getCreateSnapshot() != null
-				&& Boolean.TRUE.equals(request.getCreateSnapshot())) {
-			Long snapshotVersion = tableEntityManager.createSnapshotAndBindToTransaction(userInfo, request.getEntityId(),
-					request.getSnapshotOptions(), transactionId);
-			response.setSnapshotVersionNumber(snapshotVersion);
-		}
-		return response;
+			if (request.getCreateSnapshot() != null && Boolean.TRUE.equals(request.getCreateSnapshot())) {
+				SnapshotRequest snapshotRequest = request.getSnapshotOptions() == null ? new SnapshotRequest() : request.getSnapshotOptions();
+				SnapshotResponse snapshotResponse = tableEntityManager.createTableSnapshot(userInfo, request.getEntityId(), snapshotRequest);
+				response.setSnapshotVersionNumber(snapshotResponse.getSnapshotVersionNumber());
+			}
+			return response;
+			
+		});
 	}
 
 }

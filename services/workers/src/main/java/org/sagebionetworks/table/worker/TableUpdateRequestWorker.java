@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableTransactionManager;
-import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
+import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
+import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -34,11 +34,11 @@ import com.amazonaws.services.sqs.model.Message;
  * @author John
  *
  */
-public class TableTransactionWorker implements MessageDrivenRunner {
+public class TableUpdateRequestWorker implements MessageDrivenRunner {
 
 	public static final String WAITING_FOR_TABLE_LOCK = "Waiting for table lock";
 
-	static private Logger log = LogManager.getLogger(TableTransactionWorker.class);
+	static private Logger log = LogManager.getLogger(TableUpdateRequestWorker.class);
 	
 	@Autowired
 	AsynchJobStatusManager asynchJobStatusManager;
@@ -50,7 +50,7 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 	UserManager userManager;
 	
 	@Autowired
-	TableTransactionManagerProvider tableTransactionManagerProvider;
+	TableUpdateRequestManagerProvider tableUpdateRequestManagerProvider;
 	
 	@Autowired
 	TableExceptionTranslator tableExceptionTranslator;
@@ -70,7 +70,7 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());	
 			EntityType tableType = tableManagerSupport.getTableEntityType(idAndVersion);
 			// Lookup the manger for this type
-			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
+			TableUpdateRequestManager requestManager = tableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType);
 			// Listen to progress events.
 			ProgressListener listener = new ProgressListener(){
 				
@@ -87,7 +87,7 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			progressCallback.addProgressListener(listener);
 			try{
 				// The manager does the rest of the work.
-				TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(progressCallback, userInfo, request);
+				TableUpdateTransactionResponse responseBody = requestManager.updateTableWithTransaction(progressCallback, userInfo, request);
 				// Set the job complete.
 				asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
 				log.info("JobId: "+status.getJobId()+" complete");

@@ -20,13 +20,13 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -47,6 +47,9 @@ public class TableFileHandleScannerAutowireTest {
 	private TableEntityManager tableManager;
 	
 	@Autowired
+	private TableTransactionManager tableTransactionManager;
+	
+	@Autowired
 	private EntityManager entityManager;
 	
 	@Autowired
@@ -57,10 +60,7 @@ public class TableFileHandleScannerAutowireTest {
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
-	
-	@Autowired
-	private TableTransactionDao tableTransactionDao;
-	
+		
 	@Autowired
 	private TableRowTruthDAO tableTruthDao;
 	
@@ -110,9 +110,9 @@ public class TableFileHandleScannerAutowireTest {
 	public void after() {
 		tableTruthDao.truncateAllRowData();
 		
-		tableTransactionDao.deleteTable(tableWithNoSchema.toString());
-		tableTransactionDao.deleteTable(tableWithFiles.toString());
-		tableTransactionDao.deleteTable(tableWithNoFiles.toString());
+		tableManager.deleteTable(tableWithNoSchema.toString());
+		tableManager.deleteTable(tableWithFiles.toString());
+		tableManager.deleteTable(tableWithNoFiles.toString());
 		
 		entityManager.deleteEntity(user, tableWithNoSchema.toString());
 		entityManager.deleteEntity(user, tableWithNoFiles.toString());
@@ -152,9 +152,15 @@ public class TableFileHandleScannerAutowireTest {
 		rowSet.setRows(TableModelTestUtils.createRows(currentSchema, rowNumber, Arrays.asList(fileHandleIds)));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(currentSchema));
 		
-		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
+		tableTransactionManager.executeInTransaction(user, tableId, txContext -> {
+			try {
+				return tableManager.appendRows(user, tableId, rowSet, txContext);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}	
+		});
 		
-		tableManager.appendRows(user, tableId, rowSet, null, transactionId);
+		
 	}
 	
 	private List<ColumnModel> generateSchema(ColumnType ...columnTypes) {

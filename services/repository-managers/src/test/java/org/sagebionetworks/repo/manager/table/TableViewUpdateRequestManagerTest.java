@@ -68,7 +68,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
-public class TableViewTransactionManagerTest {
+public class TableViewUpdateRequestManagerTest {
 	
 	@Mock
 	TableManagerSupport mockTableManagerSupport;
@@ -81,7 +81,7 @@ public class TableViewTransactionManagerTest {
 	@Mock
 	StackConfiguration mockStackConfig;
 	@InjectMocks
-	TableViewTransactionManager manager;
+	TableViewUpdateRequestManager manager;
 	
 	UserInfo user;
 	String viewId;

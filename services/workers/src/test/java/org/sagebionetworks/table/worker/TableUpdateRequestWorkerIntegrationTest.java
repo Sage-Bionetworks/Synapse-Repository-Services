@@ -64,7 +64,7 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class TableTransactionWorkerIntegrationTest {
+public class TableUpdateRequestWorkerIntegrationTest {
 	
 	public static final int MAX_WAIT_MS = 1000 * 60;
 	
@@ -553,6 +553,74 @@ public class TableTransactionWorkerIntegrationTest {
 		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {			
 			List<Row> latestVersion = response.getQueryResult().getQueryResults().getRows();
 			assertEquals(6, latestVersion.size());
+		});
+	}
+	
+	@Test
+	public void testTableSnapshotWithoutChanges() throws Exception {
+		// create a table 
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(intColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		
+		startAndWaitForJob(adminUserInfo, addColumnRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response);
+		});
+		
+		// Add some data to the table and create a new version
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1");
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "2");
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+				
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+		
+		// start a new version
+		transaction = new TableUpdateTransactionRequest().setEntityId(tableId).setCreateSnapshot(true);
+		
+		// start the transaction
+		long firstVersion = startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+		
+		// Add two more rows without creating a version.
+		PartialRow rowThree = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "3");
+		PartialRow rowFour = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "4");
+		rowSet = createRowSet(tableId, rowThree, rowFour);
+		transaction = createAddDataRequest(tableId, rowSet);
+		// start the transaction
+		startAndWaitForJob(adminUserInfo, transaction, (TableUpdateTransactionResponse response) -> {			
+			assertNotNull(response);
+			assertNull(response.getSnapshotVersionNumber());
+		});
+		
+		// query first version
+		String sql = "select * from " + tableId + "." + firstVersion;
+		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {			
+			List<Row> firstVersionRows = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(2, firstVersionRows.size());
+		});
+		
+		// query latest without a version
+		sql = "select * from "+tableId;
+		
+		queryRequest = createQueryRequest(sql, tableId);
+		
+		startAndWaitForJob(adminUserInfo, queryRequest, (QueryResultBundle response) -> {			
+			List<Row> latestVersion = response.getQueryResult().getQueryResults().getRows();
+			assertEquals(4, latestVersion.size());
 		});
 	}
 	

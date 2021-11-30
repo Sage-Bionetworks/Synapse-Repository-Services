@@ -8,8 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -19,22 +17,20 @@ import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
-import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -47,40 +43,38 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
-public class TableEntityTransactionManagerTest {
+public class TableEntityUpdateRequestManagerTest {
 
 	@Mock
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 	@Mock
-	TransactionTemplate readCommitedTransactionTemplate;
+	private TransactionTemplate readCommitedTransactionTemplate;
 	@Mock
-	TableEntityManager tableEntityManager;
+	private TableEntityManager tableEntityManager;
 	@Mock
-	ProgressCallback progressCallback;
+	private ProgressCallback progressCallback;
 	@Mock
-	TableIndexConnectionFactory tableIndexConnectionFactory;
+	private TableIndexConnectionFactory tableIndexConnectionFactory;
 	@Mock
-	TableIndexManager tableIndexManager;
+	private TableIndexManager tableIndexManager;
 	@Mock
-	TransactionStatus mockTransactionStatus;
+	private TransactionStatus mockTransactionStatus;
 	@Mock
-	TableTransactionDao mockTransactionDao;
+	private TableTransactionManager mockTransactionManager;
+	@Mock
+	private TableTransactionContext mockTxContext;
 
 	@InjectMocks
-	TableEntityTransactionManager manager;
+	private TableEntityUpdateRequestManager manager;
 
-	TableStatus status;
+	private String tableId;
+	private IdAndVersion idAndVersion;
+	private TableUpdateTransactionRequest request;
+	private UploadToTableRequest uploadRequest;
 
-	String tableId;
-	IdAndVersion idAndVersion;
-	TableUpdateTransactionRequest request;
-	UploadToTableRequest uploadRequest;
+	private UserInfo userInfo;
 
-	UserInfo userInfo;
-
-	TableUpdateTransactionResponse response;
-
-	Long transactionId;
+	private TableUpdateTransactionResponse response;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -98,19 +92,22 @@ public class TableEntityTransactionManagerTest {
 		changes.add(uploadRequest);
 
 		response = new TableUpdateTransactionResponse();
-		transactionId = 987L;
 	}
 
 	@SuppressWarnings("unchecked")
 	private void setupCallback() {
-		doAnswer(new Answer<TableUpdateTransactionResponse>() {
-			@Override
-			public TableUpdateTransactionResponse answer(InvocationOnMock invocation) throws Throwable {
-				TransactionCallback<TableUpdateTransactionResponse> callback = (TransactionCallback<TableUpdateTransactionResponse>) invocation
-						.getArguments()[0];
-				return callback.doInTransaction(mockTransactionStatus);
-			}
+		doAnswer(invocation -> {
+			TransactionCallback<TableUpdateTransactionResponse> callback = (TransactionCallback<TableUpdateTransactionResponse>) invocation
+					.getArguments()[0];
+			return callback.doInTransaction(mockTransactionStatus);
 		}).when(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+	}
+	
+	private void setupTransactionContext() {
+		when(mockTransactionManager.executeInTransaction(any(), any(), any())).then((invocation) -> {
+			Function<TableTransactionContext, TableUpdateTransactionResponse> func = invocation.getArgument(2);			
+			return func.apply(mockTxContext);
+		});
 	}
 
 	@Test
@@ -238,33 +235,31 @@ public class TableEntityTransactionManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionWithExclusiveLock() throws Exception {
 		setupCallback();
-		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+		setupTransactionContext();
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
-		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest, transactionId);
+		verify(mockTransactionManager).executeInTransaction(eq(userInfo), eq(tableId), any());
+		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest, mockTxContext);
 		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
 	}
 
 	@Test
 	public void testDoIntransactionUpdateTableNullSnapshotOptions() {
-		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
-
+		setupTransactionContext();
 		request.setSnapshotOptions(null);
 		// call under test
 		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
 				progressCallback, userInfo, request);
 		assertNotNull(response);
 		assertNull(response.getSnapshotVersionNumber());
-		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
-				eq(transactionId));
-		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(SnapshotRequest.class), anyLong());
+		verify(mockTransactionManager).executeInTransaction(eq(userInfo), eq(tableId), any());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),eq(mockTxContext));
+		verify(tableEntityManager, never()).createTableSnapshot(any(), any(), any());
 	}
 
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersionFalse() {
-		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+		setupTransactionContext();
 		SnapshotRequest snapshotRequest = new SnapshotRequest();
 		request.setCreateSnapshot(false);
 		request.setSnapshotOptions(snapshotRequest);
@@ -273,48 +268,47 @@ public class TableEntityTransactionManagerTest {
 				progressCallback, userInfo, request);
 		assertNotNull(response);
 		assertNull(response.getSnapshotVersionNumber());
-		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
-				eq(transactionId));
-		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
-				any(SnapshotRequest.class), anyLong());
+		verify(mockTransactionManager).executeInTransaction(eq(userInfo), eq(tableId), any());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(mockTxContext));
+		verify(tableEntityManager, never()).createTableSnapshot(any(), any(), any());
 	}
 
 	@Test
 	public void testDoIntransactionUpdateTableWithNewVersiontrue() {
-		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
-
+		setupTransactionContext();
+		
+		Long snapshotVersion = 12L;
+		
+		when(tableEntityManager.createTableSnapshot(any(), any(), any())).thenReturn(new SnapshotResponse().setSnapshotVersionNumber(snapshotVersion));
+		
 		SnapshotRequest snapshotRequest = new SnapshotRequest();
 		request.setCreateSnapshot(true);
 		request.setSnapshotOptions(snapshotRequest);
+				
 		// call under test
-		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
-				progressCallback, userInfo, request);
-		assertNotNull(response);
-		assertEquals(new Long(0), response.getSnapshotVersionNumber());
-		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
-				eq(transactionId));
-		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest,
-				transactionId);
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
+		verify(mockTransactionManager).executeInTransaction(eq(userInfo), eq(tableId), any());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class), eq(mockTxContext));
+		verify(tableEntityManager).createTableSnapshot(userInfo, tableId, snapshotRequest);
 	}
 
 	@Test
 	public void testDoIntransactionUpdateTableWithNullChangesSnapshotTrue() {
-		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+		setupTransactionContext();
+		Long snapshotVersion = 12L;
+		
+		when(tableEntityManager.createTableSnapshot(any(), any(), any())).thenReturn(new SnapshotResponse().setSnapshotVersionNumber(snapshotVersion));
+		
 		request.setChanges(null);
 		SnapshotRequest snapshotRequest = new SnapshotRequest();
 		request.setCreateSnapshot(true);
 		request.setSnapshotOptions(snapshotRequest);
 		// call under test
-		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
-				progressCallback, userInfo, request);
-		assertNotNull(response);
-		assertEquals(new Long(0), response.getSnapshotVersionNumber());
-		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
-		verify(tableEntityManager, never()).updateTable(any(ProgressCallback.class), any(UserInfo.class),
-				any(TableUpdateRequest.class), anyLong());
-		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest,
-				transactionId);
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus, progressCallback, userInfo, request);
+		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
+		verify(mockTransactionManager).executeInTransaction(eq(userInfo), eq(tableId), any());
+		verify(tableEntityManager, never()).updateTable(any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateRequest.class), any());
+		verify(tableEntityManager).createTableSnapshot(userInfo, tableId, snapshotRequest);
 	}
 }
