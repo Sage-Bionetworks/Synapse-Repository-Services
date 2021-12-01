@@ -12,6 +12,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import org.sagebionetworks.table.query.model.SelectList;
 public class TableAndColumnMapperTest {
 
 	private List<ColumnModel> allColumns;
+	private Map<String, ColumnModel> columnMap;
 
 	@BeforeEach
 	public void before() {
@@ -39,7 +42,10 @@ public class TableAndColumnMapperTest {
 				TableModelTestUtils.createColumn(444L, "foo_bar", ColumnType.STRING),
 				TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING),
 				TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE),
-				TableModelTestUtils.createColumn(777L, "has\"quote", ColumnType.STRING));
+				TableModelTestUtils.createColumn(777L, "has\"quote", ColumnType.STRING),
+				TableModelTestUtils.createColumn(888L, "aDouble", ColumnType.DOUBLE));
+		columnMap = allColumns.stream()
+			      .collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
 	}
 
 	@Test
@@ -114,7 +120,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		SelectList selectList = mapper.buildSelectAllColumns();
 		assertNotNull(selectList);
-		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\"",
+		assertEquals("\"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"has\"\"quote\", \"aDouble\"",
 				selectList.toSql());
 	}
 
@@ -376,5 +382,97 @@ public class TableAndColumnMapperTest {
 		// call under test
 		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
 		assertFalse(translated.isPresent());
+	}
+	
+	@Test
+	public void testCreateDoubleExpanstionWithOneTable() {
+		int tableCount = 1;
+		String translatedTableAliaName = "_A1";
+		String translatedColumnName = "_C333_";
+		ColumnReference ref = TableAndColumnMapper.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		assertEquals("CASE WHEN _DBL_C333_ IS NULL THEN _C333_ ELSE _DBL_C333_ END", ref.toSql());
+	}
+	
+	@Test
+	public void testCreateDoubleExpanstionWithMOreThanOneTable() {
+		int tableCount = 2;
+		String translatedTableAliaName = "_A1";
+		String translatedColumnName = "_C333_";
+		ColumnReference ref = TableAndColumnMapper.createDoubleExpanstion(tableCount, translatedTableAliaName, translatedColumnName);
+		assertEquals("CASE WHEN _A1._DBL_C333_ IS NULL THEN _A1._C333_ ELSE _A1._DBL_C333_ END", ref.toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleInSelect() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("CASE WHEN _A1._DBL_C888_ IS NULL THEN _A1._C888_ ELSE _A1._DBL_C888_ END", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleInSelectSingleTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select r.aDouble from syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("CASE WHEN _DBL_C888_ IS NULL THEN _C888_ ELSE _DBL_C888_ END", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleNotInSelect() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C888_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleInSelectAsSetFunctionParameter() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C888_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleInSelectAsMySQLFunctionParameter() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C888_", translated.get().toSql());
 	}
 }
