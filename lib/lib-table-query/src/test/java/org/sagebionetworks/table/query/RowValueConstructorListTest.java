@@ -8,21 +8,21 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.RowValueConstructorList;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class RowValueConstructorListTest {
 
 	
 	@Test
 	public void testRowValueConstructorListToSQLOne() throws ParseException{
-		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one");
+		List<RowValueConstructorElement> list = SqlElementUtils.createRowValueConstructorElements("one");
 		RowValueConstructorList element = new RowValueConstructorList(list);
 		assertEquals("one", element.toString());
 	}
 	
 	@Test
 	public void testRowValueConstructorListToSQLMore() throws ParseException{
-		List<RowValueConstructorElement> list = SqlElementUntils.createRowValueConstructorElements("one", "two");
+		List<RowValueConstructorElement> list = SqlElementUtils.createRowValueConstructorElements("one", "two");
 		RowValueConstructorList element = new RowValueConstructorList(list);
 		assertEquals("one, two", element.toString());
 	}

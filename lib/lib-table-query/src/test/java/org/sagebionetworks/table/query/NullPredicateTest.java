@@ -9,20 +9,20 @@ import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class NullPredicateTest {
 
 	@Test
 	public void testNullPredicateToSQL() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, null);
 		assertEquals("foo IS NULL", element.toString());
 	}
 
 	@Test
 	public void testNullPredicateToSQLNot() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		NullPredicate element = new NullPredicate(columnReferenceLHS, Boolean.TRUE);
 		assertEquals("foo IS NOT NULL", element.toString());
 	}

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
@@ -32,9 +34,12 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -67,45 +72,45 @@ public class DatasetIntegrationTest {
 	private EntityManager entityManager;
 	@Autowired
 	private ColumnModelManager columnModelManager;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	private UserInfo userInfo;
 	private Project project;
-	private S3FileHandle fileHandle;
 	private Dataset dataset;
 	private ColumnModel stringColumn;
+	private Random random;
 
 	@BeforeEach
 	public void before() throws Exception {
 
 		tableRowTruthDao.truncateAllRowData();
+		fileHandleDao.truncateTable();
 
 		testHelper.before();
 		userInfo = testHelper.createUser();
 		project = testHelper.createProject(userInfo);
-
-		fileHandle = fileHandleDaoHelper.create((f) -> {
-			f.setCreatedBy(userInfo.getId().toString());
-			f.setFileName("someFile");
-			f.setContentSize(123L);
-		});
 
 		stringColumn = new ColumnModel();
 		stringColumn.setName("aString");
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(50L);
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
+		random = new Random();
 	}
 
 	@AfterEach
 	public void after() {
 
 		tableRowTruthDao.truncateAllRowData();
-
+		
 		testHelper.cleanup();
 
 		if (dataset != null) {
 			indexDao.deleteTable(IdAndVersion.parse(dataset.getId()));
 		}
+		
+		fileHandleDao.truncateTable();
 	}
 
 	@Test
@@ -151,6 +156,52 @@ public class DatasetIntegrationTest {
 							.setValues(Arrays.asList("v-3")), rows.get(2));
 				}, MAX_WAIT);
 	}
+	
+	// Reproduce PLFM-7025
+	@Test
+	public void testQueryDatasetWithFileSize()
+			throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
+
+		int numberOfVersions = 2;
+		
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()),
+				fileTwo.getEtag(), MAX_WAIT);
+		
+		// add one version from each file
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		);
+		
+		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
+				.setName("aDataset").setColumnIds(Arrays.asList(stringColumn.getId())).setItems(items));
+		
+		long sumOfSizes = items.stream().mapToLong(item -> {
+			String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, item.getEntityId(), item.getVersionNumber());
+			return fileHandleDao.get(fileHandleId).getContentSize();
+		}).sum();
+		
+		SumFileSizes expectedSumFiles = new SumFileSizes()
+				.setSumFileSizesBytes(sumOfSizes)
+				.setGreaterThan(false);
+		
+		Query query = new Query();
+		query.setSql("SELECT * FROM " + dataset.getId() + " ORDER BY ROW_VERSION ASC");
+		query.setIncludeEntityEtag(true);
+		
+		QueryOptions options = new QueryOptions()
+				.withRunQuery(true)
+				.withRunSumFileSizes(true);
+		
+		asyncHelper.assertQueryResult(userInfo, query, options, (QueryResultBundle result) -> {
+			assertEquals(expectedSumFiles, result.getSumFileSizes());
+		}, MAX_WAIT);
+	}
 
 
 	/**
@@ -158,7 +209,7 @@ public class DatasetIntegrationTest {
 	 *
 	 * @return
 	 */
-	public FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
+	private FileEntity createFileWithMultipleVersions(int fileNumber, String annotationKey, int numberOfVersions) {
 		List<Annotations> annotations = new ArrayList<>(numberOfVersions);
 		for(int i=1; i <= numberOfVersions; i++) {
 			Annotations annos = new Annotations();
@@ -167,31 +218,45 @@ public class DatasetIntegrationTest {
 		}
 
 		// create the entity
-		String fileId = null;
+		String fileEntityId = null;		
 		int version = 1;
+		
 		for(Annotations annos: annotations) {
-			if(fileId == null) {
-				// create the entity
-				fileId = entityManager.createEntity(userInfo,
-						new FileEntity().setName("afile-"+fileNumber).setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()),
+						
+			long fileContentSize = (long) random.nextInt(128_000);
+			
+			// Create a new file handle for each version
+			S3FileHandle fileHandle = fileHandleDaoHelper.create((f) -> {
+				f.setCreatedBy(userInfo.getId().toString());
+				f.setFileName("someFile");
+				f.setContentSize(fileContentSize);
+			});
+			
+			if (fileEntityId == null) {
+				fileEntityId = entityManager.createEntity(userInfo, new FileEntity()
+						.setName("afile-"+fileNumber)
+						.setParentId(project.getId())
+						.setDataFileHandleId(fileHandle.getId()),
 						null);
-			}else {
+			} else {
 				// create a new version for the entity
-				FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+				FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
 				entity.setVersionComment("c-"+version);
 				entity.setVersionLabel("v-"+version);
+				entity.setDataFileHandleId(fileHandle.getId());
 				boolean newVersion = true;
 				String activityId = null;
 				entityManager.updateEntity(userInfo, entity, newVersion, activityId);
 			}
 			// get the ID and etag
-			FileEntity entity = entityManager.getEntity(userInfo, fileId, FileEntity.class);
+			FileEntity entity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
 			annos.setId(entity.getId());
 			annos.setEtag(entity.getEtag());
-			entityManager.updateAnnotations(userInfo, fileId, annos);
+			entityManager.updateAnnotations(userInfo, fileEntityId, annos);
 			version++;
 		}
-		return entityManager.getEntity(userInfo, fileId, FileEntity.class);
+		
+		return entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
 	}
 
 	@Test

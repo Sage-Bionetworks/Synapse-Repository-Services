@@ -16,7 +16,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -81,7 +81,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 					sql.append(tableInfo.getOriginalTableName());
 					sql.append(".");
 				}
-				sql.append(SqlElementUntils.wrapInDoubleQuotes(column.getName()));
+				sql.append(SqlElementUtils.wrapInDoubleQuotes(column.getName()));
 				sqlJoiner.add(sql.toString());
 			}
 		}

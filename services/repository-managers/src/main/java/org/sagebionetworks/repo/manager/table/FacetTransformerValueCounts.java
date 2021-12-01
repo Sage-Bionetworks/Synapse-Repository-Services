@@ -14,7 +14,7 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.table.query.util.FacetUtils;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.ArrayList;
@@ -73,7 +73,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(COUNT_ALIAS);
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
-		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		builder.append(" GROUP BY ");
 		builder.append(columnToUse);
 		builder.append(" ORDER BY ");

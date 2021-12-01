@@ -24,9 +24,9 @@ import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
-public class SqlElementUntilsTest {
+public class SqlElementUtilsTest {
 
 	String searchConditionString;
 	StringBuilder stringBuilder;
@@ -34,7 +34,7 @@ public class SqlElementUntilsTest {
 
 	@BeforeEach
 	public void setUp() throws ParseException {
-		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
+		whereClause = new WhereClause(SqlElementUtils.createSearchCondition("water=wet AND sky=blue"));
 		searchConditionString = "(tabs > spaces)";
 		stringBuilder = new StringBuilder();
 	}
@@ -42,7 +42,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testConvertToPaginated() throws ParseException {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar");
-		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
+		QuerySpecification converted = SqlElementUtils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
 	}
@@ -50,7 +50,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testReplacePaginated() throws ParseException {
 		QuerySpecification model = TableQueryParser.parserQuery("select foo, bar from syn123 where foo = 1 order by bar limit 1 offset 2");
-		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
+		QuerySpecification converted = SqlElementUtils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", converted.toString());
 	}
@@ -66,7 +66,7 @@ public class SqlElementUntilsTest {
 		SortItem sort3 = new SortItem();
 		sort3.setColumn("zaa");
 		sort3.setDirection(SortDirection.DESC);
-		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
+		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"foo\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1", converted.toString());
 	}
@@ -83,7 +83,7 @@ public class SqlElementUntilsTest {
 		SortItem sort3 = new SortItem();
 		sort3.setColumn("zaa");
 		sort3.setDirection(SortDirection.DESC);
-		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
+		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
 		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1",
 				converted.toString());
@@ -95,7 +95,7 @@ public class SqlElementUntilsTest {
 				.parserQuery("select * from syn123");
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("First Name");
-		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
 		assertNotNull(converted);
 		assertEquals("SELECT * FROM syn123 ORDER BY \"First Name\" ASC",
 				converted.toString());
@@ -109,7 +109,7 @@ public class SqlElementUntilsTest {
 		sort1.setDirection(SortDirection.DESC);
 		SortItem sort2 = new SortItem();
 		sort2.setColumn("foo");
-		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
+		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
 		assertNotNull(converted);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"bar\" DESC, \"foo\" ASC LIMIT 1", converted.toString());
 	}
@@ -121,7 +121,7 @@ public class SqlElementUntilsTest {
 				.parserQuery("select * from syn123");
 		SortItem sort1 = new SortItem();
 		sort1.setColumn("has\"Quote");
-		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		QuerySpecification converted = SqlElementUtils.convertToSortedQuery(model, Lists.newArrayList(sort1));
 		assertNotNull(converted);
 		assertEquals("SELECT * FROM syn123 ORDER BY \"has\"\"Quote\" ASC",
 				converted.toString());
@@ -133,7 +133,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 0", converted.toString());
 	}
 	
@@ -143,7 +143,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = 12L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 1000 OFFSET 12", converted.toString());
 	}
 	
@@ -153,7 +153,7 @@ public class SqlElementUntilsTest {
 		Long limit = 15L;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 15 OFFSET 0", converted.toString());
 	}
 	
@@ -163,7 +163,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 0", converted.toString());
 	}
 	
@@ -173,7 +173,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 34 OFFSET 12", converted.toString());
 	}
 	
@@ -183,7 +183,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = 2L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 32 OFFSET 14", converted.toString());
 	}
 	
@@ -193,7 +193,7 @@ public class SqlElementUntilsTest {
 		Long limit = 3L;
 		Long offset = null;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 3 OFFSET 12", converted.toString());
 	}
 	
@@ -203,7 +203,7 @@ public class SqlElementUntilsTest {
 		Long limit = 25L;
 		Long offset = 10L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 25 OFFSET 60", converted.toString());
 	}
 	
@@ -213,7 +213,7 @@ public class SqlElementUntilsTest {
 		Long limit = 25L;
 		Long offset = 101L;
 		Long maxRowsPerPage = 1000L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 0 OFFSET 151", converted.toString());
 	}
 	
@@ -223,7 +223,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = 99L;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 99 OFFSET 0", converted.toString());
 	}
 	
@@ -233,7 +233,7 @@ public class SqlElementUntilsTest {
 		Long limit = 50L;
 		Long offset = 10L;
 		Long maxRowsPerPage = null;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 50 OFFSET 85", converted.toString());
 	}
 	
@@ -243,7 +243,7 @@ public class SqlElementUntilsTest {
 		Long limit = null;
 		Long offset = null;
 		Long maxRowsPerPage = null;
-		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
+		QuerySpecification converted = SqlElementUtils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 100 OFFSET 75", converted.toString());
 	}
 	
@@ -277,21 +277,21 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testCreateCountSqlNonAggregate() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select * from syn123 where bar < 1.0 order by foo, bar limit 2 offset 5").querySpecification();
-		String countSql = SqlElementUntils.createCountSql(model);
+		String countSql = SqlElementUtils.createCountSql(model);
 		assertEquals("SELECT COUNT(*) FROM syn123 WHERE bar < 1.0", countSql);
 	}
 	
 	@Test
 	public void testCreateCountSqlGroupBy() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select foo, bar, count(*) from syn123 group by foo, bar").querySpecification();
-		String countSql = SqlElementUntils.createCountSql(model);
+		String countSql = SqlElementUtils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
 	}
 	
 	@Test
 	public void testCreateCountSqlDistinct() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select distinct foo, bar from syn123").querySpecification();
-		String countSql = SqlElementUntils.createCountSql(model);
+		String countSql = SqlElementUtils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo, bar) FROM syn123", countSql);
 	}
 	
@@ -299,7 +299,7 @@ public class SqlElementUntilsTest {
 	public void testCreateCountSimpleAggregateCountStar() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select count(*) from syn123").querySpecification();
 		assertThrows(SimpleAggregateQueryException.class, () ->
-			SqlElementUntils.createCountSql(model)
+			SqlElementUtils.createCountSql(model)
 		);
 	}
 	
@@ -307,7 +307,7 @@ public class SqlElementUntilsTest {
 	public void testCreateCountSimpleAggregateMultipleAggregate() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select sum(foo), max(bar) from syn123").querySpecification();
 		assertThrows(SimpleAggregateQueryException.class, () ->
-				SqlElementUntils.createCountSql(model)
+				SqlElementUtils.createCountSql(model)
 		);
 	}
 	
@@ -316,8 +316,8 @@ public class SqlElementUntilsTest {
 		long limit = 100;
 		QuerySpecification model = new TableQueryParser("select * from T123 WHERE _C2_ = 'BAR' ORDER BY _C1_").querySpecification();
 		// call under test
-		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
+		String countSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(model, limit);
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
 	}
 	
 	@Test
@@ -325,28 +325,28 @@ public class SqlElementUntilsTest {
 		long limit = 100;
 		QuerySpecification model = new TableQueryParser("select * from T123 limit 200 offset 100").querySpecification();
 		// call under test
-		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100", countSql);
+		String countSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(model, limit);
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 LIMIT 100", countSql);
 	}
 	
 	@Test
 	public void testCreateSelectFromGroupBy() throws Exception{
 		QuerySpecification model = new TableQueryParser("select foo as a, bar from syn123 group by bar, a").querySpecification();
-		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		String result = SqlElementUtils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
 		assertEquals("bar, foo", result);
 	}
 	
 	@Test
 	public void testCreateSelectFromGroupBySingleQuotes() throws Exception{
 		QuerySpecification model = new TableQueryParser("select 'has space' as b from syn123 group by b").querySpecification();
-		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		String result = SqlElementUtils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
 		assertEquals("'has space'", result);
 	}
 	
 	@Test
 	public void testCreateSelectFromGroupByDoubleQuotes() throws Exception{
 		QuerySpecification model = new TableQueryParser("select \"has space\" as b from syn123 group by b").querySpecification();
-		String result = SqlElementUntils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
+		String result = SqlElementUtils.createSelectFromGroupBy(model.getSelectList(), model.getTableExpression().getGroupByClause());
 		assertEquals("\"has space\"", result);
 	}
 	
@@ -356,21 +356,21 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testCreateCountSqlAsInGroupBy() throws Exception {
 		QuerySpecification model = new TableQueryParser("select foo as a from syn123 group by a").querySpecification();
-		String countSql = SqlElementUntils.createCountSql(model);
+		String countSql = SqlElementUtils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
 	
 	@Test
 	public void testCreateSelectWithoutAs() throws Exception {
 		QuerySpecification model = new TableQueryParser("select foo as a, bar as boo from syn123").querySpecification();
-		String countSql = SqlElementUntils.createSelectWithoutAs(model.getSelectList());
+		String countSql = SqlElementUtils.createSelectWithoutAs(model.getSelectList());
 		assertEquals("foo, bar", countSql);
 	}
 	
 	@Test
 	public void testCreateSelectWithoutAsQuote() throws Exception {
 		QuerySpecification model = new TableQueryParser("select 'foo' as a, \"bar\" as boo from syn123").querySpecification();
-		String countSql = SqlElementUntils.createSelectWithoutAs(model.getSelectList());
+		String countSql = SqlElementUtils.createSelectWithoutAs(model.getSelectList());
 		assertEquals("'foo', \"bar\"", countSql);
 	}
 	
@@ -381,14 +381,14 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testCreateCountSqlDistinctWithAs() throws Exception {
 		QuerySpecification model = new TableQueryParser("select distinct foo as a from syn123").querySpecification();
-		String countSql = SqlElementUntils.createCountSql(model);
+		String countSql = SqlElementUtils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
 	
 	@Test
 	public void testWrapInDoubleQuotes(){
 		String toWrap = "foo";
-		String result = SqlElementUntils.wrapInDoubleQuotes(toWrap);
+		String result = SqlElementUtils.wrapInDoubleQuotes(toWrap);
 		assertEquals("\"foo\"", result);
 	}
 
@@ -396,19 +396,19 @@ public class SqlElementUntilsTest {
 	public void testWrapInDoubleQuotes_StringContainsDoubleQuotes(){
 		String toBeWrapped = "\"Don't trust everything you read on the internet\" - Abraham Lincoln";
 		String expectedResult = "\"\"\"Don't trust everything you read on the internet\"\" - Abraham Lincoln\"";
-		assertEquals(expectedResult, SqlElementUntils.wrapInDoubleQuotes(toBeWrapped));
+		assertEquals(expectedResult, SqlElementUtils.wrapInDoubleQuotes(toBeWrapped));
 	}
 
 	@Test
 	public void testCreateSortKeyWithKeywordInName() throws ParseException{
-		SortKey sortKey = SqlElementUntils.createSortKey("Date Approved/Rejected");
+		SortKey sortKey = SqlElementUtils.createSortKey("Date Approved/Rejected");
 		assertNotNull(sortKey);
 		assertEquals("\"Date Approved/Rejected\"", sortKey.toSql());
 	}
 	
 	@Test
 	public void testCreateSortKeySpace() throws ParseException{
-		SortKey sortKey = SqlElementUntils.createSortKey("First Name");
+		SortKey sortKey = SqlElementUtils.createSortKey("First Name");
 		assertNotNull(sortKey);
 		assertEquals("\"First Name\"", sortKey.toSql());
 	}
@@ -416,7 +416,7 @@ public class SqlElementUntilsTest {
 	@Test
 	public void testCreateSortKeyFunction() throws ParseException{
 		// function should not be wrapped in quotes.
-		SortKey sortKey = SqlElementUntils.createSortKey("max(foo)");
+		SortKey sortKey = SqlElementUtils.createSortKey("max(foo)");
 		assertNotNull(sortKey);
 		assertEquals("MAX(foo)", sortKey.toSql());
 	}
@@ -427,7 +427,7 @@ public class SqlElementUntilsTest {
 	
 	@Test
 	public void testCreateNonQuotedDerivedColumn(){
-		DerivedColumn dr = SqlElementUntils.createNonQuotedDerivedColumn("ROW_ID");
+		DerivedColumn dr = SqlElementUtils.createNonQuotedDerivedColumn("ROW_ID");
 		assertEquals("ROW_ID", dr.toSql());
 	}
 
@@ -438,31 +438,31 @@ public class SqlElementUntilsTest {
 	@Test
 	public void appendCombinedWhereClauseToStringBuilderNullBuilder(){
 		assertThrows(IllegalArgumentException.class, () ->
-			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(null, searchConditionString, whereClause)
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(null, searchConditionString, whereClause)
 		);
 	}
 
 	@Test
 	public void appendCombinedWhereClauseToStringBuilderNullFacetSearchConditionStringNullWhereClause(){
-		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(stringBuilder, null, null);
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, null, null);
 		assertEquals(0, stringBuilder.length());
 	}
 
 	@Test
 	public void appendCombinedWhereClauseToStringBuilderNullWhereClause(){
-		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, null);
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, null);
 		assertEquals(" WHERE "+ searchConditionString, stringBuilder.toString());
 	}
 
 	@Test
 	public void appendCombinedWhereClauseToStringBuilderNullFacetSearchConditionString(){
-		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(stringBuilder, null, whereClause);
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, null, whereClause);
 		assertEquals(" WHERE "+ whereClause.getSearchCondition().toSql(), stringBuilder.toString());
 	}
 
 	@Test
 	public void appendCombinedWhereClauseToStringBuilderNoNulls(){
-		SqlElementUntils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, whereClause);
+		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, whereClause);
 		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + searchConditionString + ")", stringBuilder.toString());
 	}
 	

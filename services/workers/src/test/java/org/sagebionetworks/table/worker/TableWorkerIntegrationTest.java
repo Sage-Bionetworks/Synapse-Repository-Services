@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -77,7 +78,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -179,11 +179,10 @@ public class TableWorkerIntegrationTest {
 	FileHandleManager fileHandleManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
-	
+	@Autowired
+	TableTransactionManager transactionManager;
 	@Autowired
 	TableStatusDAO tableStatusDAO;
-	@Autowired
-	TableTransactionDao tableTransactionDao;
 	@Autowired
 	DBOChangeDAO changeDAO;
 	@Autowired
@@ -3606,9 +3605,13 @@ public class TableWorkerIntegrationTest {
 	 * @throws IOException
 	 */
 	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException {
-		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
-		return tableEntityManager.appendRows(user, tableId,
-				delta, mockProgressCallback, transactionId);
+		return transactionManager.executeInTransaction(user, tableId, txContext -> {
+			try {
+				return tableEntityManager.appendRows(user, tableId, delta, txContext);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 	
 	/**
@@ -3620,8 +3623,7 @@ public class TableWorkerIntegrationTest {
 	 */
 	public TableUpdateResponse updateTable(ProgressCallback callback,
 			UserInfo userInfo, TableUpdateRequest change) {
-		long transactionId = tableTransactionDao.startTransaction(tableId, userInfo.getId());
-		return tableEntityManager.updateTable(callback, userInfo, change, transactionId);
+		return transactionManager.executeInTransaction(userInfo, tableId, txContext -> tableEntityManager.updateTable(callback, userInfo, change, txContext));
 	}
 	
 	/**
@@ -3637,8 +3639,13 @@ public class TableWorkerIntegrationTest {
 	 */
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
 			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException{
-		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
-		return tableEntityManager.appendPartialRows(user, tableId, rowsToAppendOrUpdateOrDelete, progressCallback, transactionId);
+		return transactionManager.executeInTransaction(user, tableId, txContext -> {
+			try {
+				return tableEntityManager.appendPartialRows(user, tableId, rowsToAppendOrUpdateOrDelete, txContext);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 	
 	/**
@@ -3657,8 +3664,13 @@ public class TableWorkerIntegrationTest {
 	 */
 	TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException{
-		long transactionId = tableTransactionDao.startTransaction(tableId, user.getId());
-		return tableEntityManager.appendRowsAsStream(user, tableId, columns, rowStream, etag, results, progressCallback, transactionId);
+		return transactionManager.executeInTransaction(user, tableId, txContext -> {
+			try {
+				return tableEntityManager.appendRowsAsStream(user, tableId, columns, rowStream, etag, results, txContext);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 
 	private RowSet createRowSet(List<String> headers) {

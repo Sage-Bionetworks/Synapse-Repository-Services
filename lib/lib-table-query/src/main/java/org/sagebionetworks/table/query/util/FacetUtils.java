@@ -61,7 +61,7 @@ public class FacetUtils {
 			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facetRequestColumnModels, null);
 			
 			StringBuilder builder = new StringBuilder();
-			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(builder, facetSearchConditionString, originalWhereClause);
 			
 			// create the new where if necessary
 			if(builder.length() > 0){

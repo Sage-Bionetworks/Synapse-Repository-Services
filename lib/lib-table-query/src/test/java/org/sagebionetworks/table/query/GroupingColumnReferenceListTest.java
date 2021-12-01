@@ -8,21 +8,21 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class GroupingColumnReferenceListTest {
 
 	
 	@Test
 	public void testToSQLOne() throws ParseException{
-		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs");
+		List<GroupingColumnReference> list = SqlElementUtils.createGroupingColumnReferences("lhs.rhs");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
 		assertEquals("lhs.rhs", element.toString());
 	}
 	
 	@Test
 	public void testToSQLMore() throws ParseException{
-		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs","mid","\"last\"");
+		List<GroupingColumnReference> list = SqlElementUtils.createGroupingColumnReferences("lhs.rhs","mid","\"last\"");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
 		assertEquals("lhs.rhs, mid, \"last\"", element.toString());
 	}

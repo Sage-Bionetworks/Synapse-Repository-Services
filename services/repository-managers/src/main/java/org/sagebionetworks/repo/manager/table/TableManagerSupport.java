@@ -394,13 +394,6 @@ public interface TableManagerSupport extends SchemaProvider {
 	boolean isTableIndexStateInvalid(IdAndVersion idAndVersion);
 
 	/**
-	 * Get the flat scope for the given viewId.
-	 * @param idAndVersion IdAndVersion of the view.
-	 * @return
-	 */
-	Set<Long> getViewScope(IdAndVersion idAndVersion);
-
-	/**
 	 * Get the count of the number of columns bound to this table.
 	 * @param idAndVersion
 	 * @return

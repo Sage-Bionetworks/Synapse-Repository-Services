@@ -129,7 +129,6 @@ public class TableQueryManagerImplTest {
 	private List<String[]> writtenLines;
 	
 	private List<SortItem> sortList;
-	private SqlQuery capturedQuery;
 	private SchemaProvider schemaProvider;
 	
 	@Captor
@@ -219,7 +218,6 @@ public class TableQueryManagerImplTest {
 		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				capturedQuery = (SqlQuery) invocation.getArguments()[1];
 				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
 				// Pass all rows to the handler
 				for (Row row : rows) {
@@ -1841,32 +1839,70 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSize() throws Exception {
-		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(Lists.newArrayList(1L,2L));
+		List<IdAndVersion> idAndVersionList = Arrays.asList(
+				IdAndVersion.parse("1.1"),
+				IdAndVersion.parse("2.1")
+		);
+		
+		when(mockTableIndexDAO.getRowIdAndVersions(any(), any())).thenReturn(idAndVersionList);
+		
 		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
 		
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", schemaProvider, user.getId())
 				.tableType(EntityType.entityview).build();
-		ArgumentCaptor<String> sqlCaptrue = ArgumentCaptor.forClass(String.class);
+		
+		ArgumentCaptor<String> sqlCapture = ArgumentCaptor.forClass(String.class);
 
 		// call under test
 		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
 		assertNotNull(sum);
 		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO).getRowIds(sqlCaptrue.capture(), any());
-		assertEquals("SELECT ROW_ID FROM T123 LIMIT 101", sqlCaptrue.getValue());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
+		verify(mockTableIndexDAO).getRowIdAndVersions(sqlCapture.capture(), any());
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 LIMIT 101", sqlCapture.getValue());
+		verify(mockTableIndexDAO).getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), idAndVersionList);
+	}
+	
+	@Test
+	public void testRunSumFileSizeForDataset() throws Exception {
+		List<IdAndVersion> idAndVersionList = Arrays.asList(
+				IdAndVersion.parse("1.1"),
+				IdAndVersion.parse("2.1")
+		);
+		
+		when(mockTableIndexDAO.getRowIdAndVersions(any(), any())).thenReturn(idAndVersionList);
+		
+		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
+		
+		// query against an entity view.
+		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", schemaProvider, user.getId())
+				.tableType(EntityType.dataset).build();
+		
+		ArgumentCaptor<String> sqlCapture = ArgumentCaptor.forClass(String.class);
+
+		// call under test
+		SumFileSizes sum = manager.runSumFileSize(query, mockTableIndexDAO);
+		assertNotNull(sum);
+		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
+		assertFalse(sum.getGreaterThan());
+		verify(mockTableIndexDAO).getRowIdAndVersions(sqlCapture.capture(), any());
+		assertEquals("SELECT ROW_ID, ROW_VERSION FROM T123 LIMIT 101", sqlCapture.getValue());
+		verify(mockTableIndexDAO).getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), idAndVersionList);
 	}
 	
 	@Test
 	public void testRunSumFileSizeOverLimit() throws Exception {
-		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(Lists.newArrayList(1L,2L));
-		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
+		List<IdAndVersion> idAndVersionList = new ArrayList<>();
 
 		// setup a result with more than the max rows
-		List<Long> rowIds = createListOfSize(TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L);
-		when(mockTableIndexDAO.getRowIds(any(), any())).thenReturn(rowIds);
+		for (int i=0; i< TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L; i++) {
+			idAndVersionList.add(IdAndVersion.newBuilder().setId(new Long(i)).setVersion(1L).build());
+		}
+		
+		when(mockTableIndexDAO.getRowIdAndVersions(any(), any())).thenReturn(idAndVersionList);
+		when(mockTableIndexDAO.getSumOfFileSizes(any(), any())).thenReturn(sumFilesizes);
+		
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, schemaProvider, user.getId())
 				.tableType(EntityType.entityview).build();
@@ -1877,13 +1913,13 @@ public class TableQueryManagerImplTest {
 		assertEquals(sumFilesizes, sum.getSumFileSizesBytes());
 		// when over the limit
 		assertTrue(sum.getGreaterThan());
-		verify(mockTableIndexDAO).getRowIds(anyString(), any());
-		verify(mockTableIndexDAO).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
+		verify(mockTableIndexDAO).getRowIdAndVersions(anyString(), any());
+		verify(mockTableIndexDAO).getSumOfFileSizes(ViewObjectType.ENTITY.getMainType(), idAndVersionList);
 	}
 
 	
 	@Test
-	public void testRunSumFileSizeNonEntityView() throws Exception {
+	public void testRunSumFileSizeNonEntityViewOrDataset() throws Exception {
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId, schemaProvider, user.getId())
 				.tableType(EntityType.table).build();
@@ -1892,7 +1928,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(sum);
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
+		verify(mockTableIndexDAO, never()).getRowIdAndVersions(anyString(), any());
 		verify(mockTableIndexDAO, never()).getSumOfFileSizes(any(), any());
 	}
 	
@@ -1905,7 +1941,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(sum);
 		assertEquals(new Long(0), sum.getSumFileSizesBytes());
 		assertFalse(sum.getGreaterThan());
-		verify(mockTableIndexDAO, never()).getRowIds(anyString(), any());
+		verify(mockTableIndexDAO, never()).getRowIdAndVersions(anyString(), any());
 		verify(mockTableIndexDAO, never()).getSumOfFileSizes(eq(ViewObjectType.ENTITY.getMainType()), any());
 	}
 	
@@ -1931,14 +1967,5 @@ public class TableQueryManagerImplTest {
 		rowSet.setRows(rows);
 		return rowSet;
 	}
-	
-	List<Long> createListOfSize(long l){
-		List<Long> list = new LinkedList<>();
-		for(int i=0; i<l; i++) {
-			list.add(new Long(i));
-		}
-		return list;
-	}
-
 }
 

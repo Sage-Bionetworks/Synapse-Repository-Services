@@ -1,31 +1,29 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
-import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import java.util.function.Function;
 
-/**
- * Abstraction for a table manager to support table update transaction.
- * @author John
- *
- */
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+
 public interface TableTransactionManager {
 
 	/**
-	 * Update table within a single transaction.
-	 * @param progressCallback Use to report progress back the caller.
-	 * @param userInfo The user that started the transaction.
-	 * @param request Defines the transaction.
-	 * @return Transaction response.
-	 * @throws RecoverableMessageException This exception must be thrown to indicate a job cannot complete at this time and
-	 * should be re-tried in the future.
+	 * Executes the given function against the given table within the context of a table transaction.
+	 * After the function is executed the table is updated and a message is sent to trigger an update if
+	 * a transaction was started.
+	 * 
+	 * @param <T> The return type for the function
+	 * @param user
+	 * @param tableId
+	 * @param function
+	 * @return
 	 */
-	TableUpdateTransactionResponse updateTableWithTransaction(
-			ProgressCallback progressCallback,
-			UserInfo userInfo,
-			TableUpdateTransactionRequest request) throws RecoverableMessageException, TableUnavailableException;
-
+	<T> T executeInTransaction(UserInfo user, String tableId, Function<TableTransactionContext, T> function);
+		
+	/**
+	 * Permanently binds the given table version to the last transaction of the table, the table must have at least one change
+	 * @param tableId The id with version for the table
+	 */
+	void linkVersionToLatestTransaction(IdAndVersion tableId);
+	
 }

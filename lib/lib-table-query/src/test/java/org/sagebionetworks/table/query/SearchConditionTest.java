@@ -8,20 +8,20 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.SearchCondition;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class SearchConditionTest {
 
 	@Test
 	public void testSearchConditionToSQLSingle() throws ParseException {
-		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=1");
+		List<BooleanTerm> terms = SqlElementUtils.createBooleanTerms("foo=1");
 		SearchCondition element = new SearchCondition(terms);
 		assertEquals("foo = 1", element.toString());
 	}
 
 	@Test
 	public void testSearchConditionToSQLNegative() throws ParseException {
-		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=-1");
+		List<BooleanTerm> terms = SqlElementUtils.createBooleanTerms("foo=-1");
 		SearchCondition element = new SearchCondition(terms);
 		assertEquals("foo = -1", element.toString());
 	}
@@ -40,7 +40,7 @@ public class SearchConditionTest {
 
 	@Test
 	public void testSearchConditionToSQLMultiple() throws ParseException {
-		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=1", "bar=2");
+		List<BooleanTerm> terms = SqlElementUtils.createBooleanTerms("foo=1", "bar=2");
 		SearchCondition element = new SearchCondition(terms);
 		assertEquals("foo = 1 OR bar = 2", element.toString());
 	}

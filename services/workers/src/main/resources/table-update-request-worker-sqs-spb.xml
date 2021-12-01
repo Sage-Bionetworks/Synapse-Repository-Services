@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="tableTransactionMessageTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+	<bean id="tableUpdateRequestWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -25,9 +25,9 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableTransactionWorker"/>
+									<bean class="org.sagebionetworks.table.worker.TableUpdateRequestWorker"/>
 								</property>
-								<property name="semaphoreLockKey" value="tableTransactionWorker" />
+								<property name="semaphoreLockKey" value="tableUpdateRequestWorker" />
 								<property name="semaphoreMaxLockCount" value="8" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="300" />

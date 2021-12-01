@@ -11,7 +11,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * @author John
  *
  */
-public class TableTransactionUtils {
+public class TableUpdateRequestUtils {
 
 	/**
 	 * Validate the passed TableUpdateTransactionRequest request.

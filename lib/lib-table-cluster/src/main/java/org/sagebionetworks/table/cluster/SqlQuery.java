@@ -22,7 +22,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -158,7 +158,7 @@ public class SqlQuery {
 		if (sortList != null && !sortList.isEmpty()) {
 			// change the query to use the sort list
 			try {
-				model = SqlElementUntils.convertToSortedQuery(model, sortList);
+				model = SqlElementUtils.convertToSortedQuery(model, sortList);
 			} catch (ParseException e) {
 				throw new IllegalArgumentException(e);
 			}
@@ -181,7 +181,7 @@ public class SqlQuery {
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
 			String additionalFilterSearchCondition = SQLTranslatorUtils.translateQueryFilters(additionalFilters);
 			StringBuilder whereClauseBuilder = new StringBuilder();
-			SqlElementUntils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
+			SqlElementUtils.appendCombinedWhereClauseToStringBuilder(whereClauseBuilder,additionalFilterSearchCondition, this.model.getTableExpression().getWhereClause());
 			try {
 				this.model.getTableExpression().replaceWhere(new TableQueryParser(whereClauseBuilder.toString()).whereClause());
 			} catch (ParseException e) {
@@ -201,7 +201,7 @@ public class SqlQuery {
 		// Does the query contain any text_matches elements?
 		this.isIncludeSearch = model.isIncludeSearch();
 		// paginated model includes all overrides and max rows per page.
-		QuerySpecification paginatedModel = SqlElementUntils.overridePagination(model, overrideOffset, overrideLimit, maxRowsPerPage);
+		QuerySpecification paginatedModel = SqlElementUtils.overridePagination(model, overrideOffset, overrideLimit, maxRowsPerPage);
 
 		// Create a copy of the paginated model.
 		try {

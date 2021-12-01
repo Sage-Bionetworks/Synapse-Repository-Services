@@ -5,7 +5,7 @@ import java.util.Collections;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 /**
  * TextMatchesPredicate ::= <text_matches> <left_paren> {@link CharacterStringLiteral} <right_paren>
@@ -17,7 +17,7 @@ public class TextMatchesPredicate extends SQLElement implements HasPredicate {
 	
 	static {
 		try {
-			SEARCH_CONTENT_REF = new ColumnReference(null, SqlElementUntils.createColumnName(TableConstants.ROW_SEARCH_CONTENT), ColumnType.STRING);
+			SEARCH_CONTENT_REF = new ColumnReference(null, SqlElementUtils.createColumnName(TableConstants.ROW_SEARCH_CONTENT), ColumnType.STRING);
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

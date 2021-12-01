@@ -13,7 +13,7 @@ import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 import com.google.common.collect.Lists;
 
@@ -21,9 +21,9 @@ public class LikePredicateTest {
 
 	@Test
 	public void testLikePredicateToSQL() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		Boolean not = null;
-		Pattern pattern = SqlElementUntils.createPattern("'%middle%'");
+		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
 		EscapeCharacter escapeCharacter = null;
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		assertEquals("foo LIKE '%middle%'", element.toString());
@@ -31,9 +31,9 @@ public class LikePredicateTest {
 
 	@Test
 	public void testLikePredicateToSQLNot() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		Boolean not = Boolean.TRUE;
-		Pattern pattern = SqlElementUntils.createPattern("'%middle%'");
+		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
 		EscapeCharacter escapeCharacter = null;
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		assertEquals("foo NOT LIKE '%middle%'", element.toString());
@@ -41,10 +41,10 @@ public class LikePredicateTest {
 
 	@Test
 	public void testLikePredicateToSQLEscape() throws ParseException {
-		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("foo");
+		ColumnReference columnReferenceLHS = SqlElementUtils.createColumnReference("foo");
 		Boolean not = Boolean.TRUE;
-		Pattern pattern = SqlElementUntils.createPattern("'%middle%'");
-		EscapeCharacter escapeCharacter = SqlElementUntils.createEscapeCharacter("'$$'");
+		Pattern pattern = SqlElementUtils.createPattern("'%middle%'");
+		EscapeCharacter escapeCharacter = SqlElementUtils.createEscapeCharacter("'$$'");
 		LikePredicate element = new LikePredicate(columnReferenceLHS, not, pattern, escapeCharacter);
 		assertEquals("foo NOT LIKE '%middle%' ESCAPE '$$'", element.toString());
 	}

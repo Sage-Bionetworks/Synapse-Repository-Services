@@ -17,15 +17,15 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetQuantifier;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class QuerySpecificationTest {
 
 	@Test
 	public void testQuerySpecificationToSQL() throws ParseException {
 		SetQuantifier setQuantifier = null;
-		SelectList selectList = SqlElementUntils.createSelectList("one, two");
-		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
+		SelectList selectList = SqlElementUtils.createSelectList("one, two");
+		TableExpression tableExpression = SqlElementUtils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(setQuantifier, selectList, tableExpression);
 		assertEquals("SELECT one, two FROM syn123", element.toString());
 	}
@@ -33,8 +33,8 @@ public class QuerySpecificationTest {
 	@Test
 	public void testQuerySpecificationToSQLWithSetQuantifier() throws ParseException {
 		SetQuantifier setQuantifier = SetQuantifier.DISTINCT;
-		SelectList selectList = SqlElementUntils.createSelectList("one, two");
-		TableExpression tableExpression = SqlElementUntils.createTableExpression("from syn123");
+		SelectList selectList = SqlElementUtils.createSelectList("one, two");
+		TableExpression tableExpression = SqlElementUtils.createTableExpression("from syn123");
 		QuerySpecification element = new QuerySpecification(setQuantifier, selectList, tableExpression);
 		assertEquals("SELECT DISTINCT one, two FROM syn123", element.toString());
 	}
