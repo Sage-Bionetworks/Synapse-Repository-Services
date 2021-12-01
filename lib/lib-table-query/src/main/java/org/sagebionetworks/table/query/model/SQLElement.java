@@ -12,14 +12,7 @@ import java.util.List;
 public abstract class SQLElement implements Element {
 	
 	Element parent;
-		
-	/**
-	 * Each element should override to build the SQL string.
-	 * 
-	 * @param builder
-	 */
-	public abstract void toSql(StringBuilder builder, ToSqlParameters parameters);
-	
+			
 	/**
 	 * Write this element to SQL.
 	 * @return
@@ -202,7 +195,7 @@ public abstract class SQLElement implements Element {
 	}
 	
 	@Override
-	public Element getParent() {
+	public final Element getParent() {
 		return this.parent;
 	}
 	
@@ -210,23 +203,33 @@ public abstract class SQLElement implements Element {
 	 * Set the parent of this element.
 	 * @param parent
 	 */
-	void setParent(Element parent) {
+	@Override
+	public final void setParent(Element parent) {
 		this.parent = parent;
 	}
 	
 	/**
 	 * Recursively set the parent element for all elements in this tree.
 	 */
-	public void recursiveSetParent() {
+	@Override
+	public final void recursiveSetParent() {
 		for(Element child: getChildren()) {
-			SQLElement sqlChild = (SQLElement) child;
-			sqlChild.setParent(this);
-			sqlChild.recursiveSetParent();
+			child.setParent(this);
+			child.recursiveSetParent();
 		}
+	}
+	
+	@Override
+	public final void recursiveClearParent() {
+		for(Element child: getChildren()) {
+			child.setParent(null);
+			child.recursiveClearParent();
+		}
+		this.setParent(null);
 	}
 
 	@Override
-	public <T extends Element> boolean isInContext(Class<T> type) {
+	public final <T extends Element> boolean isInContext(Class<T> type) {
 		if(this.parent == null) {
 			return false;
 		}
@@ -234,6 +237,26 @@ public abstract class SQLElement implements Element {
 			return true;
 		}
 		return this.parent.isInContext(type);
+	}
+	
+
+	@Override
+	public final void replaceElement(Element replacement) {
+		if(replacement == null) {
+			throw new IllegalArgumentException("Replacement cannot be null");
+		}
+		Element old = this;
+		Element parent = this.getParent();
+		if(parent == null) {
+			throw new IllegalStateException("Cannot replace Element since its parent is null");
+		}
+		if(!(parent instanceof HasReplaceableChildren)) {
+			throw new IllegalStateException("Cannot replace Element since its parent is does not implement HasReplaceableChildren");
+		}
+		HasReplaceableChildren parentReplaceable = (HasReplaceableChildren)parent;
+		parentReplaceable.replaceChildren(replacement);
+		parent.recursiveSetParent();
+		old.recursiveClearParent();
 	}
 	
 }

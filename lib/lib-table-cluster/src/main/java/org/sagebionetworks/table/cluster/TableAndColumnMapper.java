@@ -144,8 +144,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 		ColumnReferenceMatch match = optional.get();
 		StringBuilder builder = new StringBuilder();
 		if(tables.size() > 1) {
-			builder.append("_A");
-			builder.append(match.getTableInfo().getTableIndex());
+			builder.append(match.getTableInfo().getTranslatedTableAlias());
 			builder.append(".");
 		}
 		builder.append(match.getColumnTranslationReference().getTranslatedColumnName());

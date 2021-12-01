@@ -52,6 +52,7 @@ public class TableInfoTest {
 		assertEquals(null, info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
 		assertEquals(tableIndex, info.getTableIndex());
+		assertEquals("_A1", info.getTranslatedTableAlias());
 	}
 
 	@Test
@@ -65,6 +66,7 @@ public class TableInfoTest {
 		assertEquals("t", info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
 		assertEquals(tableIndex, info.getTableIndex());
+		assertEquals("_A1", info.getTranslatedTableAlias());
 	}
 
 	@Test
@@ -77,6 +79,7 @@ public class TableInfoTest {
 		assertEquals("T123_4", info.getTranslatedTableName());
 		assertEquals(null, info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
+		assertEquals("_A1", info.getTranslatedTableAlias());
 	}
 
 	@Test
@@ -90,6 +93,7 @@ public class TableInfoTest {
 		assertEquals("T123_4", info.getTranslatedTableName());
 		assertEquals("t", info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
+		assertEquals("_A1", info.getTranslatedTableAlias());
 	}
 
 	@Test

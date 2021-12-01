@@ -2134,13 +2134,10 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testTranslateModel_translateSynapseFunctions() throws ParseException{
 		columnMap = new ColumnTranslationReferenceLookup(schema);
-		QuerySpecification element = new TableQueryParser("select bar from syn123 where bar = CURRENT_USER()").querySpecification();
-		assertNotNull(element.getFirstElementOfType(CurrentUserFunction.class));
-		assertNull(element.getFirstElementOfType(UnsignedLiteral.class));
+		QuerySpecification element = new TableQueryParser("select bar, CURRENT_USER() from syn123 where bar = CURRENT_USER()").querySpecification();
+		// call under test
 		SQLTranslatorUtils.translateSynapseFunctions(element, userId);
-		assertNull(element.getFirstElementOfType(CurrentUserFunction.class));
-        assertNotNull(element.getFirstElementOfType(UnsignedLiteral.class));
-        assertEquals(element.getFirstElementOfType(UnsignedLiteral.class).toSql(), userId.toString());
+        assertEquals("SELECT bar, 1 FROM syn123 WHERE bar = 1", element.toSql());
 	}
 
 	@Test

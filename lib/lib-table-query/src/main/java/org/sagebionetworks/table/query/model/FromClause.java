@@ -6,7 +6,7 @@ import java.util.Optional;
  * This matches &ltfrom clause&gt in:
  * <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class FromClause extends SQLElement implements HasSingleTableName {
+public class FromClause extends SQLElement implements HasSingleTableName, HasReplaceableChildren {
 
 	private TableReference tableReference;
 
@@ -40,6 +40,11 @@ public class FromClause extends SQLElement implements HasSingleTableName {
 			return Optional.empty();
 		}
 		return tableReference.getSingleTableName();
+	}
+
+	@Override
+	public void replaceChildren(Element replacment) {
+		this.tableReference = (TableReference) replacment;
 	}
 
 }

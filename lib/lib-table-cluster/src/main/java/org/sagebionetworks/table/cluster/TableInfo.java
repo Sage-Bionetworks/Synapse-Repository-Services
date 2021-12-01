@@ -29,6 +29,7 @@ public class TableInfo implements ColumnLookup {
 	private final List<ColumnModel> tableSchema;
 	private final List<ColumnTranslationReference> translationReferences;
 	private final int tableIndex;
+	private final String translatedTableAlias;
 
 	public TableInfo(TableNameCorrelation tableNameCorrelation, int tableIndex, List<ColumnModel> schema) {
 		ValidateArgument.required(tableNameCorrelation, "TableNameCorrelation");
@@ -36,6 +37,7 @@ public class TableInfo implements ColumnLookup {
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		this.translatedTableAlias = "_A"+tableIndex;
 		this.tableSchema = schema;
 		this.tableIndex = tableIndex;
 		this.translationReferences = schema.stream().map(c-> new SchemaColumnTranslationReference(c)).collect(Collectors.toList());
@@ -97,6 +99,13 @@ public class TableInfo implements ColumnLookup {
 	 */
 	public int getTableIndex() {
 		return tableIndex;
+	}
+
+	/**
+	 * @return the translatedTableAlias
+	 */
+	public String getTranslatedTableAlias() {
+		return translatedTableAlias;
 	}
 
 	/**

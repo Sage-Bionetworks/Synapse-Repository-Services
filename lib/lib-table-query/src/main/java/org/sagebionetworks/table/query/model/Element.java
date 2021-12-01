@@ -12,6 +12,8 @@ public interface Element {
 	 * @return
 	 */
 	String toSql();
+	
+	void toSql(StringBuilder builder, ToSqlParameters parameters);
 
 	/**
 	 * Write the SQL for this element without quotes.
@@ -74,5 +76,32 @@ public interface Element {
 	 *         hierarchy.
 	 */
 	public <T extends Element> boolean isInContext(Class<T> type);
+	
+
+	/**
+	 * Set the parent of this element.
+	 * @param parent
+	 */
+	void setParent(Element parent);
+
+	/**
+	 * Recursively set the parent element for all elements in this tree.
+	 */
+	void recursiveSetParent();
+
+	/**
+	 * Recursively clear the parent element for all elements in this tree.
+	 */
+	void recursiveClearParent();
+
+	/**
+	 * Replace this element with the provided replacement. This is done by visiting
+	 * the element's parent and replacing its child with the provided element. Note:
+	 * This will effectively disconnect this element and all of its children from
+	 * its original tree.
+	 * 
+	 * @param replacement
+	 */
+	void replaceElement(Element replacement);
 
 }

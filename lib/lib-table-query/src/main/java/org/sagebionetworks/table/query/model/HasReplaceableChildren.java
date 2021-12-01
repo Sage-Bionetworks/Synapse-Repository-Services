@@ -11,5 +11,5 @@ public interface HasReplaceableChildren extends Element {
 	 * 
 	 * @param replacment
 	 */
-	public void replaceChildren(SQLElement replacment);
+	public void replaceChildren(Element replacment);
 }

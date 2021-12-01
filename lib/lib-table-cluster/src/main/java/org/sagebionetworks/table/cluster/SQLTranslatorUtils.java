@@ -73,6 +73,7 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -603,12 +604,9 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateSynapseFunctions(QuerySpecification transformedModel, Long userId){
 		// Insert userId if needed
-		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
-		for(NumericValueFunction pred: hasUser){
-			if(pred.getChild() instanceof CurrentUserFunction){
-				// UnsignedLiterals are needed in order for the value to be bound as a parameter
-				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
-			}
+		Iterable<CurrentUserFunction> userFunctions = transformedModel.createIterable(CurrentUserFunction.class);
+		for(CurrentUserFunction userFunction: userFunctions){
+			userFunction.replaceElement(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
 		}
 	}
 
