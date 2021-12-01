@@ -218,7 +218,7 @@ public class SqlQuery {
 			this.includesRowIdAndVersion = false;
 		}
 
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();
 	}
 	

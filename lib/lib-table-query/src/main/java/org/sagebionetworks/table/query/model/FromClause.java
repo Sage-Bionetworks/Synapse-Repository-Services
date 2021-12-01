@@ -43,8 +43,8 @@ public class FromClause extends SQLElement implements HasSingleTableName, HasRep
 	}
 
 	@Override
-	public void replaceChildren(Element replacment) {
-		this.tableReference = (TableReference) replacment;
+	public void replaceChildren(Element replacement) {
+		this.tableReference = (TableReference) replacement;
 	}
 
 }

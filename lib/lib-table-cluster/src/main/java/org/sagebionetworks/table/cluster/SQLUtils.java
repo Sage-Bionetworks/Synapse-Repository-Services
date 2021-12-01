@@ -379,6 +379,7 @@ public class SQLUtils {
 	 * @param columnId
 	 * @return
 	 (*/
+	@Deprecated
 	public static String createDoubleCase(String columnId){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CASE WHEN ");

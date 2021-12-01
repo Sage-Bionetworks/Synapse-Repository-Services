@@ -18,7 +18,6 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
@@ -27,7 +26,7 @@ import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * Maps the relationship between each table and its columns.
+ * Immutable mapping for tables and columns from a query..
  *
  */
 public class TableAndColumnMapper implements ColumnLookup {
@@ -152,7 +151,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 		ColumnReferenceMatch match = optional.get();
 
 		/*
-		 * A ColumnReference of type Double that is in the the select needs to be
+		 * A ColumnReference within the select list that is of type Double needs to be
 		 * expanded to support NaN, +Inf, & -Inf, unless the reference is a function
 		 * parameter.
 		 */
@@ -166,6 +165,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 			}
 		}
 
+		// All other cases
 		StringBuilder builder = new StringBuilder();
 		if (tables.size() > 1) {
 			builder.append(match.getTableInfo().getTranslatedTableAlias());

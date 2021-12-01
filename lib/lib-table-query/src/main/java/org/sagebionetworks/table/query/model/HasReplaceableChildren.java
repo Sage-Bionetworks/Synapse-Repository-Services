@@ -9,7 +9,7 @@ public interface HasReplaceableChildren extends Element {
 	/**
 	 * Replace the children of this element with the given replacement. 
 	 * 
-	 * @param replacment
+	 * @param replacement
 	 */
-	public void replaceChildren(Element replacment);
+	public void replaceChildren(Element replacement);
 }

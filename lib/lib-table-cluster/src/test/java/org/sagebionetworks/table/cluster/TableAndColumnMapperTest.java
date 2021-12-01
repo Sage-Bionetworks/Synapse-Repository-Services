@@ -475,4 +475,48 @@ public class TableAndColumnMapperTest {
 		assertTrue(translated.isPresent());
 		assertEquals("_A1._C888_", translated.get().toSql());
 	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithDoubleInSelectAsUnestParameter() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select unnest(r.aDouble) from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C888_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("aDouble"), columnMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1.ROW_ID", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferenceWithRowIdAndSingleTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select ROW_ID from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("foo_bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("ROW_ID", translated.get().toSql());
+	}
 }

@@ -64,7 +64,6 @@ import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.MySqlFunction;
-import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -73,7 +72,6 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
-import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -308,14 +306,19 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId) {
+		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId, TableAndColumnMapper mapper) {
 
 		translateSynapseFunctions(transformedModel, userId);
 
 		// Select columns
-		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
-		for(HasReferencedColumn hasReference: selectColumns){
-			translateSelect(hasReference, columnTranslationReferenceLookup);
+//		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
+//		for(HasReferencedColumn hasReference: selectColumns){
+//			translateSelect(hasReference, columnTranslationReferenceLookup);
+//		}
+//		System.out.println(transformedModel.toSql());
+		Iterable<ColumnReference> selectColumns = transformedModel.getSelectList().createIterable(ColumnReference.class);
+		for(ColumnReference hasReference: selectColumns){
+			mapper.trasnalteColumnReference(hasReference).ifPresent(replacement -> hasReference.replaceElement(replacement));
 		}
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();
@@ -807,6 +810,7 @@ public class SQLTranslatorUtils {
 	 * @param column
 	 * @param columnTranslationReferenceLookup
 	 */
+	@Deprecated
 	public static void translateSelect(HasReferencedColumn column,
 			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ColumnNameReference columnNameReference = column.getReferencedColumn();
