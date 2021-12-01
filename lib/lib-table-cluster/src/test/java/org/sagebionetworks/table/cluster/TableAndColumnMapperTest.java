@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -223,5 +225,156 @@ public class TableAndColumnMapperTest {
 		// call under test
 		assertEquals(Optional.of(new SchemaColumnTranslationReference(allColumns.get(0))),
 				mapper.lookupColumnReference(columnReference));
+	}
+	
+	
+	@Test
+	public void testLookupColumnReferenceMatchWithNullRef() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		// call under test
+		assertEquals(Optional.empty(), mapper.lookupColumnReferenceMatch(null));
+	}
+
+	@Test
+	public void testLookupColumnReferenceMatchWithMultipleTables() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("syn456.foo_bar").columnReference();
+		// call under test
+		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
+		assertTrue(optionalMatch.isPresent());
+		assertEquals(new SchemaColumnTranslationReference(allColumns.get(3)), optionalMatch.get().getColumnTranslationReference());
+		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
+		assertEquals("syn456", tableInfo.getOriginalTableName());
+		assertEquals(1, tableInfo.getTableIndex());
+	}
+	
+	@Test
+	public void testLookupColumnReferenceMatchWithMultipleTablesFirstTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("syn123.foo").columnReference();
+		// call under test
+		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
+		assertTrue(optionalMatch.isPresent());
+		assertEquals(new SchemaColumnTranslationReference(allColumns.get(0)), optionalMatch.get().getColumnTranslationReference());
+		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
+		assertEquals("syn123", tableInfo.getOriginalTableName());
+		assertEquals(0, tableInfo.getTableIndex());
+	}
+	
+	@Test
+	public void testLookupColumnReferenceMatchWithMultipleTablesNoMatch() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("syn456.nothere").columnReference();
+		// call under test
+		assertEquals(Optional.empty(),	mapper.lookupColumnReferenceMatch(columnReference));
+	}
+
+	@Test
+	public void testLookupColumnReferenceMatchWithNullLHSAndMultipleTables() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			mapper.lookupColumnReferenceMatch(columnReference);
+		}).getMessage();
+		assertEquals("Expected a table name or table alias for column: foo", message);
+	}
+
+	@Test
+	public void testLookupColumnReferenceMatchWithNullLHSAndSingle() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("foo").columnReference();
+		// call under test
+		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
+		assertTrue(optionalMatch.isPresent());
+		assertEquals(new SchemaColumnTranslationReference(allColumns.get(0)), optionalMatch.get().getColumnTranslationReference());
+		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
+		assertEquals("syn123", tableInfo.getOriginalTableName());
+		assertEquals(0, tableInfo.getTableIndex());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferencedWithMultipleTablesMatchFristTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select t.foo from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A0._C111_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferencedWithMultipleTablesMatchSecondTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select syn456.bar from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(allColumns.get(2), allColumns.get(3)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C333_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferencedWithSingleTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select t.foo from syn123 t").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertTrue(translated.isPresent());
+		assertEquals("_C111_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTrasnalteColumnReferencedWithNoMatch() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select notAColumn from syn123 t").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(allColumns.get(0), allColumns.get(1)));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = mapper.trasnalteColumnReference(columnReference);
+		assertFalse(translated.isPresent());
 	}
 }

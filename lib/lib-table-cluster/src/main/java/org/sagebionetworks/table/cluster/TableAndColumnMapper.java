@@ -31,6 +31,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 		ValidateArgument.required(query, "QuerySpecification");
 		ValidateArgument.required(schemaProvider, "SchemaProvider");
 		List<TableInfo> tables = new ArrayList<TableInfo>();
+		int tableIndex = 0;
 		// extract all of the table information from the SQL model.
 		for (TableNameCorrelation table : query.createIterable(TableNameCorrelation.class)) {
 			IdAndVersion id = IdAndVersion.parse(table.getTableName().toSql());
@@ -38,7 +39,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 			if (schema.isEmpty()) {
 				throw new IllegalArgumentException(String.format("Schema for %s is empty.", id));
 			}
-			TableInfo tableInfo = new TableInfo(table, schema);
+			TableInfo tableInfo = new TableInfo(table, tableIndex++, schema);
 			tables.add(tableInfo);
 		}
 		this.tables = Collections.unmodifiableList(tables);
@@ -90,23 +91,69 @@ public class TableAndColumnMapper implements ColumnLookup {
 			throw new IllegalStateException(e);
 		}
 	}
-	
+
 	/**
-	 * Attempt to resolve the given ColumnReference to one of the columns one of the referenced tables.
-	 * Optional.empty() returned if no match was found.s
+	 * Attempt to resolve the given ColumnReference to one of the columns one of the
+	 * referenced tables. Optional.empty() returned if no match was found.
 	 * 
 	 * @param columnReference
 	 * @return
 	 */
 	@Override
 	public Optional<ColumnTranslationReference> lookupColumnReference(ColumnReference columnReference) {
-		if(columnReference == null) {
-			return Optional.empty();
-		}
-		if(!columnReference.getNameLHS().isPresent() && tables.size() > 1) {
-			throw new IllegalArgumentException("Expected a table name or table alias for column: "+columnReference.toSql());
-		}
-		return tables.stream().map(t->t.lookupColumnReference(columnReference)).filter(Optional::isPresent).map(Optional::get).findFirst();
+		return lookupColumnReferenceMatch(columnReference).map(r -> r.getColumnTranslationReference());
 	}
 	
+	/**
+	 * Attempt to resolve the given ColumnReference to one of the columns one of the
+	 * referenced tables. Optional.empty() returned if no match was found.
+	 * @param columnReference
+	 * @return
+	 */
+	public Optional<ColumnReferenceMatch> lookupColumnReferenceMatch(ColumnReference columnReference) {
+		if (columnReference == null) {
+			return Optional.empty();
+		}
+		if (!columnReference.getNameLHS().isPresent() && tables.size() > 1) {
+			throw new IllegalArgumentException(
+					"Expected a table name or table alias for column: " + columnReference.toSql());
+		}
+		for(TableInfo table: tables) {
+			Optional<ColumnTranslationReference> matchedRef = table.lookupColumnReference(columnReference);
+			if(matchedRef.isPresent()) {
+				return Optional.of(new ColumnReferenceMatch(table, matchedRef.get()));
+			}
+		}
+		return Optional.empty();
+	}
+	
+	/**
+	 * Attempt to translate the given ColumnReference by matching it to a column
+	 * from one of the tables. The resulting LHS will be the translated table alias
+	 * and the RHS will be the translated column name. Optional.empty() returned if
+	 * no match was found.
+	 * 
+	 * @param columnReference
+	 * @return
+	 */
+	public Optional<ColumnReference> trasnalteColumnReference(ColumnReference columnReference) {
+		Optional<ColumnReferenceMatch> optional = lookupColumnReferenceMatch(columnReference);
+		if(!optional.isPresent()) {
+			return Optional.empty();
+		}
+		ColumnReferenceMatch match = optional.get();
+		StringBuilder builder = new StringBuilder();
+		if(tables.size() > 1) {
+			builder.append("_A");
+			builder.append(match.getTableInfo().getTableIndex());
+			builder.append(".");
+		}
+		builder.append(match.getColumnTranslationReference().getTranslatedColumnName());
+		try {
+			return Optional.of(new TableQueryParser(builder.toString()).columnReference());
+		} catch (ParseException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
 }

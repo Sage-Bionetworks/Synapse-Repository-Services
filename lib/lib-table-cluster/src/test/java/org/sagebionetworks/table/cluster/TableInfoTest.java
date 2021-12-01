@@ -29,6 +29,7 @@ public class TableInfoTest {
 	private ColumnModel columnBar;
 	private ColumnModel columnWithSpace;
 	
+	private int tableIndex;
 	private List<ColumnModel> schema;
 
 	@BeforeEach
@@ -37,37 +38,40 @@ public class TableInfoTest {
 		columnBar = TableModelTestUtils.createColumn(222L, "bar", ColumnType.INTEGER);
 		columnWithSpace = TableModelTestUtils.createColumn(333L, "has space", ColumnType.DOUBLE);
 		schema = Arrays.asList(columnFoo,columnBar,columnWithSpace);
+		tableIndex = 1;
 	}
 
 	@Test
 	public void tesConstructorWithNoVersionNoAlias() throws ParseException {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123").tableNameCorrelation();
 		// call under test
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		assertEquals("syn123", info.getOriginalTableName());
 		assertEquals(IdAndVersion.parse("syn123"), info.getTableIdAndVersion());
 		assertEquals("T123", info.getTranslatedTableName());
 		assertEquals(null, info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
+		assertEquals(tableIndex, info.getTableIndex());
 	}
 
 	@Test
 	public void tesConstructorWithNoVersionWithAlias() throws ParseException {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123 t").tableNameCorrelation();
 		// call under test
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		assertEquals("syn123", info.getOriginalTableName());
 		assertEquals(IdAndVersion.parse("syn123"), info.getTableIdAndVersion());
 		assertEquals("T123", info.getTranslatedTableName());
 		assertEquals("t", info.getTableAlias().orElse(null));
 		assertEquals(schema, info.getTableSchema());
+		assertEquals(tableIndex, info.getTableIndex());
 	}
 
 	@Test
 	public void tesConstructorWithVersionNoAlias() throws ParseException {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123.4").tableNameCorrelation();
 		// call under test
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		assertEquals("syn123.4", info.getOriginalTableName());
 		assertEquals(IdAndVersion.parse("syn123.4"), info.getTableIdAndVersion());
 		assertEquals("T123_4", info.getTranslatedTableName());
@@ -80,7 +84,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123.4 as t")
 				.tableNameCorrelation();
 		// call under test
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		assertEquals("syn123.4", info.getOriginalTableName());
 		assertEquals(IdAndVersion.parse("syn123.4"), info.getTableIdAndVersion());
 		assertEquals("T123_4", info.getTranslatedTableName());
@@ -92,7 +96,7 @@ public class TableInfoTest {
 	public void testConstructorWithNull() {
 		TableNameCorrelation tableNameCorrelation = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			new TableInfo(tableNameCorrelation, schema);
+			new TableInfo(tableNameCorrelation, tableIndex, schema);
 		}).getMessage();
 		assertEquals("TableNameCorrelation is required.", message);
 	}
@@ -102,7 +106,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("foo").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -114,7 +118,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("`has space`").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -126,7 +130,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("\"has space\"").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -138,7 +142,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn123")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("nope").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -150,7 +154,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("syn1.foo").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -162,7 +166,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("`syn1`.`has space`").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -174,7 +178,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("syn2.foo").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -186,7 +190,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as t")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("t.foo").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -198,7 +202,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as t")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("`t`.`has space`").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -210,7 +214,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as t")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("r.foo").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -222,7 +226,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("ROW_ID").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -234,7 +238,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("syn1.ROW_VERSION").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
@@ -246,7 +250,7 @@ public class TableInfoTest {
 		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as q")
 				.tableNameCorrelation();
 		ColumnReference reference = new TableQueryParser("q.row_benefactor").columnReference();
-		TableInfo info = new TableInfo(tableNameCorrelation, schema);
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);

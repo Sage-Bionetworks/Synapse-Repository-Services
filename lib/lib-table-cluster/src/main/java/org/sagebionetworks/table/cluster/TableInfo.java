@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -27,14 +28,16 @@ public class TableInfo implements ColumnLookup {
 	private final String translatedTableName;
 	private final List<ColumnModel> tableSchema;
 	private final List<ColumnTranslationReference> translationReferences;
+	private final int tableIndex;
 
-	public TableInfo(TableNameCorrelation tableNameCorrelation, List<ColumnModel> schema) {
+	public TableInfo(TableNameCorrelation tableNameCorrelation, int tableIndex, List<ColumnModel> schema) {
 		ValidateArgument.required(tableNameCorrelation, "TableNameCorrelation");
 		originalTableName = tableNameCorrelation.getTableName().toSql();
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		this.tableSchema = schema;
+		this.tableIndex = tableIndex;
 		this.translationReferences = schema.stream().map(c-> new SchemaColumnTranslationReference(c)).collect(Collectors.toList());
 	}
 
@@ -81,6 +84,22 @@ public class TableInfo implements ColumnLookup {
 	}
 	
 	/**
+	 * @return the translationReferences
+	 */
+	public List<ColumnTranslationReference> getTranslationReferences() {
+		return translationReferences;
+	}
+
+	/**
+	 * The index of the table as listed in the from clause.  The first table in the from clause will be
+	 * index = 0 while the last table will be index = n-1.
+	 * @return the tableIndex
+	 */
+	public int getTableIndex() {
+		return tableIndex;
+	}
+
+	/**
 	 * Attempt to match the given ColumnReference to a column of this table.
 	 * @param columnReference
 	 * @return
@@ -108,6 +127,36 @@ public class TableInfo implements ColumnLookup {
 			// attempt to match to row metadata
 			return RowMetadataColumnTranslationReference.lookupColumnReference(rhs);
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(originalTableName, tableAlias, tableIdAndVersion, tableIndex, tableSchema,
+				translatedTableName, translationReferences);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof TableInfo)) {
+			return false;
+		}
+		TableInfo other = (TableInfo) obj;
+		return Objects.equals(originalTableName, other.originalTableName)
+				&& Objects.equals(tableAlias, other.tableAlias)
+				&& Objects.equals(tableIdAndVersion, other.tableIdAndVersion) && tableIndex == other.tableIndex
+				&& Objects.equals(tableSchema, other.tableSchema)
+				&& Objects.equals(translatedTableName, other.translatedTableName)
+				&& Objects.equals(translationReferences, other.translationReferences);
+	}
+
+	@Override
+	public String toString() {
+		return "TableInfo [originalTableName=" + originalTableName + ", tableIdAndVersion=" + tableIdAndVersion
+				+ ", tableAlias=" + tableAlias + ", translatedTableName=" + translatedTableName + ", tableSchema="
+				+ tableSchema + ", translationReferences=" + translationReferences + ", tableIndex=" + tableIndex + "]";
 	}
 
 }

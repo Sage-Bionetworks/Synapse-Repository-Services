@@ -948,7 +948,7 @@ public class SQLQueryTest {
 		schemaMap.put(IdAndVersion.parse("syn1"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
 		
-		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar is not null";
+		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text'";
 		SqlQuery query = new SqlQueryBuilder(sql, userId)
 				.schemaProvider(new TestSchemaProvider(schemaMap))
 				.allowJoins(true)
