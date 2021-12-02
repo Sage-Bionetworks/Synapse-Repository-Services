@@ -4,7 +4,7 @@ import java.util.List;
 /**
  * This matches &ltselect list&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class SelectList extends SQLElement {
+public class SelectList extends SQLElement implements Replaceable<SelectList> {
 	
 	Boolean asterisk;
 	List<DerivedColumn> columns;
@@ -25,6 +25,10 @@ public class SelectList extends SQLElement {
 
 	public List<DerivedColumn> getColumns() {
 		return columns;
+	}
+	
+	public void addDerivedColumn(DerivedColumn derivedColumn) {
+		this.columns.add(derivedColumn);
 	}
 
 	@Override

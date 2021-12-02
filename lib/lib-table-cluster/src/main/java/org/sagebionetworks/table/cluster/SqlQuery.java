@@ -174,7 +174,7 @@ public class SqlQuery {
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
 			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-			this.model.replaceSelectList(expandedSelectList);
+			this.model.getSelectList().replaceElement(expandedSelectList);
 		}
 
 		//Append additionalFilters onto the WHERE clause
@@ -192,7 +192,7 @@ public class SqlQuery {
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.
-		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnTranslationReferenceLookup, this.isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), tableAndColumnMapper, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 		if(maxBytesPerPage != null){
@@ -211,14 +211,13 @@ public class SqlQuery {
 		}
 		if (!this.isAggregatedResult) {
 			// we need to add the row count and row version columns
-			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
-			transformedModel.replaceSelectList(expandedSelectList);
+			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			this.includesRowIdAndVersion = true;
 		}else{
 			this.includesRowIdAndVersion = false;
 		}
 
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();
 	}
 	

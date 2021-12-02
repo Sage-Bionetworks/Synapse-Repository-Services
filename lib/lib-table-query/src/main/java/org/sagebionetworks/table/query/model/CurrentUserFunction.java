@@ -5,7 +5,7 @@ package org.sagebionetworks.table.query.model;
  * CurrentUserFunction ::= {@link SynapseFunctionName} left_paren right_paren
  *
  */
-public class CurrentUserFunction extends LeafElement implements HasFunctionReturnType{
+public class CurrentUserFunction extends LeafElement implements HasFunctionReturnType, Replaceable<UnsignedLiteral>{
 
     private SynapseFunctionName synapseFunctionName;
 

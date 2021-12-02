@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 
+@FunctionalInterface
 public interface SchemaProvider {
 	
 	/**

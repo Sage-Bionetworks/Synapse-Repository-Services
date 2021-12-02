@@ -1,6 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
@@ -75,5 +79,19 @@ class TableReferenceTest {
 	public void testGetTableNameWithJoin() throws ParseException {
 		TableReference reference = new TableQueryParser("tableA join tableB").tableReference();
 		assertEquals(Optional.empty(), reference.getSingleTableName());
+	}
+	
+	@Test
+	public void testReplaceElement() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 group by bar, a").querySpecification();
+		TableReference old = model.getFirstElementOfType(TableReference.class);
+		Element oldChild = old.getChild();
+		TableReference replacement = new TableQueryParser("T123").tableReference();
+		// call under test
+		old.replaceElement(replacement);
+		assertEquals("SELECT * FROM T123 GROUP BY bar, a", model.toSql());
+		assertNotNull(replacement.getParent());
+		assertNull(old.getParent());
+		assertNull(oldChild.getParent());
 	}
 }

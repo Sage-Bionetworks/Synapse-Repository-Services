@@ -434,7 +434,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			if (!EntityType.entityview.equals(tableType)) {
 				throw new IllegalArgumentException(String.format("'%s' is not a file view", idAndVersion.toString()));
 			}
-			model.replaceSelectList(new TableQueryParser(TableConstants.ROW_ID).selectList());
+			model.getSelectList().replaceElement(new TableQueryParser(TableConstants.ROW_ID).selectList());
 			query.setSql(model.toSql());
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
 					.withReturnFacets(false).withReturnLastUpdatedOn(false);

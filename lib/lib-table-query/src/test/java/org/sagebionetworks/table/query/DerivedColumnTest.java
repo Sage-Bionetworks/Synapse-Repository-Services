@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
@@ -14,12 +16,14 @@ public class DerivedColumnTest {
 	public void testDerivedColumnToSQL() throws ParseException {
 		DerivedColumn element = SqlElementUtils.createDerivedColumn("james");
 		assertEquals("james", element.toSql());
+		assertFalse(element.hasAsClause());
 	}
 
 	@Test
 	public void testDerivedColumnWithASToSQL() throws ParseException {
 		DerivedColumn element = SqlElementUtils.createDerivedColumn("james as bond");
 		assertEquals("james AS bond", element.toSql());
+		assertTrue(element.hasAsClause());
 	}
 
 	@Test

@@ -64,7 +64,6 @@ import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.MySqlFunction;
-import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -110,8 +109,8 @@ public class SQLTranslatorUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, boolean isAggregate) {
-		ValidateArgument.required(columnTranslationReferenceLookup, "all columns");
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnLookup lookup, boolean isAggregate) {
+		ValidateArgument.required(lookup, "ColumnLookup");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
 			throw new IllegalStateException("The columns should have been expanded before getting here");
@@ -119,7 +118,7 @@ public class SQLTranslatorUtils {
 		List<SelectColumn> selects = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 		boolean isAtLeastOneColumnIdNull = false;
 		for (DerivedColumn dc : selectList.getColumns()) {
-			SelectColumn model = getSelectColumns(dc, columnTranslationReferenceLookup);
+			SelectColumn model = getSelectColumns(dc, lookup);
 			selects.add(model);
 			if(model.getId() == null){
 				isAtLeastOneColumnIdNull = true;
@@ -143,7 +142,7 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 * @return
 	 */
-	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnTranslationReferenceLookup columnTranslationReferenceLookup){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnLookup lookup){
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
@@ -154,8 +153,9 @@ public class SQLTranslatorUtils {
 		
 		ColumnTranslationReference translationReference = null;
 		if(referencedColumn != null){
+			ColumnReference columnReference = derivedColumn.getFirstElementOfType(ColumnReference.class);
 			// Does the reference match an actual column name?
-			translationReference = columnTranslationReferenceLookup.forUserQueryColumnName(referencedColumn.toSqlWithoutQuotes()).orElse(null);
+			translationReference = lookup.lookupColumnReference(columnReference).orElse(null);
 		}
 		// Lookup the base type starting only with the column referenced.
 		ColumnType columnType = getBaseColulmnType(referencedColumn);
@@ -232,20 +232,18 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
-	 * Create a new SelectList that includes ROW_ID and ROW_VERSION.
+	 * Add system columns (ROW_ID, ROW_VERSION, & ROW_ETAG) to the passed select list.
 	 * 
 	 * @param selectList
 	 * @return
 	 */
-	public static SelectList addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
-		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
-		selectColumns.addAll(selectList.getColumns());
-		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
-		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
+	public static void addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
+		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
+		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
 		if(includeEtag){
-			selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
+			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
 		}
-		return new SelectList(selectColumns);
+		selectList.recursiveSetParent();
 	}
 	
 	/**
@@ -306,14 +304,19 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId) {
+		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId, TableAndColumnMapper mapper) {
 
 		translateSynapseFunctions(transformedModel, userId);
 
 		// Select columns
-		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
-		for(HasReferencedColumn hasReference: selectColumns){
-			translateSelect(hasReference, columnTranslationReferenceLookup);
+//		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
+//		for(HasReferencedColumn hasReference: selectColumns){
+//			translateSelect(hasReference, columnTranslationReferenceLookup);
+//		}
+//		System.out.println(transformedModel.toSql());
+		Iterable<ColumnReference> selectColumns = transformedModel.getSelectList().createIterable(ColumnReference.class);
+		for(ColumnReference hasReference: selectColumns){
+			mapper.trasnalteColumnReference(hasReference).ifPresent(replacement -> hasReference.replaceElement(replacement));
 		}
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();
@@ -602,12 +605,9 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateSynapseFunctions(QuerySpecification transformedModel, Long userId){
 		// Insert userId if needed
-		Iterable<NumericValueFunction> hasUser = transformedModel.createIterable(NumericValueFunction.class);
-		for(NumericValueFunction pred: hasUser){
-			if(pred.getChild() instanceof CurrentUserFunction){
-				// UnsignedLiterals are needed in order for the value to be bound as a parameter
-				pred.replaceChildren(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
-			}
+		Iterable<CurrentUserFunction> userFunctions = transformedModel.createIterable(CurrentUserFunction.class);
+		for(CurrentUserFunction userFunction: userFunctions){
+			userFunction.replaceElement(new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(userId))));
 		}
 	}
 
@@ -808,6 +808,7 @@ public class SQLTranslatorUtils {
 	 * @param column
 	 * @param columnTranslationReferenceLookup
 	 */
+	@Deprecated
 	public static void translateSelect(HasReferencedColumn column,
 			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ColumnNameReference columnNameReference = column.getReferencedColumn();

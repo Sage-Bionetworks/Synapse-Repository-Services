@@ -6,12 +6,12 @@ package org.sagebionetworks.table.query.model;
  * simple branch for either a or b.
  *
  */
-public abstract class SimpleBranch extends SQLElement implements HasReplaceableChildren {
+public abstract class SimpleBranch extends SQLElement implements HasReplaceableChildren<Element> {
 
 	/**
 	 * The single child of this branch.
 	 */
-	SQLElement child;
+	Element child;
 	
 	
 	/**
@@ -23,7 +23,7 @@ public abstract class SimpleBranch extends SQLElement implements HasReplaceableC
 		this.child = child;
 	}
 
-	public SQLElement getChild() {
+	public Element getChild() {
 		return child;
 	}
 
@@ -36,7 +36,7 @@ public abstract class SimpleBranch extends SQLElement implements HasReplaceableC
 	 * Replace the single child of this element with 
 	 * @param replacement
 	 */
-	final public void replaceChildren(SQLElement replacement){
+	final public void replaceChildren(Element replacement){
 		this.child = replacement;
 	}
 

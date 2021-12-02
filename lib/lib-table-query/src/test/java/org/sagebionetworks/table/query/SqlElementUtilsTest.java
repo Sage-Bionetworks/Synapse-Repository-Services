@@ -3,6 +3,7 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Lists;
@@ -12,8 +13,15 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SortKey;
+import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
+import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -457,6 +465,39 @@ public class SqlElementUtilsTest {
 		SqlElementUtils.appendCombinedWhereClauseToStringBuilder(stringBuilder, searchConditionString, whereClause);
 		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + searchConditionString + ")", stringBuilder.toString());
 	}
-
+	
+	@Test
+	public void testRecursiveSetParent() throws ParseException {
+		ExactNumericLiteral c0 = new ExactNumericLiteral(new Long(123));
+		UnsignedNumericLiteral c1 = new UnsignedNumericLiteral(c0);
+		UnsignedLiteral c2 = new UnsignedLiteral(c1);
+		UnsignedValueSpecification root = new UnsignedValueSpecification(c2);
+		// call under test
+		root.recursiveSetParent();
+		assertEquals(c1, c0.getParent());
+		assertEquals(c2, c1.getParent());
+		assertEquals(root, c2.getParent());
+		assertNull(root.getParent());
+	}
+	
+	@Test
+	public void testRecursiveClearParent() throws ParseException {
+		ExactNumericLiteral c0 = new ExactNumericLiteral(new Long(123));
+		UnsignedNumericLiteral c1 = new UnsignedNumericLiteral(c0);
+		UnsignedLiteral c2 = new UnsignedLiteral(c1);
+		UnsignedValueSpecification root = new UnsignedValueSpecification(c2);
+		root.recursiveSetParent();
+		assertEquals(c1, c0.getParent());
+		assertEquals(c2, c1.getParent());
+		assertEquals(root, c2.getParent());
+		assertNull(root.getParent());
+		
+		// call under test
+		c2.recursiveClearParent();
+		
+		assertNull(c2.getParent());
+		assertNull(c1.getParent());
+		assertNull(c0.getParent());
+	}
 
 }
