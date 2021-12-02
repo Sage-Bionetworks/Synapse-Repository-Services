@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
-
-import com.google.common.base.Objects;
 
 /**
  * An element that be serialized to SQL.
