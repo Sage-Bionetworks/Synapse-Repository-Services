@@ -55,9 +55,9 @@ public class TableConstants {
 	public static final int MAX_COLUMN_NAME_SIZE_CHARS = 256;
 	
 	/**
-	 * Note: We raised this limit from 10K to 20K for PLFM-6287.
+	 * Note: We raised this limit from 10K to 20K for PLFM-6287.  We raised it again for PLFM-7019 from 20 K to 30K.
 	 */
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 20; // 20K;
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 30; // 30K;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and

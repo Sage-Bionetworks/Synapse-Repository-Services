@@ -162,6 +162,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetIdAndChecksumObjectIds.sql");
 	
+	public static final String SQL_GET_ALL_CONTAINER_IDS = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetAllContainerIds.sql");
+	
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
 			+ COL_REVISION_MODIFIED_BY + " = ?, " + COL_REVISION_MODIFIED_ON + " = ? WHERE " + COL_REVISION_OWNER_NODE
@@ -1633,15 +1636,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
 		parameters.put(PARAM_NAME_IDS, parentIds);
 		parameters.put(BIND_LIMIT, maxNumberIds+1);
-		List<Long> children = namedParameterJdbcTemplate.queryForList(
-				"WITH RECURSIVE CONTAINERS (ID) AS (" + 
-				" SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:"+PARAM_NAME_IDS+")"
-						+ " AND "+COL_NODE_TYPE+" IN (" + SQL_STRING_CONTAINERS_TYPES + ")" + 
-				" UNION DISTINCT" + 
-				" SELECT N."+COL_NODE_ID+" FROM CONTAINERS AS C JOIN "+TABLE_NODE+" AS N ON (C."+COL_NODE_ID+" = N."+COL_NODE_PARENT_ID
-					+" AND N."+COL_NODE_TYPE+" IN (" + SQL_STRING_CONTAINERS_TYPES + "))" + 
-				")" + 
-				"SELECT ID FROM CONTAINERS LIMIT :"+BIND_LIMIT, parameters, Long.class);
+		List<Long> children = namedParameterJdbcTemplate.queryForList(SQL_GET_ALL_CONTAINER_IDS
+				, parameters, Long.class);
 		Set<Long> finalSet = new HashSet<>(children);
 		if(finalSet.size() > maxNumberIds
 				|| children.size()+results.size() > maxNumberIds){

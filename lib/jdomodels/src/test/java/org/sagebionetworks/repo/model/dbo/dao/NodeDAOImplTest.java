@@ -2589,8 +2589,9 @@ public class NodeDAOImplTest {
 
 		// Lookup all of the containers in this hierarchy
 		Set<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
+		// folder folder0Id is empty and should be excluded.
 		Set<Long> expected = new LinkedHashSet<Long>(Lists.newArrayList(
-				projectId, folder0Id, folder1Id, folder2Id
+				projectId, folder1Id, folder2Id
 		));
 		assertEquals(expected, containers);
 		
@@ -2625,13 +2626,15 @@ public class NodeDAOImplTest {
 		Long projectIdLong = KeyFactory.stringToKey(projectId);
 		toDelete.add(projectId);
 		
+		String parentId = projectId;
 		// Add three folders to the project
-		for(int i=0; i<3; i++){
+		for(int i=0; i<5; i++){
 			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
 			folder.setNodeType(EntityType.folder);
-			folder.setParentId(projectId);
+			folder.setParentId(parentId);
 			String folderId = nodeDao.createNew(folder);
 			toDelete.add(folderId);
+			parentId = folderId;
 		}
 		// loading more than two from a single page should fail.
 		int maxIds = 2;
