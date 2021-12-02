@@ -232,7 +232,7 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
-	 * Create a new SelectList that includes ROW_ID and ROW_VERSION.
+	 * Add system columns (ROW_ID, ROW_VERSION, & ROW_ETAG) to the passed select list that includes.
 	 * 
 	 * @param selectList
 	 * @return
