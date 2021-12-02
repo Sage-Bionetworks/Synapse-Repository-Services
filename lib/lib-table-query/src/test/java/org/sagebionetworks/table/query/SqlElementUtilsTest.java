@@ -499,55 +499,5 @@ public class SqlElementUtilsTest {
 		assertNull(c1.getParent());
 		assertNull(c0.getParent());
 	}
-	
-	@Test
-	public void testReplaceElement() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 group by bar, a").querySpecification();
-		TableReference old = model.getFirstElementOfType(TableReference.class);
-		Element oldChild = old.getChild();
-		TableReference replacement = new TableQueryParser("T123").tableReference();
-		// call under test
-		old.replaceElement(replacement);
-		assertEquals("SELECT * FROM T123 GROUP BY bar, a", model.toSql());
-		assertNotNull(replacement.getParent());
-		assertNull(old.getParent());
-		assertNull(oldChild.getParent());
-	}
-	
-	@Test
-	public void testReplaceElementWithNullReplacement() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 group by bar, a").querySpecification();
-		TableReference old = model.getFirstElementOfType(TableReference.class);
-		TableReference replacement = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			old.replaceElement(replacement);
-		}).getMessage();
-		assertEquals("Replacement cannot be null", message);
-	}
-	
-	@Test
-	public void testReplaceElementWithNullParent() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 group by bar, a").querySpecification();
-		QuerySpecification replacement = new TableQueryParser("select * from syn123").querySpecification();
-		String message = assertThrows(IllegalStateException.class, ()->{
-			// call under test
-			model.replaceElement(replacement);
-		}).getMessage();
-		assertEquals("Cannot replace Element since its parent is null", message);
-	}
-	
-	@Test
-	public void testReplaceElementWithNonReplaceableParent() throws ParseException {
-		QuerySpecification model = new TableQueryParser("select * from syn123 group by bar, a").querySpecification();
-		TableExpression old = model.getFirstElementOfType(TableExpression.class);
-		TableExpression replacement = new TableQueryParser("from syn456").tableExpression();
-		String message = assertThrows(IllegalStateException.class, ()->{
-			// call under test
-			old.replaceElement(replacement);
-		}).getMessage();
-		assertEquals("Cannot replace Element since its parent is does not implement HasReplaceableChildren", message);
-	}
-
 
 }

@@ -5,7 +5,7 @@ import java.util.Optional;
 /**
  * This matches &lttable reference&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class TableReference extends SimpleBranch implements HasSingleTableName {
+public class TableReference extends SimpleBranch implements HasSingleTableName, Replaceable<TableReference> {
 
 	public TableReference(TableNameCorrelation tableName) {
 		super(tableName);

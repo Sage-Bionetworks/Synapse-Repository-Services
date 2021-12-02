@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import com.google.common.base.Objects;
+
 /**
  * An element that be serialized to SQL.
  *
@@ -238,26 +240,6 @@ public abstract class SQLElement implements Element {
 			return true;
 		}
 		return this.parent.isInContext(type);
-	}
-	
-
-	@Override
-	public final void replaceElement(Element replacement) {
-		if(replacement == null) {
-			throw new IllegalArgumentException("Replacement cannot be null");
-		}
-		Element old = this;
-		Element parent = this.getParent();
-		if(parent == null) {
-			throw new IllegalStateException("Cannot replace Element since its parent is null");
-		}
-		if(!(parent instanceof HasReplaceableChildren)) {
-			throw new IllegalStateException("Cannot replace Element since its parent is does not implement HasReplaceableChildren");
-		}
-		HasReplaceableChildren<Element> parentReplaceable = (HasReplaceableChildren<Element>)parent;
-		parentReplaceable.replaceChildren(replacement);
-		parent.recursiveSetParent();
-		old.recursiveClearParent();
 	}
 	
 }

@@ -94,14 +94,4 @@ public interface Element {
 	 */
 	void recursiveClearParent();
 
-	/**
-	 * Replace this element with the provided replacement. This is done by visiting
-	 * the element's parent and replacing its child with the provided element. Note:
-	 * This will effectively disconnect this element and all of its children from
-	 * its original tree.
-	 * 
-	 * @param replacement
-	 */
-	void replaceElement(Element replacement);
-
 }
