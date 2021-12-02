@@ -4622,7 +4622,7 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, 'key0' from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
