@@ -174,7 +174,7 @@ public class SqlQuery {
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
 			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
-			this.model.replaceSelectList(expandedSelectList);
+			this.model.getSelectList().replaceElement(expandedSelectList);
 		}
 
 		//Append additionalFilters onto the WHERE clause
@@ -211,8 +211,7 @@ public class SqlQuery {
 		}
 		if (!this.isAggregatedResult) {
 			// we need to add the row count and row version columns
-			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
-			transformedModel.replaceSelectList(expandedSelectList);
+			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			this.includesRowIdAndVersion = true;
 		}else{
 			this.includesRowIdAndVersion = false;

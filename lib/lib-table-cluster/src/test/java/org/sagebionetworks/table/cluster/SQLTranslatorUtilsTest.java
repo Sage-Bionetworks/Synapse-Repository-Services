@@ -645,18 +645,22 @@ public class SQLTranslatorUtilsTest {
 	public void testAddRowIdAndVersionToSelect() throws ParseException{
 		boolean includeEtag = false;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
-		assertNotNull(results);
-		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", results.toSql());
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", element.toSql());
+		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
+			assertNotNull(derivedColumn.getParent());
+		}
 	}
 	
 	@Test
 	public void testAddRowIdAndVersionToSelectWithEtag() throws ParseException{
 		boolean includeEtag = true;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
-		assertNotNull(results);
-		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", results.toSql());
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", element.toSql());
+		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
+			assertNotNull(derivedColumn.getParent());
+		}
 	}
 	
 	@Test

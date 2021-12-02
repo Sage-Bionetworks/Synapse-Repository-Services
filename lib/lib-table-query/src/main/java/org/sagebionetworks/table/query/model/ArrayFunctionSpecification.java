@@ -12,7 +12,7 @@ package org.sagebionetworks.table.query.model;
  * See  https://sagebionetworks.jira.com/wiki/spaces/PLFM/pages/817168468/Multiple+Value+Annotations
  * Related: {@link ArrayHasPredicate}
  */
-public class ArrayFunctionSpecification extends SQLElement implements HasFunctionReturnType, HasReplaceableChildren{
+public class ArrayFunctionSpecification extends SQLElement implements HasFunctionReturnType, HasReplaceableChildren<ColumnReference>{
 	ArrayFunctionType listFunctionType;
 
 	//For the time being, only support ColumnReferences because currently the only
@@ -51,7 +51,7 @@ public class ArrayFunctionSpecification extends SQLElement implements HasFunctio
 	}
 
 	@Override
-	public void replaceChildren(Element replacement) {
-		this.columnReference = (ColumnReference) replacement;
+	public void replaceChildren(ColumnReference replacement) {
+		this.columnReference = replacement;
 	}
 }

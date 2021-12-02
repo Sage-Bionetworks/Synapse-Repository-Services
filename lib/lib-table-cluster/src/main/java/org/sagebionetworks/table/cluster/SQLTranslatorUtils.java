@@ -237,15 +237,13 @@ public class SQLTranslatorUtils {
 	 * @param selectList
 	 * @return
 	 */
-	public static SelectList addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
-		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
-		selectColumns.addAll(selectList.getColumns());
-		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
-		selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
+	public static void addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
+		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
+		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
 		if(includeEtag){
-			selectColumns.add(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
+			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
 		}
-		return new SelectList(selectColumns);
+		selectList.recursiveSetParent();
 	}
 	
 	/**

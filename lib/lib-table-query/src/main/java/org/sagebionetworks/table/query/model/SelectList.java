@@ -26,6 +26,10 @@ public class SelectList extends SQLElement {
 	public List<DerivedColumn> getColumns() {
 		return columns;
 	}
+	
+	public void addDerivedColumn(DerivedColumn derivedColumn) {
+		this.columns.add(derivedColumn);
+	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {

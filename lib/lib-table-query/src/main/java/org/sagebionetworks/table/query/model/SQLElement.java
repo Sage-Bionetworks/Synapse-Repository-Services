@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * An element that be serialized to SQL.
@@ -253,7 +254,7 @@ public abstract class SQLElement implements Element {
 		if(!(parent instanceof HasReplaceableChildren)) {
 			throw new IllegalStateException("Cannot replace Element since its parent is does not implement HasReplaceableChildren");
 		}
-		HasReplaceableChildren parentReplaceable = (HasReplaceableChildren)parent;
+		HasReplaceableChildren<Element> parentReplaceable = (HasReplaceableChildren<Element>)parent;
 		parentReplaceable.replaceChildren(replacement);
 		parent.recursiveSetParent();
 		old.recursiveClearParent();

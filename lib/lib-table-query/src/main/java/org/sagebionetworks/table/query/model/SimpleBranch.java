@@ -6,7 +6,7 @@ package org.sagebionetworks.table.query.model;
  * simple branch for either a or b.
  *
  */
-public abstract class SimpleBranch extends SQLElement implements HasReplaceableChildren {
+public abstract class SimpleBranch extends SQLElement implements HasReplaceableChildren<Element> {
 
 	/**
 	 * The single child of this branch.
