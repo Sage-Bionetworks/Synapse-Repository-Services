@@ -285,23 +285,7 @@ public class SQLTranslatorUtilsTest {
 		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
 		assertEquals("row_id", columnRefCapture.getValue().toSql());
 	}
-	
-	@Test
-	public void testGetSelectColumnsRowVersionLower() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION));
 		
-		DerivedColumn derivedColumn = new TableQueryParser("ROW_VERSION").derivedColumn();
-		// call under test
-		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
-		assertNotNull(results);
-		assertEquals("ROW_VERSION", results.getName());
-		assertEquals(ColumnType.INTEGER, results.getColumnType());
-		assertEquals(null, results.getId());
-		
-		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
-		assertEquals("ROW_VERSION", columnRefCapture.getValue().toSql());
-	}
-	
 	@Test
 	public void testGetSelectColumnsRowVersionUpper() throws ParseException{
 		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION));

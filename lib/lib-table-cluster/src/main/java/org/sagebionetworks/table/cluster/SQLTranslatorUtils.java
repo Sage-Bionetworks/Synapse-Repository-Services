@@ -316,7 +316,7 @@ public class SQLTranslatorUtils {
 //		System.out.println(transformedModel.toSql());
 		Iterable<ColumnReference> selectColumns = transformedModel.getSelectList().createIterable(ColumnReference.class);
 		for(ColumnReference hasReference: selectColumns){
-			mapper.trasnalteColumnReference(hasReference).ifPresent(replacement -> hasReference.replaceElement(replacement));
+			mapper.translateColumnReference(hasReference).ifPresent(replacement -> hasReference.replaceElement(replacement));
 		}
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();

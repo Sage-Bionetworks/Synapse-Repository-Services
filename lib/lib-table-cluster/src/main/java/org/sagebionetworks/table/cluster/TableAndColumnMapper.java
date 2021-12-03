@@ -143,7 +143,7 @@ public class TableAndColumnMapper implements ColumnLookup {
 	 * @param columnReference
 	 * @return
 	 */
-	public Optional<ColumnReference> trasnalteColumnReference(ColumnReference columnReference) {
+	public Optional<ColumnReference> translateColumnReference(ColumnReference columnReference) {
 		Optional<ColumnReferenceMatch> optional = lookupColumnReferenceMatch(columnReference);
 		if (!optional.isPresent()) {
 			return Optional.empty();
