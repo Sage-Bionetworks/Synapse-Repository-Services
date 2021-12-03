@@ -1632,15 +1632,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(parentIds.isEmpty()){
 			return Collections.emptySet();
 		}
-		Set<Long> results = new LinkedHashSet<Long>(parentIds);
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
 		parameters.put(PARAM_NAME_IDS, parentIds);
 		parameters.put(BIND_LIMIT, maxNumberIds+1);
 		List<Long> children = namedParameterJdbcTemplate.queryForList(SQL_GET_ALL_CONTAINER_IDS
 				, parameters, Long.class);
 		Set<Long> finalSet = new HashSet<>(children);
-		if(finalSet.size() > maxNumberIds
-				|| children.size()+results.size() > maxNumberIds){
+		if(finalSet.size() > maxNumberIds){
 			throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
 		}
 		return finalSet;
