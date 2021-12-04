@@ -564,7 +564,7 @@ public class EntityServiceImplAutowiredTest  {
 			// call under test
 			entityService.createEntity(adminUserId, dataset, activityId);
 		}).getMessage();
-		assertEquals("Maximum of 20,000 items in a dataset exceeded.", message);
+		assertEquals("Maximum of 30,000 items in a dataset exceeded.", message);
 	}
 	
 	@Test
