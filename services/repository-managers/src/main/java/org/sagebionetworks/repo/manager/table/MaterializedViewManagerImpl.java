@@ -43,6 +43,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		ValidateArgument.requiredNotBlank(materializedView.getDefiningSQL(), "The materialized view definingSQL");
 		ValidateArgument.requiredNotBlank(materializedView.getId(), "The id of the materialized view");
 		
+		// TODO: Should this use the version number? Probably we should leave out so that we bind it to the "current" version
 		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(), materializedView.getVersionNumber());
 		
 		QuerySpecification querySpecification = getQuerySpecification(materializedView);

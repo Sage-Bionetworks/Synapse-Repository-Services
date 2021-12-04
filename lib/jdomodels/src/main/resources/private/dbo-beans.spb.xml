@@ -168,6 +168,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
 				<!-- Files Scanner Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.files.DBOFilesScannerStatus" />
+				<!-- Materialized view tables -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewSourceTable" />
+				
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -288,6 +292,9 @@
 				
 				<!-- Feature Status -->
 				<bean class="org.sagebionetworks.repo.model.dbo.feature.DBOFeatureStatus" />
+				
+				<!-- Materialized view tables -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOMaterializedViewId" />
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

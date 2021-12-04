@@ -17,7 +17,7 @@ public interface MaterializedViewManager {
 	/**
 	 * Extract and register all the tables referenced by the SQL defining the given materialized view 
 	 * 
-	 * @param materializedView The view that was created or updated
+	 * @param materializedView The materialized view
 	 */
 	void registerSourceTables(MaterializedView materializedView);
 	

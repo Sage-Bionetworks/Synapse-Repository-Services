@@ -8,13 +8,6 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
  * DAO supporting extra data used for materialized views
  */
 public interface MaterializedViewDao {
-
-	/**
-	 * Clear all the source tables associated with the materialized view with the given id
-	 * 
-	 * @param viewId The id and version of the materialized view
-	 */
-	void clearSourceTables(IdAndVersion viewId);
 	
 	/**
 	 * Associates the given set of source table ids to the materialized view with the given id

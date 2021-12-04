@@ -1202,6 +1202,18 @@ public class SqlConstants {
 	public static final String COL_FILES_SCANNER_STATUS_JOBS_COMPLETED_COUNT = 			"JOBS_COMPLETED_COUNT";
 	public static final String COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT = 	"SCANNED_ASSOCIATIONS_COUNT";
 	public static final String COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT =		 	"RELINKED_FILES_COUNT";
+	
+	// The materialized view source tables
+	public static final String DDL_MV_ID = 												"schema/MaterializedViewId-ddl.sql";
+	public static final String TABLE_MV_ID = 											"MATERIALIZED_VIEW_ID";
+	public static final String COL_MV_ID_ID = 											"MATERIALIZED_VIEW_ID";
+	public static final String COL_MV_ID_ETAG = 										"ETAG";
+	public static final String DDL_MV_SOURCE_TABLES = 									"schema/MaterializedViewSourceTables-ddl.sql";
+	public static final String TABLE_MV_TABLES = 										"MATERIALIZED_VIEW_SOURCE_TABLES";
+	public static final String COL_MV_TABLES_MV_ID = 										"MATERIALIZED_VIEW_ID";
+	public static final String COL_MV_TABLES_MV_VERSION = 									"MATERIALIZED_VIEW_VERSION";
+	public static final String COL_MV_TABLES_SOURCE_TABLE_ID =							"SOURCE_TABLE_ID";
+	public static final String COL_MV_TABLES_SOURCE_TABLE_VERSION =						"SOURCE_TABLE_VERSION";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
