@@ -2589,8 +2589,9 @@ public class NodeDAOImplTest {
 
 		// Lookup all of the containers in this hierarchy
 		Set<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
+		// folder folder0Id is empty and should be excluded.
 		Set<Long> expected = new LinkedHashSet<Long>(Lists.newArrayList(
-				projectId, folder0Id, folder1Id, folder2Id
+				projectId, folder1Id, folder2Id
 		));
 		assertEquals(expected, containers);
 		
@@ -2625,13 +2626,15 @@ public class NodeDAOImplTest {
 		Long projectIdLong = KeyFactory.stringToKey(projectId);
 		toDelete.add(projectId);
 		
+		String parentId = projectId;
 		// Add three folders to the project
-		for(int i=0; i<3; i++){
+		for(int i=0; i<5; i++){
 			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
 			folder.setNodeType(EntityType.folder);
-			folder.setParentId(projectId);
+			folder.setParentId(parentId);
 			String folderId = nodeDao.createNew(folder);
 			toDelete.add(folderId);
+			parentId = folderId;
 		}
 		// loading more than two from a single page should fail.
 		int maxIds = 2;
@@ -2639,6 +2642,49 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
 		});
+	}
+	
+	/**
+	 * The query results will expands for each child of a container. In addition,
+	 * there is a limit the query. By selecting multiple containers each with
+	 * five children, and a limit of two rows we can test if the query results
+	 * only include DISTINCT IDs.
+	 */
+	@Test
+	public void testGetAllContainerIdsWihtNumberOfChilderenExceedingLimit() throws LimitExceededException{
+		// Generate some hierarchy
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+		
+		Node folder = NodeTestUtils.createNew("folder", creatorUserGroupId);
+		folder.setNodeType(EntityType.folder);
+		folder.setParentId(projectId);
+		String folderId = nodeDao.createNew(folder);
+		Long folderIdLong = KeyFactory.stringToKey(folderId);
+		toDelete.add(folderId);
+		
+		for(int i=0; i<5; i++){
+			Node file = NodeTestUtils.createNew("file-0-"+i, creatorUserGroupId);
+			file.setNodeType(EntityType.file);
+			file.setParentId(project.getId());
+			String fileId = nodeDao.createNew(file);
+			toDelete.add(fileId);
+			
+			file = NodeTestUtils.createNew("file-1-"+i, creatorUserGroupId);
+			file.setNodeType(EntityType.file);
+			file.setParentId(folderId);
+			fileId = nodeDao.createNew(file);
+			toDelete.add(fileId);
+		}
+		
+		int maxNumberOfIds = 2;
+		Set<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxNumberOfIds);
+		Set<Long> expected = new LinkedHashSet<Long>(Lists.newArrayList(projectIdLong, folderIdLong));
+		assertEquals(expected, containers);
 	}
 	
 	@Test
