@@ -135,4 +135,17 @@ public class TableAndColumnMapper implements ColumnLookup {
 	public int getNumberOfTables() {
 		return this.tables.size();
 	}
+	
+	/**
+	 * Lookup the TableInfo that matches the passed TableNameCorrelation. If no match is found
+	 * an Optional.empty() will be returned.
+	 * @param tableNameCorrelation
+	 * @return
+	 */
+	public Optional<TableInfo> lookupTableNameCorrelation(TableNameCorrelation tableNameCorrelation){
+		if(tableNameCorrelation == null) {
+			return Optional.empty();
+		}
+		return tables.stream().filter(t -> t.isMatch(tableNameCorrelation)).findFirst();
+	}
 }
