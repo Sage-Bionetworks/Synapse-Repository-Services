@@ -452,4 +452,25 @@ public class TableAndColumnMapperTest {
 		Optional<TableInfo> optionalMatch = mapper.lookupTableNameCorrelation(tableNameCorrelation);
 		assertEquals(Optional.empty(), optionalMatch);
 	}
+	
+	@Test
+	public void testgetSingleTableIdWithSingleTable() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		// call under test
+		assertEquals(Optional.of(IdAndVersion.parse("syn123")), mapper.getSingleTableId());
+	}
+	
+	@Test
+	public void testgetSingleTableIdWithMultipleTables() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		// call under test
+		assertEquals(Optional.empty(), mapper.getSingleTableId());
+	}
 }

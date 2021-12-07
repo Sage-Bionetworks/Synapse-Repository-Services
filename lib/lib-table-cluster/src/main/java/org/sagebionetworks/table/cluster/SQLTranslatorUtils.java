@@ -323,7 +323,7 @@ public class SQLTranslatorUtils {
 		}
 
 		//save the original syn### id since we will need it for any HAS predicates
-		IdAndVersion originalSynId = translate(tableExpression.getFromClause());
+		translateTableName(tableExpression.getFromClause());
 
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
@@ -337,7 +337,7 @@ public class SQLTranslatorUtils {
 
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
 				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
-				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
+				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, mapper);
 				replaceTextMatchesPredicate(booleanPrimary);
 			}
 		}
@@ -362,7 +362,7 @@ public class SQLTranslatorUtils {
 
 		//handle array functions which requires appending a join on another table
 		try {
-			translateArrayFunctions(transformedModel, columnTranslationReferenceLookup, originalSynId);
+			translateArrayFunctions(transformedModel, columnTranslationReferenceLookup, mapper);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -455,7 +455,7 @@ public class SQLTranslatorUtils {
 	 * @param fromClause
 	 * @return
 	 */
-	static IdAndVersion translate(FromClause fromClause) {
+	static IdAndVersion translateTableName(FromClause fromClause) {
 		IdAndVersion originalSynId = IdAndVersion
 				.parse(fromClause.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		//replace from clause
@@ -463,7 +463,7 @@ public class SQLTranslatorUtils {
 		return originalSynId;
 	}
 
-	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, IdAndVersion idAndVersion) throws ParseException {
+	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {
 		// UNNEST(columnName) for the same columnName
 		// may appear in multiple places (select clause ,group by, order by, etc.)
 		// but should only join the unnested index table for that column once
@@ -495,10 +495,10 @@ public class SQLTranslatorUtils {
 			}
 		}
 
-		appendJoinsToFromClause(idAndVersion, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
+		appendJoinsToFromClause(mapper, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
 	}
 
-	static void appendJoinsToFromClause(IdAndVersion idAndVersion, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
+	static void appendJoinsToFromClause(TableAndColumnMapper mapper, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
 		TableReference currentTableReference = fromClause.getTableReference();
 		if(currentTableReference.hasJoin() && !columnIdsToJoin.isEmpty()) {
 			throw new IllegalArgumentException("UNEST cannot be used with a JOIN");
@@ -507,6 +507,7 @@ public class SQLTranslatorUtils {
 
 		//chain additional tables to join via right-recursion
 		for(String columnId : columnIdsToJoin){
+			IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId);
 
 			TableReference joinedTableRef = tableReferenceForName(joinTableName);
@@ -752,7 +753,7 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, IdAndVersion idAndVersion){
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, TableAndColumnMapper mapper){
 		if(booleanPrimary.getPredicate() == null) {
 			return; // "HAS" should always be under a Predicate
 		}
@@ -760,6 +761,8 @@ public class SQLTranslatorUtils {
 		if (arrayHasPredicate == null) {
 			return; // no ArrayHasPredicate to replace
 		}
+		
+		IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
 		String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
 

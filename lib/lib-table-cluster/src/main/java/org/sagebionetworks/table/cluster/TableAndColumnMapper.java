@@ -53,6 +53,20 @@ public class TableAndColumnMapper implements ColumnLookup {
 	public List<IdAndVersion> getTableIds() {
 		return tables.stream().map(t -> t.getTableIdAndVersion()).collect(Collectors.toList());
 	}
+	
+	/**
+	 * Get the single IdAndVersion for the given query.  If this query includes more than one
+	 * table an Optional.empty() will be returned.
+	 * @return
+	 */
+	public Optional<IdAndVersion> getSingleTableId() {
+		if(tables.size() == 1) {
+			return Optional.of(tables.get(0).getTableIdAndVersion());
+		}else {
+			return Optional.empty();
+		}
+		
+	}
 
 	/**
 	 * Get the union of the schemas for each table referenced in the query.

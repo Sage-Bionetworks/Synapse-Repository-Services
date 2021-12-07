@@ -118,6 +118,7 @@ public class SQLTranslatorUtilsTest {
 	List<ColumnModel> schema;
 	private SchemaProvider schemaProvider;
 	private Map<String, ColumnModel> columnNameMap;
+	private TableAndColumnMapper singleTableMapper;
 	
 	List<SelectColumn> selectList;
 	ColumnTypeInfo[] infoArray;
@@ -164,6 +165,8 @@ public class SQLTranslatorUtilsTest {
 		userId = 1L;
 		etag = "anEtag";
 		tableIdAndVersion = IdAndVersion.parse("syn123.456");
+		
+		singleTableMapper = new TableAndColumnMapper(new TableQueryParser("select * from syn123.456").querySpecification(), schemaProvider);
 	}
 
 	@Test
@@ -742,14 +745,14 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testTranslateFromClause() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123").fromClause();
-		SQLTranslatorUtils.translate(element);
+		SQLTranslatorUtils.translateTableName(element);
 		assertEquals("T123",element.getSingleTableName().get());
 	}
 
 	@Test
 	public void testTranslateTableReferenceVerion() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123.456").fromClause();
-		SQLTranslatorUtils.translate(element);
+		SQLTranslatorUtils.translateTableName(element);
 		assertEquals("T123_456",element.getSingleTableName().get());
 	}
 	
@@ -757,7 +760,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateFromClauseWithJoin() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.translate(element);
+			SQLTranslatorUtils.translateTableName(element);
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
@@ -766,7 +769,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateTableReferenceWithJoin() throws ParseException{
 		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
 		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.translate(element);
+			SQLTranslatorUtils.translateTableName(element);
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
@@ -867,7 +870,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 		}).getMessage();
 		
 		assertEquals("The HAS keyword only works for columns that hold list values", message);
@@ -882,7 +885,7 @@ public class SQLTranslatorUtilsTest {
 		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 		});
 	}
 
@@ -895,7 +898,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
@@ -911,7 +914,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 
 		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
@@ -946,7 +949,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), columnMap);
 
 		String beforeCallSqll = notArrayHasPredicate.toSql();
-		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, singleTableMapper);
 		//if not an ArrayHasPredicate, nothing should have changed
 		assertEquals(beforeCallSqll, notArrayHasPredicate.toSql());
 	}
@@ -962,7 +965,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
@@ -984,7 +987,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, columnMap);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
@@ -1006,7 +1009,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 		}).getMessage();
 		
 		assertEquals("The HAS_LIKE keyword only works for columns that hold list values", message);
@@ -1021,7 +1024,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
 
@@ -1032,7 +1035,7 @@ public class SQLTranslatorUtilsTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		FromClause fromClause = new TableQueryParser("from syn123").fromClause();
 		Set<String> columnIdsToJoin = Collections.emptySet();
-		SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+		SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
 	}
 	
 	@Test
@@ -1040,7 +1043,7 @@ public class SQLTranslatorUtilsTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
 		Set<String> columnIdsToJoin = Collections.emptySet();
-		SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+		SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
 	}
 	
 	@Test
@@ -1049,7 +1052,7 @@ public class SQLTranslatorUtilsTest {
 		FromClause fromClause = new TableQueryParser("from syn123 join syn456").fromClause();
 		Set<String> columnIdsToJoin = Sets.newHashSet("11");
 		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.appendJoinsToFromClause(idAndVersion, fromClause, columnIdsToJoin);
+			SQLTranslatorUtils.appendJoinsToFromClause(singleTableMapper, fromClause, columnIdsToJoin);
 		}).getMessage();
 		assertEquals("UNEST cannot be used with a JOIN", message);
 	}
@@ -1063,7 +1066,7 @@ public class SQLTranslatorUtilsTest {
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			//method under test
-			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, singleTableMapper);
 		}).getMessage();
 
 		assertEquals("Unknown column reference: _C987654_", errorMessage);
@@ -1080,7 +1083,7 @@ public class SQLTranslatorUtilsTest {
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			//method under test
-			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, singleTableMapper);
 		}).getMessage();
 
 		assertEquals("UNEST cannot be used with a JOIN", errorMessage);
@@ -1095,7 +1098,7 @@ public class SQLTranslatorUtilsTest {
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			//method under test
-			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, singleTableMapper);
 		}).getMessage();
 
 		assertEquals("UNNEST() may only be used on columns defined in the schema", errorMessage);
@@ -1114,7 +1117,7 @@ public class SQLTranslatorUtilsTest {
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			//method under test
-			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, singleTableMapper);
 		}).getMessage();
 
 		assertEquals("UNNEST() only works for columns that hold list values", errorMessage);
@@ -1133,7 +1136,7 @@ public class SQLTranslatorUtilsTest {
 		);
 
 		//method under test
-		SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, singleTableMapper);
 
 		String expected = "SELECT _C222_, _C111__UNNEST, _C333__UNNEST " +
 				"FROM T123 " +
