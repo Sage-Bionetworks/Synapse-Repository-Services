@@ -9,17 +9,11 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
-import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.HasFunctionReturnType;
-import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -58,6 +52,20 @@ public class TableAndColumnMapper implements ColumnLookup {
 	 */
 	public List<IdAndVersion> getTableIds() {
 		return tables.stream().map(t -> t.getTableIdAndVersion()).collect(Collectors.toList());
+	}
+	
+	/**
+	 * Get the single IdAndVersion for the given query.  If this query includes more than one
+	 * table an Optional.empty() will be returned.
+	 * @return
+	 */
+	public Optional<IdAndVersion> getSingleTableId() {
+		if(tables.size() == 1) {
+			return Optional.of(tables.get(0).getTableIdAndVersion());
+		}else {
+			return Optional.empty();
+		}
+		
 	}
 
 	/**
@@ -133,66 +141,25 @@ public class TableAndColumnMapper implements ColumnLookup {
 		}
 		return Optional.empty();
 	}
-
+	
 	/**
-	 * Attempt to translate the given ColumnReference by matching it to a column
-	 * from one of the tables. The resulting LHS will be the translated table alias
-	 * and the RHS will be the translated column name. Optional.empty() returned if
-	 * no match was found.
-	 * 
-	 * @param columnReference
+	 * Get the number of tables in the original query.
 	 * @return
 	 */
-	public Optional<ColumnReference> trasnalteColumnReference(ColumnReference columnReference) {
-		Optional<ColumnReferenceMatch> optional = lookupColumnReferenceMatch(columnReference);
-		if (!optional.isPresent()) {
+	public int getNumberOfTables() {
+		return this.tables.size();
+	}
+	
+	/**
+	 * Lookup the TableInfo that matches the passed TableNameCorrelation. If no match is found
+	 * an Optional.empty() will be returned.
+	 * @param tableNameCorrelation
+	 * @return
+	 */
+	public Optional<TableInfo> lookupTableNameCorrelation(TableNameCorrelation tableNameCorrelation){
+		if(tableNameCorrelation == null) {
 			return Optional.empty();
 		}
-		ColumnReferenceMatch match = optional.get();
-
-		/*
-		 * A ColumnReference within the select list that is of type Double needs to be
-		 * expanded to support NaN, +Inf, & -Inf, unless the reference is a function
-		 * parameter.
-		 */
-		if (ColumnType.DOUBLE.equals(match.getColumnTranslationReference().getColumnType())) {
-			if (columnReference.isInContext(SelectList.class)) {
-				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
-					return Optional
-							.of(createDoubleExpanstion(tables.size(), match.getTableInfo().getTranslatedTableAlias(),
-									match.getColumnTranslationReference().getTranslatedColumnName()));
-				}
-			}
-		}
-
-		// All other cases
-		StringBuilder builder = new StringBuilder();
-		if (tables.size() > 1) {
-			builder.append(match.getTableInfo().getTranslatedTableAlias());
-			builder.append(".");
-		}
-		builder.append(match.getColumnTranslationReference().getTranslatedColumnName());
-		try {
-			return Optional.of(new TableQueryParser(builder.toString()).columnReference());
-		} catch (ParseException e) {
-			throw new IllegalStateException(e);
-		}
+		return tables.stream().filter(t -> t.isMatch(tableNameCorrelation)).findFirst();
 	}
-
-	/**
-	 * Create the translated double expansion for the given table and column alias
-	 * 
-	 * @param translatedTableAlias
-	 * @param translatedColumnName
-	 * @return
-	 */
-	static ColumnReference createDoubleExpanstion(final int tableCount, final String translatedTableAlias,
-			final String translatedColumnName) {
-		String tableAlias = (tableCount > 1) ? translatedTableAlias + "." : "";
-		String sql = String.format("CASE WHEN %1$s_DBL%2$s IS NULL THEN %1$s%2$s ELSE %1$s_DBL%2$s END", tableAlias,
-				translatedColumnName);
-		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
-				null);
-	}
-
 }

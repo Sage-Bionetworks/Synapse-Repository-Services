@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Objects;
+
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 
 public class ColumnReferenceMatch {
@@ -25,6 +27,24 @@ public class ColumnReferenceMatch {
 	 */
 	public ColumnTranslationReference getColumnTranslationReference() {
 		return columnTranslationReference;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(columnTranslationReference, tableInfo);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof ColumnReferenceMatch)) {
+			return false;
+		}
+		ColumnReferenceMatch other = (ColumnReferenceMatch) obj;
+		return Objects.equals(columnTranslationReference, other.columnTranslationReference)
+				&& Objects.equals(tableInfo, other.tableInfo);
 	}
 	
 	

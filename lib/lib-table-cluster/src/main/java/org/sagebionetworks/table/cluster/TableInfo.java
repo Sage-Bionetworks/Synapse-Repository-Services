@@ -137,6 +137,23 @@ public class TableInfo implements ColumnLookup {
 			return RowMetadataColumnTranslationReference.lookupColumnReference(rhs);
 		}
 	}
+	
+	/**
+	 * Does the passed TableNameCorrelation match this TableInfo?
+	 * 
+	 * @param tableNameCorrelation
+	 * @return
+	 */
+	public boolean isMatch(TableNameCorrelation tableNameCorrelation) {
+		String tableNameSql = tableNameCorrelation.getTableName().toSql();
+		if(originalTableName.equals(tableNameSql)) {
+			return true;
+		}
+		if(translatedTableName.equals(tableNameSql)) {
+			return true;
+		}
+		return false;
+	}
 
 	@Override
 	public int hashCode() {

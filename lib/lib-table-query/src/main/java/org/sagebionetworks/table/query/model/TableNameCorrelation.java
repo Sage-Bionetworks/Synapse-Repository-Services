@@ -11,7 +11,7 @@ import java.util.Optional;
  * {@link TableName} with an optional AS {@link CorrelationSpecification}.
  *
  */
-public class TableNameCorrelation extends SQLElement implements HasSingleTableName {
+public class TableNameCorrelation extends SQLElement implements HasSingleTableName, Replaceable<TableNameCorrelation> {
 
 	private final TableName tableName;
 	private final CorrelationSpecification correlationSpecification;

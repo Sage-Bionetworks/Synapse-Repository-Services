@@ -367,33 +367,6 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Create a double clause, like:
-	 *
-	 * <pre>
-	 * CASE
-	 * 	WHEN _DBL_C1_ IS NULL THEN _C1_
-	 * 	ELSE _DBL_C1_
-	 * END AS _C1_
-	 * </pre>
-	 *
-	 * @param columnId
-	 * @return
-	 (*/
-	@Deprecated
-	public static String createDoubleCase(String columnId){
-		StringBuilder builder = new StringBuilder();
-		builder.append("CASE WHEN ");
-		appendDoubleAbstractColumnName( columnId, builder);
-		builder.append(" IS NULL THEN ");
-		appendColumnNameForId(columnId, builder);
-		builder.append(" ELSE ");
-		appendDoubleAbstractColumnName(columnId, builder);
-		builder.append(" END");
-		return builder.toString();
-	}
-
-
-		/**
 	 * Compare doubles to NaN
 	 * 
 	 * <pre>
