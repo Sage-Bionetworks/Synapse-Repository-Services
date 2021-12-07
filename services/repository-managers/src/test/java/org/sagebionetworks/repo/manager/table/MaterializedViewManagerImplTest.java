@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -19,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.table.query.ParseException;
 
@@ -37,10 +37,8 @@ public class MaterializedViewManagerImplTest {
 	@Mock
 	private MaterializedView mockView;
 	
-	private String viewId = "syn123";
-	private Long viewVersion = 1L;	
-	private IdAndVersion idAndVersion = KeyFactory.idAndVersion(viewId, viewVersion);
-
+	private IdAndVersion idAndVersion = IdAndVersion.parse("syn123.1");
+	
 	@Test
 	public void testValidate() {
 		String sql = "SELECT * FROM syn123";
@@ -64,7 +62,7 @@ public class MaterializedViewManagerImplTest {
 			manager.validate(mockView);
 		}).getMessage();
 		
-		assertEquals("The materialized view definingSQL is required and must not be the empty string.", message);
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 	
@@ -79,7 +77,7 @@ public class MaterializedViewManagerImplTest {
 			manager.validate(mockView);
 		}).getMessage();
 		
-		assertEquals("The materialized view definingSQL is required and must not be the empty string.", message);
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 	
@@ -94,7 +92,7 @@ public class MaterializedViewManagerImplTest {
 			manager.validate(mockView);
 		}).getMessage();
 		
-		assertEquals("The materialized view definingSQL is required and must not be a blank string.", message);
+		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
 		verify(mockView, atLeastOnce()).getDefiningSQL();
 	}
 	
@@ -157,24 +155,18 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(
 			IdAndVersion.parse("syn123")
 		);
-		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
+				
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
 		
-		
-	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
 		
 	}
-	
+		
 	@Test
 	public void testRegisterSourceTablesWithNonOverlappingAssociations() {
 		
@@ -188,17 +180,11 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(
 			IdAndVersion.parse("syn123")
 		);
-		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
+				
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
@@ -222,16 +208,10 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123")
 		);
 		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
 		
-		
-	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
@@ -248,16 +228,10 @@ public class MaterializedViewManagerImplTest {
 		
 		String sql = "SELECT * FROM syn123";
 		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
@@ -274,17 +248,11 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
-		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
+				
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
@@ -304,17 +272,11 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
-		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
+				
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
@@ -337,16 +299,10 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
 		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
@@ -363,16 +319,10 @@ public class MaterializedViewManagerImplTest {
 		
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
-		
-		
-	
+			
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
@@ -396,18 +346,79 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123.3"), IdAndVersion.parse("syn456")
 		);
 		
-		when(mockView.getId()).thenReturn(viewId);
-		when(mockView.getVersionNumber()).thenReturn(viewVersion);
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-		
 		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
-		manager.registerSourceTables(mockView);
+		manager.registerSourceTables(idAndVersion, sql);
 		
 		verify(mockDao).getSourceTables(idAndVersion);
 		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		
+	}
+	
+	@Test
+	public void testRegisterSourceTablesWithNoIdAndVersion() {
+		
+		idAndVersion = null;
+		String sql = "SELECT * FROM syn123";
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.registerSourceTables(idAndVersion, sql);
+		}).getMessage();
+		
+		assertEquals("The id of the materialized view is required.", message);
+		
+		verifyZeroInteractions(mockDao);
+		
+	}
+	
+	@Test
+	public void testRegisterSourceTablesWithNoSql() {
+		
+		String sql = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.registerSourceTables(idAndVersion, sql);
+		}).getMessage();
+		
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
+		
+		verifyZeroInteractions(mockDao);
+		
+	}
+	
+	@Test
+	public void testRegisterSourceTablesWithEmptySql() {
+		
+		String sql = "";
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.registerSourceTables(idAndVersion, sql);
+		}).getMessage();
+		
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
+		
+		verifyZeroInteractions(mockDao);
+		
+	}
+	
+	@Test
+	public void testRegisterSourceTablesWithBlankSql() {
+		
+		String sql = "   ";
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.registerSourceTables(idAndVersion, sql);
+		}).getMessage();
+		
+		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
+		
+		verifyZeroInteractions(mockDao);
 		
 	}
 

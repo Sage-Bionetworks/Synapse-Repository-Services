@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -30,23 +29,17 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public void validate(MaterializedView materializedView) {
 		ValidateArgument.required(materializedView, "The materialzied view");		
-		ValidateArgument.requiredNotBlank(materializedView.getDefiningSQL(), "The materialized view definingSQL");
 
-		getQuerySpecification(materializedView).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		getQuerySpecification(materializedView.getDefiningSQL()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		
 	}
 	
 	@Override
 	@WriteTransaction
-	public void registerSourceTables(MaterializedView materializedView) {
-		ValidateArgument.required(materializedView, "The materialized view");		
-		ValidateArgument.requiredNotBlank(materializedView.getDefiningSQL(), "The materialized view definingSQL");
-		ValidateArgument.requiredNotBlank(materializedView.getId(), "The id of the materialized view");
+	public void registerSourceTables(IdAndVersion idAndVersion, String definingSql) {
+		ValidateArgument.required(idAndVersion, "The id of the materialized view");
 		
-		// TODO: Should this use the version number? Probably we should leave out so that we bind it to the "current" version
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedView.getId(), materializedView.getVersionNumber());
-		
-		QuerySpecification querySpecification = getQuerySpecification(materializedView);
+		QuerySpecification querySpecification = getQuerySpecification(definingSql);
 		
 		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
 		Set<IdAndVersion> currentSourceTables = dao.getSourceTables(idAndVersion);
@@ -64,9 +57,10 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 	}
 	
-	private static QuerySpecification getQuerySpecification(MaterializedView materializedView) {
+	private static QuerySpecification getQuerySpecification(String definingSql) {
+		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 		try {
-			return TableQueryParser.parserQuery(materializedView.getDefiningSQL());
+			return TableQueryParser.parserQuery(definingSql);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}

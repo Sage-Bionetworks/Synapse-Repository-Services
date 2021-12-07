@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +29,12 @@ public class MaterializedViewMetadataProvider implements EntityValidator<Materia
 	
 	@Override
 	public void entityCreated(UserInfo userInfo, MaterializedView entity) {
-		manager.registerSourceTables(entity);
+		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, MaterializedView entity, boolean wasNewVersionCreated) {
-		manager.registerSourceTables(entity);		
+		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());		
 	}
 
 }
