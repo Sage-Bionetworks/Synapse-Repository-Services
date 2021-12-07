@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
-import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
@@ -311,8 +310,8 @@ public class SQLTranslatorUtils {
 
 		translateSynapseFunctions(transformedModel, userId);
 
-		Iterable<ColumnReference> selectColumns = transformedModel.getSelectList().createIterable(ColumnReference.class);
-		for(ColumnReference hasReference: selectColumns){
+		// translate all column references.
+		for(ColumnReference hasReference: transformedModel.getSelectList().createIterable(ColumnReference.class)){
 			translateColumnReference(hasReference, mapper).ifPresent(replacement -> hasReference.replaceElement(replacement));
 		}
 		
@@ -322,8 +321,11 @@ public class SQLTranslatorUtils {
 			return;
 		}
 
-		//save the original syn### id since we will need it for any HAS predicates
-		translateTableName(tableExpression.getFromClause());
+		// translate all of the table names
+		for(TableNameCorrelation tableNameCorrelation: tableExpression.getFromClause().createIterable(TableNameCorrelation.class)) {
+			translateTableName(tableNameCorrelation, mapper).ifPresent(replacement -> tableNameCorrelation.replaceElement(replacement));
+		}
+
 
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
@@ -455,12 +457,22 @@ public class SQLTranslatorUtils {
 	 * @param fromClause
 	 * @return
 	 */
-	static IdAndVersion translateTableName(FromClause fromClause) {
-		IdAndVersion originalSynId = IdAndVersion
-				.parse(fromClause.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-		//replace from clause
-		fromClause.setTableReference(tableReferenceForName(SQLUtils.getTableNameForId(originalSynId, TableType.INDEX)));
-		return originalSynId;
+	static Optional<TableNameCorrelation> translateTableName(TableNameCorrelation tableNameCorrelation, TableAndColumnMapper mapper) {
+		Optional<TableInfo> optional = mapper.lookupTableNameCorrelation(tableNameCorrelation);
+		if(!optional.isPresent()) {
+			return Optional.empty();
+		}else {
+			try {
+				TableInfo info = optional.get();
+				StringBuilder builder = new StringBuilder(info.getTranslatedTableName());
+				if(mapper.getNumberOfTables() > 1) {
+					builder.append(" ").append(info.getTranslatedTableAlias());
+				}
+				return Optional.of(new TableQueryParser(builder.toString()).tableNameCorrelation());
+			} catch (ParseException e) {
+				throw new IllegalStateException(e);
+			}
+		}
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {

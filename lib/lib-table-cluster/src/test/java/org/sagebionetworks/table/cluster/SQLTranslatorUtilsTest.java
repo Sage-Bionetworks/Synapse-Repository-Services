@@ -75,6 +75,7 @@ import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
@@ -743,35 +744,63 @@ public class SQLTranslatorUtilsTest {
 	}	
 	
 	@Test
-	public void testTranslateFromClause() throws ParseException{
-		FromClause element = new TableQueryParser("FROM syn123").fromClause();
-		SQLTranslatorUtils.translateTableName(element);
-		assertEquals("T123",element.getSingleTableName().get());
+	public void testTranslateTableName() throws ParseException{
+		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableNameCorrelation tableNameCorrelation = model.getFirstElementOfType(TableNameCorrelation.class);
+
+		// call under test
+		Optional<TableNameCorrelation> optional = SQLTranslatorUtils.translateTableName(tableNameCorrelation, mapper);
+		assertTrue(optional.isPresent());
+		assertEquals("T123",optional.get().toSql());
 	}
 
 	@Test
-	public void testTranslateTableReferenceVerion() throws ParseException{
-		FromClause element = new TableQueryParser("FROM syn123.456").fromClause();
-		SQLTranslatorUtils.translateTableName(element);
-		assertEquals("T123_456",element.getSingleTableName().get());
+	public void testTranslateTableNameWithVerion() throws ParseException{
+		QuerySpecification model = new TableQueryParser("select * from syn123.456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123.456"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		TableNameCorrelation tableNameCorrelation = model.getFirstElementOfType(TableNameCorrelation.class);
+		
+		// call under test
+		Optional<TableNameCorrelation> optional = SQLTranslatorUtils.translateTableName(tableNameCorrelation, mapper);
+		assertTrue(optional.isPresent());
+		assertEquals("T123_456",optional.get().toSql());
 	}
 	
 	@Test
-	public void testTranslateFromClauseWithJoin() throws ParseException{
-		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.translateTableName(element);
-		}).getMessage();
-		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
+	public void testTranslateTableNameWithJoin() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * FROM syn123 r join syn456 t").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		for (TableNameCorrelation tableNameCorrelation : model.createIterable(TableNameCorrelation.class)) {
+			// call under test
+			SQLTranslatorUtils.translateTableName(tableNameCorrelation, mapper)
+					.ifPresent(replacement -> tableNameCorrelation.replaceElement(replacement));
+		}
+		assertEquals("SELECT * FROM T123 _A0 JOIN T456 _A1", model.toSql());
 	}
 	
 	@Test
-	public void testTranslateTableReferenceWithJoin() throws ParseException{
-		FromClause element = new TableQueryParser("FROM syn123 join syn456").fromClause();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			SQLTranslatorUtils.translateTableName(element);
-		}).getMessage();
-		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
+	public void testTranslateTableNameWithJoinAndVersion() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * FROM syn123.3 r join syn456.1 t").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123.3"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456.1"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		for (TableNameCorrelation tableNameCorrelation : model.createIterable(TableNameCorrelation.class)) {
+			// call under test
+			SQLTranslatorUtils.translateTableName(tableNameCorrelation, mapper)
+					.ifPresent(replacement -> tableNameCorrelation.replaceElement(replacement));
+		}
+		assertEquals("SELECT * FROM T123_3 _A0 JOIN T456_1 _A1", model.toSql());
 	}
 	
 	@Test
