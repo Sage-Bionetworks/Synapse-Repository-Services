@@ -50,14 +50,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 		Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
 		
-		toDelete.removeIf(newSourceTables::contains);
+		toDelete.removeAll(newSourceTables);
 		
 		dao.deleteSourceTables(idAndVersion, toDelete);
 		dao.addSourceTables(idAndVersion, newSourceTables);
 		
 	}
 	
-	private static QuerySpecification getQuerySpecification(String definingSql) {
+	static QuerySpecification getQuerySpecification(String definingSql) {
 		ValidateArgument.requiredNotBlank(definingSql, "The definingSQL of the materialized view");
 		try {
 			return TableQueryParser.parserQuery(definingSql);
@@ -66,7 +66,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 		
-	private static Set<IdAndVersion> getSourceTableIds(QuerySpecification querySpecification) {
+	static Set<IdAndVersion> getSourceTableIds(QuerySpecification querySpecification) {
 		Set<IdAndVersion> sourceTableIds = new HashSet<>();
 		
 		for (TableNameCorrelation table : querySpecification.createIterable(TableNameCorrelation.class)) {
