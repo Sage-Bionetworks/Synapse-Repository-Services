@@ -419,6 +419,14 @@
 			"description": "List of features that can be enabled/disabled"
 		},
 		{
+			"name": "MATERIALIZED_VIEW_ID",
+			"description": "Primary table for the materialized view nodes"
+		},
+		{
+			"name": "MATERIALIZED_VIEW_SOURCE_TABLE",
+			"description": "Secondary table tha maps the materialized views to their bound source tables"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}
