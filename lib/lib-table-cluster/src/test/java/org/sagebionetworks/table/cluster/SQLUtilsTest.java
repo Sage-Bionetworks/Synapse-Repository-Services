@@ -317,12 +317,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateDoubleCase() {
-		String doubleCase = SQLUtils.createDoubleCase("3");
-		assertEquals("CASE WHEN _DBL_C3_ IS NULL THEN _C3_ ELSE _DBL_C3_ END", doubleCase);
-	}
-
-	@Test
 	public void testBuildCreateOrUpdateRowSQL(){
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, tableId);
