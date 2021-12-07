@@ -617,7 +617,7 @@ public class EntityServiceImplAutowiredTest  {
 			entityService.createEntity(adminUserId, materializedView, activityId);
 		}).getMessage();
 		
-		assertEquals("The materialized view definingSQL is required and must not be the empty string.", message);
+		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 		
 	}
 	
