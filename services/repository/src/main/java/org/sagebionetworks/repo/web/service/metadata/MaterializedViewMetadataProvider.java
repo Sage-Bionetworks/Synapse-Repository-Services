@@ -34,6 +34,9 @@ public class MaterializedViewMetadataProvider implements EntityValidator<Materia
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, MaterializedView entity, boolean wasNewVersionCreated) {
+		if (wasNewVersionCreated) {
+			throw new IllegalStateException("A materialized view version can only be created by creating a snapshot.");
+		}
 		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());		
 	}
 
