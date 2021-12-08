@@ -209,7 +209,7 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (!this.isAggregatedResult) {
+		if (!this.isAggregatedResult && tableAndColumnMapper.getNumberOfTables() < 2) {
 			// we need to add the row count and row version columns
 			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			this.includesRowIdAndVersion = true;

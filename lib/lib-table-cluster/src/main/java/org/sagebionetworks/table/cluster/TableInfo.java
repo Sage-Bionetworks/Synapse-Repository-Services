@@ -115,7 +115,8 @@ public class TableInfo implements ColumnLookup {
 		if (lhsOptional.isPresent()) {
 			String unquotedLHS = lhsOptional.get().toSqlWithoutQuotes();
 			// if we have a LHS it must match either the table name or table alias.
-			if (!unquotedLHS.equals(originalTableName) && !unquotedLHS.equals(tableAlias)) {
+			if (!unquotedLHS.equals(originalTableName) && !unquotedLHS.equals(tableAlias)
+					&& !unquotedLHS.equals(translatedTableAlias)) {
 				return Optional.empty();
 			}
 		}
@@ -123,9 +124,9 @@ public class TableInfo implements ColumnLookup {
 		Optional<ColumnTranslationReference> optional = translationReferences.stream()
 				.filter(t -> rhs.equals(t.getTranslatedColumnName()) || rhs.equals(t.getUserQueryColumnName()))
 				.findFirst();
-		if(optional.isPresent()) {
+		if (optional.isPresent()) {
 			return optional;
-		}else {
+		} else {
 			// attempt to match to row metadata
 			return RowMetadataColumnTranslationReference.lookupColumnReference(rhs);
 		}
