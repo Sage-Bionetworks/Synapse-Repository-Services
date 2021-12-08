@@ -9,13 +9,13 @@ import java.util.List;
  */
 public class LikePredicate extends SQLElement implements HasPredicate {
 	
-	ColumnReference columnReferenceLHS;
+	ReplaceableBox<ColumnReference> columnReferenceLHS;
 	Boolean not;
 	Pattern pattern;
 	EscapeCharacter escapeCharacter;
 	
 	public LikePredicate(ColumnReference columnReferenceLHS, Boolean not, Pattern pattern, EscapeCharacter escapeCharacter) {
-		this.columnReferenceLHS = columnReferenceLHS;
+		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
 		this.not = not;
 		this.pattern = pattern;
 		this.escapeCharacter = escapeCharacter;
@@ -32,7 +32,7 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
