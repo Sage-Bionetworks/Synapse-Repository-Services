@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -231,6 +233,33 @@ public class ITDownloadListControllerTest {
 			assertNotNull(response.getQueryResult().getQueryResults().getRows());
 			List<Row> rows = response.getQueryResult().getQueryResults().getRows();
 			assertEquals(1L, rows.size());
+		}, MAX_WAIT_MS, MAX_RETIES);
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query);
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AddToDownloadList, request, body -> {
+			assertTrue(body instanceof AddToDownloadListResponse);
+			AddToDownloadListResponse response = (AddToDownloadListResponse) body;
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETIES).getResponse();
+	}
+	
+	@Test
+	public void testAddToDownloadListWithDatasetQuery() throws SynapseException {
+		long viewTypeMask = 0x01L;
+		FileEntity file = setupFileEntity();
+		// create a view of the file.
+		List<String> columnIds = synapse.getDefaultColumnsForView(ViewType.file).stream().map(c -> c.getId())
+				.collect(Collectors.toList());
+		Dataset dataset = synapse.createEntity(new Dataset().setParentId(file.getParentId())
+				.setItems(Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber())))
+				.setColumnIds(columnIds));
+		Query query = new Query().setSql("select * from " + dataset.getId());
+		// Wait for the view to contain the file
+		QueryBundleRequest queryRequest = new QueryBundleRequest().setQuery(query).setPartMask(viewTypeMask)
+				.setEntityId(dataset.getId());
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableQuery, queryRequest, body -> {
+			assertEquals(1L, ((QueryResultBundle) body).getQueryResult().getQueryResults().getRows().size());
 		}, MAX_WAIT_MS, MAX_RETIES);
 
 		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query);
