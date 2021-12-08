@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
@@ -56,8 +58,9 @@ public class BetweenPredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
 		BetweenPredicate element = predicate.getFirstElementOfType(BetweenPredicate.class);
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS(), element.getBetweenRowValueConstructor(),
-				element.getAndRowValueConstructorRHS()), element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getBetweenRowValueConstructor().toSql(),
+				element.getAndRowValueConstructorRHS().toSql()), children);
 	}
 
 }

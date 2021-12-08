@@ -2,11 +2,14 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -47,6 +50,7 @@ public class NullPredicateTest {
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo is null").predicate();
 		NullPredicate element = predicate.getFirstElementOfType(NullPredicate.class);
-		assertEquals(Collections.singleton(element.getColumnReferenceLHS()), element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql()), children);
 	}
 }

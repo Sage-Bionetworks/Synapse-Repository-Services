@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CompOp;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
@@ -43,7 +45,8 @@ public class ComparisonPredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo > 12").predicate();
 		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS(), element.getRowValueConstructorRHS()),
-				element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getRowValueConstructorRHS().toSql()),
+				children);
 	}
 }
