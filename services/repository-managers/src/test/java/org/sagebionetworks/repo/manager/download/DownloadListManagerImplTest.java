@@ -1224,6 +1224,40 @@ public class DownloadListManagerImplTest {
 				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(null),
 						new DownloadListItem().setFileEntityId("222").setVersionNumber(null)));
 	}
+	
+	@Test
+	public void testAddQueryResultsToDownloadListWithDataset() throws Exception {
+		long filesAdded = 2L;
+		// @formatter:off
+		List<Row> rows = Arrays.asList(
+				new Row().setRowId(111L).setVersionNumber(1L),
+				new Row().setRowId(222L).setVersionNumber(2L)
+		);
+		// @formatter:on
+		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.dataset);
+		when(mockTableQueryManager.querySinglePage(any(), any(), any(), any())).thenReturn(
+				new QueryResultBundle().setQueryResult(new QueryResult().setQueryResults(new RowSet().setRows(rows))));
+		when(mockDownloadListDao.addBatchOfFilesToDownloadList(anyLong(), any())).thenReturn(filesAdded);
+
+		Query query = new Query().setSql("select * from syn123");
+		boolean userVersion = true;
+		long maxQueryPageSize = 10L;
+		long usersDownloadListCapacity = 100L;
+		// call under test
+		AddToDownloadListResponse result = manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query,
+				userVersion, maxQueryPageSize, usersDownloadListCapacity);
+		assertEquals(new AddToDownloadListResponse().setNumberOfFilesAdded(filesAdded), result);
+
+		verify(mockTableQueryManager).getTableEntityType(IdAndVersion.parse("syn123"));
+
+		verify(mockTableQueryManager, times(1)).querySinglePage(any(), any(), any(), any());
+		verify(mockTableQueryManager).querySinglePage(mockProgressCallback, userOne,
+				new Query().setSql("SELECT ROW_ID FROM syn123").setLimit(10L).setOffset(0L), new QueryOptions()
+						.withRunQuery(true).withRunCount(false).withReturnFacets(false).withReturnLastUpdatedOn(false));
+		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
+				Arrays.asList(new DownloadListItem().setFileEntityId("111").setVersionNumber(1L),
+						new DownloadListItem().setFileEntityId("222").setVersionNumber(2L)));
+	}
 
 	@Test
 	public void testAddQueryResultsToDownloadListWithCapacityLessThanPageSize() throws Exception {
@@ -1355,7 +1389,7 @@ public class DownloadListManagerImplTest {
 	}
 
 	@Test
-	public void testAddQueryResultsToDownloadListWithNonView() throws Exception {
+	public void testAddQueryResultsToDownloadListWithNonViewOrDataset() throws Exception {
 		when(mockTableQueryManager.getTableEntityType(any())).thenReturn(EntityType.table);
 
 		Query query = new Query().setSql("select * from syn123");
@@ -1367,7 +1401,7 @@ public class DownloadListManagerImplTest {
 			manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query, userVersion, maxQueryPageSize,
 					usersDownloadListCapacity);
 		}).getMessage();
-		assertEquals("'syn123' is not a file view", message);
+		assertEquals("'syn123' is not a file view or a dataset", message);
 
 		verify(mockTableQueryManager).getTableEntityType(IdAndVersion.parse("syn123"));
 		verify(mockTableQueryManager, never()).querySinglePage(any(), any(), any(), any());

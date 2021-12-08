@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
+import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -265,7 +267,76 @@ public class DatasetIntegrationTest {
 		DownloadListQueryRequest downloadListQueryRequest = new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()); 
 		
 		asyncHelper.assertJobResponse(userInfo, downloadListQueryRequest, (DownloadListQueryResponse response) -> {
-			assertEquals(items.size(), ((AvailableFilesResponse)response.getResponseDetails()).getPage().size());
+			List<DownloadListItemResult> downloadListItems = ((AvailableFilesResponse)response.getResponseDetails()).getPage();
+			assertEquals(items.size(), downloadListItems.size());
+			for (int i=0; i<items.size(); i++) {
+				DatasetItem item = items.get(i);
+				DownloadListItemResult downloadItem = downloadListItems.get(i);
+				assertEquals(item.getEntityId(), downloadItem.getFileEntityId());
+				assertEquals(item.getVersionNumber(), downloadItem.getVersionNumber());
+			}
+		}, MAX_WAIT);
+	}
+
+	@Test
+	public void testAddDatasetQueryToDownloadListWithoutVersions() throws DatastoreException, InterruptedException, AssertionError, AsynchJobFailedException {
+		int numberOfVersions = 2;
+		
+		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), numberOfVersions);
+		FileEntity fileTwo = createFileWithMultipleVersions(2, stringColumn.getName(), numberOfVersions);
+		
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
+				fileOne.getEtag(), MAX_WAIT);
+		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileTwo.getId()),
+				fileTwo.getEtag(), MAX_WAIT);
+		
+		// add one version from each file
+		List<DatasetItem> items = Arrays.asList(
+				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		);
+		
+		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset()
+				.setParentId(project.getId())
+				.setName("aDataset")
+				.setColumnIds(Arrays.asList(stringColumn.getId()))
+				.setItems(items));
+		
+		
+		// Query the dataset
+		Query query = new Query();
+		query.setSql("select * from " + dataset.getId());
+		query.setIncludeEntityEtag(true);
+		
+		List<Row> expectedRows = Arrays.asList(
+			new Row().setRowId(KeyFactory.stringToKey(fileOne.getId())).setVersionNumber(1L).setEtag(fileOne.getEtag()).setValues(Arrays.asList("v-1")),
+			new Row().setRowId(KeyFactory.stringToKey(fileTwo.getId())).setVersionNumber(2L).setEtag(fileTwo.getEtag()).setValues(Arrays.asList("v-2"))
+		);
+		
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+		
+		AddToDownloadListRequest addToDownloadListrequest = new AddToDownloadListRequest()
+				.setQuery(query)
+				.setUseVersionNumber(false);
+		
+		// Call under test
+		asyncHelper.assertJobResponse(userInfo, addToDownloadListrequest, (AddToDownloadListResponse response) -> {
+			assertEquals(items.size(), response.getNumberOfFilesAdded());
+		}, MAX_WAIT);
+		
+		DownloadListQueryRequest downloadListQueryRequest = new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()); 
+		
+		asyncHelper.assertJobResponse(userInfo, downloadListQueryRequest, (DownloadListQueryResponse response) -> {
+			List<DownloadListItemResult> downloadListItems = ((AvailableFilesResponse)response.getResponseDetails()).getPage();
+			assertEquals(items.size(), downloadListItems.size());
+			for (int i=0; i<items.size(); i++) {
+				DatasetItem item = items.get(i);
+				DownloadListItemResult downloadItem = downloadListItems.get(i);
+				assertEquals(item.getEntityId(), downloadItem.getFileEntityId());
+				assertNull(downloadItem.getVersionNumber());
+			}
 		}, MAX_WAIT);
 	}
 
