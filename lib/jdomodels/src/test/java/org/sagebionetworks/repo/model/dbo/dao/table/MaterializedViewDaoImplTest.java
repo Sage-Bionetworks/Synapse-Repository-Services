@@ -52,20 +52,20 @@ public class MaterializedViewDaoImplTest {
 	}
 
 	@Test
-	public void testAddAndGetSourceTables() {
+	public void testAddAndGetSourceTablesIds() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456"), IdAndVersion.parse("syn123.2")
 		);
 		
 		// Call under test
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 		
-		assertEquals(sourceTables, dao.getSourceTables(viewId));
+		assertEquals(sourceTables, dao.getSourceTablesIds(viewId));
 	}
 	
 	@Test
-	public void testAddAndGetSourceTablesWithVersion() {
+	public void testAddAndGetSourceTableIdsWithVersion() {
 		
 		IdAndVersion viewIdWithoutVersion = viewId;
 		
@@ -73,7 +73,7 @@ public class MaterializedViewDaoImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("789")	
 		);
 		
-		dao.addSourceTables(viewIdWithoutVersion, sourceTablesNoVersion);
+		dao.addSourceTablesIds(viewIdWithoutVersion, sourceTablesNoVersion);
 		
 		viewId = IdAndVersion.newBuilder().setId(viewId.getId()).setVersion(2L).build();
 		
@@ -82,87 +82,87 @@ public class MaterializedViewDaoImplTest {
 		);
 		
 		// Call under test
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 		
-		assertEquals(sourceTables, dao.getSourceTables(viewId));
-		assertEquals(sourceTablesNoVersion, dao.getSourceTables(viewIdWithoutVersion));
+		assertEquals(sourceTables, dao.getSourceTablesIds(viewId));
+		assertEquals(sourceTablesNoVersion, dao.getSourceTablesIds(viewIdWithoutVersion));
 	}
 	
 	@Test
-	public void testAddAndGetSourceTablesEmpty() {
+	public void testAddAndGetSourceTableIdsEmpty() {
 		
 		Set<IdAndVersion> sourceTables = Collections.emptySet();
 		
 		// Call under test
-		assertEquals(sourceTables, dao.getSourceTables(viewId));
+		assertEquals(sourceTables, dao.getSourceTablesIds(viewId));
 		
 		// Call under test
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 		
-		assertEquals(sourceTables, dao.getSourceTables(viewId));
+		assertEquals(sourceTables, dao.getSourceTablesIds(viewId));
 	}
 	
 	@Test
-	public void testAddAndGetSourceTablesWithExisting() {
+	public void testAddAndGetSourceTableIdsWithExisting() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456")
 		);
 			
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 		
 		Set<IdAndVersion> additionalSourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn123.2")
 		);
 		
 		// Call under test
-		dao.addSourceTables(viewId, additionalSourceTables);
+		dao.addSourceTablesIds(viewId, additionalSourceTables);
 		
 		Set<IdAndVersion> expected = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn123.2"), IdAndVersion.parse("456")
 		);
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
 	}
 	
 	@Test
-	public void testDeleteSourceTables() {
+	public void testDeleteSourceTableIds() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456")
 		);
 
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 
 		Set<IdAndVersion> expected = Collections.emptySet();
 		
 		// Call under test
-		dao.deleteSourceTables(viewId, sourceTables);
+		dao.deleteSourceTablesIds(viewId, sourceTables);
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
 		
 	}
 	
 	@Test
-	public void testDeleteSourceTablesPartial() {
+	public void testDeleteSourceTableIdsPartial() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456")
 		);
 
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 
 		Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("456"));
 		
 		// Call under test
-		dao.deleteSourceTables(viewId, ImmutableSet.of(IdAndVersion.parse("123")));
+		dao.deleteSourceTablesIds(viewId, ImmutableSet.of(IdAndVersion.parse("123")));
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
 		
 	}
 	
 	@Test
-	public void testDeleteSourceTablesWithVersions() {
+	public void testDeleteSourceTableIdsWithVersions() {
 		
 		IdAndVersion viewIdWithoutVersion = viewId;
 		
@@ -170,7 +170,7 @@ public class MaterializedViewDaoImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456"), IdAndVersion.parse("456.1"), IdAndVersion.parse("123.2")
 		);
 		
-		dao.addSourceTables(viewIdWithoutVersion, sourceTablesNoVersion);
+		dao.addSourceTablesIds(viewIdWithoutVersion, sourceTablesNoVersion);
 		
 		viewId = IdAndVersion.newBuilder().setId(viewId.getId()).setVersion(5L).build();
 		
@@ -178,38 +178,38 @@ public class MaterializedViewDaoImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456"), IdAndVersion.parse("456.1"), IdAndVersion.parse("123.2")
 		);
 
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 
 		Set<IdAndVersion> expected = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("456.1"));
 		
 		// Call under test
-		dao.deleteSourceTables(viewId, ImmutableSet.of(IdAndVersion.parse("syn123.2"), IdAndVersion.parse("456")));
+		dao.deleteSourceTablesIds(viewId, ImmutableSet.of(IdAndVersion.parse("syn123.2"), IdAndVersion.parse("456")));
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
-		assertEquals(sourceTablesNoVersion, dao.getSourceTables(viewIdWithoutVersion));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
+		assertEquals(sourceTablesNoVersion, dao.getSourceTablesIds(viewIdWithoutVersion));
 		
 	}
 	
 	@Test
-	public void testDeleteSourceTablesWithEmptySet() {
+	public void testDeleteSourceTableIdsWithEmptySet() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456")
 		);
 
-		dao.addSourceTables(viewId, sourceTables);
+		dao.addSourceTablesIds(viewId, sourceTables);
 
 		Set<IdAndVersion> expected = sourceTables;
 		
 		// Call under test
-		dao.deleteSourceTables(viewId, Collections.emptySet());
+		dao.deleteSourceTablesIds(viewId, Collections.emptySet());
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
 		
 	}
 	
 	@Test
-	public void testDeleteSourceTablesWithNoData() {
+	public void testDeleteSourceTableIdsWithNoData() {
 		
 		Set<IdAndVersion> sourceTables = ImmutableSet.of(
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("456")
@@ -218,10 +218,109 @@ public class MaterializedViewDaoImplTest {
 		Set<IdAndVersion> expected = Collections.emptySet();
 		
 		// Call under test
-		dao.deleteSourceTables(viewId, sourceTables);
+		dao.deleteSourceTablesIds(viewId, sourceTables);
 		
-		assertEquals(expected, dao.getSourceTables(viewId));
+		assertEquals(expected, dao.getSourceTablesIds(viewId));
 		
+	}
+	
+	@Test
+	public void testGetMaterializedViewIds() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
+		
+		Set<IdAndVersion> sourceTables = ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456")
+		);
+
+		dao.addSourceTablesIds(viewId, sourceTables);
+		
+		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		
+		// Call under test
+		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetMaterializedViewIdsWithVersion() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123.2");
+		
+		Set<IdAndVersion> sourceTables = ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456")
+		);
+
+		dao.addSourceTablesIds(viewId, sourceTables);
+				
+		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		
+		// Call under test
+		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetMaterializedViewIdsWithOverlappingIds() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
+		
+		Set<IdAndVersion> sourceTables = ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456")
+		);
+
+		dao.addSourceTablesIds(viewId, sourceTables);
+		
+		// Another version of the view that uses the same source table
+		IdAndVersion viewWithVersion =  IdAndVersion.newBuilder().setId(viewId.getId()).setVersion(5L).build();
+		
+		dao.addSourceTablesIds(viewWithVersion, ImmutableSet.of(sourceTableId));
+				
+		Set<IdAndVersion> expected = ImmutableSet.of(viewId, viewWithVersion);
+		
+		// Call under test
+		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetMaterializedViewIdsWithNonOverlappingIds() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
+		
+		Set<IdAndVersion> sourceTables = ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456")
+		);
+
+		dao.addSourceTablesIds(viewId, sourceTables);
+		
+		// Another version of the view that does not use the source table
+		IdAndVersion viewWithVersion =  IdAndVersion.newBuilder().setId(viewId.getId()).setVersion(5L).build();
+		
+		dao.addSourceTablesIds(viewWithVersion, ImmutableSet.of(IdAndVersion.parse("syn123.2"), IdAndVersion.parse("456")));
+				
+		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		
+		// Call under test
+		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		
+		assertEquals(expected, result);
+	}	
+	
+	@Test
+	public void testGetMaterializedViewIdsWithNoData() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
+		
+		Set<IdAndVersion> expected = Collections.emptySet();
+		
+		// Call under test
+		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		
+		assertEquals(expected, result);
 	}
 	
 }

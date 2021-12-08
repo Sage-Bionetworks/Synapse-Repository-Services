@@ -158,14 +158,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123")
 		);
 				
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 		
@@ -183,14 +183,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123")
 		);
 				
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	
@@ -210,14 +210,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123")
 		);
 		
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	
@@ -230,12 +230,12 @@ public class MaterializedViewManagerImplTest {
 		
 		String sql = "SELECT * FROM syn123";
 		
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
 		
 	}
@@ -251,14 +251,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
 				
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	
@@ -275,14 +275,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
 				
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	
@@ -301,14 +301,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456")
 		);
 		
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	
@@ -321,12 +321,12 @@ public class MaterializedViewManagerImplTest {
 		
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 		
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 			
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
 		
 	}
@@ -348,14 +348,14 @@ public class MaterializedViewManagerImplTest {
 			IdAndVersion.parse("syn123.3"), IdAndVersion.parse("syn456")
 		);
 		
-		when(mockDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 	
 		// Call under test
 		manager.registerSourceTables(idAndVersion, sql);
 		
-		verify(mockDao).getSourceTables(idAndVersion);
-		verify(mockDao).deleteSourceTables(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTables(idAndVersion, expectedSources);
+		verify(mockDao).getSourceTablesIds(idAndVersion);
+		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		
 	}
 	

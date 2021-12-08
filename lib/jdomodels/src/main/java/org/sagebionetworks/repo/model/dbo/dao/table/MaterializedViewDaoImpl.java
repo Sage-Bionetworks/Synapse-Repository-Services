@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -30,6 +31,21 @@ import com.google.common.collect.ImmutableMap;
 
 @Repository
 public class MaterializedViewDaoImpl implements MaterializedViewDao {
+	
+	private static final RowMapper<IdAndVersion> ID_AND_VERSION_MAPPER = (rs, i) -> {
+		
+		Long id = rs.getLong(1);
+		Long version = rs.getLong(2);
+		
+		IdAndVersionBuilder builder = IdAndVersion.newBuilder()
+				.setId(id);
+		
+		if (!DEFAULT_VERSION.equals(version)) {
+			builder.setVersion(version);
+		}
+		
+		return builder.build();
+	};
 	
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -40,7 +56,7 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 
 	@Override
 	@WriteTransaction
-	public void addSourceTables(IdAndVersion viewId, Set<IdAndVersion> sourceTableIds) {
+	public void addSourceTablesIds(IdAndVersion viewId, Set<IdAndVersion> sourceTableIds) {
 		// Make sure to insert the parent table id or update its etag for migration purposes
 		String etagUpdateSql = "INSERT INTO " + TABLE_MV_ID + " VALUES(?, UUID()) ON DUPLICATE KEY UPDATE " + COL_MV_ID_ETAG + " = UUID()";
 		
@@ -71,31 +87,19 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 	}
 
 	@Override
-	public Set<IdAndVersion> getSourceTables(IdAndVersion viewId) {
+	public Set<IdAndVersion> getSourceTablesIds(IdAndVersion viewId) {
 		String selectSql = "SELECT " + COL_MV_TABLES_SOURCE_TABLE_ID + ", " + COL_MV_TABLES_SOURCE_TABLE_VERSION + " FROM "
 				+ TABLE_MV_TABLES + " WHERE " + COL_MV_TABLES_MV_ID + " = ? AND " + COL_MV_TABLES_MV_VERSION + " = ?";
 		
-		List<IdAndVersion> sourceTableIds = jdbcTemplate.getJdbcTemplate().query(selectSql, (rs, i) -> {
-			
-			Long id = rs.getLong(1);
-			Long version = rs.getLong(2);
-			
-			IdAndVersionBuilder builder = IdAndVersion.newBuilder()
-					.setId(id);
-			
-			if (!DEFAULT_VERSION.equals(version)) {
-				builder.setVersion(version);
-			}
-			
-			return builder.build();
-		}, viewId.getId(), viewId.getVersion().orElse(DEFAULT_VERSION));
+		List<IdAndVersion> sourceTableIds = jdbcTemplate.getJdbcTemplate()
+				.query(selectSql, ID_AND_VERSION_MAPPER, viewId.getId(), viewId.getVersion().orElse(DEFAULT_VERSION));
 		
 		return new HashSet<>(sourceTableIds);
 	}
 
 	@Override
 	@WriteTransaction
-	public void deleteSourceTables(IdAndVersion viewId, Set<IdAndVersion> sourceTableIds) {
+	public void deleteSourceTablesIds(IdAndVersion viewId, Set<IdAndVersion> sourceTableIds) {
 		
 		if (sourceTableIds.isEmpty()) {
 			return;
@@ -115,6 +119,17 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 		
 		jdbcTemplate.update(deleteSql, params);
 		
+	}
+	
+	@Override
+	public Set<IdAndVersion> getMaterializedViewIds(IdAndVersion sourceTableId) {
+		String selectSql = "SELECT " + COL_MV_TABLES_MV_ID + ", " + COL_MV_TABLES_MV_VERSION + " FROM "
+				+ TABLE_MV_TABLES + " WHERE " + COL_MV_TABLES_SOURCE_TABLE_ID + " = ? AND " + COL_MV_TABLES_SOURCE_TABLE_VERSION + " = ?";
+		
+		List<IdAndVersion> materializedViewIds = jdbcTemplate.getJdbcTemplate()
+				.query(selectSql, ID_AND_VERSION_MAPPER, sourceTableId.getId(), sourceTableId.getVersion().orElse(DEFAULT_VERSION));
+		
+		return new HashSet<>(materializedViewIds);
 	}
 
 }
