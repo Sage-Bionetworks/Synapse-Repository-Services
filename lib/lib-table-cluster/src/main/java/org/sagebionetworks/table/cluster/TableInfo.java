@@ -84,13 +84,6 @@ public class TableInfo implements ColumnLookup {
 	public List<ColumnModel> getTableSchema() {
 		return tableSchema;
 	}
-	
-	/**
-	 * @return the translationReferences
-	 */
-	public List<ColumnTranslationReference> getTranslationReferences() {
-		return translationReferences;
-	}
 
 	/**
 	 * The index of the table as listed in the from clause.  The first table in the from clause will be
@@ -146,11 +139,11 @@ public class TableInfo implements ColumnLookup {
 	 */
 	public boolean isMatch(TableNameCorrelation tableNameCorrelation) {
 		String tableNameSql = tableNameCorrelation.getTableName().toSql();
-		if(originalTableName.equals(tableNameSql)) {
-			return true;
-		}
-		if(translatedTableName.equals(tableNameSql)) {
-			return true;
+		if (originalTableName.equals(tableNameSql) || translatedTableName.equals(tableNameSql)) {
+			if (getTableAlias().equals(tableNameCorrelation.getTableAlias())
+					|| translatedTableAlias.equals(tableNameCorrelation.getTableAlias().orElse(null))) {
+				return true;
+			}	
 		}
 		return false;
 	}

@@ -459,9 +459,7 @@ public class SQLTranslatorUtils {
 	 */
 	static Optional<TableNameCorrelation> translateTableName(TableNameCorrelation tableNameCorrelation, TableAndColumnMapper mapper) {
 		Optional<TableInfo> optional = mapper.lookupTableNameCorrelation(tableNameCorrelation);
-		if(!optional.isPresent()) {
-			return Optional.empty();
-		}else {
+		if(optional.isPresent()) {
 			try {
 				TableInfo info = optional.get();
 				StringBuilder builder = new StringBuilder(info.getTranslatedTableName());
@@ -473,6 +471,7 @@ public class SQLTranslatorUtils {
 				throw new IllegalStateException(e);
 			}
 		}
+		return Optional.empty();
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {
