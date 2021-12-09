@@ -5,13 +5,13 @@ package org.sagebionetworks.table.query.model;
  */
 public class ComparisonPredicate extends SQLElement implements HasPredicate {
 
-	ColumnReference columnReferenceLHS;
+	ReplaceableBox<ColumnReference> columnReferenceLHS;
 	CompOp compOp;
 	RowValueConstructor rowValueConstructorRHS;
 	public ComparisonPredicate(ColumnReference columnReferenceLHS,
 			CompOp compOp, RowValueConstructor rowValueConstructorRHS) {
 		super();
-		this.columnReferenceLHS = columnReferenceLHS;
+		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
 		this.compOp = compOp;
 		this.rowValueConstructorRHS = rowValueConstructorRHS;
 	}
@@ -24,7 +24,7 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	}
 	
 	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
@@ -43,7 +43,7 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override

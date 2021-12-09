@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 /**
  * The base of all elements.
  *
@@ -57,6 +60,14 @@ public interface Element {
 	 * @return
 	 */
 	public Iterable<Element> getChildren();
+	
+	/**
+	 * Stream support over the direct (non-recursive) children of this element.
+	 * @return
+	 */
+	 default Stream<Element> getChildrenStream(){
+		 return StreamSupport.stream(getChildren().spliterator(), false);
+	 }
 
 	/**
 	 * Get the parent of this element.

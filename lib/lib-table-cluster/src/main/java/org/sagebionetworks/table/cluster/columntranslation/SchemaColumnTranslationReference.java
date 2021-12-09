@@ -66,4 +66,10 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	public int hashCode() {
 		return Objects.hash(columnType, userQueryColumnName, translatedColumnName, id);
 	}
+
+	@Override
+	public String toString() {
+		return "SchemaColumnTranslationReference [columnType=" + columnType + ", userQueryColumnName="
+				+ userQueryColumnName + ", translatedColumnName=" + translatedColumnName + ", id=" + id + "]";
+	}
 }

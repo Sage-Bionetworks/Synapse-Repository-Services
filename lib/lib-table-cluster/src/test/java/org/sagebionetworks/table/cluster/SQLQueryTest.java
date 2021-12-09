@@ -940,23 +940,41 @@ public class SQLQueryTest {
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 	
-	// This does not work yet.
-	@Disabled
+
 	@Test
 	public void testTranslateWithJoinWithAlowJoinTrue() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
-		schemaMap.put(IdAndVersion.parse("syn1"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
-		schemaMap.put(IdAndVersion.parse("syn2"), Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
-		
-		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text'";
-		SqlQuery query = new SqlQueryBuilder(sql, userId)
-				.schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true)
-				.tableType(EntityType.table)
-				.build();
-		assertEquals("", query.getOutputSQL());
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+
+		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
+				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
+				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
-		assertTrue(query.isIncludeSearch());
+	}
+	
+	@Test
+	public void testTranslateWithJoinWithAlowJoinTrueWithAlias() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+
+		sql = "select * from syn1 a join syn2 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by a.bar";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
+				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
 	
 	/**

@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
@@ -76,7 +78,8 @@ public class LikePredicateTest {
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
 		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS(), element.getPattern(), element.getEscapeCharacter()),
-				element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getPattern().toSql(), element.getEscapeCharacter().toSql()),
+				children);
 	}
 }

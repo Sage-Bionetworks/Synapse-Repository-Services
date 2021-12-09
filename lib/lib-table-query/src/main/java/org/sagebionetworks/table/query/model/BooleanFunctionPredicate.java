@@ -6,11 +6,11 @@ import java.util.Collections;
 public class BooleanFunctionPredicate extends SQLElement implements HasPredicate{
 
 	final BooleanFunction booleanFunction;
-	final ColumnReference columnReference;
+	final ReplaceableBox<ColumnReference> columnReference;
 
 	public BooleanFunctionPredicate(BooleanFunction booleanFunction, ColumnReference columnReference) {
 		this.booleanFunction = booleanFunction;
-		this.columnReference = columnReference;
+		this.columnReference = new ReplaceableBox<ColumnReference>(columnReference);
 	}
 
 	public BooleanFunction getBooleanFunction() {
@@ -18,7 +18,7 @@ public class BooleanFunctionPredicate extends SQLElement implements HasPredicate
 	}
 
 	public ColumnReference getColumnReference() {
-		return columnReference;
+		return columnReference.getChild();
 	}
 
 	@Override
@@ -36,7 +36,7 @@ public class BooleanFunctionPredicate extends SQLElement implements HasPredicate
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReference;
+		return columnReference.getChild();
 	}
 
 	@Override

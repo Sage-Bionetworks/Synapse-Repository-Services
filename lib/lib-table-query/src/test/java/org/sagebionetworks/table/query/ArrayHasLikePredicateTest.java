@@ -82,10 +82,10 @@ public class ArrayHasLikePredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3) escape '_'").predicate();
 		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
-		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+		List<String> children = element.getChildrenStream().map(Element::toSql)
 				.collect(Collectors.toList());
 		assertEquals(
-				Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue(), element.getEscapeCharacter()),
+				Arrays.asList(element.getLeftHandSide().toSql(), element.getInPredicateValue().toSql(), element.getEscapeCharacter().toSql()),
 				children);
 	}
 	
@@ -93,8 +93,8 @@ public class ArrayHasLikePredicateTest {
 	public void testGetChidrenWithoutEscape() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo has_like (1,'2',3)").predicate();
 		ArrayHasLikePredicate element = predicate.getFirstElementOfType(ArrayHasLikePredicate.class);
-		List<Element> children = StreamSupport.stream(element.getChildren().spliterator(), false)
+		List<String> children = element.getChildrenStream().map(Element::toSql)
 				.collect(Collectors.toList());
-		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
+		assertEquals(Arrays.asList(element.getLeftHandSide().toSql(), element.getInPredicateValue().toSql()), children);
 	}
 }

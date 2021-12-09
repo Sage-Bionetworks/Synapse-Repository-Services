@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -79,7 +81,8 @@ public class InPredicateTest {
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo in (1,'2',3)").predicate();
 		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS(), element.getInPredicateValue()),
-				element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getInPredicateValue().toSql()),
+				children);
 	}
 }

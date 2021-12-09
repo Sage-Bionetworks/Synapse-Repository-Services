@@ -5,14 +5,14 @@ package org.sagebionetworks.table.query.model;
  */
 public class InPredicate extends SQLElement implements HasPredicate {
 
-	ColumnReference columnReferenceLHS;
+	ReplaceableBox<ColumnReference> columnReferenceLHS;
 	Boolean not;
 	InPredicateValue inPredicateValue;
 	
 	public InPredicate(ColumnReference columnReferenceLHS, Boolean not,
 			InPredicateValue inPredicateValue) {
 		super();
-		this.columnReferenceLHS = columnReferenceLHS;
+		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
 		this.not = not;
 		this.inPredicateValue = inPredicateValue;
 	}
@@ -25,7 +25,7 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 	
 	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
@@ -47,7 +47,7 @@ public class InPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override

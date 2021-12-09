@@ -197,7 +197,9 @@ public class SqlElementUtils {
 	 * @throws ParseException 
 	 */
 	public static Predicate createPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate();
+		Predicate predicate =  new TableQueryParser(sql).predicate();
+		predicate.recursiveSetParent();
+		return predicate;
 	}
 
 	/**

@@ -52,10 +52,8 @@ import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
-import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
@@ -66,7 +64,6 @@ import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.JoinType;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.MySqlFunction;
-import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OuterJoinType;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Pattern;
@@ -311,9 +308,7 @@ public class SQLTranslatorUtils {
 		translateSynapseFunctions(transformedModel, userId);
 
 		// translate all column references.
-		for(ColumnReference hasReference: transformedModel.getSelectList().createIterable(ColumnReference.class)){
-			translateColumnReference(hasReference, mapper).ifPresent(replacement -> hasReference.replaceElement(replacement));
-		}
+		translateAllColumnReferences(transformedModel, mapper);
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();
 		if(tableExpression == null){
@@ -321,11 +316,7 @@ public class SQLTranslatorUtils {
 			return;
 		}
 
-		// translate all of the table names
-		for(TableNameCorrelation tableNameCorrelation: tableExpression.getFromClause().createIterable(TableNameCorrelation.class)) {
-			translateTableName(tableNameCorrelation, mapper).ifPresent(replacement -> tableNameCorrelation.replaceElement(replacement));
-		}
-
+		translateAllTableNameCorrelation(tableExpression.getFromClause(), mapper);
 
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
@@ -334,7 +325,7 @@ public class SQLTranslatorUtils {
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
 			for (HasPredicate predicate : hasPredicates) {
-				translate(predicate, parameters, columnTranslationReferenceLookup);
+				translate(predicate, parameters, mapper);
 			}
 
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
@@ -343,19 +334,7 @@ public class SQLTranslatorUtils {
 				replaceTextMatchesPredicate(booleanPrimary);
 			}
 		}
-		// translate the group by
-		GroupByClause groupByClause = tableExpression.getGroupByClause();
-		if(groupByClause != null){
-			translate(groupByClause, columnTranslationReferenceLookup);
-		}
-		// translate the order by
-		OrderByClause orderByClause = tableExpression.getOrderByClause();
-		if(orderByClause != null){
-			Iterable<HasReferencedColumn> orderByReferences = orderByClause.createIterable(HasReferencedColumn.class);
-			for(HasReferencedColumn hasReference: orderByReferences){
-				translateOrderBy(hasReference, columnTranslationReferenceLookup);
-			}
-		}
+
 		// translate Pagination
 		Pagination pagination = tableExpression.getPagination();
 		if(pagination != null){
@@ -374,6 +353,20 @@ public class SQLTranslatorUtils {
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
+	}
+	
+	/**
+	 * Translate all ColumnReference found in the given root element.
+	 * 
+	 * @param root
+	 * @param mapper
+	 */
+	static void translateAllColumnReferences(Element root, TableAndColumnMapper mapper) {
+		ValidateArgument.required(root, "root");
+		ValidateArgument.required(mapper, "TableAndColumnMapper");
+		for(ColumnReference hasReference: root.createIterable(ColumnReference.class)){
+			translateColumnReference(hasReference, mapper).ifPresent(replacement -> hasReference.replaceElement(replacement));
+		}
 	}
 	
 	/**
@@ -451,6 +444,18 @@ public class SQLTranslatorUtils {
 		
 		booleanPrimary.getPredicate().replaceChildren(new TextMatchesMySQLPredicate(predicate));
 	}
+	
+	/**
+	 * Translate all TableNameCorrelation found in the passed root element.
+	 * @param root
+	 * @param mapper
+	 */
+	static void translateAllTableNameCorrelation(Element root, TableAndColumnMapper mapper) {
+		// translate all of the table names
+		for(TableNameCorrelation tableNameCorrelation: root.createIterable(TableNameCorrelation.class)) {
+			translateTableName(tableNameCorrelation, mapper).ifPresent(replacement -> tableNameCorrelation.replaceElement(replacement));
+		}
+	}
 
 	/**
 	 * Translates FROM clause and returns the original Synapse IdAndVersion that was translated
@@ -459,9 +464,7 @@ public class SQLTranslatorUtils {
 	 */
 	static Optional<TableNameCorrelation> translateTableName(TableNameCorrelation tableNameCorrelation, TableAndColumnMapper mapper) {
 		Optional<TableInfo> optional = mapper.lookupTableNameCorrelation(tableNameCorrelation);
-		if(!optional.isPresent()) {
-			return Optional.empty();
-		}else {
+		if(optional.isPresent()) {
 			try {
 				TableInfo info = optional.get();
 				StringBuilder builder = new StringBuilder(info.getTranslatedTableName());
@@ -473,6 +476,7 @@ public class SQLTranslatorUtils {
 				throw new IllegalStateException(e);
 			}
 		}
+		return Optional.empty();
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {
@@ -580,30 +584,6 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
-	 * Translate a GroupByClause.
-	 * 
-	 * Translate user generated queries to queries that can
-	 * run against the actual database.
-	 * 
-	 * @param groupByClause
-	 * @param columnTranslationReferenceLookup
-	 */
-	public static void translate(GroupByClause groupByClause,
-			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
-		ValidateArgument.required(groupByClause, "groupByClause");
-		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
-		Iterable<ColumnName> references = groupByClause.createIterable(ColumnName.class);
-		for(ColumnName reference: references){
-			// Lookup the column
-			columnTranslationReferenceLookup.forUserQueryColumnName(reference.toSqlWithoutQuotes()).ifPresent(
-					(ColumnTranslationReference columnTranslationReference) ->{
-						reference.replaceChildren(new RegularIdentifier(columnTranslationReference.getTranslatedColumnName()));
-					}
-			);
-		}
-	}
-
-	/**
 	 * Translate a predicate.
 	 * 
 	 * Translate user generated queries to queries that can
@@ -615,11 +595,11 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translate(HasPredicate predicate,
 			Map<String, Object> parameters,
-			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
+			TableAndColumnMapper mapper) {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
 		
-		ColumnType columnType = getColumnType(columnTranslationReferenceLookup, predicate.getLeftHandSide());	
+		ColumnType columnType = getColumnType(mapper, predicate.getLeftHandSide());	
 		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
@@ -634,22 +614,10 @@ public class SQLTranslatorUtils {
 				translateRightHandeSide(element, columnType, parameters);
 			}
 		}
-		
-		// replace all column names in the predicate
-		Iterable<ColumnName> columnNameReferences = predicate.createIterable(ColumnName.class);
-		for (ColumnName columnNameRef : columnNameReferences) {
-			String refColumnName = columnNameRef.toSqlWithoutQuotes();
-
-			// is this a reference to a column?
-			columnTranslationReferenceLookup.forUserQueryColumnName(refColumnName)
-				.ifPresent((ColumnTranslationReference referencedColumn) ->{
-					columnNameRef.replaceChildren(new RegularIdentifier(referencedColumn.getTranslatedColumnName()));
-				});
-		}
 	}
 
-	static ColumnType getColumnType(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, ColumnReference columnReference) {
-		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
+	static ColumnType getColumnType(TableAndColumnMapper mapper, ColumnReference columnReference) {
+		ValidateArgument.required(mapper, "TableAndColumnMapper");
 		ValidateArgument.required(columnReference, "columnReference");
 		// We first check if the left hand side column is implicit (Not exposed to the user, for example TextMatchesPredicate)
 		// In such cases the ColumnTranslationReferenceLookup cannot be used since the user cannot query the column directly
@@ -660,7 +628,7 @@ public class SQLTranslatorUtils {
 			// lookup the column name from the left-hand-side
 			String columnName = columnReference.toSqlWithoutQuotes();
 			
-			columnType = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
+			columnType = mapper.lookupColumnReference(columnReference)
 					.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName))
 					.getColumnType();
 		}
@@ -870,28 +838,6 @@ public class SQLTranslatorUtils {
 		}
 		
 		return subquery;
-	}
-	
-	/**
-	 * Translate HasReferencedColumn for order by clause.
-	 * 
-	 * Translate user generated queries to queries that can
-	 * run against the actual database.
-	 * 
-	 * @param column
-	 * @param columnTranslationReferenceLookup
-	 */
-	public static void translateOrderBy(HasReferencedColumn column,
-			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
-		ColumnNameReference columnNameReference = column.getReferencedColumn();
-		if(columnNameReference != null){
-			String unquotedName = columnNameReference.toSqlWithoutQuotes();
-			columnTranslationReferenceLookup.forUserQueryColumnName(unquotedName).ifPresent(
-					(ColumnTranslationReference columnTranslationReference) -> {
-						columnNameReference.replaceChildren(new RegularIdentifier(columnTranslationReference.getTranslatedColumnName()));
-					}
-			);
-		}
 	}
 
 	/**

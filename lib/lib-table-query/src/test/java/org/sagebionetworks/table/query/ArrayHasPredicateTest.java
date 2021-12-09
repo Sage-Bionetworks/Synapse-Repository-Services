@@ -10,6 +10,7 @@ import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -52,7 +53,8 @@ public class ArrayHasPredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo has (1,'2',3)").predicate();
 		ArrayHasPredicate element = predicate.getFirstElementOfType(ArrayHasPredicate.class);
-		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), element.getChildren());
+		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
+		assertEquals(Arrays.asList(element.getLeftHandSide().toSql(), element.getInPredicateValue().toSql()), children);
 	}
 
 }

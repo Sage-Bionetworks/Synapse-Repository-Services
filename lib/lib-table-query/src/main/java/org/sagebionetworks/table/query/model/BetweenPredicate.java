@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class BetweenPredicate extends SQLElement implements HasPredicate {
 
-	ColumnReference columnReferenceLHS;
+	ReplaceableBox<ColumnReference> columnReferenceLHS;
 	Boolean not;
 	RowValueConstructor betweenRowValueConstructor;
 	RowValueConstructor andRowValueConstructorRHS;
@@ -17,7 +17,7 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	public BetweenPredicate(ColumnReference columnReferenceLHS, Boolean not,
 			RowValueConstructor betweenRowValueConstructor, RowValueConstructor andRowValueConstructorRHS) {
 		super();
-		this.columnReferenceLHS = columnReferenceLHS;
+		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
 		this.not = not;
 		this.betweenRowValueConstructor = betweenRowValueConstructor;
 		this.andRowValueConstructorRHS = andRowValueConstructorRHS;
@@ -36,7 +36,7 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override

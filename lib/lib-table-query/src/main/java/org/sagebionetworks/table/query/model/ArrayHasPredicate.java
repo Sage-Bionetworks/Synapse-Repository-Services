@@ -18,12 +18,12 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 	
 	private static final String KEYWORD = "HAS";
 
-	ColumnReference columnReferenceLHS;
+	ReplaceableBox<ColumnReference> columnReferenceLHS;
 	Boolean not;
 	InPredicateValue inPredicateValue;
 	
 	public ArrayHasPredicate(ColumnReference columnReferenceLHS, Boolean not, InPredicateValue inPredicateValue) {
-		this.columnReferenceLHS = columnReferenceLHS;
+		this.columnReferenceLHS = new ReplaceableBox<ColumnReference>(columnReferenceLHS);
 		this.not = not;
 		this.inPredicateValue = inPredicateValue;
 	}
@@ -60,7 +60,7 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 
 	@Override
 	public ColumnReference getLeftHandSide() {
-		return columnReferenceLHS;
+		return columnReferenceLHS.getChild();
 	}
 
 	@Override
