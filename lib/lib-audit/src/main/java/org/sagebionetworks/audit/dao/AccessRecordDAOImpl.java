@@ -25,7 +25,8 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 */
 	private final static String[] HEADERS = new String[] { "returnObjectId", "elapseMS", "timestamp", "via", "host",
 			"threadId", "userAgent", "queryString", "sessionId", "xForwardedFor", "requestURL", "userId", "origin",
-			"date", "method", "vmId", "instance", "stack", "success", "responseStatus", "oauthClientId", "basicAuthUsername" };
+			"date", "method", "vmId", "instance", "stack", "success", "responseStatus", "oauthClientId", "basicAuthUsername",
+			"authenticationMethod"};
 
 	@Autowired
 	private SynapseS3Client s3Client;
