@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -33,8 +34,8 @@ public interface MaterializedViewDao {
 	
 	/**
 	 * @param sourceTableId The id and (optional) version of a source table
-	 * @return The set of ids and (optional) versions of the materialized views that are associated with the source table with the given id and (optional) version
+	 * @return A page of ids and (optional) versions of the materialized views that are associated with the source table with the given id and (optional) version
 	 */
-	Set<IdAndVersion> getMaterializedViewIds(IdAndVersion sourceTableId);
+	List<IdAndVersion> getMaterializedViewIdsPage(IdAndVersion sourceTableId, long limit, long offset);
 	
 }

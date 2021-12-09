@@ -479,7 +479,7 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
-	public void testGetSourceTableId() {
+	public void testGetSourceTableIds() {
 		
 		QuerySpecification query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123");
 		
@@ -490,7 +490,7 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
-	public void testGetSourceTableIdWithVersion() {
+	public void testGetSourceTableIdsWithVersion() {
 		
 		QuerySpecification query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123.1");
 		
@@ -501,7 +501,7 @@ public class MaterializedViewManagerImplTest {
 	}
 	
 	@Test
-	public void testGetSourceTableIdWithMultiple() {
+	public void testGetSourceTableIdsWithMultiple() {
 		
 		QuerySpecification query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123.1 JOIN syn456 JOIN syn123");
 		

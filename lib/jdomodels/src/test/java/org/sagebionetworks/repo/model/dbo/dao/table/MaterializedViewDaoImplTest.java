@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -226,6 +228,9 @@ public class MaterializedViewDaoImplTest {
 	
 	@Test
 	public void testGetMaterializedViewIds() {
+
+		long limit = 10;
+		long offset = 0;
 		
 		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
 		
@@ -235,16 +240,61 @@ public class MaterializedViewDaoImplTest {
 
 		dao.addSourceTablesIds(viewId, sourceTables);
 		
-		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		List<IdAndVersion> expected = Arrays.asList(viewId);
 		
 		// Call under test
-		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		List<IdAndVersion> result = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
+	public void testGetMaterializedViewIdsMultiplePages() {
+		
+		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
+
+		// Multiple versions that reference the same source table
+		dao.addSourceTablesIds(viewId, ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456"), IdAndVersion.parse("789")
+		));
+		
+		IdAndVersion viewIdV2 = IdAndVersion.parse(viewId.getId() + ".2"); 
+		
+		dao.addSourceTablesIds(viewIdV2, ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("654"), IdAndVersion.parse("345")
+		));
+		
+		IdAndVersion viewIdV3 = IdAndVersion.parse(viewId.getId() + ".3");
+		
+		dao.addSourceTablesIds(viewIdV3, ImmutableSet.of(
+			sourceTableId, IdAndVersion.parse("456"), IdAndVersion.parse("345")
+		));
+
+		long limit = 2;
+		long offset = 0;
+		
+		List<IdAndVersion> expectedfirstPage = Arrays.asList(viewId, viewIdV2);
+		
+		// Call under test
+		List<IdAndVersion> firstPage = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
+		
+		assertEquals(expectedfirstPage, firstPage);
+		
+		offset = 2;
+		
+		List<IdAndVersion> expectedSecondPage = Arrays.asList(viewIdV3);
+		
+		// Call under test
+		List<IdAndVersion> secondPage = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
+		
+		assertEquals(expectedSecondPage, secondPage);
+	}
+	
+	@Test
 	public void testGetMaterializedViewIdsWithVersion() {
+		
+		long limit = 10;
+		long offset = 0;
 		
 		IdAndVersion sourceTableId = IdAndVersion.parse("syn123.2");
 		
@@ -254,16 +304,19 @@ public class MaterializedViewDaoImplTest {
 
 		dao.addSourceTablesIds(viewId, sourceTables);
 				
-		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		List<IdAndVersion> expected = Arrays.asList(viewId);
 		
 		// Call under test
-		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		List<IdAndVersion> result = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testGetMaterializedViewIdsWithOverlappingIds() {
+		
+		long limit = 10;
+		long offset = 0;
 		
 		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
 		
@@ -278,16 +331,19 @@ public class MaterializedViewDaoImplTest {
 		
 		dao.addSourceTablesIds(viewWithVersion, ImmutableSet.of(sourceTableId));
 				
-		Set<IdAndVersion> expected = ImmutableSet.of(viewId, viewWithVersion);
+		List<IdAndVersion> expected = Arrays.asList(viewId, viewWithVersion);
 		
 		// Call under test
-		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		List<IdAndVersion> result = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testGetMaterializedViewIdsWithNonOverlappingIds() {
+		
+		long limit = 10;
+		long offset = 0;
 		
 		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
 		
@@ -302,10 +358,10 @@ public class MaterializedViewDaoImplTest {
 		
 		dao.addSourceTablesIds(viewWithVersion, ImmutableSet.of(IdAndVersion.parse("syn123.2"), IdAndVersion.parse("456")));
 				
-		Set<IdAndVersion> expected = ImmutableSet.of(viewId);
+		List<IdAndVersion> expected = Arrays.asList(viewId);
 		
 		// Call under test
-		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		List<IdAndVersion> result = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
 		
 		assertEquals(expected, result);
 	}	
@@ -313,12 +369,15 @@ public class MaterializedViewDaoImplTest {
 	@Test
 	public void testGetMaterializedViewIdsWithNoData() {
 		
+		long limit = 10;
+		long offset = 0;
+		
 		IdAndVersion sourceTableId = IdAndVersion.parse("syn123");
 		
-		Set<IdAndVersion> expected = Collections.emptySet();
+		List<IdAndVersion> expected = Collections.emptyList();
 		
 		// Call under test
-		Set<IdAndVersion> result = dao.getMaterializedViewIds(sourceTableId);
+		List<IdAndVersion> result = dao.getMaterializedViewIdsPage(sourceTableId, limit, offset);
 		
 		assertEquals(expected, result);
 	}

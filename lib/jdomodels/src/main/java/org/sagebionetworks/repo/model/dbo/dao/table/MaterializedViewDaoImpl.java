@@ -122,14 +122,15 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 	}
 	
 	@Override
-	public Set<IdAndVersion> getMaterializedViewIds(IdAndVersion sourceTableId) {
+	public List<IdAndVersion> getMaterializedViewIdsPage(IdAndVersion sourceTableId, long limit, long offset) {
 		String selectSql = "SELECT " + COL_MV_TABLES_MV_ID + ", " + COL_MV_TABLES_MV_VERSION + " FROM "
-				+ TABLE_MV_TABLES + " WHERE " + COL_MV_TABLES_SOURCE_TABLE_ID + " = ? AND " + COL_MV_TABLES_SOURCE_TABLE_VERSION + " = ?";
+			+ TABLE_MV_TABLES + " WHERE " + COL_MV_TABLES_SOURCE_TABLE_ID + " = ? AND " + COL_MV_TABLES_SOURCE_TABLE_VERSION + " = ?"
+			+ " ORDER BY " + COL_MV_TABLES_MV_ID + ", " + COL_MV_TABLES_MV_VERSION + " LIMIT ? OFFSET ?";
 		
 		List<IdAndVersion> materializedViewIds = jdbcTemplate.getJdbcTemplate()
-				.query(selectSql, ID_AND_VERSION_MAPPER, sourceTableId.getId(), sourceTableId.getVersion().orElse(DEFAULT_VERSION));
+				.query(selectSql, ID_AND_VERSION_MAPPER, sourceTableId.getId(), sourceTableId.getVersion().orElse(DEFAULT_VERSION), limit, offset);
 		
-		return new HashSet<>(materializedViewIds);
+		return materializedViewIds;
 	}
 
 }
