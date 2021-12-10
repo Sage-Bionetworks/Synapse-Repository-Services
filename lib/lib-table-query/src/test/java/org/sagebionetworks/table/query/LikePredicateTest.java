@@ -14,6 +14,7 @@ import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.ReplaceableBox;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
@@ -78,8 +79,8 @@ public class LikePredicateTest {
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
 		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
-		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getPattern().toSql(), element.getEscapeCharacter().toSql()),
-				children);
+		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
+		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()), element.getPattern(),
+				element.getEscapeCharacter()), children);
 	}
 }

@@ -270,6 +270,22 @@ public class TableInfoTest {
 		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
 		assertTrue(info.isMatch(new TableQueryParser("T1 _A3").tableNameCorrelation()));
 	}
+	
+	@Test
+	public void testIsMatchWithBothAliasWithTableTranslatedButNotAlais() throws ParseException {
+		tableIndex = 3;
+		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as q").tableNameCorrelation();
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
+		assertTrue(info.isMatch(new TableQueryParser("T1 q").tableNameCorrelation()));
+	}
+	
+	@Test
+	public void testIsMatchWithBothAliasWithTableNotTransatedWithAliasTransalted() throws ParseException {
+		tableIndex = 3;
+		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as q").tableNameCorrelation();
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
+		assertTrue(info.isMatch(new TableQueryParser("syn1 _A3").tableNameCorrelation()));
+	}
 
 	@Test
 	public void testIsMatchWithoutAlias() throws ParseException {

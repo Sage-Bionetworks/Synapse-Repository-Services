@@ -209,12 +209,11 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (!this.isAggregatedResult && tableAndColumnMapper.getNumberOfTables() < 2) {
-			// we need to add the row count and row version columns
+		if (this.isAggregatedResult || tableAndColumnMapper.getNumberOfTables() > 1) {
+			this.includesRowIdAndVersion = false;
+		}else{
 			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			this.includesRowIdAndVersion = true;
-		}else{
-			this.includesRowIdAndVersion = false;
 		}
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId, tableAndColumnMapper);

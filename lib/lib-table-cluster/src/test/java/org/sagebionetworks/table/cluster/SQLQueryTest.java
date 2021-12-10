@@ -977,6 +977,21 @@ public class SQLQueryTest {
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
 	
+	@Test
+	public void testTranslateWithJoinWithMultipleOfSameTable() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_ "
+				+ "FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+	}
+	
 	/**
 	 * Helper to create a schema provider for the given schema.
 	 * @param schema
