@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -69,6 +72,18 @@ public class MaterializedViewMetadataProviderTest {
 		provider.entityUpdated(mockUser, mockView, false);
 		
 		verify(mockManager).registerSourceTables(idAndVersion, sql);
+	}
+	
+	@Test
+	public void testEntityUpdatedWithNewVersion() {
+		String message = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			provider.entityUpdated(mockUser, mockView, true);
+		}).getMessage();
+		
+		assertEquals("A materialized view version can only be created by creating a snapshot.", message);
+		
+		verifyZeroInteractions(mockManager);
 	}
 
 }

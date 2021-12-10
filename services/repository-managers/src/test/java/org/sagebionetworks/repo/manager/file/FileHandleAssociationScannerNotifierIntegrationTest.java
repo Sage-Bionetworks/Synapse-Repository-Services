@@ -43,7 +43,10 @@ public class FileHandleAssociationScannerNotifierIntegrationTest {
 			ReceiveMessageResult messages = sqsClient.receiveMessage(notifier.getQueueUrl());
 						
 			if (!messages.getMessages().isEmpty()) {
-				return Pair.create(true, notifier.fromSqsMessage(messages.getMessages().iterator().next()));
+				FileHandleAssociationScanRangeRequest request = notifier.fromSqsMessage(messages.getMessages().iterator().next());
+				if (request.getJobId().equals(expected.getJobId())) {
+					return Pair.create(true, request);	
+				}
 			}
 			
 			return Pair.create(false, null);
