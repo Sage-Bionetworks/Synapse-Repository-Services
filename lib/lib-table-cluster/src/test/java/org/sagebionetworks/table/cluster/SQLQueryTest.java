@@ -1038,6 +1038,22 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testTranslateWithLeftJoinOuter() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+
+		sql = "select * from syn1 a left outer join syn2 b on (a.foo = b.foo)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 LEFT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
+				query.getOutputSQL());
+	}
+	
+	@Test
 	public void testTranslateWithRightJoin() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		schemaMap.put(IdAndVersion.parse("syn1"),
@@ -1050,6 +1066,22 @@ public class SQLQueryTest {
 				.allowJoins(true).tableType(EntityType.table).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testTranslateWithRightJoinOuter() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+
+		sql = "select * from syn1 a right outer join syn2 b on (a.foo = b.foo)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
 	}
 
