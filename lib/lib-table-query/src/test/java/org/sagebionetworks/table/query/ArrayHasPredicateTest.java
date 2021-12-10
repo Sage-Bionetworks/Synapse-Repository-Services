@@ -13,6 +13,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.ReplaceableBox;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
 public class ArrayHasPredicateTest {
@@ -53,8 +54,9 @@ public class ArrayHasPredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo has (1,'2',3)").predicate();
 		ArrayHasPredicate element = predicate.getFirstElementOfType(ArrayHasPredicate.class);
-		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
-		assertEquals(Arrays.asList(element.getLeftHandSide().toSql(), element.getInPredicateValue().toSql()), children);
+		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
+		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
+				element.getInPredicateValue()), children);
 	}
 
 }

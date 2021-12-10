@@ -12,6 +12,7 @@ import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.ReplaceableBox;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
@@ -58,9 +59,9 @@ public class BetweenPredicateTest {
 	public void testGetChidren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
 		BetweenPredicate element = predicate.getFirstElementOfType(BetweenPredicate.class);
-		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getBetweenRowValueConstructor().toSql(),
-				element.getAndRowValueConstructorRHS().toSql()), children);
+		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
+		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()), element.getBetweenRowValueConstructor(),
+				element.getAndRowValueConstructorRHS()), children);
 	}
 
 }

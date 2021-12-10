@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -15,6 +14,7 @@ import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.ReplaceableBox;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 
@@ -81,8 +81,8 @@ public class InPredicateTest {
 	public void testGetChildren() throws ParseException {
 		Predicate predicate = new TableQueryParser("foo in (1,'2',3)").predicate();
 		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
-		List<String> children = element.getChildrenStream().map(Element::toSql).collect(Collectors.toList());
-		assertEquals(Arrays.asList(element.getColumnReferenceLHS().toSql(), element.getInPredicateValue().toSql()),
-				children);
+		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
+		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
+				element.getInPredicateValue()), children);
 	}
 }
