@@ -666,7 +666,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		// Gather a single batch of distinct entity IDs from the user's download list
 		return jdbcTemplate.queryForList("SELECT DISTINCT " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + " FROM "
 				+ TABLE_DOWNLOAD_LIST_ITEM_V2 + " WHERE " + COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + " = ? ORDER BY "
-				+ COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", " + COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER
+				+ COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID
 				+ " LIMIT ? OFFSET ?", Long.class, userId, limit, offset);
 	}
 

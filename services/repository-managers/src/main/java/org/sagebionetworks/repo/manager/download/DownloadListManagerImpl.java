@@ -431,9 +431,11 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
 			IdAndVersion idAndVersion = IdAndVersion.parse(model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 			EntityType tableType = tableQueryManager.getTableEntityType(idAndVersion);
-			if (!EntityType.entityview.equals(tableType)) {
-				throw new IllegalArgumentException(String.format("'%s' is not a file view", idAndVersion.toString()));
+			
+			if (!EntityType.entityview.equals(tableType) && !EntityType.dataset.equals(tableType)) {
+				throw new IllegalArgumentException(String.format("'%s' is not a file view or a dataset", idAndVersion.toString()));
 			}
+			
 			model.getSelectList().replaceElement(new TableQueryParser(TableConstants.ROW_ID).selectList());
 			query.setSql(model.toSql());
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false)
