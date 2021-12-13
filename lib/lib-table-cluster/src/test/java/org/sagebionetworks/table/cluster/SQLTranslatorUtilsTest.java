@@ -853,14 +853,14 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceBooleanFunctionIsNaN() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isNaN(_C777_)").booleanPrimary();
-		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", element.toSql());
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionIsInfinity() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isInfinity(_C777_)").booleanPrimary();
-		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )", element.toSql());
 	}
 	
@@ -868,7 +868,7 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceBooleanFunctionNonDoubleColumn() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isInfinity(_C444_)").booleanPrimary();
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+			SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		});
 	}
 	
@@ -876,21 +876,21 @@ public class SQLTranslatorUtilsTest {
 	public void testReplaceBooleanFunctionUnknownColumn() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("isInfinity(someUnknown)").booleanPrimary();
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+			SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		});
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionNotBooleanFunction() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("id = 123").booleanPrimary();
-		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		assertEquals("id = 123", element.toSql(), "Non-BooleanFunctions should not be changed by this method.");
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionSearchCondition() throws ParseException{
 		BooleanPrimary element = new TableQueryParser("(id = 123 OR id = 456)").booleanPrimary();
-		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
+		SQLTranslatorUtils.replaceBooleanFunction(element, singleTableMapper);
 		assertEquals("( id = 123 OR id = 456 )", element.toSql(), "SearchConditions should not be changed by this method.");
 	}
 
@@ -910,7 +910,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), singleTableMapper);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 		}).getMessage();
 		
 		assertEquals("The HAS keyword only works for columns that hold list values", message);
@@ -925,7 +925,7 @@ public class SQLTranslatorUtilsTest {
 		BooleanPrimary booleanPrimary = SqlElementUtils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 		});
 	}
 
@@ -944,7 +944,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), singleTableMapper);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
@@ -966,7 +966,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), singleTableMapper);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
 		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
@@ -1007,7 +1007,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), singleTableMapper);
 
 		String beforeCallSqll = notArrayHasPredicate.toSql();
-		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, singleTableMapper);
 		//if not an ArrayHasPredicate, nothing should have changed
 		assertEquals(beforeCallSqll, notArrayHasPredicate.toSql());
 	}
@@ -1030,7 +1030,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 OR _C111__UNNEST LIKE :b1 OR _C111__UNNEST LIKE :b2 )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
@@ -1058,7 +1058,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasLikePredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), parameters, singleTableMapper);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 ESCAPE :b3 OR _C111__UNNEST LIKE :b1 ESCAPE :b3 OR _C111__UNNEST LIKE :b2 ESCAPE :b3 )", booleanPrimary.toSql());
 		assertEquals(ImmutableMap.of(
@@ -1086,7 +1086,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), singleTableMapper);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 		}).getMessage();
 		
 		assertEquals("The HAS_LIKE keyword only works for columns that hold list values", message);
@@ -1107,7 +1107,7 @@ public class SQLTranslatorUtilsTest {
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), singleTableMapper);
 
-		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, singleTableMapper);
+		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
 		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST LIKE :b0 )", booleanPrimary.toSql());
 
@@ -1160,6 +1160,11 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 		
+		singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+					return Arrays.asList(columnFoo);
+				});
+		
 		QuerySpecification querySpecification = TableQueryParser.parserQuery(
 				"SELECT UNNEST(_C111_) FROM T123 join T456 ORDER BY UNNEST(_C111_)"
 		);
@@ -1210,6 +1215,10 @@ public class SQLTranslatorUtilsTest {
 	public void tesTranslateArrayFunction_multipleColumns() throws ParseException {
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnBar.setColumnType(ColumnType.STRING_LIST);
+		singleTableMapper = new TableAndColumnMapper(
+				new TableQueryParser("select * from syn123.456").querySpecification(), (IdAndVersion tableId) -> {
+					return Arrays.asList(columnFoo, columnBar);
+				});
 
 		//need to recreate the translation reference
 		columnMap = new ColumnTranslationReferenceLookup(schema);
