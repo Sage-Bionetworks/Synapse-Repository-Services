@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -169,7 +168,6 @@ public class SqlQuery {
 
 		List<ColumnModel> unionOfSchemas = tableAndColumnMapper.getUnionOfAllTableSchemas();
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(unionOfSchemas);
-		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(unionOfSchemas);
 
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
@@ -216,7 +214,7 @@ public class SqlQuery {
 			this.includesRowIdAndVersion = true;
 		}
 
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup, userId, tableAndColumnMapper);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();
 	}
 	

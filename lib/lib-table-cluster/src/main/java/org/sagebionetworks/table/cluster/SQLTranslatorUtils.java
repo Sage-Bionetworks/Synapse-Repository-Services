@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
-import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -302,8 +301,7 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
-			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId, TableAndColumnMapper mapper) {
+			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
 
 		translateSynapseFunctions(transformedModel, userId);
 
@@ -343,7 +341,7 @@ public class SQLTranslatorUtils {
 
 		//handle array functions which requires appending a join on another table
 		try {
-			translateArrayFunctions(transformedModel, columnTranslationReferenceLookup, mapper);
+			translateArrayFunctions(transformedModel, mapper);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -479,7 +477,7 @@ public class SQLTranslatorUtils {
 		return Optional.empty();
 	}
 
-	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {
+	static void translateArrayFunctions(QuerySpecification transformedModel, TableAndColumnMapper mapper) throws ParseException {
 		// UNNEST(columnName) for the same columnName
 		// may appear in multiple places (select clause ,group by, order by, etc.)
 		// but should only join the unnested index table for that column once
