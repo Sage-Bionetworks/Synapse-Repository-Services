@@ -563,6 +563,10 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSelectActualColumnsAggregate() throws ParseException {
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+				Optional.of(new SchemaColumnTranslationReference(columnFoo)),
+				Optional.of(new SchemaColumnTranslationReference(columnBar)));
+
 		boolean isAggregate = true;
 		SelectList element = new TableQueryParser("foo, bar").selectList();
 		// call under test.
@@ -576,6 +580,10 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsSelectActualColumnsNotAggregate() throws ParseException{
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(
+				Optional.of(new SchemaColumnTranslationReference(columnFoo)),
+				Optional.of(new SchemaColumnTranslationReference(columnBar)));
+		
 		boolean isAggregate = false;
 		SelectList element = new TableQueryParser("foo, bar").selectList();
 		//  call under test.
