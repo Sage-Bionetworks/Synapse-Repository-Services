@@ -50,6 +50,9 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 	@Override
 	@WriteTransaction
 	public void createRecordForReply(Long forumId, Long threadId, Long replyId, String searchContent) {
+		if (DBODiscussionSearchIndexRecord.NO_REPLY_ID.equals(replyId)) {
+			throw new IllegalArgumentException("Unexpected replyId: " + replyId);
+		}
 		createOrUpdate(forumId, threadId, replyId, searchContent);
 	}
 	
@@ -59,7 +62,7 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 		createOrUpdate(forumId, threadId, DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent);
 	}
 
-	void createOrUpdate(Long forumId, Long threadId, Long replyId, String searchContent) {
+	private void createOrUpdate(Long forumId, Long threadId, Long replyId, String searchContent) {
 		ValidateArgument.required(forumId, "The forumId");
 		ValidateArgument.required(threadId, "The threadId");
 		ValidateArgument.required(replyId, "The replyId");
@@ -102,6 +105,9 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 	
 	@Override
 	public List<Match> search(Long forumId, String searchString, long limit, long offset) {
+		ValidateArgument.required(forumId, "The forumId");
+		ValidateArgument.required(searchString, "The searchString");
+		
 		String searchSql = "SELECT " + COL_DISCUSSION_SEARCH_INDEX_FORUM_ID + ", " + COL_DISCUSSION_SEARCH_INDEX_THREAD_ID + ", " + COL_DISCUSSION_SEARCH_INDEX_REPLY_ID 
 			+ " FROM " + TABLE_DISCUSSION_SEARCH_INDEX
 			+ " WHERE MATCH(" + COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT + ") AGAINST(?) AND " + COL_DISCUSSION_SEARCH_INDEX_FORUM_ID + " = ?"
