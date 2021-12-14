@@ -1,4 +1,11 @@
-package org.sagebionetworks.repo.model.dbo.dao.discussion;
+package org.sagebionetworks.repo.model.dbo.persistence.discussion;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_REPLY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_SEARCH_INDEX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_SEARCH_INDEX;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -8,12 +15,12 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
 /**
  * Represents a record in the search index for the discussion forums
  */
 public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscussionSearchIndexRecord> {
+	
+	public static final Long NO_REPLY_ID = -1L;
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("forumId", COL_DISCUSSION_SEARCH_INDEX_FORUM_ID, true),

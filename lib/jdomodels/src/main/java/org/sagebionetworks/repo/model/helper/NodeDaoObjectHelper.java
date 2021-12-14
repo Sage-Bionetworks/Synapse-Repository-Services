@@ -34,8 +34,13 @@ public class NodeDaoObjectHelper implements DaoObjectHelper<Node> {
 
 		if (n.getModifiedByPrincipalId() == null) {
 			n.setModifiedByPrincipalId(n.getCreatedByPrincipalId());
-		}
+		}		
 		return nodeDao.createNewNode(n);
+		
+	}
+	
+	public void truncateAll() {
+		nodeDao.truncateAll();	
 	}
 
 }

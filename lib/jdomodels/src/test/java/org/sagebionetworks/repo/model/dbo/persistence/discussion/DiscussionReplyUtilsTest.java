@@ -5,8 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply;
-import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;
 
 public class DiscussionReplyUtilsTest {
 
