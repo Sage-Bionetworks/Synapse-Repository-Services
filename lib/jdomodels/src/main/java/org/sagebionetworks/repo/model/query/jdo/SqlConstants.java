@@ -945,6 +945,14 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_REPLY_IS_EDITED = "IS_EDITED";
 	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
 	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
+	
+	// Discussion Search Index table
+	public static final String TABLE_DISCUSSION_SEARCH_INDEX = "DISCUSSION_SEARCH_INDEX";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_FORUM_ID = "FORUM_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_REPLY_ID = "REPLY_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT = "SEARCH_CONTENT";
+	public static final String DDL_DISCUSSION_SEARCH_INDEX = "schema/DiscussionSearchIndex-ddl.sql";
 
 	// Discussion Thread Entity Reference table
 	public static final String TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE = "DISCUSSION_THREAD_ENTITY_REFERENCE";

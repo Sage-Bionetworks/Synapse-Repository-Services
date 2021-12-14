@@ -11,6 +11,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionThread;
+import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionThreadUtils;
 
 public class DiscussionThreadUtilsTest {
 

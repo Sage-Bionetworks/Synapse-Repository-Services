@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.UUID;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum;
+import org.sagebionetworks.repo.model.dbo.persistence.discussion.ForumUtils;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
