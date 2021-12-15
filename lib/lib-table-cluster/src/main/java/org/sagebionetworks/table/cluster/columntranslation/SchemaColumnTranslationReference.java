@@ -10,11 +10,12 @@ import org.sagebionetworks.util.ValidateArgument;
 /**
  * ColumnTranslationReference derived from a ColumnModel that was associated with a schema
  */
-public class SchemaColumnTranslationReference implements ColumnTranslationReference{
+public class SchemaColumnTranslationReference implements ColumnTranslationReference {
 	private final ColumnType columnType;
 	private final String userQueryColumnName;
 	private final String translatedColumnName;
 	private final String id;
+	private final Long maximumSize;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
@@ -25,6 +26,7 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		this.id = columnModel.getId();
 		this.translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
 		this.userQueryColumnName = columnModel.getName();
+		this.maximumSize = columnModel.getMaximumSize();
 	}
 
 	@Override
@@ -42,7 +44,10 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		return translatedColumnName;
 	}
 
-
+	@Override
+	public Long getMaximumSize() {
+		return this.maximumSize;
+	}
 	/**
 	 * Id of the column
 	 * @return Id of the column

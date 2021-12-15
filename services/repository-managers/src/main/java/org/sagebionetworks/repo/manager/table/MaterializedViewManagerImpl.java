@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -19,11 +21,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
-	private MaterializedViewDao dao;
+	final private MaterializedViewDao dao;
+	final private ColumnModelManager columModelManager;
 	
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager) {
 		this.dao = dao;
+		this.columModelManager = columModelManager;
 	}
 	
 	@Override
@@ -55,6 +59,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		dao.deleteSourceTablesIds(idAndVersion, toDelete);
 		dao.addSourceTablesIds(idAndVersion, newSourceTables);
 		
+	}
+	
+	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification querySpecification) {
+		Long userId = -1L;
+		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification, userId).schemaProvider(columModelManager).allowJoins(true).build();
 	}
 	
 	static QuerySpecification getQuerySpecification(String definingSql) {

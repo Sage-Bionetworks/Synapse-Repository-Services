@@ -11,17 +11,19 @@ import org.sagebionetworks.repo.model.table.TableConstants;
  * userQueryColumnName and translatedColumnName are the same
  */
 public enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
-	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER), ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER),
-	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING),
-	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.INTEGER);
+	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null), ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
+	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING, 36L),
+	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.INTEGER, null);
 
 	// the translated name and queried name are the same
 	private final String columnName;
 	private final ColumnType columnType;
+	private final Long maximumSize;
 
-	RowMetadataColumnTranslationReference(final String columnName, final ColumnType columnType) {
+	RowMetadataColumnTranslationReference(final String columnName, final ColumnType columnType, Long maximumSize) {
 		this.columnName = columnName.toUpperCase();
 		this.columnType = columnType;
+		this.maximumSize = maximumSize;
 	}
 
 	@Override
@@ -39,6 +41,11 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 		return columnName;
 	}
 
+	@Override
+	public Long getMaximumSize() {
+		return maximumSize;
+	}
+	
 	/**
 	 * Attempt to match the given right-hand-side with one of the columns of this
 	 * enumeration.

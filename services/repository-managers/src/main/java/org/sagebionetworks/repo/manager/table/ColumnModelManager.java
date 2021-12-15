@@ -12,8 +12,9 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 
-public interface ColumnModelManager {
+public interface ColumnModelManager extends SchemaProvider{
 
 	/**
 	 * List ColumnModels that have a name starting with the given prefix.
