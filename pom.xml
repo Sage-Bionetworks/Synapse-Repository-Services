@@ -635,17 +635,17 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>3.0.3</version>
+				<version>3.0.4</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.6</version>
+				<version>1.1.7</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.12</version>
+				<version>1.0.13</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -655,7 +655,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>csv-utilities</artifactId>
-				<version>1.0.5</version>
+				<version>1.0.6</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -1046,7 +1046,7 @@
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
-		<log4j.version>2.15.0</log4j.version>
+		<log4j.version>2.16.0</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
