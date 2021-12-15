@@ -1084,6 +1084,38 @@ public class SQLQueryTest {
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
 	}
+	
+	@Test
+	public void testTranslateWithIsInfinity() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
+
+		sql = "select * from syn1 a where isInfinity(doubletype)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
+						+ " ROW_ID, ROW_VERSION FROM T1 "
+						+ "WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testTranslateWithIsNaN() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
+
+		sql = "select * from syn1 a where isNaN(doubletype)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		assertEquals(
+				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
+						+ " ROW_ID, ROW_VERSION FROM T1 "
+						+ "WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",
+				query.getOutputSQL());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.

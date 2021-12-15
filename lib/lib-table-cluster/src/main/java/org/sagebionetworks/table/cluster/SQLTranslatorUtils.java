@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
-import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -302,8 +301,7 @@ public class SQLTranslatorUtils {
 	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
-			Map<String, Object> parameters,
-		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup, Long userId, TableAndColumnMapper mapper) {
+			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
 
 		translateSynapseFunctions(transformedModel, userId);
 
@@ -329,8 +327,8 @@ public class SQLTranslatorUtils {
 			}
 
 			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
-				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
-				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, mapper);
+				replaceBooleanFunction(booleanPrimary, mapper);
+				replaceArrayHasPredicate(booleanPrimary, mapper);
 				replaceTextMatchesPredicate(booleanPrimary);
 			}
 		}
@@ -343,7 +341,7 @@ public class SQLTranslatorUtils {
 
 		//handle array functions which requires appending a join on another table
 		try {
-			translateArrayFunctions(transformedModel, columnTranslationReferenceLookup, mapper);
+			translateArrayFunctions(transformedModel, mapper);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -479,7 +477,7 @@ public class SQLTranslatorUtils {
 		return Optional.empty();
 	}
 
-	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, TableAndColumnMapper mapper) throws ParseException {
+	static void translateArrayFunctions(QuerySpecification transformedModel, TableAndColumnMapper mapper) throws ParseException {
 		// UNNEST(columnName) for the same columnName
 		// may appear in multiple places (select clause ,group by, order by, etc.)
 		// but should only join the unnested index table for that column once
@@ -498,7 +496,7 @@ public class SQLTranslatorUtils {
 			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
 				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
 
-				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(lookup, referencedColumn.toSqlWithoutQuotes(), "UNNEST()");
+				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(mapper, referencedColumn, "UNNEST()");
 
 				//add column id to be joined
 				columnIdsToJoin.add(columnTranslationReference.getId());
@@ -695,13 +693,13 @@ public class SQLTranslatorUtils {
 	 * @param booleanPrimary
 	 * @param columnTranslationReferenceLookup
 	 */
-	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup){
+	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, TableAndColumnMapper mapper){
 		if(booleanPrimary.getPredicate() != null){
 			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getFirstElementOfType(BooleanFunctionPredicate.class);
 			if(bfp != null){
-				String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
-				ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
-						.orElseThrow(() -> new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName));
+				ColumnReference columnReference = bfp.getColumnReference();
+				ColumnTranslationReference columnTranslationReference = mapper.lookupColumnReference(columnReference)
+						.orElseThrow(() -> new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnReference.toSqlWithoutQuotes()));
 
 				if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
 					throw new IllegalArgumentException("(double boolean-functions can only be used on columns defined in the schema");
@@ -733,7 +731,7 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, TableAndColumnMapper mapper){
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, TableAndColumnMapper mapper){
 		if(booleanPrimary.getPredicate() == null) {
 			return; // "HAS" should always be under a Predicate
 		}
@@ -744,9 +742,9 @@ public class SQLTranslatorUtils {
 		
 		IdAndVersion idAndVersion = mapper.getSingleTableId().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 
-		String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
+		ColumnReference columnRefernece = arrayHasPredicate.getLeftHandSide();
 
-		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(columnTranslationReferenceLookup, columnName, "The " + arrayHasPredicate.getKeyWord() + " keyword");
+		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(mapper, columnRefernece, "The " + arrayHasPredicate.getKeyWord() + " keyword");
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
@@ -857,9 +855,9 @@ public class SQLTranslatorUtils {
 	 * @throws IllegalArgumentException if the column is not defined in the schema or does not have a _LIST ColumnType
 	 * @return SchemaColumnTranslationReference associated with the columnName
 	 */
-	private static SchemaColumnTranslationReference lookupAndRequireListColumn(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, String columnName, String errorMessageFunctionName){
-		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
-				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnName));
+	private static SchemaColumnTranslationReference lookupAndRequireListColumn(TableAndColumnMapper mapper, ColumnReference columnRefrence, String errorMessageFunctionName){
+		ColumnTranslationReference columnTranslationReference = mapper.lookupColumnReference(columnRefrence)
+				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnRefrence.toSqlWithoutQuotes()));
 		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
 			throw new IllegalArgumentException(errorMessageFunctionName + " may only be used on columns defined in the schema");
 		}
