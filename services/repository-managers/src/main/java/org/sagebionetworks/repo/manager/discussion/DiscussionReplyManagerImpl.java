@@ -82,7 +82,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		
 		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createReply.getMessageMarkdown(), threadId));
 		
-		// TODO: This is broken, a get on the thread sends a UPDATE message on the thread itself so that the thread stats are recomputed.
+		// TODO: This is not right: an UPDATE message is sent for the thread so that the thread stats are recomputed.
 		// It should instead send an update of the THREAD_VIEW object type so that it does not interferes with the the normal update messages
 		MessageToSend threadChange = new MessageToSend()
 				.withUserId(userInfo.getId())
