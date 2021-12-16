@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadStat;
 import org.sagebionetworks.repo.model.message.ChangeMessage;

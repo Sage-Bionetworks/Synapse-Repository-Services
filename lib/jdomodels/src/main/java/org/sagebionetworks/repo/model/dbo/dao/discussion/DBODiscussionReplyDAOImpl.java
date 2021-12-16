@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DiscussionReplyUtils;

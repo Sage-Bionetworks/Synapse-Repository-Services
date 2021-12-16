@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dao.discussion;
+package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import org.sagebionetworks.repo.model.discussion.Forum;
 
