@@ -61,39 +61,39 @@ public class DiscussionSearchIndexDaoImplTest {
 	}
 	
 	@Test
-	public void testCreateRecordForThread() {
+	public void testCreateOrUpdateRecordForThread() {
 				
 		DBODiscussionSearchIndexRecord expected = createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, "search content");
 		
 		// Call under test
-		dao.createRecordForThread(forumId, threadId, expected.getSearchContent());
+		dao.createOrUpdateRecordForThread(forumId, threadId, expected.getSearchContent());
 		
 		assertEquals(Arrays.asList(expected), dao.listRecords(forumId));
 		
 	}
 	
 	@Test
-	public void testCreateRecordForThreadExisting() {
+	public void testCreateOrUpdateRecordForThreadExisting() {
 		
-		dao.createRecordForThread(forumId, threadId, "search content");
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content");
 		
 		DBODiscussionSearchIndexRecord expected = createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, "search content updated");
 		
 		// Call under test
-		dao.createRecordForThread(forumId, threadId, expected.getSearchContent());
+		dao.createOrUpdateRecordForThread(forumId, threadId, expected.getSearchContent());
 		
 		assertEquals(Arrays.asList(expected), dao.listRecords(forumId));
 		
 	}
 	
 	@Test
-	public void testCreateRecordForThreadWithNoForum() {
+	public void testCreateOrUpdateRecordForThreadWithNoForum() {
 
 		String searchContent = "search content";
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForThread(null, threadId, searchContent);
+			dao.createOrUpdateRecordForThread(null, threadId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The forumId is required.", message);
@@ -101,13 +101,13 @@ public class DiscussionSearchIndexDaoImplTest {
 	}
 	
 	@Test
-	public void testCreateRecordForThreadWithNoThread() {
+	public void testCreateOrUpdateRecordForThreadWithNoThread() {
 
 		String searchContent = "search content";
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForThread(forumId, null, searchContent);
+			dao.createOrUpdateRecordForThread(forumId, null, searchContent);
 		}).getMessage();
 		
 		assertEquals("The threadId is required.", message);
@@ -115,13 +115,13 @@ public class DiscussionSearchIndexDaoImplTest {
 	}
 	
 	@Test
-	public void testCreateRecordForThreadWithNoSearchContent() {
+	public void testCreateOrUpdateRecordForThreadWithNoSearchContent() {
 
 		String searchContent = null;
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForThread(forumId, threadId, searchContent);
+			dao.createOrUpdateRecordForThread(forumId, threadId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The searchContent is required.", message);
@@ -129,37 +129,37 @@ public class DiscussionSearchIndexDaoImplTest {
 	}
 	
 	@Test
-	public void testCreateRecordForReply() {
+	public void testCreateOrUpdateRecordForReply() {
 		
 		Long replyId = 123L;
 				
 		DBODiscussionSearchIndexRecord expected = createRecord(replyId, "search content");
 		
 		// Call under test
-		dao.createRecordForReply(forumId, threadId, replyId, expected.getSearchContent());
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, expected.getSearchContent());
 		
 		assertEquals(Arrays.asList(expected), dao.listRecords(forumId));
 		
 	}
 	
 	@Test
-	public void testCreateRecordForReplyExisting() {
+	public void testCreateOrUpdateRecordForReplyExisting() {
 		
 		Long replyId = 123L;
 		
-		dao.createRecordForReply(forumId, threadId, replyId, "search content");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "search content");
 		
 		DBODiscussionSearchIndexRecord expected = createRecord(replyId, "search content updated");
 		
 		// Call under test
-		dao.createRecordForReply(forumId, threadId, replyId, expected.getSearchContent());
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, expected.getSearchContent());
 		
 		assertEquals(Arrays.asList(expected), dao.listRecords(forumId));
 		
 	}
 	
 	@Test
-	public void testCreateRecordForReplyWithNoForum() {
+	public void testCreateOrUpdateRecordForReplyWithNoForum() {
 		
 		Long replyId = 123L;
 				
@@ -167,14 +167,14 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForReply(null, threadId, replyId, searchContent);
+			dao.createOrUpdateRecordForReply(null, threadId, replyId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The forumId is required.", message);
 	}
 	
 	@Test
-	public void testCreateRecordForReplyWithNoThread() {
+	public void testCreateOrUpdateRecordForReplyWithNoThread() {
 		
 		Long replyId = 123L;
 				
@@ -182,14 +182,14 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForReply(forumId, null, replyId, searchContent);
+			dao.createOrUpdateRecordForReply(forumId, null, replyId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The threadId is required.", message);
 	}
 	
 	@Test
-	public void testCreateRecordForReplyWithNoReply() {
+	public void testCreateOrUpdateRecordForReplyWithNoReply() {
 		
 		Long replyId = null;
 				
@@ -197,14 +197,14 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForReply(forumId, threadId, replyId, searchContent);
+			dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The replyId is required.", message);
 	}
 	
 	@Test
-	public void testCreateRecordForReplyWithUnexpectedReply() {
+	public void testCreateOrUpdateRecordForReplyWithUnexpectedReply() {
 		
 		Long replyId = DBODiscussionSearchIndexRecord.NO_REPLY_ID;
 				
@@ -212,14 +212,14 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForReply(forumId, threadId, replyId, searchContent);
+			dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
 		}).getMessage();
 		
 		assertEquals("Unexpected replyId: " + replyId, message);
 	}	
 	
 	@Test
-	public void testCreateRecordForReplyWithNoSearchContent() {
+	public void testCreateOrUpdateRecordForReplyWithNoSearchContent() {
 		
 		Long replyId = 123L;
 				
@@ -227,99 +227,151 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			dao.createRecordForReply(forumId, threadId, replyId, searchContent);
+			dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
 		}).getMessage();
 		
 		assertEquals("The searchContent is required.", message);
 	}
 	
-	
 	@Test
-	public void deleteByForum() {
+	public void testMarkThreadAsDeleted() {
+		String searchContent = "search content";
 		Long replyId = 123L;
 		
-		dao.createRecordForThread(forumId, threadId, "search content");
-		dao.createRecordForReply(forumId, threadId, replyId, "search content");
+		dao.createOrUpdateRecordForThread(forumId, threadId, searchContent);
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
+		
+		List<DBODiscussionSearchIndexRecord> expected = Arrays.asList(
+			createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent, true, false),
+			createRecord(replyId, searchContent, true, false)
+		);
 		
 		// Call under test
-		dao.deleteByForumId(forumId);
-		
-		assertEquals(Collections.emptyList(), dao.listRecords(forumId));
+		dao.markThreadAsDeleted(threadId);
+				
+		assertEquals(expected, dao.listRecords(forumId));
 	}
 	
 	@Test
-	public void deleteByForumNoForum() {		
-		String message = assertThrows(IllegalArgumentException.class, () -> { 			
-			// Call under test
-			dao.deleteByForumId(null);
-		}).getMessage();
-		
-		assertEquals("The forumId is required.", message);
-	}
-	
-	@Test
-	public void deleteByThread() {
+	public void testMarkThreadAsNotDeleted() {
+		String searchContent = "search content";
 		Long replyId = 123L;
 		
-		dao.createRecordForThread(forumId, threadId, "search content");
-		dao.createRecordForReply(forumId, threadId, replyId, "search content");
+		dao.createOrUpdateRecordForThread(forumId, threadId, searchContent);
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
+		
+		dao.markThreadAsDeleted(threadId);
+		
+		List<DBODiscussionSearchIndexRecord> expected = Arrays.asList(
+			createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent),
+			createRecord(replyId, searchContent)
+		);
 		
 		// Call under test
-		dao.deleteByThreadId(threadId);
+		dao.markThreadAsNotDeleted(threadId);
 		
-		assertEquals(Collections.emptyList(), dao.listRecords(forumId));
+		assertEquals(expected, dao.listRecords(forumId));
 	}
 	
 	@Test
-	public void deleteByThreadNoThread() {
-		
-		String message = assertThrows(IllegalArgumentException.class, () -> { 			
-			// Call under test
-			dao.deleteByThreadId(null);
-		}).getMessage();
-		
-		assertEquals("The threadId is required.", message);
-	}
-	
-	@Test
-	public void deleteByReply() {
+	public void testMarkReplyAsDeleted() {
+		String searchContent = "search content";
 		Long replyId = 123L;
 		
-		dao.createRecordForThread(forumId, threadId, "search content");
-		dao.createRecordForReply(forumId, threadId, replyId, "search content");
+		dao.createOrUpdateRecordForThread(forumId, threadId, searchContent);
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
 		
-		DBODiscussionSearchIndexRecord expected = createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, "search content");
+		List<DBODiscussionSearchIndexRecord> expected = Arrays.asList(
+			createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent, false, false),
+			createRecord(replyId, searchContent, false, true)
+		);
 		
 		// Call under test
-		dao.deleteByReplyId(replyId);
-		
-		assertEquals(Arrays.asList(expected), dao.listRecords(forumId));
+		dao.markReplyAsDeleted(replyId);
+				
+		assertEquals(expected, dao.listRecords(forumId));
 	}
 	
 	@Test
-	public void deleteByReplyNoReply() {
+	public void testMarkReplyAsNotDeleted() {
+		String searchContent = "search content";
+		Long replyId = 123L;
 		
-		String message = assertThrows(IllegalArgumentException.class, () -> { 			
-			// Call under test
-			dao.deleteByReplyId(null);
-		}).getMessage();
+		dao.createOrUpdateRecordForThread(forumId, threadId, searchContent);
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, searchContent);
 		
-		assertEquals("The replyId is required.", message);
+		dao.markReplyAsDeleted(replyId);
+		
+		List<DBODiscussionSearchIndexRecord> expected = Arrays.asList(
+			createRecord(DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent),
+			createRecord(replyId, searchContent)
+		);
+		
+		// Call under test
+		dao.markReplyAsNotDeleted(replyId);
+		
+		assertEquals(expected, dao.listRecords(forumId));
 	}
-	
+				
 	@Test
 	public void testSearch() {
 		String searchString = "search content";
 		
 		Long replyId = 123L;
 		
-		dao.createRecordForThread(forumId, threadId, "search content thread");
-		dao.createRecordForReply(forumId, threadId, replyId, "content reply");
-		dao.createRecordForReply(forumId, threadId, replyId + 1, "non-matching reply");
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content thread");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 1, "search content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 2, "non-matching reply");
 		
 		List<Match> expected = Arrays.asList(
 			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(null),
-			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(replyId.toString())
+			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(String.valueOf(replyId + 1)),
+			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(String.valueOf(replyId))
+		);
+		
+		// Call under test
+		List<Match> result = dao.search(forumId, searchString, 10, 0);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchWithDeletedThread() {
+		String searchString = "search content";
+		
+		Long replyId = 123L;
+		
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content thread");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 1, "non-matching reply");
+		
+		dao.markThreadAsDeleted(threadId);
+		
+		List<Match> expected = Collections.emptyList();
+		
+		// Call under test
+		List<Match> result = dao.search(forumId, searchString, 10, 0);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchWithDeletedReply() {
+		String searchString = "search content";
+		
+		Long replyId = 123L;
+		
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content thread");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 1, "deleted content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 2, "non-matching reply");
+		
+		dao.markReplyAsDeleted(replyId + 1);
+		
+		List<Match> expected = Arrays.asList(
+			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(null),
+			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(String.valueOf(replyId))
 		);
 		
 		// Call under test
@@ -336,12 +388,12 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		String searchString = "search content";
 		
-		Long replyId = 123L;
-		Long anotherReplyId = 456L;
+		Long replyId = 456L;
+		Long anotherReplyId = 123L;
 		
-		dao.createRecordForThread(forumId, threadId, "search content content thread");
-		dao.createRecordForReply(forumId, threadId, replyId, "content content reply");
-		dao.createRecordForReply(forumId, threadId, anotherReplyId, "content reply");
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content content thread");
+		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "content content reply");
+		dao.createOrUpdateRecordForReply(forumId, threadId, anotherReplyId, "content reply");
 		
 		List<Match> expectedFirstPage = Arrays.asList(
 			new Match().setForumId(forumId.toString()).setThreadId(threadId.toString()).setReplyId(null),
@@ -390,10 +442,16 @@ public class DiscussionSearchIndexDaoImplTest {
 	}
 	
 	private DBODiscussionSearchIndexRecord createRecord(Long replyId, String searchContent) {
+		return createRecord(replyId, searchContent, false, false);
+	}
+	
+	private DBODiscussionSearchIndexRecord createRecord(Long replyId, String searchContent, boolean threadDeleted, boolean replyDeleted) {
 		DBODiscussionSearchIndexRecord record = new DBODiscussionSearchIndexRecord();
 		record.setForumId(forumId);
 		record.setThreadId(threadId);
+		record.setThreadDeleted(threadDeleted);
 		record.setReplyId(replyId);
+		record.setReplyDeleted(replyDeleted);
 		record.setSearchContent(searchContent);
 		return record;
 	}
