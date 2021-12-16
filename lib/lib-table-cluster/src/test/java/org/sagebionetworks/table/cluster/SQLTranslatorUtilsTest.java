@@ -2827,7 +2827,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testGetSchemaOfDerivedColumnWithSimpleMatch() throws ParseException {
+	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2841,6 +2841,26 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithEachType() throws ParseException {
+		for(ColumnModel cm: TableModelTestUtils.createOneOfEachType()) {
+			cm.setName("foo");
+			QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+			Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+			map.put(IdAndVersion.parse("syn123"), Arrays.asList(cm));
+			TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+			
+			DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+			ColumnModel expected = new ColumnModel();
+			expected.setName("foo");
+			expected.setColumnType(cm.getColumnType());
+			expected.setMaximumSize(cm.getMaximumSize());
+			expected.setId(null);
+			// call under test
+			assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		}
 	}
 	
 	@Test
@@ -2859,4 +2879,5 @@ public class SQLTranslatorUtilsTest {
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
+	
 }

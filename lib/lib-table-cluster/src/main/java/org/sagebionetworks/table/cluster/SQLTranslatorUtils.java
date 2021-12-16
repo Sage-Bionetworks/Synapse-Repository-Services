@@ -998,25 +998,29 @@ public class SQLTranslatorUtils {
 	
 	/**
 	 * Get a ColumnModel representation of each column from the SQL's select
-	 * statement. Note: When a result ColumnModel does not match any of the columns
-	 * from the source table/view, the {@link ColumnModel#getId()} will be null.
+	 * statement. Note: The {@link ColumnModel#getId()} will always be null.
 	 * @param derivedColumn
 	 * @param tableAndColumnMapper
 	 * @return
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper) {
-		
-		int maxSize = 0;
+		int maxSizeBytes = 0;
+		ColumnType columnType = null;
 		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
 			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
 			if(ctr != null) {
 				Long maximumListSize = null;
-				maxSize += TableModelUtils.calculateMaxSizeForType(ctr.getColumnType(), ctr.getMaximumSize(), maximumListSize);
+				maxSizeBytes += TableModelUtils.calculateMaxSizeForType(ctr.getColumnType(), ctr.getMaximumSize(), maximumListSize);
+				columnType = ctr.getColumnType();
 			}
 		}
+
 		ColumnModel result = new ColumnModel();
-		result.setColumnType(ColumnType.STRING);
-		result.setMaximumSize(new Long(maxSize/4));
+		result.setColumnType(columnType);
+		if(TableModelUtils.isMaximumSizeRequired(columnType)) {
+			Long maxSizeChars = new Long(maxSizeBytes/4);
+			result.setMaximumSize(maxSizeChars);
+		}
 		result.setName(derivedColumn.toSqlWithoutQuotes());
 		result.setId(null);
 		return result;
