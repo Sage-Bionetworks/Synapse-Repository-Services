@@ -24,17 +24,7 @@ public interface DiscussionSearchIndexManager {
 	DiscussionSearchResponse search(UserInfo userInfo, Long forumId, DiscussionSearchRequest request);
 	
 	/* Worker methods */
-	
-	// When a thread is created or updated they need to be (re)indexed
-	
-	// A reply can be "soft" deleted, this would send an update message and we should check if the reply is marked as deleted in which case the
-	// record should mark the reply as deleted.
-	
-	// A thread can be "soft" deleted, this would send an update message and we should check if the thread was deleted in which case
-	// all the records for that thread will be marked as deleted.
-	
-	// A thread can also be restored, this would send an update message. In this case we need to make sure all the records matching the thread as "restored" (e.g. marked as not deleted).
-	
+		
 	/**
 	 * When a thread change message is sent and consumed by a worker this method will update the search index accordingly.
 	 * In particular if a thread has been marked as deleted all the records for that thread will be marked as deleted so they won't appear in the search results.
@@ -48,6 +38,8 @@ public interface DiscussionSearchIndexManager {
 	 * When a reply change message is send and consumed by a worker this method will updated the search index accordingly.
 	 * In particular if a reply has been marked as deleted the record for the reply will be marked as deleted so it won't appear in the search results.
 	 * If a reply is instead available the reply will be added or updated in the index and marked as not deleted.
+	 * 
+	 * Additionally, all the records for the thread of the reply will be marked as deleted or not according to the current status of the thread.
 	 *  
 	 * @param replyId The id of the reply that was changed (created or updated)
 	 */
