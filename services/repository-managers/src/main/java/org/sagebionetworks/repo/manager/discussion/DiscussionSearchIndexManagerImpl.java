@@ -14,11 +14,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionSearchIndexDao;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
 import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.Match;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -57,7 +59,9 @@ public class DiscussionSearchIndexManagerImpl implements DiscussionSearchIndexMa
 	}
 
 	private DiscussionSearchIndexDao searchIndexDao;
-	
+
+	private ForumDAO forumDao;
+
 	private DiscussionThreadDAO threadDao;
 	
 	private DiscussionReplyDAO replyDao;
@@ -67,8 +71,9 @@ public class DiscussionSearchIndexManagerImpl implements DiscussionSearchIndexMa
 	private AuthorizationManager authManager;
 	
 	@Autowired
-	public DiscussionSearchIndexManagerImpl(DiscussionSearchIndexDao searchIndexDao, DiscussionThreadDAO threadDao, DiscussionReplyDAO replyDao, UploadContentToS3DAO contentDao, AuthorizationManager authManager) {
+	public DiscussionSearchIndexManagerImpl(DiscussionSearchIndexDao searchIndexDao, ForumDAO forumDao, DiscussionThreadDAO threadDao, DiscussionReplyDAO replyDao, UploadContentToS3DAO contentDao, AuthorizationManager authManager) {
 		this.searchIndexDao = searchIndexDao;
+		this.forumDao = forumDao;
 		this.threadDao = threadDao;
 		this.replyDao = replyDao;
 		this.contentDao = contentDao;
@@ -86,7 +91,9 @@ public class DiscussionSearchIndexManagerImpl implements DiscussionSearchIndexMa
 		
 		ValidateArgument.requirement(searchString.length() >= MIN_SEARCH_STRING_LENGTH, "The search string should be at least " + MIN_SEARCH_STRING_LENGTH + " characters.");
 		
-		authManager.canAccess(userInfo, forumId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		Forum forum = forumDao.getForum(forumId);
+		
+		authManager.canAccess(userInfo, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		
 		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
 		

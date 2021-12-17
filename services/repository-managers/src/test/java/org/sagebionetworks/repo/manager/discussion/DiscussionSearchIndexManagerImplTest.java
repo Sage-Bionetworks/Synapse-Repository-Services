@@ -30,11 +30,13 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionSearchIndexDao;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
 import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.Match;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -48,6 +50,9 @@ public class DiscussionSearchIndexManagerImplTest {
 
 	@Mock
 	private DiscussionSearchIndexDao mockDao;
+	
+	@Mock
+	private ForumDAO mockForumDao;
 	
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
@@ -68,13 +73,17 @@ public class DiscussionSearchIndexManagerImplTest {
 	private UserInfo mockUser;
 	
 	@Mock
+	private Forum mockForum;
+	
+	@Mock
 	private DiscussionThreadBundle mockThread;
 	
 	@Mock
 	private DiscussionReplyBundle mockReply;
-	
+		
 	@Test
 	public void testSearch() {
+		String projectId = "syn789";
 		Long forumId = 123L;
 		String searchString = "searchString";
 		
@@ -83,6 +92,8 @@ public class DiscussionSearchIndexManagerImplTest {
 			new Match().setForumId(forumId.toString()).setThreadId("456").setReplyId("789")
 		);
 		
+		when(mockForumDao.getForum(anyLong())).thenReturn(mockForum);
+		when(mockForum.getProjectId()).thenReturn(projectId);
 		when(mockDao.search(any(), any(), anyLong(), anyLong())).thenReturn(matches);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
@@ -98,13 +109,14 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockAuthManager).canAccess(mockUser, forumId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUser, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockDao).search(forumId, searchString, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		
 	}
 	
 	@Test
 	public void testSearchWithAdditionalResults() {
+		String projectId = "syn789";
 		Long forumId = 123L;
 		String searchString = "searchString";
 		
@@ -114,6 +126,8 @@ public class DiscussionSearchIndexManagerImplTest {
 			matches.add(new Match().setForumId(forumId.toString()).setThreadId("456").setReplyId(String.valueOf(i)));
 		}
 		
+		when(mockForumDao.getForum(anyLong())).thenReturn(mockForum);
+		when(mockForum.getProjectId()).thenReturn(projectId);
 		when(mockDao.search(any(), any(), anyLong(), anyLong())).thenReturn(matches);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
@@ -129,16 +143,19 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockAuthManager).canAccess(mockUser, forumId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUser, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockDao).search(forumId, searchString, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		
 	}
 	
 	@Test
 	public void testSearchUnauthorized() {
+		String projectId = "syn789";
 		Long forumId = 123L;
 		String searchString = "searchString";
 		
+		when(mockForumDao.getForum(anyLong())).thenReturn(mockForum);
+		when(mockForum.getProjectId()).thenReturn(projectId);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("denied"));
 		
 		DiscussionSearchRequest searchRequest = new DiscussionSearchRequest()
@@ -151,7 +168,7 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("denied", message);
 		
-		verify(mockAuthManager).canAccess(mockUser, forumId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(mockUser, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verifyZeroInteractions(mockDao);
 		
 	}
