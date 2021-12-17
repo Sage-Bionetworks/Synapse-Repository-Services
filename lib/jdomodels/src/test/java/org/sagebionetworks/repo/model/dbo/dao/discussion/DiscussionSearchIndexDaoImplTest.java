@@ -46,6 +46,7 @@ public class DiscussionSearchIndexDaoImplTest {
 
 	@BeforeEach
 	public void before() {
+		nodeHelper.truncateAll();
 		
 		String projectId = nodeHelper.create(node -> {
 			node.setNodeType(EntityType.project);
@@ -319,7 +320,7 @@ public class DiscussionSearchIndexDaoImplTest {
 		
 		Long replyId = 123L;
 		
-		dao.createOrUpdateRecordForThread(forumId, threadId, "search content thread");
+		dao.createOrUpdateRecordForThread(forumId, threadId, "search content content thread");
 		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 1, "search content reply");
 		dao.createOrUpdateRecordForReply(forumId, threadId, replyId, "content reply");
 		dao.createOrUpdateRecordForReply(forumId, threadId, replyId + 2, "non-matching reply");
