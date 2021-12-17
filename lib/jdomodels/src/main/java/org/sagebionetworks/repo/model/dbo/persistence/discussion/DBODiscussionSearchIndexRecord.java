@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_REPLY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_THREAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_SEARCH_INDEX;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_SEARCH_INDEX;
@@ -26,7 +28,10 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 		new FieldColumn("forumId", COL_DISCUSSION_SEARCH_INDEX_FORUM_ID, true),
 		new FieldColumn("threadId", COL_DISCUSSION_SEARCH_INDEX_THREAD_ID, true),
 		new FieldColumn("replyId", COL_DISCUSSION_SEARCH_INDEX_REPLY_ID, true),
+		new FieldColumn("threadDeleted", COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED),
+		new FieldColumn("replyDeleted", COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED),
 		new FieldColumn("searchContent", COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT)
+		
 	};
 
 	private static final TableMapping<DBODiscussionSearchIndexRecord> TABLE_MAPPER = new TableMapping<DBODiscussionSearchIndexRecord>() {
@@ -41,7 +46,9 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 			DBODiscussionSearchIndexRecord indexRecord = new DBODiscussionSearchIndexRecord();
 			indexRecord.setForumId(rs.getLong(COL_DISCUSSION_SEARCH_INDEX_FORUM_ID));
 			indexRecord.setThreadId(rs.getLong(COL_DISCUSSION_SEARCH_INDEX_THREAD_ID));
+			indexRecord.setThreadDeleted(rs.getBoolean(COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED));
 			indexRecord.setReplyId(rs.getLong(COL_DISCUSSION_SEARCH_INDEX_REPLY_ID));
+			indexRecord.setReplyDeleted(rs.getBoolean(COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED));
 			indexRecord.setSearchContent(rs.getString(COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT));
 			return indexRecord;
 		}
@@ -66,6 +73,8 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 	private Long forumId;
 	private Long threadId;
 	private Long replyId;
+	private Boolean threadDeleted;
+	private Boolean replyDeleted;
 	private String searchContent;
 
 	public DBODiscussionSearchIndexRecord() {
@@ -86,7 +95,15 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 	public void setThreadId(Long threadId) {
 		this.threadId = threadId;
 	}
-
+	
+	public Boolean getThreadDeleted() {
+		return threadDeleted;
+	}
+	
+	public void setThreadDeleted(Boolean threadDeleted) {
+		this.threadDeleted = threadDeleted;
+	}
+	
 	public Long getReplyId() {
 		return replyId;
 	}
@@ -94,6 +111,15 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 	public void setReplyId(Long replyId) {
 		this.replyId = replyId;
 	}
+	
+	public Boolean getReplyDeleted() {
+		return replyDeleted;
+	}
+	
+	public void setReplyDeleted(Boolean replyDeleted) {
+		this.replyDeleted = replyDeleted;
+	}
+
 
 	public String getSearchContent() {
 		return searchContent;
@@ -110,7 +136,7 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(forumId, replyId, searchContent, threadId);
+		return Objects.hash(forumId, replyDeleted, replyId, searchContent, threadDeleted, threadId);
 	}
 
 	@Override
@@ -125,14 +151,15 @@ public class DBODiscussionSearchIndexRecord implements DatabaseObject<DBODiscuss
 			return false;
 		}
 		DBODiscussionSearchIndexRecord other = (DBODiscussionSearchIndexRecord) obj;
-		return Objects.equals(forumId, other.forumId) && Objects.equals(replyId, other.replyId)
-				&& Objects.equals(searchContent, other.searchContent) && Objects.equals(threadId, other.threadId);
+		return Objects.equals(forumId, other.forumId) && Objects.equals(replyDeleted, other.replyDeleted)
+				&& Objects.equals(replyId, other.replyId) && Objects.equals(searchContent, other.searchContent)
+				&& Objects.equals(threadDeleted, other.threadDeleted) && Objects.equals(threadId, other.threadId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBODiscussionSearchIndex [forumId=" + forumId + ", threadId=" + threadId + ", replyId=" + replyId + ", searchContent="
-				+ searchContent + "]";
+		return "DBODiscussionSearchIndexRecord [forumId=" + forumId + ", threadId=" + threadId + ", replyId=" + replyId + ", threadDeleted="
+				+ threadDeleted + ", replyDeleted=" + replyDeleted + ", searchContent=" + searchContent + "]";
 	}
 
 }

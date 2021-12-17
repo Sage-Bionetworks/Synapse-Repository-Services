@@ -7,45 +7,60 @@ import org.sagebionetworks.repo.model.discussion.Match;
 public interface DiscussionSearchIndexDao {
 	
 	/**
-	 * Creates a search index record for a thread, if a record exists already will update the search content
+	 * Creates a search index record for a thread, if a record exists already will update the search content. 
+	 * <br/>
+	 * Note: the threadDeleted and replyDeleted markers are not updated and set to false on creation.
 	 * 
 	 * @param forumId
 	 * @param threadId
 	 * @param searchContent
 	 */
-	void createRecordForThread(Long forumId, Long threadId, String searchContent);
+	void createOrUpdateRecordForThread(Long forumId, Long threadId, String searchContent);
 	
 	/**
-	 * Creates a search index record for a reply, if a record exists already will update the search content
+	 * Creates a search index record for a reply, if a record exists already will update the search content. 
+	 * <br/> 
+	 * Note: the threadDeleted and replyDeleted markers are not updated and set to false on creation.
 	 * 
 	 * @param forumId
 	 * @param threadId
 	 * @param replyId
 	 * @param searchContent
 	 */
-	void createRecordForReply(Long forumId, Long threadId, Long replyId, String searchContent);
+	void createOrUpdateRecordForReply(Long forumId, Long threadId, Long replyId, String searchContent);
 	
 	/**
-	 * Delete any record for the forum with the given id
-	 * @param forumId
-	 */
-	void deleteByForumId(Long forumId);
-	
-	/**
-	 * Delete any record for the thread with the given id
+	 * Marks the threadDeleted flag as true for all the records matching the given threadId.
 	 * 
 	 * @param threadId
 	 */
-	void deleteByThreadId(Long threadId);
+	void markThreadAsDeleted(Long threadId);
 	
 	/**
-	 * Delete any record for the reply with the given id
+	 * Marks the threadDeleted flag as false for all the records matching the given threadId.
+	 * 
+	 * @param threadId
+	 */
+	void markThreadAsNotDeleted(Long threadId);
+	
+	/**
+	 * Marks the replyDeleted flag as true for all the records matching the given replyId.
+	 *  
 	 * @param replyId
 	 */
-	void deleteByReplyId(Long replyId);
+	void markReplyAsDeleted(Long replyId);
 	
 	/**
-	 * Performs a full text search in the forum with the given id, return a page of results ranked by relevance
+	 * Marks the replyDeleted flag as false for all the records matching the given replyId.
+	 * 
+	 * @param replyId
+	 */
+	void markReplyAsNotDeleted(Long replyId);
+	
+	/**
+	 * Performs a full text search in the forum with the given id, return a page of results ranked by relevance.
+	 * 
+	 * Excludes any thread or reply that is marked as deleted.
 	 * 
 	 * @param searchString
 	 * @param limit

@@ -4,6 +4,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_REPLY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_SEARCH_INDEX;
 
 import java.util.List;
@@ -35,11 +37,7 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 		
 		return match;
 	};
-	
-	private static final String deleteByFieldSql(String field) {
-		return "DELETE FROM " + TABLE_DISCUSSION_SEARCH_INDEX + " WHERE " + field + " = ?";
-	}
-	
+		
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
@@ -49,7 +47,7 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 	
 	@Override
 	@WriteTransaction
-	public void createRecordForReply(Long forumId, Long threadId, Long replyId, String searchContent) {
+	public void createOrUpdateRecordForReply(Long forumId, Long threadId, Long replyId, String searchContent) {
 		if (DBODiscussionSearchIndexRecord.NO_REPLY_ID.equals(replyId)) {
 			throw new IllegalArgumentException("Unexpected replyId: " + replyId);
 		}
@@ -58,7 +56,7 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 	
 	@Override
 	@WriteTransaction
-	public void createRecordForThread(Long forumId, Long threadId, String searchContent) {
+	public void createOrUpdateRecordForThread(Long forumId, Long threadId, String searchContent) {
 		createOrUpdate(forumId, threadId, DBODiscussionSearchIndexRecord.NO_REPLY_ID, searchContent);
 	}
 
@@ -68,39 +66,53 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 		ValidateArgument.required(replyId, "The replyId");
 		ValidateArgument.required(searchContent, "The searchContent");
 		
-		String inserSql = "INSERT INTO " + TABLE_DISCUSSION_SEARCH_INDEX + " VALUES(?, ?, ?, ?) ON DUPLICATE KEY UPDATE " + COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT + " = ?";
+		String inserSql = "INSERT INTO " + TABLE_DISCUSSION_SEARCH_INDEX + " VALUES(?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE " + COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT + " = ?";
 		
-		jdbcTemplate.update(inserSql, forumId, threadId, replyId, searchContent, searchContent);
+		jdbcTemplate.update(inserSql, forumId, threadId, false, replyId, false, searchContent, searchContent);
 	}
 
 	@Override
 	@WriteTransaction
-	public void deleteByForumId(Long forumId) {
-		ValidateArgument.required(forumId, "The forumId");
-		
-		String deleteSql = deleteByFieldSql(COL_DISCUSSION_SEARCH_INDEX_FORUM_ID);
-		
-		jdbcTemplate.update(deleteSql, forumId);
-	}
-
-	@Override
-	@WriteTransaction
-	public void deleteByThreadId(Long threadId) {
+	public void markThreadAsDeleted(Long threadId) {
 		ValidateArgument.required(threadId, "The threadId");
 		
-		String deleteSql = deleteByFieldSql(COL_DISCUSSION_SEARCH_INDEX_THREAD_ID);
-		
-		jdbcTemplate.update(deleteSql, threadId);
-	}
+		String updateSql = "UPDATE " + TABLE_DISCUSSION_SEARCH_INDEX + " SET " + COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED + " = TRUE "
+			+ " WHERE " + COL_DISCUSSION_SEARCH_INDEX_THREAD_ID + " = ?"; 
 
+		jdbcTemplate.update(updateSql, threadId);		
+	}
+	
 	@Override
 	@WriteTransaction
-	public void deleteByReplyId(Long replyId) {
+	public void markThreadAsNotDeleted(Long threadId) {
+		ValidateArgument.required(threadId, "The threadId");
+		
+		String updateSql = "UPDATE " + TABLE_DISCUSSION_SEARCH_INDEX + " SET " + COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED + " = FALSE "
+				+ " WHERE " + COL_DISCUSSION_SEARCH_INDEX_THREAD_ID + " = ?";
+		
+		jdbcTemplate.update(updateSql, threadId);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void markReplyAsDeleted(Long replyId) {
 		ValidateArgument.required(replyId, "The replyId");
 		
-		String deleteSql = deleteByFieldSql(COL_DISCUSSION_SEARCH_INDEX_REPLY_ID);
+		String updateSql = "UPDATE " + TABLE_DISCUSSION_SEARCH_INDEX + " SET " + COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED + " = TRUE "
+				+ " WHERE " + COL_DISCUSSION_SEARCH_INDEX_REPLY_ID + " = ?";
+
+		jdbcTemplate.update(updateSql, replyId);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void markReplyAsNotDeleted(Long replyId) {
+		ValidateArgument.required(replyId, "The replyId");
 		
-		jdbcTemplate.update(deleteSql, replyId);		
+		String updateSql = "UPDATE " + TABLE_DISCUSSION_SEARCH_INDEX + " SET " + COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED + " = FALSE "
+				+ " WHERE " + COL_DISCUSSION_SEARCH_INDEX_REPLY_ID + " = ?";
+		
+		jdbcTemplate.update(updateSql, replyId);
 	}
 	
 	@Override
@@ -110,7 +122,11 @@ public class DiscussionSearchIndexDaoImpl implements DiscussionSearchIndexDao {
 		
 		String searchSql = "SELECT " + COL_DISCUSSION_SEARCH_INDEX_FORUM_ID + ", " + COL_DISCUSSION_SEARCH_INDEX_THREAD_ID + ", " + COL_DISCUSSION_SEARCH_INDEX_REPLY_ID 
 			+ " FROM " + TABLE_DISCUSSION_SEARCH_INDEX
-			+ " WHERE MATCH(" + COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT + ") AGAINST(?) AND " + COL_DISCUSSION_SEARCH_INDEX_FORUM_ID + " = ?"
+			+ " WHERE"
+			+ " MATCH(" + COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT + ") AGAINST(?)"
+			+ " AND " + COL_DISCUSSION_SEARCH_INDEX_FORUM_ID + " = ? "
+			+ " AND " + COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED + " IS FALSE" 
+			+ " AND " + COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED + " IS FALSE"
 			+ " LIMIT ? OFFSET ?";
 		
 		return jdbcTemplate.query(searchSql, MATCH_ROW_MAPPER, searchString, forumId, limit, offset);

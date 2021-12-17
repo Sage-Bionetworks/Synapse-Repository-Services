@@ -952,6 +952,8 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_SEARCH_INDEX_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_SEARCH_INDEX_REPLY_ID = "REPLY_ID";
 	public static final String COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT = "SEARCH_CONTENT";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED = "THREAD_DELETED";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED = "REPLY_DELETED";
 	public static final String DDL_DISCUSSION_SEARCH_INDEX = "schema/discussion/DiscussionSearchIndex-ddl.sql";
 
 	// Discussion Thread Entity Reference table

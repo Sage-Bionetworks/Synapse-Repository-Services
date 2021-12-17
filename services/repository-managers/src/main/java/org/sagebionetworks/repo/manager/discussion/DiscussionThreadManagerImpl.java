@@ -121,6 +121,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		
+		// TODO: This is not right: an UPDATE message is sent for the thread so that the thread stats are recomputed.
+		// It should instead send an update of the THREAD_VIEW object type so that it does not interferes with the the normal update messages
 		MessageToSend changeMessage = new MessageToSend()
 				.withUserId(userInfo.getId())
 				.withObjectType(ObjectType.THREAD)
@@ -157,6 +159,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
+		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -177,6 +180,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
+		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -184,6 +188,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
+		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -288,6 +293,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
+		// TODO: this should send an update message
 	}
 
 	@Override
