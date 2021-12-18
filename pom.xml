@@ -1046,7 +1046,7 @@
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
-		<log4j.version>2.16.0</log4j.version>
+		<log4j.version>2.17.0</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
