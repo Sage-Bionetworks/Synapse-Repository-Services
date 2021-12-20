@@ -272,7 +272,7 @@ public class DiscussionThreadManagerImplTest {
 		
 		MessageToSend expectedMessage = new MessageToSend()
 				.withUserId(userInfo.getId())
-				.withObjectType(ObjectType.THREAD)
+				.withObjectType(ObjectType.THREAD_VIEW)
 				.withObjectId(threadId.toString())
 				.withChangeType(ChangeType.UPDATE);
 		
@@ -362,7 +362,16 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateTitle(anyLong(), any())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
+		
 		verify(mockThreadDao).insertEntityReference(titleEntityRefs);
+
+		MessageToSend expectedMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId.toString())
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 	@Test
@@ -399,6 +408,13 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockThreadDao).insertEntityReference(any(List.class));
+		MessageToSend expectedMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId.toString())
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 	@Test
@@ -418,6 +434,14 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		verify(mockThreadDao).markThreadAsDeleted(threadId);
+
+		MessageToSend expectedMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId.toString())
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 
@@ -438,6 +462,14 @@ public class DiscussionThreadManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
 		verify(mockThreadDao).markThreadAsNotDeleted(threadId);
+	
+		MessageToSend expectedMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId.toString())
+			.withChangeType(ChangeType.UPDATE);
+			
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 	@Test

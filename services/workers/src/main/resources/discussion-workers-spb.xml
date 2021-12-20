@@ -48,4 +48,40 @@
 		<property name="startDelay" value="1301" />
 		<property name="repeatInterval" value="1011" />
 	</bean>
+	
+	<bean id="discussionSearchIndexWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								<property name="runner">
+									<bean class="org.sagebionetworks.discussion.workers.DiscussionSearchIndexWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="discussionSearchIndexWorker" />
+								<property name="semaphoreMaxLockCount" value="3" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="20" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DISCUSSION_SEARCH_INDEX')}" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1542" />
+		<property name="repeatInterval" value="986" />
+	</bean>
 </beans>

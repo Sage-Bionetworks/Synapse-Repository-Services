@@ -44,7 +44,7 @@
     <import resource="classpath:object-snapshot-sqs-spb.xml"/>
     <import resource="classpath:principal-prefix-sqs-spb.xml"/>
     <import resource="classpath:file-bulk-download-spb.xml"/>
-    <import resource="classpath:discussion-thread-stat-spb.xml"/>
+    <import resource="classpath:discussion-workers-spb.xml"/>
     <import resource="classpath:broadcast-message-worker-sqs-spb.xml"/>
     <import resource="classpath:project-stats-v2-sqs-spb.xml"/>
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
@@ -94,6 +94,7 @@
 		<ref bean="objectQueueMessageReveiverTrigger"/>
 		<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
 		<ref bean="threadStatsWorkerTrigger"/>
+		<ref bean="discussionSearchIndexWorkerTrigger"/>
 		<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
 		<ref bean="migrationMessageReceiverTrigger"/>
 		<ref bean="doiMessageTrigger"/>
