@@ -82,11 +82,10 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		
 		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createReply.getMessageMarkdown(), threadId));
 		
-		// TODO: This is not right: an UPDATE message is sent for the thread so that the thread stats are recomputed.
-		// It should instead send an update of the THREAD_VIEW object type so that it does not interferes with the the normal update messages
+		// An additional message is sent to re-compute the statistics about the thread
 		MessageToSend threadChange = new MessageToSend()
 				.withUserId(userInfo.getId())
-				.withObjectType(ObjectType.THREAD)
+				.withObjectType(ObjectType.THREAD_VIEW)
 				.withObjectId(threadId)
 				.withChangeType(ChangeType.UPDATE);
 		
@@ -126,11 +125,19 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), reply.getThreadId()));
+			
+			MessageToSend replyChange = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.REPLY)
+					.withObjectId(replyId)
+					.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(replyChange);
+			
 			return reply;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
-		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -138,7 +145,15 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);
 		replyDao.markReplyAsDeleted(Long.parseLong(replyId));
-		// TODO: this should send an update message
+		
+		MessageToSend replyChange = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.REPLY)
+				.withObjectId(replyId)
+				.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(replyChange);
+		
 	}
 
 	@Override

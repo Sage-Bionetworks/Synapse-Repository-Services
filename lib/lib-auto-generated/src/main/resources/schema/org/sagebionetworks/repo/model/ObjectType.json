@@ -145,6 +145,10 @@
         {
             "name": "DATASET",
             "description": "A dataset is a view of a list of entities."
+        },
+        {
+        	"name": "THREAD_VIEW",
+        	"description": "Object used to proxy thread views"
         }
     ]
 }

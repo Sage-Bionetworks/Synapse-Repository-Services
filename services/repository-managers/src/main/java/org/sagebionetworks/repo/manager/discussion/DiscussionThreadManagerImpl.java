@@ -121,13 +121,12 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		
-		// TODO: This is not right: an UPDATE message is sent for the thread so that the thread stats are recomputed.
-		// It should instead send an update of the THREAD_VIEW object type so that it does not interferes with the the normal update messages
+		// An additional message is sent to re-compute the statistics about the thread
 		MessageToSend changeMessage = new MessageToSend()
-				.withUserId(userInfo.getId())
-				.withObjectType(ObjectType.THREAD)
-				.withObjectId(threadId)
-				.withChangeType(ChangeType.UPDATE);
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD_VIEW)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
 				
 		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 		
@@ -155,11 +154,19 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newTitle.getTitle(), thread.getId()));
+			
+			MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(changeMessage);
+			
 			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
-		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -176,11 +183,19 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
+			
+			MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(changeMessage);
+				
 			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
 		}
-		// TODO: this should send an update message
 	}
 
 	@WriteTransaction
@@ -188,7 +203,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
-		// TODO: this should send an update message
+		
+		MessageToSend changeMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 	}
 
 	@WriteTransaction
@@ -290,10 +312,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
+	@WriteTransaction
 	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
-		// TODO: this should send an update message
+
+		MessageToSend changeMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 	}
 
 	@Override

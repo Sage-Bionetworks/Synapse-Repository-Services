@@ -1,21 +1,25 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
 
 public class DiscussionUtilsTest {
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetMentionedUsernameCaseNullMarkdown() {
-		DiscussionUtils.getMentionedUsername(null);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			DiscussionUtils.getMentionedUsername(null);
+		});
 	}
 
 	@Test
@@ -96,14 +100,18 @@ public class DiscussionUtilsTest {
 		assertEquals(expected, DiscussionUtils.getMentionedUsername("@username1 @username2"));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetEntityRefCaseNullMarkdown() {
-		DiscussionUtils.getEntityReferences(null, "1");
+		assertThrows(IllegalArgumentException.class, () -> {
+			DiscussionUtils.getEntityReferences(null, "1");
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetEntityRefCaseNullThreadId() {
-		DiscussionUtils.getEntityReferences("", null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			DiscussionUtils.getEntityReferences("", null);
+		});
 	}
 
 	@Test
