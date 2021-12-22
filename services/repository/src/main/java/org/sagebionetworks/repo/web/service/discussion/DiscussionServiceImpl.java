@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
+import org.sagebionetworks.repo.manager.discussion.DiscussionSearchIndexManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -15,6 +16,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -26,16 +29,30 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DiscussionServiceImpl implements DiscussionService{
-	@Autowired
+	
 	private UserManager userManager;
-	@Autowired
+	
 	private ForumManager forumManager;
-	@Autowired
+	
 	private DiscussionThreadManager threadManager;
-	@Autowired
+	
 	private DiscussionReplyManager replyManager;
+	
+	private DiscussionSearchIndexManager searchManager;
+
+	@Autowired
+	public DiscussionServiceImpl(UserManager userManager, ForumManager forumManager, DiscussionThreadManager threadManager,
+			DiscussionReplyManager replyManager, DiscussionSearchIndexManager searchManager) {
+		this.userManager = userManager;
+		this.forumManager = forumManager;
+		this.threadManager = threadManager;
+		this.replyManager = replyManager;
+		this.searchManager = searchManager;
+	}
 
 	@Override
 	public Forum getForumByProjectId(Long userId, String projectId) {
@@ -182,5 +199,11 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return threadManager.getModerators(user, forumId, limit, offset);
+	}
+	
+	@Override
+	public DiscussionSearchResponse search(Long userId, String forumId, DiscussionSearchRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return searchManager.search(user, Long.valueOf(forumId), request);
 	}
 }

@@ -1075,6 +1075,7 @@ public class UrlHelpers {
 	public static final String ENTITY_THREAD_COUNTS = ENTITY+THREAD_COUNTS;
 	public static final String MODERATORS = "/moderators";
 	public static final String FORUM_FORUM_ID_MODERATORS = FORUM+FORUM_ID+MODERATORS;
+	public static final String FORUM_SEARCH = FORUM_FORUM_ID + "/search";
 
 	// Subscription Services
 	public static final String SUBSCRIPTION = "/subscription";

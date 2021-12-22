@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -340,5 +342,14 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		assertNotNull(moderators);
 		assertEquals((Long)1L, moderators.getTotalNumberOfResults());
 		assertTrue(moderators.getResults().contains(adminUserId.toString()));
+	}
+	
+	@Test
+	public void testForumSearch() throws Exception {
+		Forum forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		DiscussionSearchRequest request = new DiscussionSearchRequest().setSearchString("some text");
+		DiscussionSearchResponse expected = new DiscussionSearchResponse().setMatches(Collections.emptyList());
+		DiscussionSearchResponse response = servletTestHelper.forumSearch(dispatchServlet, adminUserId, forum.getId(), request);
+		assertEquals(expected, response);
 	}
 }
