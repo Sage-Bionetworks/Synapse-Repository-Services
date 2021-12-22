@@ -142,6 +142,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -5105,6 +5107,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void markReplyAsDeleted(String replyId) throws SynapseException {
 		deleteUri(getRepoEndpoint(), REPLY+"/"+replyId);
+	}
+	
+	@Override
+	public DiscussionSearchResponse forumSearch(String forumId, DiscussionSearchRequest request) throws SynapseException {
+		ValidateArgument.required(forumId, "forumId");
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), FORUM + "/" + forumId +"/search", request, DiscussionSearchResponse.class);
 	}
 
 	@Override

@@ -108,6 +108,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -2845,6 +2847,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	URL getThreadUrl(String messageKey) throws SynapseException;
+	
+	/**
+	 * Perform a full text search within the forum with the given id
+	 *  
+	 * @param forumId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	DiscussionSearchResponse forumSearch(String forumId, DiscussionSearchRequest request) throws SynapseException;
 	
 	/**
 	 * Low-level API to start a mutli-part upload.  Start or resume a mutli-part upload.
