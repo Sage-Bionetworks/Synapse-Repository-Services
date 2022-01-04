@@ -1435,13 +1435,13 @@ public class TableEntityManagerTest {
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
 		verify(mockColumModelManager).getColumnIdsForTable(idAndVersion);
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newColumnIds, schemaChangeRequest.getChanges(), transactionId);
-		verify(mockColumModelManager, never()).getColumnModelsForObject(any(IdAndVersion.class));
+		verify(mockColumModelManager, never()).getTableSchema(any(IdAndVersion.class));
 	}
 
 	@Test
 	public void testUpdateTableSchemaNoUpdate() throws Exception{
-		when(mockColumModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(models);
-		when(mockColumModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(models);
+		when(mockColumModelManager.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockColumModelManager.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null)).thenReturn(newColumnIds);
 		
 		List<String> currentSchema = Lists.newArrayList("111","222");
@@ -1458,7 +1458,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport, never()).touchTable(any(UserInfo.class), anyString());
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), any(List.class), any(List.class), anyLong());
 		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(any(IdAndVersion.class));
-		verify(mockColumModelManager).getColumnModelsForObject(idAndVersion);
+		verify(mockColumModelManager).getTableSchema(idAndVersion);
 	}
 	
 	@Test

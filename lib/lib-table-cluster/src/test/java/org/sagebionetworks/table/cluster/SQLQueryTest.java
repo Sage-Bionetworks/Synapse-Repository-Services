@@ -1116,6 +1116,24 @@ public class SQLQueryTest {
 						+ "WHERE ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )",
 				query.getOutputSQL());
 	}
+	
+	@Test
+	public void testGetSchemaOfSelect() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
+
+		sql = "select * from syn1 a where isNaN(doubletype)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).tableType(EntityType.table).build();
+		// call under test
+		List<ColumnModel> schema = query.getSchemaOfSelect();
+		List<ColumnModel> expected = Arrays.asList(
+				new ColumnModel().setName("a.foo").setColumnType(ColumnType.STRING).setId(null).setMaximumSize(50L),
+				new ColumnModel().setName("a.doubletype").setColumnType(ColumnType.DOUBLE).setId(null)
+		);
+		assertEquals(expected, schema);
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.

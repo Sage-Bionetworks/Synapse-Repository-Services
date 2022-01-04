@@ -502,7 +502,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
+	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion) {
 		return columnModelDao.getColumnModelsForObject(removeVersionAsNeeded(idAndVersion));
 	}
 	

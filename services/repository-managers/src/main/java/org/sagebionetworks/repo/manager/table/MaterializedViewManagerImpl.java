@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,11 +61,23 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		dao.deleteSourceTablesIds(idAndVersion, toDelete);
 		dao.addSourceTablesIds(idAndVersion, newSourceTables);
 		
+		bindSchemaToView(idAndVersion, querySpecification);
+		
 	}
 	
-	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification querySpecification) {
-		Long userId = -1L;
-		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification, userId).schemaProvider(columModelManager).allowJoins(true).build();
+	/**
+	 * Extract the schema from the defining query and bind the results to the provided materialized view.
+	 * 
+	 * @param idAndVersion
+	 * @param definingQuery
+	 */
+	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
+				.build();
+		// create each column as needed.
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
 	}
 	
 	static QuerySpecification getQuerySpecification(String definingSql) {
@@ -83,6 +97,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		
 		return sourceTableIds;
+	}
+
+	@Override
+	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
 
 }

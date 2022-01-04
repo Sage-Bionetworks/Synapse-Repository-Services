@@ -486,7 +486,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion) {
-		return columnModelManager.getColumnModelsForObject(idAndVersion);
+		return columnModelManager.getTableSchema(idAndVersion);
 	}
 
 	@Override

@@ -175,6 +175,8 @@ public class SqlQuery {
 			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
 			this.model.getSelectList().replaceElement(expandedSelectList);
 		}
+		
+		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
@@ -217,8 +219,6 @@ public class SqlQuery {
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();
-		
-		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(transformedModel.getSelectList(), tableAndColumnMapper);
 	}
 	
 	/**

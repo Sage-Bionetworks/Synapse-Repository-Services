@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 
@@ -24,5 +26,12 @@ public interface MaterializedViewManager {
 	 * @param definingSql  The sql defining the materialized view
 	 */
 	void registerSourceTables(IdAndVersion idAndVersion, String definingSql);
+
+	/**
+	 * Get the bound schema for the given materialized view.
+	 * @param idAndVersion
+	 * @return
+	 */
+	List<String> getSchemaIds(IdAndVersion idAndVersion);
 
 }

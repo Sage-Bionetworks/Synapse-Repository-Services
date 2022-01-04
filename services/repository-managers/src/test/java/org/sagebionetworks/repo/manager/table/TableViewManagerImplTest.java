@@ -368,7 +368,7 @@ public class TableViewManagerImplTest {
 				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
 				objectFieldModelResolver.getColumnModel(ObjectField.etag)
 				);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		assertEquals(rawSchema, result);
@@ -381,7 +381,7 @@ public class TableViewManagerImplTest {
 				objectFieldModelResolver.getColumnModel(ObjectField.createdBy),
 				objectFieldModelResolver.getColumnModel(ObjectField.etag)
 				);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
@@ -910,7 +910,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 
 		viewCRC = 987L;
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema)).thenReturn(viewCRC);
@@ -924,7 +924,7 @@ public class TableViewManagerImplTest {
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
-		verify(mockColumnModelManager).getColumnModelsForObject(idAndVersion);
+		verify(mockColumnModelManager).getTableSchema(idAndVersion);
 		boolean isTableView = true;
 		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
@@ -956,7 +956,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		long snapshotId = 998L;
 		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
@@ -971,7 +971,7 @@ public class TableViewManagerImplTest {
 		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
-		verify(mockColumnModelManager).getColumnModelsForObject(idAndVersion);
+		verify(mockColumnModelManager).getTableSchema(idAndVersion);
 		boolean isTableView = true;
 		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
@@ -1042,7 +1042,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 
 		viewCRC = 987L;
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema))
@@ -1171,7 +1171,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateSnapshot() throws IOException {
 		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
-		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupWriter();

@@ -6,27 +6,30 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-
 @Service
-public class MaterializedViewMetadataProvider implements EntityValidator<MaterializedView>, TypeSpecificCreateProvider<MaterializedView>, TypeSpecificUpdateProvider<MaterializedView> {
-	
+public class MaterializedViewMetadataProvider
+		implements EntityValidator<MaterializedView>, TypeSpecificCreateProvider<MaterializedView>,
+		TypeSpecificUpdateProvider<MaterializedView>, TypeSpecificMetadataProvider<MaterializedView> {
+
 	private MaterializedViewManager manager;
-	
+
 	@Autowired
 	public MaterializedViewMetadataProvider(MaterializedViewManager manager) {
 		this.manager = manager;
 	}
 
 	@Override
-	public void validateEntity(MaterializedView entity, EntityEvent event) throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+	public void validateEntity(MaterializedView entity, EntityEvent event)
+			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
 		manager.validate(entity);
 	}
-	
+
 	@Override
 	public void entityCreated(UserInfo userInfo, MaterializedView entity) {
 		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
@@ -37,7 +40,14 @@ public class MaterializedViewMetadataProvider implements EntityValidator<Materia
 		if (wasNewVersionCreated) {
 			throw new IllegalStateException("A materialized view version can only be created by creating a snapshot.");
 		}
-		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());		
+		manager.registerSourceTables(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+	}
+
+	@Override
+	public void addTypeSpecificMetadata(MaterializedView entity, UserInfo user, EventType eventType)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber());
+		entity.setColumnIds(manager.getSchemaIds(idAndVersion));
 	}
 
 }

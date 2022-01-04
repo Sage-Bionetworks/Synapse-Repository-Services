@@ -164,13 +164,6 @@ public interface ColumnModelManager extends SchemaProvider{
 	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion);
 
 	/**
-	 * Get the column models bound to this object.
-	 * @param idAndVersion
-	 * @return
-	 */
-	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion);
-
-	/**
 	 * Create a new column model.  Column models are immutable and cannot be deleted once they are used.
 	 * @param model
 	 * @return
