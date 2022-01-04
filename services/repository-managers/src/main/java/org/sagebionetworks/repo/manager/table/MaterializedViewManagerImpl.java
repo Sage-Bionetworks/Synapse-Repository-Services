@@ -50,16 +50,14 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
 		Set<IdAndVersion> currentSourceTables = dao.getSourceTablesIds(idAndVersion);
 		
-		if (newSourceTables.equals(currentSourceTables)) {
-			return;
+		if (!newSourceTables.equals(currentSourceTables)) {
+			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
+			
+			toDelete.removeAll(newSourceTables);
+			
+			dao.deleteSourceTablesIds(idAndVersion, toDelete);
+			dao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
-		
-		Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
-		
-		toDelete.removeAll(newSourceTables);
-		
-		dao.deleteSourceTablesIds(idAndVersion, toDelete);
-		dao.addSourceTablesIds(idAndVersion, newSourceTables);
 		
 		bindSchemaToView(idAndVersion, querySpecification);
 		

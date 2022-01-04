@@ -249,12 +249,14 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123";
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
-		manager.registerSourceTables(idAndVersion, sql);
+		managerSpy.registerSourceTables(idAndVersion, sql);
 
 		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
 
 	}
 
@@ -336,12 +338,14 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
-		manager.registerSourceTables(idAndVersion, sql);
+		managerSpy.registerSourceTables(idAndVersion, sql);
 
 		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
 
 	}
 
