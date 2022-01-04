@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -24,6 +25,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -53,6 +55,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -97,6 +100,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private ColumnModelManager columnModelManager;
 
 	private Long userId;
 	private UserInfo testUser;
@@ -140,6 +146,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		columnModelOne.setName("one");
 		columnModelOne.setColumnType(ColumnType.STRING);
 		columnModelOne = columnModelDao.createColumnModel(columnModelOne);
+		
+		columnModelManager.bindColumnsToVersionOfObject(Arrays.asList(columnModelOne.getId()), IdAndVersion.parse("syn123"));
 	}
 
 	@AfterEach
