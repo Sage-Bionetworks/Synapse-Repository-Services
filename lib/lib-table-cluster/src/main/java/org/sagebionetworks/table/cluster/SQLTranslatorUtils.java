@@ -1004,25 +1004,41 @@ public class SQLTranslatorUtils {
 	 * @return
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper) {
-		int maxSizeBytes = 0;
+		Long maximumSize = null;
+		Long maxListLength = null;
 		ColumnType columnType = null;
 		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
 			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
 			if(ctr != null) {
-				Long maximumListSize = null;
-				maxSizeBytes += TableModelUtils.calculateMaxSizeForType(ctr.getColumnType(), ctr.getMaximumSize(), maximumListSize);
+				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
+				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 				columnType = ctr.getColumnType();
 			}
 		}
 
 		ColumnModel result = new ColumnModel();
 		result.setColumnType(columnType);
-		if(TableModelUtils.isMaximumSizeRequired(columnType)) {
-			Long maxSizeChars = new Long(maxSizeBytes/4);
-			result.setMaximumSize(maxSizeChars);
-		}
+		result.setMaximumSize(maximumSize);
+		result.setMaximumListLength(maxListLength);
 		result.setName(derivedColumn.toSqlWithoutQuotes());
 		result.setId(null);
 		return result;
+	}
+	
+	/**
+	 * Addition for Longs that can be null.
+	 * 
+	 * @param currentValue
+	 * @param newValue
+	 * @return
+	 */
+	public static Long addLongsWithNull(Long currentValue, Long newValue) {
+		if(currentValue == null) {
+			return newValue;
+		}
+		if(newValue == null) {
+			return currentValue;
+		}
+		return currentValue + newValue;
 	}
 }

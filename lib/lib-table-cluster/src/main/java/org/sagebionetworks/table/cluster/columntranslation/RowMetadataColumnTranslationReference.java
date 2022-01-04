@@ -57,4 +57,9 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 		return Arrays.stream(RowMetadataColumnTranslationReference.values())
 				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> (ColumnTranslationReference) r);
 	}
+
+	@Override
+	public Long getMaximumListLength() {
+		return null;
+	}
 }

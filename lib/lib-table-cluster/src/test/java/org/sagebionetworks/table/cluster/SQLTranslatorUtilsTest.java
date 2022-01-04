@@ -2844,6 +2844,14 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testAddLongWithNull() {
+		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
+		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
+	}
+	
+	@Test
 	public void testGetSchemaOfDerivedColumnWithEachType() throws ParseException {
 		for(ColumnModel cm: TableModelTestUtils.createOneOfEachType()) {
 			cm.setName("foo");
@@ -2857,7 +2865,9 @@ public class SQLTranslatorUtilsTest {
 			expected.setName("foo");
 			expected.setColumnType(cm.getColumnType());
 			expected.setMaximumSize(cm.getMaximumSize());
+			expected.setMaximumListLength(cm.getMaximumListLength());
 			expected.setId(null);
+
 			// call under test
 			assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 		}

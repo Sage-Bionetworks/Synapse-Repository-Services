@@ -30,4 +30,10 @@ public interface ColumnTranslationReference {
 	 * @return
 	 */
 	public Long getMaximumSize();
+	
+	/**
+	 * For list types, get the max list length.
+	 * @return Null for non-list
+	 */
+	public Long getMaximumListLength();
 }
