@@ -10,11 +10,13 @@ import org.sagebionetworks.util.ValidateArgument;
 /**
  * ColumnTranslationReference derived from a ColumnModel that was associated with a schema
  */
-public class SchemaColumnTranslationReference implements ColumnTranslationReference{
+public class SchemaColumnTranslationReference implements ColumnTranslationReference {
 	private final ColumnType columnType;
 	private final String userQueryColumnName;
 	private final String translatedColumnName;
 	private final String id;
+	private final Long maximumSize;
+	private final Long maximumListLength;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
@@ -25,6 +27,8 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		this.id = columnModel.getId();
 		this.translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
 		this.userQueryColumnName = columnModel.getName();
+		this.maximumSize = columnModel.getMaximumSize();
+		this.maximumListLength = columnModel.getMaximumListLength();
 	}
 
 	@Override
@@ -42,7 +46,10 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		return translatedColumnName;
 	}
 
-
+	@Override
+	public Long getMaximumSize() {
+		return this.maximumSize;
+	}
 	/**
 	 * Id of the column
 	 * @return Id of the column
@@ -50,26 +57,38 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	public String getId() {
 		return id;
 	}
+	
+	@Override
+	public Long getMaximumListLength() {
+		return this.maximumListLength;
+	}
 
 	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		SchemaColumnTranslationReference reference = (SchemaColumnTranslationReference) o;
-		return columnType == reference.columnType &&
-				Objects.equals(userQueryColumnName, reference.userQueryColumnName) &&
-				Objects.equals(translatedColumnName, reference.translatedColumnName) &&
-				Objects.equals(id, reference.id);
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof SchemaColumnTranslationReference)) {
+			return false;
+		}
+		SchemaColumnTranslationReference other = (SchemaColumnTranslationReference) obj;
+		return columnType == other.columnType && Objects.equals(id, other.id)
+				&& Objects.equals(maximumListLength, other.maximumListLength)
+				&& Objects.equals(maximumSize, other.maximumSize)
+				&& Objects.equals(translatedColumnName, other.translatedColumnName)
+				&& Objects.equals(userQueryColumnName, other.userQueryColumnName);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnType, userQueryColumnName, translatedColumnName, id);
+		return Objects.hash(columnType, id, maximumListLength, maximumSize, translatedColumnName, userQueryColumnName);
 	}
 
 	@Override
 	public String toString() {
 		return "SchemaColumnTranslationReference [columnType=" + columnType + ", userQueryColumnName="
-				+ userQueryColumnName + ", translatedColumnName=" + translatedColumnName + ", id=" + id + "]";
+				+ userQueryColumnName + ", translatedColumnName=" + translatedColumnName + ", id=" + id
+				+ ", maximumSize=" + maximumSize + ", maximumListLength=" + maximumListLength + "]";
 	}
+
 }

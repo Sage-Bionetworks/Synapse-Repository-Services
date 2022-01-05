@@ -42,6 +42,10 @@ public class SqlQueryBuilder {
 		this.userId = userId;
 	}
 	
+	public SqlQueryBuilder(QuerySpecification model){
+		this.model = model;
+	}
+	
 	public SqlQueryBuilder(QuerySpecification model, Long userId){
 		this.model = model;
 		this.userId = userId;

@@ -2825,4 +2825,69 @@ public class SQLTranslatorUtilsTest {
 		assertTrue(translated.isPresent());
 		assertEquals("ROW_ID", translated.get().toSql());
 	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithSimpleString() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("foo");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testAddLongWithNull() {
+		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
+		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(123L, null));
+		assertEquals(4L, SQLTranslatorUtils.addLongsWithNull(3L, 1L));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithEachType() throws ParseException {
+		for(ColumnModel cm: TableModelTestUtils.createOneOfEachType()) {
+			cm.setName("foo");
+			QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+			Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+			map.put(IdAndVersion.parse("syn123"), Arrays.asList(cm));
+			TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+			
+			DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+			ColumnModel expected = new ColumnModel();
+			expected.setName("foo");
+			expected.setColumnType(cm.getColumnType());
+			expected.setMaximumSize(cm.getMaximumSize());
+			expected.setMaximumListLength(cm.getMaximumListLength());
+			expected.setId(null);
+
+			// call under test
+			assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+		}
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedAddition() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo + bar from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("foo+bar");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
 }

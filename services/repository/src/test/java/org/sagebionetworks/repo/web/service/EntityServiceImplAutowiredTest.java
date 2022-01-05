@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -569,6 +570,14 @@ public class EntityServiceImplAutowiredTest  {
 	
 	@Test
 	public void testMaterializedViewCRUD() {
+		// create a schema for the referenced tabled.
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.INTEGER);
+		foo.setName("foo");
+		foo = columnModelManager.createColumnModel(adminUserInfo, foo);
+		List<String> schema = Arrays.asList(foo.getId());
+		columnModelManager.bindColumnsToVersionOfObject(schema, IdAndVersion.parse("syn123"));
+		
 		boolean newVersion = false;
 		String activityId = null;
 		
@@ -580,6 +589,8 @@ public class EntityServiceImplAutowiredTest  {
 		
 		// call under test (create and get)
 		materializedView = entityService.createEntity(adminUserId, materializedView, activityId);
+		
+		assertEquals(Arrays.asList(foo.getId()), materializedView.getColumnIds());
 		
 		assertEquals(materializedView, entityService.getEntity(adminUserId, materializedView.getId()));
 		
@@ -600,6 +611,7 @@ public class EntityServiceImplAutowiredTest  {
 		assertThrows(NotFoundException.class, ()-> {
 			entityService.getEntity(adminUserId, id);
 		});
+		
 	}
 	
 	@Test

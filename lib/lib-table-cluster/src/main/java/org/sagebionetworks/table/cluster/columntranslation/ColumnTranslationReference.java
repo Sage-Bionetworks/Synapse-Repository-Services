@@ -24,4 +24,16 @@ public interface ColumnTranslationReference {
 	 * @return translated column name that will be used to query the table. never null.
 	 */
 	public String getTranslatedColumnName();
+	
+	/**
+	 * Get the maximum size of the referenced column.
+	 * @return
+	 */
+	public Long getMaximumSize();
+	
+	/**
+	 * For list types, get the max list length.
+	 * @return Null for non-list
+	 */
+	public Long getMaximumListLength();
 }

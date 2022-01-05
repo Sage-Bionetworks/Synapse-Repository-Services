@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -19,11 +23,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
-	private MaterializedViewDao dao;
+	final private MaterializedViewDao dao;
+	final private ColumnModelManager columModelManager;
 	
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager) {
 		this.dao = dao;
+		this.columModelManager = columModelManager;
 	}
 	
 	@Override
@@ -44,17 +50,32 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
 		Set<IdAndVersion> currentSourceTables = dao.getSourceTablesIds(idAndVersion);
 		
-		if (newSourceTables.equals(currentSourceTables)) {
-			return;
+		if (!newSourceTables.equals(currentSourceTables)) {
+			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
+			
+			toDelete.removeAll(newSourceTables);
+			
+			dao.deleteSourceTablesIds(idAndVersion, toDelete);
+			dao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
 		
-		Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
+		bindSchemaToView(idAndVersion, querySpecification);
 		
-		toDelete.removeAll(newSourceTables);
-		
-		dao.deleteSourceTablesIds(idAndVersion, toDelete);
-		dao.addSourceTablesIds(idAndVersion, newSourceTables);
-		
+	}
+	
+	/**
+	 * Extract the schema from the defining query and bind the results to the provided materialized view.
+	 * 
+	 * @param idAndVersion
+	 * @param definingQuery
+	 */
+	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
+				.build();
+		// create each column as needed.
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
+		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
 	}
 	
 	static QuerySpecification getQuerySpecification(String definingSql) {
@@ -74,6 +95,11 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		
 		return sourceTableIds;
+	}
+
+	@Override
+	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
 
 }

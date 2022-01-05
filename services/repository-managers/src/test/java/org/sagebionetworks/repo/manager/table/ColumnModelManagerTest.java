@@ -1280,7 +1280,7 @@ public class ColumnModelManagerTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
 		// call under test
-		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		List<ColumnModel> results = columnModelManager.getTableSchema(idAndVersion);
 		assertEquals(currentSchema, results);
 		verify(mockColumnModelDAO).getColumnModelsForObject(idAndVersion);
 		verify(mockNodeDao, never()).getCurrentRevisionNumber(any(String.class));
@@ -1293,7 +1293,7 @@ public class ColumnModelManagerTest {
 		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(46L);
 		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
 		// call under test
-		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		List<ColumnModel> results = columnModelManager.getTableSchema(idAndVersion);
 		assertEquals(currentSchema, results);
 		verify(mockColumnModelDAO).getColumnModelsForObject(idAndVersion);
 		verify(mockNodeDao).getCurrentRevisionNumber("123");
@@ -1310,7 +1310,7 @@ public class ColumnModelManagerTest {
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn123");
 		when(mockColumnModelDAO.getColumnModelsForObject(expectedIdAndVersion)).thenReturn(currentSchema);
 		// call under test
-		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		List<ColumnModel> results = columnModelManager.getTableSchema(idAndVersion);
 		assertEquals(currentSchema, results);
 		verify(mockColumnModelDAO).getColumnModelsForObject(expectedIdAndVersion);
 		verify(mockNodeDao).getCurrentRevisionNumber("123");

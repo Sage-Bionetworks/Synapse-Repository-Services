@@ -865,7 +865,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			newSchema = applySchemaChangeToTable(userInfo, changes.getEntityId(), newSchemaIds, changes.getChanges(), txContext);
 		}else {
 			// The schema will not change so return the current schema.
-			newSchema = columModelManager.getColumnModelsForObject(idAndVersion);
+			newSchema = columModelManager.getTableSchema(idAndVersion);
 		}
 		
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();

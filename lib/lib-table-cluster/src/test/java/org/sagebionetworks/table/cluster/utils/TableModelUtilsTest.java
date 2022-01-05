@@ -448,7 +448,7 @@ public class TableModelUtilsTest {
 			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
 			fail("should fail");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [0,0] was not a valid STRING. Exceeds the maximum number of character: 1000", e.getMessage());
+			assertEquals("Value at [0,0] was not a valid STRING. Column maximum size cannot exceed 1000", e.getMessage());
 		}
 	}
 	/**
@@ -478,6 +478,78 @@ public class TableModelUtilsTest {
 			cm.setDefaultValue(null);
 			assertNull(TableModelUtils.validateRowValue("", cm, 0, 0), "Value of an empty string for a non-string should be treated as null");
 		}
+	}
+	
+	@Test
+	public void testValidateValueWithStringWithNullMaxSize(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING);
+		cm.setMaximumSize(null);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("some string", cm);
+		});
+		assertEquals("Columns of type STRING must have a maximum size", exception.getMessage());
+	}
+	
+	@Test
+	public void testValidateValueWithLinkWithNullMaxSize(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.LINK);
+		cm.setMaximumSize(null);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("some string", cm);
+		});
+		assertEquals("Columns of type LINK must have a maximum size", exception.getMessage());
+	}
+	
+	@Test
+	public void testValidateValueWithStringListWithNullMaxSize(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumSize(null);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("[1, 12345, 123]", cm);
+		});
+		assertEquals("Columns of type STRING_LIST must have a maximum size", exception.getMessage());
+	}
+//	
+	@Test
+	public void testValidateValueWithStringWithMaxSizeTooLarge(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING);
+		cm.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("some string", cm);
+		});
+		assertEquals("Column maximum size cannot exceed 1000", exception.getMessage());
+	}
+	
+	@Test
+	public void testValidateValueWithLinkWithMaxSizeTooLarge(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.LINK);
+		cm.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("some string", cm);
+		});
+		assertEquals("Column maximum size cannot exceed 1000", exception.getMessage());
+	}
+	
+	@Test
+	public void testValidateValueWithStringListWithMaxSizeTooLarge(){
+		ColumnModel cm = TableModelTestUtils.createColumn(123L, "myCol", ColumnType.STRING_LIST);
+		cm.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableModelUtils.validateValue("[1, 12345, 123]", cm);
+		});
+		assertEquals("Column maximum size cannot exceed 1000", exception.getMessage());
 	}
 
 	@Test

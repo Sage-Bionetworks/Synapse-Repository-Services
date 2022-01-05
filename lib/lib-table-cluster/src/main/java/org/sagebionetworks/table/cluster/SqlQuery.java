@@ -106,6 +106,7 @@ public class SqlQuery {
 	private final boolean isIncludeSearch;
 	
 	private final TableAndColumnMapper tableAndColumnMapper;
+	private final List<ColumnModel> schemaOfSelect;
 
 	/**
 	 * @param tableId
@@ -174,6 +175,8 @@ public class SqlQuery {
 			SelectList expandedSelectList = tableAndColumnMapper.buildSelectAllColumns();
 			this.model.getSelectList().replaceElement(expandedSelectList);
 		}
+		
+		this.schemaOfSelect = SQLTranslatorUtils.getSchemaOfSelect(this.model.getSelectList(), tableAndColumnMapper);
 
 		//Append additionalFilters onto the WHERE clause
 		if(additionalFilters != null && !additionalFilters.isEmpty()) {
@@ -310,6 +313,16 @@ public class SqlQuery {
 	 */
 	public List<ColumnModel> getTableSchema() {
 		return tableAndColumnMapper.getUnionOfAllTableSchemas();
+	}
+	
+	/**
+	 * Get a ColumnModel representation of each column from the SQL's select statement.
+	 * Note: When a result ColumnModel does not match any of the columns from the source
+	 * table/view, the {@link ColumnModel#getId()} will be null.
+	 * @return
+	 */
+	public List<ColumnModel> getSchemaOfSelect(){
+		return this.schemaOfSelect;
 	}
 
 	/**

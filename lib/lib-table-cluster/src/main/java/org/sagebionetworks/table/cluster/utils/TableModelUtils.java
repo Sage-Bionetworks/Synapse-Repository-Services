@@ -209,6 +209,15 @@ public class TableModelUtils {
 		}
 	}
 
+	/**
+	 * Is the maximumnSize required for the given type?
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static boolean isMaximumSizeRequired(ColumnType type) {
+		return type == ColumnType.STRING || type == ColumnType.STRING_LIST || type == ColumnType.LINK;
+	}
 
 	/**
 	 * Validate that the given value conforms to the given ColumnModel.
@@ -218,6 +227,15 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static String validateValue(String value, ColumnModel cm) {
+		if(isMaximumSizeRequired(cm.getColumnType())) {
+			if (cm.getMaximumSize() == null) {
+				throw new IllegalArgumentException(String.format("Columns of type %s must have a maximum size", cm.getColumnType().name()));
+			}
+			if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
+				throw new IllegalArgumentException(String.format("Column maximum size cannot exceed %s", ColumnConstants.MAX_ALLOWED_STRING_SIZE));
+			}
+		}
+		
 		if (cm.getColumnType() == ColumnType.STRING) {
 			validateStringValueSize(value, cm);
 			checkStringEnum(value, cm);
@@ -279,11 +297,6 @@ public class TableModelUtils {
 	}
 
 	private static void validateStringValueSize(String value, ColumnModel cm) {
-		if (cm.getMaximumSize() == null)
-			throw new IllegalArgumentException("String columns must have a maximum size");
-		if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
-			throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
-		}
 		if (value.length() > cm.getMaximumSize()) {
 			throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
 					+ " characters.");

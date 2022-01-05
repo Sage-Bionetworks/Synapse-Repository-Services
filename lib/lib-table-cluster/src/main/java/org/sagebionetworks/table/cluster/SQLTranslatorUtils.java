@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -977,5 +978,67 @@ public class SQLTranslatorUtils {
 		builder.append("'");
 		builder.append(value.replaceAll("'", "''"));
 		builder.append("'");
+	}
+
+	
+	/**
+	 * Get a ColumnModel representation of each column from the SQL's select
+	 * statement. Note: When a result ColumnModel does not match any of the columns
+	 * from the source table/view, the {@link ColumnModel#getId()} will be null.
+	 * 
+	 * @param selectList
+	 * @param tableAndColumnMapper
+	 * @return
+	 */
+	public static List<ColumnModel> getSchemaOfSelect(SelectList selectList,
+			TableAndColumnMapper tableAndColumnMapper) {
+		return selectList.getColumns().stream().map(d -> getSchemaOfDerivedColumn(d, tableAndColumnMapper))
+				.collect(Collectors.toList());
+	}
+	
+	/**
+	 * Get a ColumnModel representation of each column from the SQL's select
+	 * statement. Note: The {@link ColumnModel#getId()} will always be null.
+	 * @param derivedColumn
+	 * @param tableAndColumnMapper
+	 * @return
+	 */
+	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper) {
+		Long maximumSize = null;
+		Long maxListLength = null;
+		ColumnType columnType = null;
+		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
+			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
+			if(ctr != null) {
+				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
+				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
+				columnType = ctr.getColumnType();
+			}
+		}
+
+		ColumnModel result = new ColumnModel();
+		result.setColumnType(columnType);
+		result.setMaximumSize(maximumSize);
+		result.setMaximumListLength(maxListLength);
+		result.setName(derivedColumn.toSqlWithoutQuotes());
+		result.setId(null);
+		return result;
+	}
+	
+	/**
+	 * Addition for Longs that can be null.
+	 * 
+	 * @param currentValue
+	 * @param newValue
+	 * @return
+	 */
+	public static Long addLongsWithNull(Long currentValue, Long newValue) {
+		if(currentValue == null) {
+			return newValue;
+		}
+		if(newValue == null) {
+			return currentValue;
+		}
+		return currentValue + newValue;
 	}
 }
