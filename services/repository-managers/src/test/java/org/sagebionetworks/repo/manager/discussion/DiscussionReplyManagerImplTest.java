@@ -33,9 +33,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
@@ -195,7 +195,7 @@ public class DiscussionReplyManagerImplTest {
 		
 		MessageToSend expectedThreadMessage = new MessageToSend()
 				.withUserId(userId)
-				.withObjectType(ObjectType.THREAD)
+				.withObjectType(ObjectType.THREAD_VIEW)
 				.withObjectId(threadId)
 				.withChangeType(ChangeType.UPDATE);
 		
@@ -287,6 +287,14 @@ public class DiscussionReplyManagerImplTest {
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		verify(mockReplyDao).updateMessageKey(replyId, messageKey);
 		verify(mockThreadDao).insertEntityReference(any(List.class));
+		
+		MessageToSend expectedReplyMessage = new MessageToSend()
+				.withUserId(userId)
+				.withObjectType(ObjectType.REPLY)
+				.withObjectId(replyId.toString())
+				.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedReplyMessage);
 	}
 
 	@Test
@@ -307,6 +315,14 @@ public class DiscussionReplyManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		replyManager.markReplyAsDeleted(userInfo, replyId.toString());
 		verify(mockReplyDao).markReplyAsDeleted(replyId);
+		
+		MessageToSend expectedMessage = new MessageToSend()
+			.withUserId(userId)
+			.withObjectType(ObjectType.REPLY)
+			.withObjectId(replyId.toString())
+			.withChangeType(ChangeType.UPDATE);
+		
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 	}
 
 	@Test

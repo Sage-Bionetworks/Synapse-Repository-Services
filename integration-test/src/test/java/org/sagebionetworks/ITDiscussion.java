@@ -1,17 +1,18 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -24,24 +25,30 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.Match;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
 public class ITDiscussion {
 
+	private static final long TIMEOUT = 30 * 1000;
 	private static SynapseClient synapse;
 	private static SynapseAdminClient adminSynapse;
 	private static Long userToDelete;
 	private Project project;
 	private String projectId;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws SynapseException, JSONObjectAdapterException {
 		StackConfiguration config = StackConfigurationSingleton.singleton();
 		adminSynapse = new SynapseAdminClientImpl();
@@ -53,7 +60,7 @@ public class ITDiscussion {
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
 		project = new Project();
@@ -62,13 +69,13 @@ public class ITDiscussion {
 		projectId = project.getId();
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
 		if (project != null) adminSynapse.deleteEntity(project, true);
 		synapse.unsubscribeAll();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDown() throws SynapseException, JSONObjectAdapterException {
 		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
 	}
@@ -237,5 +244,26 @@ public class ITDiscussion {
 		assertEquals(1L, results.getList().size());
 		assertEquals(projectId, results.getList().get(0).getEntityId());
 		assertEquals((Long)1L, results.getList().get(0).getCount());
+	}
+	
+	@Test
+	public void testForumSearch() throws Exception {
+		String forumId = synapse.getForumByProjectId(projectId).getId();
+		
+		String threadId = synapse.createThread(new CreateDiscussionThread().setForumId(forumId).setTitle("title").setMessageMarkdown("thread content")).getId();
+		String replyId = synapse.createReply(new CreateDiscussionReply().setThreadId(threadId).setMessageMarkdown("reply content")).getId();
+		
+		DiscussionSearchResponse expectedResponse = new DiscussionSearchResponse()
+			.setMatches(Arrays.asList(
+				new Match().setForumId(forumId).setThreadId(threadId),
+				new Match().setForumId(forumId).setThreadId(threadId).setReplyId(replyId)
+			));
+		
+		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
+			DiscussionSearchResponse response = synapse.forumSearch(forumId, new DiscussionSearchRequest().setSearchString("thread content"));
+			
+			return Pair.create(expectedResponse.equals(response), null);
+		});
+		
 	}
 }

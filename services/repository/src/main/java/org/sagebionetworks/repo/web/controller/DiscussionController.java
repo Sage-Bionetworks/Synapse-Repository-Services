@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -43,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.annotation.RequestScope;
 
 /**
  * <p>Discussions in Synapse are captured in the Project's Forum. Each 
@@ -532,5 +535,25 @@ public class DiscussionController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getModerators(userId, forumId, limit, offset);
+	}
+	
+	/**
+	 * Performs a full text search in the forum defined by the given id. 
+	 * <br/>
+	 * Target users: anyone who has READ permission on the project of the forum.
+	 * 
+	 * @param userId The ID of the user who is making the request
+	 * @param forumId The ID of the forum where the search is performed
+	 * @param request The search request containing the search term and an optional page token
+	 * @return The response containing a page of results ordered by relevance and a potential token to fetch the results for a subsequent page
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_SEARCH, method = RequestMethod.POST)
+	public @ResponseBody DiscussionSearchResponse forumSearch(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String forumId,
+			@RequestBody DiscussionSearchRequest request) {
+		return serviceProvider.getDiscussionService().search(userId, forumId, request);
 	}
 }

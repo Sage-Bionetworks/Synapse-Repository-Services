@@ -1,14 +1,12 @@
 package org.sagebionetworks.discussion.workers;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
@@ -21,11 +19,13 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DiscussionThreadStatsWorkerIntegrationTest {
 	private static final long TIME_OUT = 30*1000;
@@ -45,7 +45,7 @@ public class DiscussionThreadStatsWorkerIntegrationTest {
 	private String entityToDelete;
 	private String threadId;
 
-	@Before
+	@BeforeEach
 	public void before() throws IOException {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		Project project = new Project();
@@ -60,7 +60,7 @@ public class DiscussionThreadStatsWorkerIntegrationTest {
 		threadId = threadManager.createThread(adminUserInfo, createThread).getId();
 	}
 
-	@After
+	@AfterEach
 	public void after(){
 		try {
 			entityManager.deleteEntity(adminUserInfo, entityToDelete);
@@ -70,21 +70,16 @@ public class DiscussionThreadStatsWorkerIntegrationTest {
 	}
 
 	@Test
-	public void test() throws InterruptedException, IOException {
+	public void test() throws Exception {
 		CreateDiscussionReply createReply = new CreateDiscussionReply();
 		createReply.setThreadId(threadId);
 		createReply.setMessageMarkdown("a reply");
 		replyManager.createReply(adminUserInfo, createReply );
-		long startTime = System.currentTimeMillis();
-		while (System.currentTimeMillis() - startTime < TIME_OUT) {
-			// wait for the worker to update stat
-			Thread.sleep(1000);
+		TimeUtils.waitFor(TIME_OUT, 1000, () -> {
 			DiscussionThreadBundle bundle = threadManager.getThread(adminUserInfo, threadId);
-			if (bundle.getNumberOfReplies() == 1) {
-				return;
-			}
-		}
-		fail();
+			
+			return Pair.create(bundle.getNumberOfReplies() == 1, null);
+		});
 	}
 
 }

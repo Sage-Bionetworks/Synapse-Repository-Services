@@ -1,0 +1,18 @@
+{
+	"title":"Match",
+	"description": "Represents a match for a search request in a forum, will include the forum and thread ids and if present the reply id matching a serch string",
+	"properties": {
+		"forumId":{
+			"type":"string",
+			"description":"The ID of the matching forum"
+		},
+		"threadId":{
+			"type":"string",
+			"description":"The ID of the matching thread"
+		},
+		"replyId":{
+			"type":"string",
+			"description":"The optional ID of the matching reply"
+		}
+	}
+}

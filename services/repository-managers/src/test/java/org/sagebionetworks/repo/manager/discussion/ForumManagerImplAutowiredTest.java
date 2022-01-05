@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -21,9 +22,9 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ForumManagerImplAutowiredTest {
 	@Autowired
@@ -37,7 +38,7 @@ public class ForumManagerImplAutowiredTest {
 	private UserInfo userInfo;
 	private String projectId;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
@@ -59,7 +60,7 @@ public class ForumManagerImplAutowiredTest {
 		projectId = nodeManager.createNewNode(newNode, userInfo);
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() {
 		nodeManager.delete(adminUserInfo, projectId);
 		userManager.deletePrincipal(adminUserInfo, userInfo.getId());

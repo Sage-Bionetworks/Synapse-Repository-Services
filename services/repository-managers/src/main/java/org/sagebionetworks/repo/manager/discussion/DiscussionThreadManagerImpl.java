@@ -21,9 +21,9 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
-import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
@@ -121,11 +121,12 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		
+		// An additional message is sent to re-compute the statistics about the thread
 		MessageToSend changeMessage = new MessageToSend()
-				.withUserId(userInfo.getId())
-				.withObjectType(ObjectType.THREAD)
-				.withObjectId(threadId)
-				.withChangeType(ChangeType.UPDATE);
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD_VIEW)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
 				
 		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 		
@@ -153,6 +154,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newTitle.getTitle(), thread.getId()));
+			
+			MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(changeMessage);
+			
 			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -173,6 +183,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
+			
+			MessageToSend changeMessage = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.THREAD)
+				.withObjectId(threadId)
+				.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(changeMessage);
+				
 			return thread;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -184,6 +203,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
+		
+		MessageToSend changeMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 	}
 
 	@WriteTransaction
@@ -285,9 +312,18 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	}
 
 	@Override
+	@WriteTransaction
 	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsNotDeleted(Long.parseLong(threadId));
+
+		MessageToSend changeMessage = new MessageToSend()
+			.withUserId(userInfo.getId())
+			.withObjectType(ObjectType.THREAD)
+			.withObjectId(threadId)
+			.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 	}
 
 	@Override

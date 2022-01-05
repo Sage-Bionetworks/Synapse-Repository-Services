@@ -901,7 +901,7 @@ public class SqlConstants {
 	public static final String COL_FORUM_ID = "ID";
 	public static final String COL_FORUM_PROJECT_ID = "PROJECT_ID";
 	public static final String COL_FORUM_ETAG = "ETAG";
-	public static final String DDL_FORUM = "schema/Forum-ddl.sql";
+	public static final String DDL_FORUM = "schema/discussion/Forum-ddl.sql";
 
 	// Discussion Thread table
 	public static final String TABLE_DISCUSSION_THREAD = "DISCUSSION_THREAD";
@@ -916,7 +916,7 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_IS_EDITED = "IS_EDITED";
 	public static final String COL_DISCUSSION_THREAD_IS_DELETED = "IS_DELETED";
 	public static final String COL_DISCUSSION_THREAD_IS_PINNED = "IS_PINNED";
-	public static final String DDL_DISCUSSION_THREAD = "schema/DiscussionThread-ddl.sql";
+	public static final String DDL_DISCUSSION_THREAD = "schema/discussion/DiscussionThread-ddl.sql";
 
 	// Discussion Thread Stats table
 	public static final String TABLE_DISCUSSION_THREAD_STATS = "DISCUSSION_THREAD_STATS";
@@ -925,13 +925,13 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES = "NUMBER_OF_REPLIES";
 	public static final String COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY = "LAST_ACTIVITY";
 	public static final String COL_DISCUSSION_THREAD_STATS_ACTIVE_AUTHORS = "ACTIVE_AUTHORS";
-	public static final String DDL_DISCUSSION_THREAD_STATS = "schema/DiscussionThreadStats-ddl.sql";
+	public static final String DDL_DISCUSSION_THREAD_STATS = "schema/discussion/DiscussionThreadStats-ddl.sql";
 
 	// Discussion Thread View table
 	public static final String TABLE_DISCUSSION_THREAD_VIEW = "DISCUSSION_THREAD_VIEW";
 	public static final String COL_DISCUSSION_THREAD_VIEW_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_THREAD_VIEW_USER_ID = "USER_ID";
-	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/DiscussionThreadView-ddl.sql";
+	public static final String DDL_DISCUSSION_THREAD_VIEW = "schema/discussion/DiscussionThreadView-ddl.sql";
 
 	// Discussion Reply table
 	public static final String TABLE_DISCUSSION_REPLY = "DISCUSSION_REPLY";
@@ -944,13 +944,23 @@ public class SqlConstants {
 	public static final String COL_DISCUSSION_REPLY_MESSAGE_KEY = "MESSAGE_KEY";
 	public static final String COL_DISCUSSION_REPLY_IS_EDITED = "IS_EDITED";
 	public static final String COL_DISCUSSION_REPLY_IS_DELETED = "IS_DELETED";
-	public static final String DDL_DISCUSSION_REPLY = "schema/DiscussionReply-ddl.sql";
+	public static final String DDL_DISCUSSION_REPLY = "schema/discussion/DiscussionReply-ddl.sql";
+	
+	// Discussion Search Index table
+	public static final String TABLE_DISCUSSION_SEARCH_INDEX = "DISCUSSION_SEARCH_INDEX";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_FORUM_ID = "FORUM_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_THREAD_ID = "THREAD_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_REPLY_ID = "REPLY_ID";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_SEARCH_CONTENT = "SEARCH_CONTENT";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_THREAD_DELETED = "THREAD_DELETED";
+	public static final String COL_DISCUSSION_SEARCH_INDEX_REPLY_DELETED = "REPLY_DELETED";
+	public static final String DDL_DISCUSSION_SEARCH_INDEX = "schema/discussion/DiscussionSearchIndex-ddl.sql";
 
 	// Discussion Thread Entity Reference table
 	public static final String TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE = "DISCUSSION_THREAD_ENTITY_REFERENCE";
 	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID = "THREAD_ID";
 	public static final String COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID = "ENTITY_ID";
-	public static final String DDL_DISCUSSION_THREAD_ENTITY_REFERENCE = "schema/DiscussionThreadEntityReference-ddl.sql";
+	public static final String DDL_DISCUSSION_THREAD_ENTITY_REFERENCE = "schema/discussion/DiscussionThreadEntityReference-ddl.sql";
 
 	// Subscription table
 	public static final String TABLE_SUBSCRIPTION = "SUBSCRIPTION";

@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -253,4 +255,14 @@ public interface DiscussionService {
 	 * @return
 	 */
 	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset);
+
+	/**
+	 * Performs a full text search in the forum with the given id
+	 * 
+	 * @param userId
+	 * @param forumId
+	 * @param request
+	 * @return
+	 */
+	DiscussionSearchResponse search(Long userId, String forumId, DiscussionSearchRequest request);
 }

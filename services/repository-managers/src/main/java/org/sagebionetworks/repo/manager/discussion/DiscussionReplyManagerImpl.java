@@ -14,9 +14,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionReplyDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
@@ -82,9 +82,10 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		
 		threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(createReply.getMessageMarkdown(), threadId));
 		
+		// An additional message is sent to re-compute the statistics about the thread
 		MessageToSend threadChange = new MessageToSend()
 				.withUserId(userInfo.getId())
-				.withObjectType(ObjectType.THREAD)
+				.withObjectType(ObjectType.THREAD_VIEW)
 				.withObjectId(threadId)
 				.withChangeType(ChangeType.UPDATE);
 		
@@ -124,6 +125,15 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), reply.getThreadId()));
+			
+			MessageToSend replyChange = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.REPLY)
+					.withObjectId(replyId)
+					.withChangeType(ChangeType.UPDATE);
+			
+			transactionalMessenger.sendMessageAfterCommit(replyChange);
+			
 			return reply;
 		} else {
 			throw new UnauthorizedException("Only the user that created the thread can modify it.");
@@ -135,6 +145,15 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);
 		replyDao.markReplyAsDeleted(Long.parseLong(replyId));
+		
+		MessageToSend replyChange = new MessageToSend()
+				.withUserId(userInfo.getId())
+				.withObjectType(ObjectType.REPLY)
+				.withObjectId(replyId)
+				.withChangeType(ChangeType.UPDATE);
+		
+		transactionalMessenger.sendMessageAfterCommit(replyChange);
+		
 	}
 
 	@Override

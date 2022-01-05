@@ -1,17 +1,23 @@
 package org.sagebionetworks.repo.web.service.discussion;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
+import org.sagebionetworks.repo.manager.discussion.DiscussionSearchIndexManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,6 +25,8 @@ import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchRequest;
+import org.sagebionetworks.repo.model.discussion.DiscussionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
@@ -26,6 +34,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class DiscussionServiceImplTest {
 
 	@Mock
@@ -36,8 +45,12 @@ public class DiscussionServiceImplTest {
 	private DiscussionThreadManager mockThreadManager;
 	@Mock
 	private DiscussionReplyManager mockReplyManager;
-
+	@Mock
+	private DiscussionSearchIndexManager mockSearchManager;
+	
+	@InjectMocks
 	private DiscussionServiceImpl discussionServices;
+	
 	private Long userId = 123L;
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private String projectId = "syn456";
@@ -52,18 +65,16 @@ public class DiscussionServiceImplTest {
 	private String replyId = "987";
 	private CreateDiscussionReply createReply;
 	private MessageURL messageUrl = new MessageURL();
+	
+	@Mock
+	private DiscussionSearchRequest mockSearchRequest;
+	@Mock
+	private DiscussionSearchResponse mockSearchResponse;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
 
-		discussionServices = new DiscussionServiceImpl();
-		ReflectionTestUtils.setField(discussionServices, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(discussionServices, "forumManager", mockForumManager);
-		ReflectionTestUtils.setField(discussionServices, "threadManager", mockThreadManager);
-		ReflectionTestUtils.setField(discussionServices, "replyManager", mockReplyManager);
-
-		Mockito.when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setForumId(forumId);
@@ -98,13 +109,13 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testCreateThread() throws Exception {
-		Mockito.when(mockThreadManager.createThread(userInfo, createThread)).thenReturn(threadBundle);
+		when(mockThreadManager.createThread(userInfo, createThread)).thenReturn(threadBundle);
 		assertEquals(threadBundle, discussionServices.createThread(userId, createThread));
 	}
 
 	@Test
 	public void testGetThread() {
-		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(threadBundle);
+		when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(threadBundle);
 		assertEquals(threadBundle, discussionServices.getThread(userId, threadId));
 	}
 
@@ -113,7 +124,7 @@ public class DiscussionServiceImplTest {
 		UpdateThreadTitle newTitle = new UpdateThreadTitle();
 		newTitle.setTitle("newTitle");
 		threadBundle.setTitle("newTitle");
-		Mockito.when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(threadBundle);
+		when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(threadBundle);
 		assertEquals(threadBundle, discussionServices.updateThreadTitle(userId, threadId, newTitle));
 	}
 
@@ -122,7 +133,7 @@ public class DiscussionServiceImplTest {
 		UpdateThreadMessage newMessage = new UpdateThreadMessage();
 		newMessage.setMessageMarkdown("newMessage");
 		threadBundle.setMessageKey("newkey");
-		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(threadBundle);
+		when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(threadBundle);
 		assertEquals(threadBundle, discussionServices.updateThreadMessage(userId, threadId, newMessage));
 	}
 
@@ -136,19 +147,19 @@ public class DiscussionServiceImplTest {
 	public void testGetThreads() {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(threadBundle));
-		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(threads);
+		when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(threads);
 		assertEquals(threads, discussionServices.getThreadsForForum(userId, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
 	public void testCreateReply() throws Exception {
-		Mockito.when(mockReplyManager.createReply(userInfo, createReply)).thenReturn(replyBundle);
+		when(mockReplyManager.createReply(userInfo, createReply)).thenReturn(replyBundle);
 		assertEquals(replyBundle, discussionServices.createReply(userId, createReply));
 	}
 
 	@Test
 	public void testGetReply() {
-		Mockito.when(mockReplyManager.getReply(userInfo, replyId)).thenReturn(replyBundle);
+		when(mockReplyManager.getReply(userInfo, replyId)).thenReturn(replyBundle);
 		assertEquals(replyBundle, discussionServices.getReply(userId, replyId));
 	}
 
@@ -157,7 +168,7 @@ public class DiscussionServiceImplTest {
 		UpdateReplyMessage newMessage = new UpdateReplyMessage();
 		newMessage.setMessageMarkdown("newMessage");
 		replyBundle.setMessageKey("newkey");
-		Mockito.when(mockReplyManager.updateReplyMessage(userInfo, replyId, newMessage)).thenReturn(replyBundle);
+		when(mockReplyManager.updateReplyMessage(userInfo, replyId, newMessage)).thenReturn(replyBundle);
 		assertEquals(replyBundle, discussionServices.updateReplyMessage(userId, replyId, newMessage));
 	}
 
@@ -171,19 +182,26 @@ public class DiscussionServiceImplTest {
 	public void testGetReplies() {
 		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
 		replies.setResults(Arrays.asList(replyBundle));
-		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(replies);
+		when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(replies);
 		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
 	public void testGetThreadUrl() {
-		Mockito.when(mockThreadManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
+		when(mockThreadManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
 		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, messageKey));
 	}
 
 	@Test
 	public void testGetReplyUrl() {
-		Mockito.when(mockReplyManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
+		when(mockReplyManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
 		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, messageKey));
+	}
+	
+	@Test
+	public void testSearch() {
+		when(mockSearchManager.search(any(), any(), any())).thenReturn(mockSearchResponse);
+		assertEquals(mockSearchResponse, discussionServices.search(userId, forumId, mockSearchRequest));		
+		verify(mockSearchManager).search(userInfo, Long.valueOf(forumId), mockSearchRequest);
 	}
 }
