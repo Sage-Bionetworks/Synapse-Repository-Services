@@ -60,6 +60,19 @@ public class EntityTypeUtilsTest {
 		}
 	}
 	
+	@Test
+	public void testIsTableOrViewType() {
+		Set<EntityType> viewTypes = Stream.of(ViewEntityType.values())
+				.map((viewType) -> EntityType.valueOf(viewType.name()))
+				.collect(Collectors.toSet());
+
+		for (EntityType type : EntityType.values()) {
+			boolean result = EntityTypeUtils.isTableOrViewType(type);
+			boolean expected = viewTypes.contains(type) || EntityType.table == type || EntityType.materializedview == type;
+			assertEquals(expected, result);
+		}
+	}
+	
 	/**
 	 * Helper to test the valid parents of an object type.
 	 * @param expectedValid
