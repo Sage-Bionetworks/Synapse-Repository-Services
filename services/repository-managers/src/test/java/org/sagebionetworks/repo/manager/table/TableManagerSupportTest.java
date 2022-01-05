@@ -469,6 +469,15 @@ public class TableManagerSupportTest {
 		ObjectType type = manager.getTableType(idAndVersion);
 		assertEquals(ObjectType.ENTITY_VIEW, type);
 	}
+	
+	@Test
+	public void testGetTableTypeMaterializedView() {
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(
+				EntityType.materializedview);
+		// call under test
+		ObjectType type = manager.getTableType(idAndVersion);
+		assertEquals(ObjectType.MATERIALIZED_VIEW, type);
+	}
 
 	@Test
 	public void testGetTableTypeUnknown() {

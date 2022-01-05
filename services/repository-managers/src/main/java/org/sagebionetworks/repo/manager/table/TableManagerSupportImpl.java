@@ -319,7 +319,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return ObjectType.TABLE;
 		} else if (EntityTypeUtils.isViewType(type)) {
 			return ObjectType.ENTITY_VIEW;
-		}
+		} else if (EntityType.materializedview.equals(type)) {
+			return ObjectType.MATERIALIZED_VIEW;
+		} 
 		throw new IllegalArgumentException("unknown table type: " + type);
 	}
 

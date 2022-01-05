@@ -149,6 +149,10 @@
         {
         	"name": "THREAD_VIEW",
         	"description": "Object used to proxy thread views"
+        },
+        {
+            "name": "MATERIALIZED_VIEW",
+            "description": "A materialized view is defined by SQL run against one or more tables/views"
         }
     ]
 }
