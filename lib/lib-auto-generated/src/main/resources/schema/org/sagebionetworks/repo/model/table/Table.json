@@ -3,8 +3,16 @@
 	"type": "interface",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.VersionableEntity"
+			"$ref": "org.sagebionetworks.repo.model.VersionableEntity"
 		}
 	],
-	"properties": { }
+	"properties": {
+		"columnIds": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "The list of ColumnModel IDs that define the schema of the object."
+		}
+	}
 }

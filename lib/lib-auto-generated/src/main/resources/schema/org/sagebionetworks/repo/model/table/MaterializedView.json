@@ -11,7 +11,7 @@
 			"type": "string"
 		},
 		"columnIds": {
-		    "description":"The columns of a materialized view are dynmaic based on the select statement of the definingSQL. This list of columnIds is for read only, and will be ignored for create and update opperations.",
+		    "description":"The columns of a materialized view are dynamic based on the select statement of the definingSQL. This list of columnIds is for read only, and will be ignored for create and update operations.",
 			"type": "array",
 			"items": {
 				"type": "string"
