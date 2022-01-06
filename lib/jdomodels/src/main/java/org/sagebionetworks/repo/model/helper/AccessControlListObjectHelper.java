@@ -42,5 +42,24 @@ public class AccessControlListObjectHelper implements DaoObjectHelper<AccessCont
 		String id = aclDao.create(acl, ownerType);
 		return aclDao.get(id, ownerType);
 	}
+	
+	/**
+	 * Update ACL for the given object.
+	 * @param id
+	 * @param objectType
+	 * @param consumer
+	 * @return
+	 */
+	public AccessControlList update(String id, ObjectType objectType, Consumer<AccessControlList> consumer) {
+		AccessControlList acl = aclDao.get(id, objectType);
+		consumer.accept(acl);
+		aclDao.update(acl, objectType);
+		return aclDao.get(id, objectType);
+	}
 
+	@Override
+	public void truncateAll() {
+		aclDao.truncateAll();
+	}
+	
 }

@@ -350,4 +350,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			}
 		});
 	}
+
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_USER_PROFILE);
+	}
 }

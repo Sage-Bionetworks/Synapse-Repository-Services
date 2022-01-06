@@ -30,5 +30,7 @@ public interface StorageLocationDAO {
 	 */
 	@Deprecated
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException;
+
+	public void truncateAll();
 	
 }

@@ -32,4 +32,9 @@ public class MessageToUserObjectHelper implements DaoObjectHelper<MessageToUser>
 		return messageDao.createMessage(message, false);
 	}
 
+	@Override
+	public void truncateAll() {
+		messageDao.truncateAll();
+	}
+
 }

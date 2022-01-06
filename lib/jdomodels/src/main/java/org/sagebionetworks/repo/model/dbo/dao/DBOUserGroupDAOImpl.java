@@ -35,11 +35,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
+
+	public static final long START_OF_USER_IDS = 3318977l;
 
 	private static final String SQL_SELECT_ALL = "SELECT * FROM "+TABLE_USER_GROUP;
 
@@ -54,6 +57,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	private List<BootstrapPrincipal> bootstrapPrincipals;
 	
@@ -256,7 +262,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@WriteTransaction
 	public void bootstrapUsers() throws Exception {
 		// Reserver an ID well above the current
-		idGenerator.reserveId(3318977l, IdType.PRINCIPAL_ID);
+		idGenerator.reserveId(START_OF_USER_IDS, IdType.PRINCIPAL_ID);
 		
 		// Boot strap all users and groups
 		if (this.bootstrapPrincipals == null) {
@@ -319,6 +325,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Principal ID "+principalId+" not found");
 		}
+	}
+
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_USER_GROUP+" WHERE "+COL_USER_GROUP_ID+" >= ?", START_OF_USER_IDS);
 	}
 
 }

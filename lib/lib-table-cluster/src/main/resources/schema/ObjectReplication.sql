@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS OBJECT_REPLICATION (
     CREATED_ON BIGINT NOT NULL,
     ETAG CHAR(36) NOT NULL,
     NAME VARCHAR(256)CHARACTER SET UTF8MB4 COLLATE UTF8MB4_0900_AI_CI NOT NULL,
-    SUBTYPE ENUM('dockerrepo','entityview','file','folder','link','project','submission','submissionview','table','dataset') NOT NULL,
+    SUBTYPE ENUM('dockerrepo','entityview','file','folder','link','project','submission','submissionview','table','dataset', 'materializedview' ) NOT NULL,
     PARENT_ID BIGINT DEFAULT NULL,
     BENEFACTOR_ID BIGINT NOT NULL,
     PROJECT_ID BIGINT DEFAULT NULL,
