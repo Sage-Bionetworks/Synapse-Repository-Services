@@ -182,4 +182,6 @@ public interface TeamDAO {
 	 * @return
 	 */
 	public List<String> getAllTeamsUserIsAdmin(String userId);
+
+	public void truncateAll();
 }

@@ -28,4 +28,9 @@ public class UserGroupDoaObjectHelper implements DaoObjectHelper<UserGroup>{
 		return userGroupDao.get(id);
 	}
 
+	@Override
+	public void truncateAll() {
+		userGroupDao.truncateAll();
+	}
+
 }

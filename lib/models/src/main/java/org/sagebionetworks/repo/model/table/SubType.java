@@ -15,5 +15,6 @@ public enum SubType {
 	submission,
 	submissionview,
 	table,
-	dataset
+	dataset,
+	materializedview
 }

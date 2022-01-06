@@ -12,4 +12,9 @@ public interface DaoObjectHelper<T> {
 	 * @return
 	 */
 	T create(Consumer<T> consumer);
+	
+	/**
+	 * Truncate all rows associated with this type.
+	 */
+	void truncateAll();
 }

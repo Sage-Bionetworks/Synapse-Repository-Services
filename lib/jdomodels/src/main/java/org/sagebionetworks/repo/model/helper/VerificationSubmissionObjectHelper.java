@@ -33,4 +33,9 @@ public class VerificationSubmissionObjectHelper implements DaoObjectHelper<Verif
 		return verificationDao.createVerificationSubmission(submission);
 	}
 
+	@Override
+	public void truncateAll() {
+		verificationDao.truncateAll();
+	}
+
 }

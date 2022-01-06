@@ -55,4 +55,9 @@ public class MultipartUploadDBOHelper implements DaoObjectHelper<DBOMultipartUpl
 		
 	}
 
+	@Override
+	public void truncateAll() {
+		throw new UnsupportedOperationException("add support");
+	}
+
 }

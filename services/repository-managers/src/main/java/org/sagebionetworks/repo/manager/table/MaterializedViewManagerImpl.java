@@ -25,11 +25,13 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
+	final private TableManagerSupport tableMangerSupport;
 	
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableMangerSupport) {
 		this.dao = dao;
 		this.columModelManager = columModelManager;
+		this.tableMangerSupport = tableMangerSupport;
 	}
 	
 	@Override
@@ -60,7 +62,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		
 		bindSchemaToView(idAndVersion, querySpecification);
-		
+		tableMangerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Override

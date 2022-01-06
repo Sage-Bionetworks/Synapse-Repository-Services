@@ -43,4 +43,9 @@ public class TermsOfUseAccessRequirementObjectHelper implements DaoObjectHelper<
 		return accessRequirementDAO.create(ar);
 	}
 
+	@Override
+	public void truncateAll() {
+		accessRequirementDAO.clear();
+	}
+
 }

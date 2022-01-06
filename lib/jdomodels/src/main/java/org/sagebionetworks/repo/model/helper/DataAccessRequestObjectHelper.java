@@ -32,4 +32,9 @@ public class DataAccessRequestObjectHelper implements DaoObjectHelper<Request> {
 		return requestDao.create(dto);
 	}
 
+	@Override
+	public void truncateAll() {
+		requestDao.truncateAll();
+	}
+
 }

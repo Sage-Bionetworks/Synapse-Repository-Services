@@ -38,4 +38,9 @@ public class AccessApprovalObjectHelper implements DaoObjectHelper<AccessApprova
 		return approvalDao.create(a);
 	}
 
+	@Override
+	public void truncateAll() {
+		approvalDao.clear();
+	}
+
 }

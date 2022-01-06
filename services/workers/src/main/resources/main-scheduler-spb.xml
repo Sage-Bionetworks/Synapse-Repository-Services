@@ -74,6 +74,7 @@
     <import resource="classpath:download-list-workers-spb.xml" />
     <import resource="classpath:validation-schema-index-spb.xml" />
     <import resource="classpath:materialized-view-workers-spb.xml" />
+    <import resource="classpath:materialized-view-update-worker-spb.xml" />
 
 	<util:list id="workerTriggersList">
 		<!-- workers -->
@@ -142,6 +143,7 @@
 		<ref bean="fileHandleArchivalRequestWorkerTrigger" />
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
 		<ref bean="fileHandleRestoreRequestWorkerTrigger"/>
+		<ref bean="materializedViewUpdateWorkerTrigger"/>
 		<ref bean="materializedViewSourceUpdateWorkerTrigger"/>
 	</util:list>
 

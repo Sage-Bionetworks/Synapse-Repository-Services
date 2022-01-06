@@ -37,4 +37,9 @@ public class TeamObjectHelper implements DaoObjectHelper<Team> {
 		return teamDao.create(team);
 	}
 
+	@Override
+	public void truncateAll() {
+		teamDao.truncateAll();
+	}
+
 }
