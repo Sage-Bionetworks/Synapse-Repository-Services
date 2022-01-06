@@ -17,7 +17,6 @@ import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -119,6 +118,20 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public void sendMessageAfterCommit(MessageToSend toSend) {
 		sendMessageAfterCommit(toSend.buildChangeMessage());
 	}
+	
+	@Override
+	public void publishMessageAfterCommit(LocalStackMessage message) {
+		if (transactionSynchronizationManager.isSynchronizationActive()) {
+			transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					for (TransactionalMessengerObserver observer: observers) {
+						observer.fireLocalStackMessage(message);
+					}
+				}
+			});
+		}
+	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
@@ -172,7 +185,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @author John
 	 *
 	 */
-	private class SynchronizationHandler extends TransactionSynchronizationAdapter {
+	private class SynchronizationHandler implements TransactionSynchronization {
 		@Override
 		public void afterCompletion(int status) {
 			// Unbind any messages from this transaction.

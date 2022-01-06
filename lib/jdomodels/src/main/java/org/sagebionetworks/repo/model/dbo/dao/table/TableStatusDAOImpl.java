@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
 import java.sql.ResultSet;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,14 +22,17 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -79,11 +83,18 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 
 	TableMapping<DBOTableStatus> tableMapping = new DBOTableStatus().getTableMapping();
 
-	@Autowired
 	private DBOBasicDao basicDao;
 
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
+		
+	private TransactionalMessenger messenger;
+	
+	@Autowired
+	public TableStatusDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, TransactionalMessenger messenger) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.messenger = messenger;
+	}
 
 	@Override
 	public TableStatus getTableStatus(IdAndVersion idAndVersion) throws DatastoreException, NotFoundException {
@@ -106,6 +117,9 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// the columns that we wish to change.
 		jdbcTemplate.update(SQL_RESET_TO_PENDING, idAndVersion.getId(), version, state, resetToken, now, now, state,
 				resetToken, now, now);
+		
+		sendTableStatusEvent(idAndVersion, TableState.PROCESSING);
+				
 		return resetToken;
 	}
 
@@ -127,7 +141,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		ValidateArgument.required(resetToken, "resetToken");
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
-
+	
 	/**
 	 * Private method to attempt to set the end (or final) state on a table.
 	 * 
@@ -171,6 +185,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setLastTableChangeEtag(tableChangeEtag);
 		current.setResetToken(UUID.randomUUID().toString());
 		basicDao.update(current);
+		sendTableStatusEvent(idAndVersion, state);
 	}
 
 	/**
@@ -268,7 +283,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		int count = jdbcTemplate.update("UPDATE " + TABLE_STATUS + " SET " + COL_TABLE_STATUS_CHANGE_ON + " = ? WHERE "
 				+ COL_TABLE_STATUS_ID + " = ?" + " AND " + COL_TABLE_STATUS_VERSION + " = ? AND "
 				+ COL_TABLE_STATUS_STATE + " = '" + TableState.AVAILABLE.name() + "'", now, tableId.getId(), version);
-		return count > 0;
+		
+		boolean updated = count > 0;
+		
+		if(updated) {
+			sendTableStatusEvent(tableId, TableState.AVAILABLE);
+		}
+		
+		return updated;
 	}
 
 	@Override
@@ -283,4 +305,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		}
 	}
 
+	private void sendTableStatusEvent(IdAndVersion idAndVersion, TableState state) {
+		TableStatusChangeEvent event = new TableStatusChangeEvent()
+				.setObjectType(ObjectType.TABLE_STATUS_EVENT)
+				.setState(state)
+				.setObjectId(idAndVersion.getId().toString())
+				.setObjectVersion(idAndVersion.getVersion().orElse(null))
+				.setTimestamp(Date.from(Instant.now()));
+		
+		messenger.publishMessageAfterCommit(event);
+	}
 }

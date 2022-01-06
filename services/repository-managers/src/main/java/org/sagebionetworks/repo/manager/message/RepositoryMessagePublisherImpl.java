@@ -12,12 +12,14 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.LocalStackMessage;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sns.AmazonSNS;
@@ -85,6 +87,14 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		if(message.getTimestamp()  == null) throw new IllegalArgumentException("ChangeMessage.getTimestamp() cannot be null");
 		// Add the message to a queue
 		messageQueue.add(message);
+	}
+	
+	@Override
+	public void fireLocalStackMessage(LocalStackMessage message) {
+		ValidateArgument.required(message, "The message");
+		ValidateArgument.required(message.getObjectType(), "The message.objectType");
+		String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
+		publish(message, topicArn);
 	}
 
 	@Override
