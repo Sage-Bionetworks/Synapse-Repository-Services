@@ -12,10 +12,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.google.common.base.Function;
@@ -33,6 +32,7 @@ import com.google.common.collect.Maps;
  * @author John
  *
  */
+@Service
 public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
@@ -40,21 +40,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
 
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
-
-	@Autowired
-	DataSourceTransactionManager txManager;
-	@Autowired
-	DBOChangeDAO changeDAO;
-	@Autowired
-	TransactionSynchronizationProxy transactionSynchronizationManager;
-	@Autowired
-	Clock clock;
 	
-	/**
-	 * Used by spring.
-	 * 
-	 */
-	public TransactionalMessengerImpl(){}
+	private DBOChangeDAO changeDAO;
+	
+	private TransactionSynchronizationProxy transactionSynchronizationManager;
+	
 	
 	/**
 	 * For IoC
@@ -62,12 +52,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @param changeDAO
 	 * @param transactionSynchronizationManager
 	 */
-	public TransactionalMessengerImpl(DataSourceTransactionManager txManager, DBOChangeDAO changeDAO,
-			TransactionSynchronizationProxy transactionSynchronizationManager, Clock clock) {
-		this.txManager = txManager;
+	@Autowired
+	public TransactionalMessengerImpl(DBOChangeDAO changeDAO, TransactionSynchronizationProxy transactionSynchronizationManager) {
 		this.changeDAO = changeDAO;
 		this.transactionSynchronizationManager = transactionSynchronizationManager;
-		this.clock = clock;
 	}
 
 	/**

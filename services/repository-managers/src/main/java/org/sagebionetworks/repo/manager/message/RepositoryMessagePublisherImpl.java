@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
@@ -21,6 +23,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
@@ -35,26 +38,29 @@ import com.google.common.collect.Lists;
  * @author John
  *
  */
+@Service("messagePublisher")
 public class RepositoryMessagePublisherImpl implements RepositoryMessagePublisher {
-	
-	public static final String SEMAPHORE_KEY = "UNSENT_MESSAGE_WORKER";
+		
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
 
-	@Autowired
-	TransactionalMessenger transactionalMessanger;
+	private TransactionalMessenger transactionalMessanger;
 
-	@Autowired
-	AmazonSNS awsSNSClient;
+	private AmazonSNS awsSNSClient;
 
-	@Autowired
-	StackConfiguration stackConfiguration;
+	private StackConfiguration stackConfiguration;
 
 	// Maps each object type to its topic
-	Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
+	private Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
 
 	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
 
-
+	@Autowired
+	public RepositoryMessagePublisherImpl(TransactionalMessenger transactionalMessanger, AmazonSNS awsSNSClient, StackConfiguration stackConfiguration) {
+		this.transactionalMessanger = transactionalMessanger;
+		this.awsSNSClient = awsSNSClient;
+		this.stackConfiguration = stackConfiguration;
+	}
+	
 	/**
 	 * Used by tests to inject a mock client.
 	 * @param awsSNSClient
@@ -68,6 +74,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * This is called by Spring when this bean is created.  This is where we register this class as
 	 * an observer of the TransactionalMessenger
 	 */
+	@PostConstruct
 	public void initialize(){
 		// We only want to be in the list once
 		transactionalMessanger.removeObserver(this);

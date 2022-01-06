@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,16 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.ThreadLocalProvider;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
  * Unit (mocked) test for TransactionalMessengerImpl.
@@ -41,18 +37,15 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 public class TransactionalMessengerImplTest {
 	
 	@Mock
-	private DataSourceTransactionManager mockTxManager;
-	@Mock
 	private DBOChangeDAO mockChangeDAO;
+	
 	@Mock
 	private TransactionalMessengerObserver mockObserver;
 
-	TransactionSynchronizationProxy stubProxy;
+	private TransactionSynchronizationProxy stubProxy;
 	
 	@InjectMocks
 	private TransactionalMessengerImpl messenger;
-	
-	private TestClock testClock = new TestClock();
 	
 	@Mock
 	private LocalStackMessage mockLocalMessage;
@@ -60,7 +53,7 @@ public class TransactionalMessengerImplTest {
 	@BeforeEach
 	public void before(){
 		stubProxy = new TransactionSynchronizationProxyStub();
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
+		messenger = new TransactionalMessengerImpl(mockChangeDAO, stubProxy);
 		messenger.registerObserver(mockObserver);
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
@@ -239,14 +232,7 @@ public class TransactionalMessengerImplTest {
 	 * a change number or time stamp, while the other messages was correct.
 	 */
 	@Test
-	public void testPLFM_1662(){
-		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
-		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
-		stubProxy = new TransactionSynchronizationProxyStub();
-		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
-		messenger.registerObserver(mockObserver);
-		
+	public void testPLFM_1662(){		
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));

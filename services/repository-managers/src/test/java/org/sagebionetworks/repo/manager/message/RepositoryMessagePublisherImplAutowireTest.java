@@ -81,7 +81,6 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Test
 	public void testGetArn(){
 		String arn = messagePublisher.getTopicArn(ObjectType.ENTITY);
-		System.out.println("Arn: "+arn);
 		assertNotNull(arn);
 	}
 	
