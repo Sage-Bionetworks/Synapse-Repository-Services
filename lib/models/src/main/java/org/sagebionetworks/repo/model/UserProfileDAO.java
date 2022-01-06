@@ -103,4 +103,6 @@ public interface UserProfileDAO {
 	 * @return
 	 */
 	public List<UserNotificationInfo> getUserNotificationInfo(Set<String> ids);
+
+	public void truncateAll();
 }

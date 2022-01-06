@@ -121,5 +121,7 @@ public interface UserGroupDAO {
 	 */
 	public boolean isIndividual(Long principalId);
 
+	public void truncateAll();
+
 
 }

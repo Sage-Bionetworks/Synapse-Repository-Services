@@ -82,4 +82,6 @@ public interface VerificationDAO {
 	 * @return true if all users have validated profiles; false otherwise.
 	 */
 	public boolean haveValidatedProfiles(Set<String> userIds);
+
+	public void truncateAll();
 }

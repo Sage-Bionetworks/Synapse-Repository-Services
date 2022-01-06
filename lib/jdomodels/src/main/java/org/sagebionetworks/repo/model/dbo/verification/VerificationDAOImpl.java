@@ -421,4 +421,9 @@ public class VerificationDAOImpl implements VerificationDAO {
 		}
 	}
 
+	@Override
+	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM " + TABLE_VERIFICATION_SUBMISSION);
+	}
+
 }

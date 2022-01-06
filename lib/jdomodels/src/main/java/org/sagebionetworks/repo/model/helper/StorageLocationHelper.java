@@ -33,4 +33,11 @@ public class StorageLocationHelper implements DaoObjectHelper<ExternalStorageLoc
 		return (ExternalStorageLocationSetting) storageLocationDao.get(id);
 	}
 
+
+	@Override
+	public void truncateAll() {
+
+		storageLocationDao.truncateAll();
+	}
+
 }

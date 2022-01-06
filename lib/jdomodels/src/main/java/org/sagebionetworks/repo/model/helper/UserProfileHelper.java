@@ -34,4 +34,10 @@ public class UserProfileHelper implements DaoObjectHelper<UserProfile> {
 		return userProfileDao.get(profileId);
 	}
 
+	@Override
+	public void truncateAll() {
+
+		userProfileDao.truncateAll();
+	}
+
 }

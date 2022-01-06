@@ -41,4 +41,9 @@ public class EvaluationSubmissionObjectHelper implements DaoObjectHelper<Submiss
 		return submissionDao.get(submissionId);
 	}
 
+	@Override
+	public void truncateAll() {
+		submissionDao.truncateAll();
+	}
+
 }

@@ -39,4 +39,9 @@ public class DataAccessSubmissionObjectHelper implements DaoObjectHelper<Submiss
 		
 		return submissionDao.getSubmission(submissionDao.createSubmission(dto).getSubmissionId());
 	}
+
+	@Override
+	public void truncateAll() {
+		submissionDao.truncateAll();
+	}
 }

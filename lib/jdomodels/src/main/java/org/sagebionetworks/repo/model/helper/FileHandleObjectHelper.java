@@ -62,6 +62,7 @@ public class FileHandleObjectHelper implements DaoObjectHelper<S3FileHandle> {
 			}
 			if(fh instanceof S3FileHandle) {
 				((S3FileHandle)fh).setKey("some-key");
+				((S3FileHandle)fh).setBucketName("some-bucket");
 			}
 			if(fh instanceof GoogleCloudFileHandle) {
 				((GoogleCloudFileHandle)fh).setKey("some-key");
@@ -74,6 +75,8 @@ public class FileHandleObjectHelper implements DaoObjectHelper<S3FileHandle> {
 
 	}
 
+
+	@Override
 	public void truncateAll() {
 		fileHandleDao.truncateTable();
 	}

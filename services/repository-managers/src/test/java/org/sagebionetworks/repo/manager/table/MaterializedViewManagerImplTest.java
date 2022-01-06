@@ -44,6 +44,9 @@ public class MaterializedViewManagerImplTest {
 
 	@Mock
 	private ColumnModelManager mockColumnModelManager;
+	
+	@Mock
+	private TableManagerSupport mockTableManagerSupport;
 
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
@@ -191,6 +194,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -214,6 +218,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		
 	}
 
@@ -238,6 +243,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -257,6 +263,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -279,6 +286,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -302,6 +310,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		
 	}
 
@@ -326,6 +335,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -346,6 +356,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).getSourceTablesIds(idAndVersion);
 		verifyNoMoreInteractions(mockDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 
@@ -372,6 +383,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
 		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
 

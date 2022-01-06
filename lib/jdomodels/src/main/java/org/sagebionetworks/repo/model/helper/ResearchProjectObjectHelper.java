@@ -31,4 +31,9 @@ public class ResearchProjectObjectHelper implements DaoObjectHelper<ResearchProj
 		return researchProjectDao.create(dto);
 	}
 
+	@Override
+	public void truncateAll() {
+		researchProjectDao.truncateAll();
+	}
+
 }
