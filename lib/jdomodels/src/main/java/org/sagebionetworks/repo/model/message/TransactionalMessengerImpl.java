@@ -121,22 +121,21 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@Override
 	public void publishMessageAfterCommit(LocalStackMessage message) {
-		if (transactionSynchronizationManager.isSynchronizationActive()) {
-			transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-				@Override
-				public void afterCommit() {
-					for (TransactionalMessengerObserver observer: observers) {
-						observer.fireLocalStackMessage(message);
-					}
+		assertActiveSynchronization();
+		transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				for (TransactionalMessengerObserver observer: observers) {
+					observer.fireLocalStackMessage(message);
 				}
-			});
-		}
+			}
+		});
+		
 	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
-		if (!transactionSynchronizationManager.isSynchronizationActive())
-			throw new IllegalStateException("Cannot send a transactional message because there is no transaction");
+		assertActiveSynchronization();
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
 		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
@@ -144,6 +143,13 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		currentMessages.put(new MessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
+	}
+	
+	private void assertActiveSynchronization() {
+		if (transactionSynchronizationManager.isSynchronizationActive()) {
+			return;
+		}
+		throw new IllegalStateException("Cannot send a transactional message because there is no transaction");
 	}
 
 	/**
