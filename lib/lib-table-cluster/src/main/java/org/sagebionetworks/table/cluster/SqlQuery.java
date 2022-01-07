@@ -298,6 +298,14 @@ public class SqlQuery {
 			return Optional.empty();
 		}
 	}
+	
+	/**
+	 * Get the IdAndVersion for each table referenced in the from clause.
+	 * @return
+	 */
+	public List<IdAndVersion> getTableIds(){
+		return tableAndColumnMapper.getTableIds();
+	}
 
 	/**
 	 * The list of column models from the select clause.

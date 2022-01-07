@@ -222,8 +222,8 @@ public interface TableManagerSupport extends SchemaProvider {
 
 	/**
 	 * <p>
-	 * Attempt to acquire a non-exclusive lock on a table. If the lock is acquired,
-	 * the passed Callable will be run while holding lock. The lock will
+	 * Attempt to acquire a non-exclusive lock on one or more tables. If the lock(s) is acquired,
+	 * the passed Callable will be run while holding the lock(s). The lock(s) will
 	 * automatically be release when the caller returns.
 	 * </p>
 	 * There are several possible conditions that can occur.
@@ -241,13 +241,13 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * </ul>
 	 * 
 	 * @param callback
-	 * @param tableId
 	 * @param runner
+	 * @param tableId
 	 * @return
 	 * @throws Exception
 	 */
-	<R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, IdAndVersion tableId,
-			ProgressingCallable<R> runner) throws Exception;
+	<R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, ProgressingCallable<R> runner,
+			IdAndVersion...tableIds) throws Exception;
 
 	/**
 	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback,

@@ -2,12 +2,12 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -687,5 +687,12 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit, Long offset);
+	
+	/**
+	 * Get the defining SQL for the given MaterializedView.
+	 * @param id
+	 * @return Optional.empty if the given ID does not belong to a materialized view.
+	 */
+	Optional<String> getMaterializedViewDefiningSql(String id);
 
 }

@@ -18,6 +18,7 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
@@ -77,6 +79,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
+	
+	@Autowired
+	private MaterializedViewManager materializedViewManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -111,6 +116,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				adminUserInfo, entityManager.createEntity(adminUserInfo, new MaterializedView()
 						.setName("aMaterializedView").setParentId(view.getParentId()).setDefiningSQL(definingSql), null),
 				MaterializedView.class);
+		materializedViewManager.registerSourceTables(IdAndVersion.parse(materializedView.getId()), definingSql);
 		
 		String finalSql = "select * from "+materializedView.getId();
 		

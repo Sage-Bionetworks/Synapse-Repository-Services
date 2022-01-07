@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 
 /**
  * Manager for operations on {@link MaterializedView}s
@@ -33,5 +35,19 @@ public interface MaterializedViewManager {
 	 * @return
 	 */
 	List<String> getSchemaIds(IdAndVersion idAndVersion);
+
+	/**
+	 * Delete the index associated with the given materialized view.
+	 * @param idAndVersion
+	 */
+	void deleteViewIndex(IdAndVersion idAndVersion);
+
+	/**
+	 * Create or update the index associated with the given materialized view.
+	 * @param idAndVersion
+	 * @throws TableUnavailableException
+	 * @throws Exception 
+	 */
+	void createOrUpdateViewIndex(ProgressCallback callback, IdAndVersion idAndVersion) throws Exception;
 
 }
