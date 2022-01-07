@@ -5,8 +5,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -16,22 +20,27 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
+	
+	private static final long PAGE_SIZE_LIMIT = 1000;
 
 	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableMangerSupport;
+	final private TransactionalMessenger messagePublisher;
 	
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableMangerSupport) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableMangerSupport, TransactionalMessenger messagePublisher) {
 		this.dao = dao;
 		this.columModelManager = columModelManager;
 		this.tableMangerSupport = tableMangerSupport;
+		this.messagePublisher = messagePublisher;
 	}
 	
 	@Override
@@ -66,8 +75,28 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	}
 	
 	@Override
-	public void refreshDependentMaterializedViews(IdAndVersion entityId) {
-		System.out.println("Refreshing the materialized views that depend on " + entityId);
+	public void refreshDependentMaterializedViews(IdAndVersion tableId) {
+		ValidateArgument.required(tableId, "The tableId");
+		
+		PaginationIterator<IdAndVersion> idsItereator = new PaginationIterator<IdAndVersion>(
+			(long limit, long offset) -> dao.getMaterializedViewIdsPage(tableId, limit, offset),
+			PAGE_SIZE_LIMIT);
+		
+		idsItereator.forEachRemaining(id -> {
+			
+			// No need to update a snapshot
+			if (id.getVersion().isPresent()) {
+				return;
+			}
+			
+			ChangeMessage change = new ChangeMessage()
+					.setObjectType(ObjectType.MATERIALIZED_VIEW)
+					.setObjectId(id.getId().toString())
+					.setChangeType(ChangeType.UPDATE);
+			
+			messagePublisher.sendMessageAfterCommit(change);
+		});
+		
 	}
 	
 	/**

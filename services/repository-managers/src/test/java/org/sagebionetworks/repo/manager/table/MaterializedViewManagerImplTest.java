@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
@@ -25,9 +26,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
@@ -48,6 +53,9 @@ public class MaterializedViewManagerImplTest {
 	@Mock
 	private TableManagerSupport mockTableManagerSupport;
 
+	@Mock
+	private TransactionalMessenger mockMessagePublisher;
+	
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
 	
@@ -557,6 +565,49 @@ public class MaterializedViewManagerImplTest {
 		verify(mockColumnModelManager).createColumnModel(
 				new ColumnModel().setName("bar").setColumnType(ColumnType.STRING).setMaximumSize(50L).setId(null));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(Arrays.asList("333", "444"), idAndVersion);
+	}
+	
+	@Test
+	public void testRefreshDependentMaterializedViews() {
+		
+		List<IdAndVersion> dependencies = Arrays.asList(
+			IdAndVersion.parse("syn123"),
+			IdAndVersion.parse("234"),
+			IdAndVersion.parse("syn456.2")
+		);	
+		
+		// The second return must be an empty list because of the PaginationIterator that performs an additional call to check if there are more results
+		when(mockDao.getMaterializedViewIdsPage(any(), anyLong(), anyLong())).thenReturn(dependencies, Collections.emptyList());
+		
+		List<ChangeMessage> expectedMessages = Arrays.asList(
+			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("123").setChangeType(ChangeType.UPDATE),
+			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("234").setChangeType(ChangeType.UPDATE)
+		);
+		
+		// Call under test
+		manager.refreshDependentMaterializedViews(idAndVersion);
+		
+		for (ChangeMessage change : expectedMessages) {
+			verify(mockMessagePublisher).sendMessageAfterCommit(change);
+		}
+		
+		verifyNoMoreInteractions(mockMessagePublisher);
+		
+	}
+	
+	@Test
+	public void testRefreshDependentMaterializedViewsWithNoIdAndVersion() {
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.refreshDependentMaterializedViews(null);
+		}).getMessage();
+		
+		assertEquals("The tableId is required.", message);
+
+		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMessagePublisher);
+		
 	}
 
 }
