@@ -48,6 +48,8 @@
 		<property name="startDelay" value="253" />
 		<property name="repeatInterval" value="750" />
 	</bean>
+	
+	<bean id="materializedViewSourceUpdateWorker" class="org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker"/>
 
 	<bean id="materializedViewSourceUpdateWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
@@ -56,14 +58,16 @@
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
 					<bean
-						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
+						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
 							<bean
-								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker" />
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg ref="materializedViewSourceUpdateWorker"/>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="materializedViewSourceUpdateWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
