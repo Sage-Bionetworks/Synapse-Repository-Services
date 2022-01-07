@@ -235,7 +235,7 @@ public class TableQueryManagerImplTest {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[2];
+				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[1];
 						if (callable != null) {
 							return callable.call(mockProgressCallback2);
 						} else {
