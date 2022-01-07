@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.LoggerProvider;
@@ -66,7 +65,7 @@ public class MaterializedViewUpdateWorkerTest {
 	public void testRunCreate() throws Exception {
 		// call under test
 		worker.run(mockProgressCallback, change);
-		verify(mockMaterializedViewManager).createOrUpdateViewIndex(idAndVersion);
+		verify(mockMaterializedViewManager).createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		verify(mockMaterializedViewManager, never()).deleteViewIndex(any());
 		verifyZeroInteractions(mockLogger);
 	}
@@ -80,7 +79,7 @@ public class MaterializedViewUpdateWorkerTest {
 		change.setObjectVersion(version);
 		// call under test
 		worker.run(mockProgressCallback, change);
-		verify(mockMaterializedViewManager).createOrUpdateViewIndex(idAndVersion);
+		verify(mockMaterializedViewManager).createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		verify(mockMaterializedViewManager, never()).deleteViewIndex(any());
 		verifyZeroInteractions(mockLogger);
 	}
@@ -90,7 +89,7 @@ public class MaterializedViewUpdateWorkerTest {
 		change.setChangeType(ChangeType.DELETE);
 		// call under test
 		worker.run(mockProgressCallback, change);
-		verify(mockMaterializedViewManager, never()).createOrUpdateViewIndex(any());
+		verify(mockMaterializedViewManager, never()).createOrUpdateViewIndex(any(), any());
 		verify(mockMaterializedViewManager).deleteViewIndex(idAndVersion);
 		verifyZeroInteractions(mockLogger);
 	}
@@ -108,7 +107,7 @@ public class MaterializedViewUpdateWorkerTest {
 	public void testRunTableIndexConnectionUnavailableException() throws Exception {
 		TableIndexConnectionUnavailableException exception = new TableIndexConnectionUnavailableException(
 				"no connection");
-		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any());
+		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(), any());
 		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(mockProgressCallback, change);
@@ -120,7 +119,7 @@ public class MaterializedViewUpdateWorkerTest {
 	@Test
 	public void testRunTableUnavailableException() throws Exception {
 		TableUnavailableException exception = new TableUnavailableException(null);
-		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any());
+		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(),any());
 		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(mockProgressCallback, change);
@@ -132,7 +131,7 @@ public class MaterializedViewUpdateWorkerTest {
 	@Test
 	public void testRunLockUnavilableException() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("no lock");
-		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any());
+		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(),any());
 		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(mockProgressCallback, change);
@@ -144,7 +143,7 @@ public class MaterializedViewUpdateWorkerTest {
 	@Test
 	public void testRunRecoverableMessageException() throws Exception {
 		RecoverableMessageException exception = new RecoverableMessageException("no lock");
-		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any());
+		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(),any());
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
 			worker.run(mockProgressCallback, change);
@@ -156,7 +155,7 @@ public class MaterializedViewUpdateWorkerTest {
 	@Test
 	public void testRunUnknownException() throws Exception {
 		IllegalArgumentException exception = new IllegalArgumentException("no lock");
-		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any());
+		doThrow(exception).when(mockMaterializedViewManager).createOrUpdateViewIndex(any(),any());
 		// call under test
 		worker.run(mockProgressCallback, change);
 		verify(mockLogger).error("Failed to build materialized view index: ", exception);

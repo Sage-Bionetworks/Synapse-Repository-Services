@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
@@ -26,18 +26,20 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
-	final private TableManagerSupport tableMangerSupport;
+	final private TableManagerSupport tableManagerSupport;
+	final private TableIndexConnectionFactory connectionFactory;
 	
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableMangerSupport) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory) {
 		this.dao = dao;
 		this.columModelManager = columModelManager;
-		this.tableMangerSupport = tableMangerSupport;
+		this.tableManagerSupport = tableManagerSupport;
+		this.connectionFactory = connectionFactory;
 	}
 	
 	@Override
 	public void validate(MaterializedView materializedView) {
-		ValidateArgument.required(materializedView, "The materialzied view");		
+		ValidateArgument.required(materializedView, "The materialized view");		
 
 		getQuerySpecification(materializedView.getDefiningSQL()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		
@@ -63,7 +65,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		
 		bindSchemaToView(idAndVersion, querySpecification);
-		tableMangerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	/**
@@ -107,12 +109,20 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 	@Override
 	public void deleteViewIndex(IdAndVersion idAndVersion) {
-		// TODO Auto-generated method stub
-		
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+		indexManager.deleteTableIndex(idAndVersion);
 	}
 
 	@Override
-	public void createOrUpdateViewIndex(IdAndVersion idAndVersion) throws TableUnavailableException {
+	public void createOrUpdateViewIndex(ProgressCallback callback, IdAndVersion idAndVersion) throws Exception {
+		tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion,
+				(ProgressCallback innerCallback) -> {
+					createOrRebuildViewHoldingLock(idAndVersion);
+					return null;
+				});
+	}
+
+	void createOrRebuildViewHoldingLock(IdAndVersion idAndVersion) {
 		// TODO Auto-generated method stub
 		
 	}

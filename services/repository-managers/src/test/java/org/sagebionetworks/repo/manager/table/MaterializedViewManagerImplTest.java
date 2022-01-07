@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -25,6 +26,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -47,6 +50,15 @@ public class MaterializedViewManagerImplTest {
 	
 	@Mock
 	private TableManagerSupport mockTableManagerSupport;
+	
+	@Mock
+	private ProgressCallback mockProgressCallback;
+	
+	@Mock
+	private TableIndexConnectionFactory mockConnectionFactory;
+	
+	@Mock
+	private TableIndexManager mockTableIndexManager;
 
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
@@ -557,6 +569,33 @@ public class MaterializedViewManagerImplTest {
 		verify(mockColumnModelManager).createColumnModel(
 				new ColumnModel().setName("bar").setColumnType(ColumnType.STRING).setMaximumSize(50L).setId(null));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(Arrays.asList("333", "444"), idAndVersion);
+	}
+	
+	@Test
+	public void testDeleteViewIndex() {
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		
+		// call under test
+		manager.deleteViewIndex(idAndVersion);
+		
+		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(mockTableIndexManager).deleteTableIndex(idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndex() throws Exception {
+		doAnswer(invocation -> {
+			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[2];
+			runner.call(callback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(IdAndVersion.class), any());
+		
+		// call under test
+		managerSpy.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
+		
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(idAndVersion), any());
+		verify(managerSpy).createOrRebuildViewHoldingLock(idAndVersion);
 	}
 
 }

@@ -44,7 +44,7 @@ public class MaterializedViewUpdateWorker implements ChangeMessageDrivenRunner {
 				if (ChangeType.DELETE.equals(message.getChangeType())) {
 					materializedViewManager.deleteViewIndex(idAndVersion);
 				} else {
-					materializedViewManager.createOrUpdateViewIndex(idAndVersion);
+					materializedViewManager.createOrUpdateViewIndex(progressCallback, idAndVersion);
 				}
 			} catch (RecoverableMessageException e) {
 				throw e;

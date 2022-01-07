@@ -46,7 +46,8 @@ public interface MaterializedViewManager {
 	 * Create or update the index associated with the given materialized view.
 	 * @param idAndVersion
 	 * @throws TableUnavailableException
+	 * @throws Exception 
 	 */
-	void createOrUpdateViewIndex(IdAndVersion idAndVersion) throws TableUnavailableException;
+	void createOrUpdateViewIndex(ProgressCallback callback, IdAndVersion idAndVersion) throws Exception;
 
 }
