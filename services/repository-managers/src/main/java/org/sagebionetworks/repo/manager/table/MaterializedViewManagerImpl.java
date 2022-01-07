@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
@@ -102,6 +103,18 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public List<String> getSchemaIds(IdAndVersion idAndVersion) {
 		return columModelManager.getColumnIdsForTable(idAndVersion);
+	}
+
+	@Override
+	public void deleteViewIndex(IdAndVersion idAndVersion) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void createOrUpdateViewIndex(IdAndVersion idAndVersion) throws TableUnavailableException {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
