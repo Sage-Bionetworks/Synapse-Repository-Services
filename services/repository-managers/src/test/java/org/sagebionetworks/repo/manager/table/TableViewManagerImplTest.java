@@ -1231,7 +1231,7 @@ public class TableViewManagerImplTest {
 		doAnswer((InvocationOnMock invocation) -> {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
-			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 2];
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
