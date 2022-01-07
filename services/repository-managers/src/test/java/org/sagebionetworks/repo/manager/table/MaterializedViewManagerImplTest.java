@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -203,7 +204,7 @@ public class MaterializedViewManagerImplTest {
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -227,7 +228,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -252,7 +253,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -273,7 +274,7 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123";
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -295,7 +296,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -319,7 +320,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -344,7 +345,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -366,7 +367,7 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
@@ -392,7 +393,7 @@ public class MaterializedViewManagerImplTest {
 				IdAndVersion.parse("syn456"));
 
 		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doNothing().when(managerSpy).bindSchemaToView(any(), any());
+		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
