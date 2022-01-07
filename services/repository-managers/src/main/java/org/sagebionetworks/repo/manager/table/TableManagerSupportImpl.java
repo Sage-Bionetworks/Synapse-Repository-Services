@@ -379,12 +379,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public <R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, IdAndVersion tableId,
-			ProgressingCallable<R> callable) throws Exception {
-		String key = TableModelUtils.getTableSemaphoreKey(tableId);
+	public <R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, ProgressingCallable<R> callable,
+			IdAndVersion... tableIds) throws Exception {
+		ValidateArgument.required(tableIds, "TableIds");
+		// TODO: Add support for more than one key
+		if(tableIds.length > 1) {
+			throw new UnsupportedOperationException("We need to add support for locking on more than one table.");
+		}
+
+		String key = TableModelUtils.getTableSemaphoreKey(tableIds[0]);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, callable);
 	}
+	
 
 	@Override
 	public EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion idAndVersion)
@@ -522,5 +529,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public long getTableSchemaCount(IdAndVersion idAndVersion) {
 		return columnModelManager.getTableSchemaCount(idAndVersion);
 	}
+
+
 
 }

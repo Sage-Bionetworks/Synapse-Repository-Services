@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +30,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,6 +62,9 @@ public class MaterializedViewManagerImplTest {
 	
 	@Mock
 	private TableIndexManager mockTableIndexManager;
+	
+	@Mock
+	private NodeDAO mockNodeDao;
 
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
@@ -590,12 +596,50 @@ public class MaterializedViewManagerImplTest {
 			runner.call(callback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(), any(IdAndVersion.class), any());
-		
+		doNothing().when(managerSpy).createOrRebuildViewHoldingExclusiveLock(any(), any());
 		// call under test
 		managerSpy.createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(idAndVersion), any());
-		verify(managerSpy).createOrRebuildViewHoldingLock(idAndVersion);
+		verify(managerSpy).createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingExclusiveLock() throws Exception {
+		doAnswer(invocation -> {
+			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[1];
+			runner.call(callback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(), any(), any());
+		
+		when(mockNodeDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
+		when(mockColumnModelManager.createColumnModel(any())).thenReturn(
+				TableModelTestUtils.createColumn(333L, "foo", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(444L, "bar", ColumnType.STRING));
+		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
+		
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+		
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(), eq( dependentIdAndVersion));
+		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingExclusiveLockWithNoDefiningSql() throws Exception {
+		
+		when(mockNodeDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+		}).getMessage();
+		assertEquals("No defining SQL for: syn123.1", message);
+		
+		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(), any(), any());
+		verify(managerSpy, never()).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any());
 	}
 
 }

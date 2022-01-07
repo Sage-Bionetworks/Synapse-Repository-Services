@@ -231,7 +231,7 @@ public class TableQueryManagerImplTest {
 	void setupNonExclusiveLock() throws Exception {
 		// Just call the caller.
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
+				any(ProgressingCallable.class), any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
@@ -314,7 +314,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getQueryResult().getQueryResults());
 		assertEquals(status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(ProgressingCallable.class), any(IdAndVersion.class));
 		// The table status should be checked only for a consistent query.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
@@ -322,8 +322,8 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class),
-						any(ProgressingCallable.class))).thenThrow(
+						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(IdAndVersion.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
@@ -337,8 +337,8 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class),
-						any(ProgressingCallable.class))).thenThrow(
+						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(IdAndVersion.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
@@ -352,8 +352,8 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class),
-						any(ProgressingCallable.class))).thenThrow(
+						any(ProgressCallback.class), any(ProgressingCallable.class),
+						any(IdAndVersion.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
@@ -367,8 +367,8 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class),any(IdAndVersion.class),
-						any(ProgressingCallable.class))).thenThrow(
+						any(ProgressCallback.class),any(ProgressingCallable.class),
+						any(IdAndVersion.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
@@ -383,8 +383,8 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryAsStreamEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class),any(IdAndVersion.class),
-						any(ProgressingCallable.class))).thenThrow(
+						any(ProgressCallback.class),any(ProgressingCallable.class),
+						any(IdAndVersion.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, user.getId())
