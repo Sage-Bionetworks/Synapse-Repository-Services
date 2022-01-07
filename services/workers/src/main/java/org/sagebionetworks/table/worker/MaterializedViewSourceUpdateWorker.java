@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -32,10 +33,12 @@ public class MaterializedViewSourceUpdateWorker implements TypedMessageDrivenRun
 		if (ObjectType.TABLE_STATUS_EVENT != message.getObjectType()) {
 			throw new IllegalStateException("Unsupported object type: expected " + ObjectType.TABLE_STATUS_EVENT.name() + ", got " + message.getObjectType().name());
 		}
-		
-		final IdAndVersion tableId = KeyFactory.idAndVersion(message.getObjectId(), message.getObjectVersion());
-		
-		manager.refreshDependentMaterializedViews(tableId);
+		// We refresh the depending views only when the state changed to available
+		if (message.getState() == TableState.AVAILABLE) {
+			final IdAndVersion tableId = KeyFactory.idAndVersion(message.getObjectId(), message.getObjectVersion());
+			
+			manager.refreshDependentMaterializedViews(tableId);
+		}
 	}
 
 }

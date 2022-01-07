@@ -67,14 +67,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	@Override
 	public void refreshDependentMaterializedViews(IdAndVersion entityId) {
-		// TODO:
-		// - If a version is present (snapshot) skip the refresh
-		// - Check the type of the entity, must be a table, view or materialized view
-		// - Iterate over all the (non snapshot) materialized views that depend on the entity with the given id and
-		// - re-bind the schema and/or (?)
-		// - Send a message to re-build the materialized view?
-		// - If the id is a materialized view itself, should we send a message to re-build it? Or should this be done when we register the source tables?
-		
+		System.out.println("Refreshing the materialized views that depend on " + entityId);
 	}
 	
 	/**

@@ -15,9 +15,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
-
-import com.amazonaws.services.sqs.model.Message;
 
 @ExtendWith(MockitoExtension.class)
 public class MaterializedViewSourceUpdateWorkerTest {
@@ -39,6 +38,7 @@ public class MaterializedViewSourceUpdateWorkerTest {
 		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
 		when(mockMessage.getObjectId()).thenReturn("syn123");
 		when(mockMessage.getObjectVersion()).thenReturn(null);
+		when(mockMessage.getState()).thenReturn(TableState.AVAILABLE);
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("123");
 		
@@ -54,6 +54,7 @@ public class MaterializedViewSourceUpdateWorkerTest {
 		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
 		when(mockMessage.getObjectId()).thenReturn("syn123");
 		when(mockMessage.getObjectVersion()).thenReturn(2L);
+		when(mockMessage.getState()).thenReturn(TableState.AVAILABLE);
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("123.2");
 		
@@ -61,6 +62,30 @@ public class MaterializedViewSourceUpdateWorkerTest {
 		worker.run(mockCallBack, mockMessage);
 		
 		verify(mockManager).refreshDependentMaterializedViews(expectedIdAndVersion);
+		
+	}
+	
+	@Test
+	public void testRunWithProcessingState() throws Exception {
+		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockMessage.getState()).thenReturn(TableState.PROCESSING);
+		
+		// Call under test
+		worker.run(mockCallBack, mockMessage);
+		
+		verifyZeroInteractions(mockManager);
+		
+	}
+	
+	@Test
+	public void testRunWithFailedState() throws Exception {
+		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockMessage.getState()).thenReturn(TableState.PROCESSING_FAILED);
+		
+		// Call under test
+		worker.run(mockCallBack, mockMessage);
+		
+		verifyZeroInteractions(mockManager);
 		
 	}
 	
