@@ -49,8 +49,7 @@
 		<property name="repeatInterval" value="750" />
 	</bean>
 	
-	<bean id="materializedViewSourceUpdateWorker" class="org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker"/>
-
+	<!-- This worker will process table/view status changes and push a re-build of dependent materialized views when their status is set to AVAILABLE -->
 	<bean id="materializedViewSourceUpdateWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -66,7 +65,9 @@
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
 									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
-										<constructor-arg ref="materializedViewSourceUpdateWorker"/>
+										<constructor-arg>
+											<bean class="org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker"></bean>
+										</constructor-arg>
 									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="materializedViewSourceUpdateWorker" />

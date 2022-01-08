@@ -1,6 +1,5 @@
 package org.sagebionetworks.worker;
 
-import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -23,36 +22,23 @@ public class TypedMessageDrivenRunnerAdapter<T> implements MessageDrivenRunner {
 	
 	private TypedMessageDrivenRunner<T> runner;
 	private ObjectMapper objectMapper;
-	private WorkerLogger workerLogger;
 	
 	public TypedMessageDrivenRunnerAdapter(TypedMessageDrivenRunner<T> runner) {
 		this.runner = runner;
 	}
 	
 	@Autowired
-	public void configure(ObjectMapper objectMapper, WorkerLogger workerLogger) {
+	public void configure(ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
-		this.workerLogger = workerLogger;
 	}
 	
 	@Override
-	public void run(ProgressCallback progressCallback, com.amazonaws.services.sqs.model.Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
-		
-		try {
 			
 			final T convertedMessage = convertMessage(message);
 			
 			runner.run(progressCallback, convertedMessage);
-			
-		} catch (RecoverableMessageException ex) {
-			boolean willRetry = true;
-			workerLogger.logWorkerFailure(runner.getClass().getName(), ex, willRetry);
-			throw ex;
-		} catch (Throwable ex) {
-			boolean willRetry = false;
-			workerLogger.logWorkerFailure(runner.getClass().getName(), ex, willRetry);
-		}
 	}
 	
 	private T convertMessage(Message message) throws JsonProcessingException {
@@ -60,7 +46,7 @@ public class TypedMessageDrivenRunnerAdapter<T> implements MessageDrivenRunner {
 		return objectMapper.readValue(messageBody, runner.getObjectClass());
 	}
 	
-	private String extractMessageBody(com.amazonaws.services.sqs.model.Message message) throws JsonProcessingException {
+	private String extractMessageBody(Message message) throws JsonProcessingException {
 		final String messageBody = message.getBody();
 		final JsonNode root = objectMapper.readTree(messageBody);
 
