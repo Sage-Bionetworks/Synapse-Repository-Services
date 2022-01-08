@@ -1215,8 +1215,8 @@ public class TableViewManagerImplTest {
 		
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any());
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+				eq(idAndVersion));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
@@ -1231,11 +1231,11 @@ public class TableViewManagerImplTest {
 		doAnswer((InvocationOnMock invocation) -> {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
-			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 2];
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any());
+				any(), any(IdAndVersion.class));
 	}
 	
 	/**
@@ -1263,19 +1263,19 @@ public class TableViewManagerImplTest {
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any());
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+				eq(idAndVersion));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any());
+				any(), any(IdAndVersion.class));
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				any());
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+				eq(idAndVersion));
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	

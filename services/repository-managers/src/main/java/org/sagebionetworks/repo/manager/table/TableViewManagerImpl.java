@@ -378,21 +378,21 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * to query the view while this process runs.
 		 */
 		try {
-			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, idAndVersion,
-					(ProgressCallback callback) -> {
-						/*
-						 * A special exclusive lock is used to prevent more then one instance
-						 * from applying deltas to a view at a time.
-						 */
-						String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
-						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
-								(ProgressCallback innerCallback) -> {
-									// while holding both locks do the work.
-									applyChangesToAvailableViewOrSnapshot(idAndVersion);
-									return null;
-								});
-						return null;
-					});
+			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
+				/*
+				 * A special exclusive lock is used to prevent more then one instance
+				 * from applying deltas to a view at a time.
+				 */
+				String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+				tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
+						(ProgressCallback innerCallback) -> {
+							// while holding both locks do the work.
+							applyChangesToAvailableViewOrSnapshot(idAndVersion);
+							return null;
+						});
+				return null;
+			},
+					idAndVersion);
 		} catch (LockUnavilableException e1) {
 			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.");
 		}

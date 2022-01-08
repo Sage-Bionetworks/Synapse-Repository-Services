@@ -229,8 +229,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, EmptyResultException {
 
 		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, idAndversion,
-					runner);
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, runner,
+					idAndversion);
 		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.
 			throw e;

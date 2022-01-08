@@ -340,8 +340,8 @@ public class TableEntityManagerTest {
 
 	void setupNonexclusiveLock() throws Exception {
 		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class)
-				,any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(ProgressingCallable.class)
+				,any(IdAndVersion.class))).thenAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
