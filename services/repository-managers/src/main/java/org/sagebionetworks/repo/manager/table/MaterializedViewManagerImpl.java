@@ -92,15 +92,10 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			PAGE_SIZE_LIMIT);
 		
 		idsItereator.forEachRemaining(id -> {
-			
-			// No need to update a snapshot
-			if (id.getVersion().isPresent()) {
-				return;
-			}
-			
 			ChangeMessage change = new ChangeMessage()
 					.setObjectType(ObjectType.MATERIALIZED_VIEW)
 					.setObjectId(id.getId().toString())
+					.setObjectVersion(id.getVersion().orElse(null))
 					.setChangeType(ChangeType.UPDATE);
 			
 			messagePublisher.sendMessageAfterCommit(change);

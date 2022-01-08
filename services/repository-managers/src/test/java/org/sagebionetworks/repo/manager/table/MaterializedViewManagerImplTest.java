@@ -600,7 +600,8 @@ public class MaterializedViewManagerImplTest {
 		
 		List<ChangeMessage> expectedMessages = Arrays.asList(
 			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("123").setChangeType(ChangeType.UPDATE),
-			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("234").setChangeType(ChangeType.UPDATE)
+			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("234").setChangeType(ChangeType.UPDATE),
+			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("456").setObjectVersion(2L).setChangeType(ChangeType.UPDATE)
 		);
 		
 		// Call under test
