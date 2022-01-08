@@ -197,7 +197,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	private DBOTableStatus selectResetTokenForUpdate(IdAndVersion idAndVersion) throws NotFoundException {
+	DBOTableStatus selectResetTokenForUpdate(IdAndVersion idAndVersion) throws NotFoundException {
 		try {
 			long version = validateAndGetVersion(idAndVersion);
 			return jdbcTemplate.queryForObject(SQL_SELECT_STATUS_FOR_UPDATE, tableMapping, idAndVersion.getId(),
