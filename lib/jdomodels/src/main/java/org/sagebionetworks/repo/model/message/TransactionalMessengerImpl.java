@@ -12,12 +12,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -34,6 +32,7 @@ import com.google.common.collect.Maps;
  * @author John
  *
  */
+@Service
 public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
@@ -41,21 +40,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
 
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
-
-	@Autowired
-	DataSourceTransactionManager txManager;
-	@Autowired
-	DBOChangeDAO changeDAO;
-	@Autowired
-	TransactionSynchronizationProxy transactionSynchronizationManager;
-	@Autowired
-	Clock clock;
 	
-	/**
-	 * Used by spring.
-	 * 
-	 */
-	public TransactionalMessengerImpl(){}
+	private DBOChangeDAO changeDAO;
+	
+	private TransactionSynchronizationProxy transactionSynchronizationManager;
+	
 	
 	/**
 	 * For IoC
@@ -63,12 +52,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @param changeDAO
 	 * @param transactionSynchronizationManager
 	 */
-	public TransactionalMessengerImpl(DataSourceTransactionManager txManager, DBOChangeDAO changeDAO,
-			TransactionSynchronizationProxy transactionSynchronizationManager, Clock clock) {
-		this.txManager = txManager;
+	@Autowired
+	public TransactionalMessengerImpl(DBOChangeDAO changeDAO, TransactionSynchronizationProxy transactionSynchronizationManager) {
 		this.changeDAO = changeDAO;
 		this.transactionSynchronizationManager = transactionSynchronizationManager;
-		this.clock = clock;
 	}
 
 	/**
@@ -119,11 +106,24 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public void sendMessageAfterCommit(MessageToSend toSend) {
 		sendMessageAfterCommit(toSend.buildChangeMessage());
 	}
+	
+	@Override
+	public void publishMessageAfterCommit(LocalStackMessage message) {
+		assertActiveSynchronization();
+		transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				for (TransactionalMessengerObserver observer: observers) {
+					observer.fireLocalStackMessage(message);
+				}
+			}
+		});
+		
+	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
-		if (!transactionSynchronizationManager.isSynchronizationActive())
-			throw new IllegalStateException("Cannot send a transactional message because there is no transaction");
+		assertActiveSynchronization();
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
 		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
@@ -131,6 +131,13 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		currentMessages.put(new MessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
+	}
+	
+	private void assertActiveSynchronization() {
+		if (transactionSynchronizationManager.isSynchronizationActive()) {
+			return;
+		}
+		throw new IllegalStateException("Cannot send a transactional message because there is no transaction");
 	}
 
 	/**
@@ -172,7 +179,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @author John
 	 *
 	 */
-	private class SynchronizationHandler extends TransactionSynchronizationAdapter {
+	private class SynchronizationHandler implements TransactionSynchronization {
 		@Override
 		public void afterCompletion(int status) {
 			// Unbind any messages from this transaction.

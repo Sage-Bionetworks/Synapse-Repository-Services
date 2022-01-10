@@ -1,0 +1,12 @@
+{
+    "description": "Object used to propagate table status changes",
+    "implements": [
+    	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
+    ],
+    "properties": {
+        "state": {
+            "description": "The new table status",
+            "$ref": "org.sagebionetworks.repo.model.table.TableState"
+        }
+    }
+}

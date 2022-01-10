@@ -6,9 +6,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -19,32 +22,36 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
-
+	
+	private static final long PAGE_SIZE_LIMIT = 1000;
 	
 	public static final String DEFAULT_ETAG = "DEFAULT";
 	
-	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
+	final private TransactionalMessenger messagePublisher;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private MaterializedViewDao materializedViewDao;
 
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager,
-			TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, MaterializedViewDao materializedViewDao) {
-		this.dao = dao;
+	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport,
+			TransactionalMessenger messagePublisher, TableIndexConnectionFactory connectionFactory,
+			MaterializedViewDao materializedViewDao) {
+		super();
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
+		this.messagePublisher = messagePublisher;
 		this.connectionFactory = connectionFactory;
 		this.materializedViewDao = materializedViewDao;
 	}
-	
+
 	@Override
 	public void validate(MaterializedView materializedView) {
 		ValidateArgument.required(materializedView, "The materialized view");		
@@ -61,19 +68,39 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
 		
 		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
-		Set<IdAndVersion> currentSourceTables = dao.getSourceTablesIds(idAndVersion);
+		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {
 			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
 			
 			toDelete.removeAll(newSourceTables);
 			
-			dao.deleteSourceTablesIds(idAndVersion, toDelete);
-			dao.addSourceTablesIds(idAndVersion, newSourceTables);
+			materializedViewDao.deleteSourceTablesIds(idAndVersion, toDelete);
+			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
 		
 		bindSchemaToView(idAndVersion, querySpecification);
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
+	
+	@Override
+	public void refreshDependentMaterializedViews(IdAndVersion tableId) {
+		ValidateArgument.required(tableId, "The tableId");
+		
+		PaginationIterator<IdAndVersion> idsItereator = new PaginationIterator<IdAndVersion>(
+			(long limit, long offset) -> materializedViewDao.getMaterializedViewIdsPage(tableId, limit, offset),
+			PAGE_SIZE_LIMIT);
+		
+		idsItereator.forEachRemaining(id -> {
+			ChangeMessage change = new ChangeMessage()
+					.setObjectType(ObjectType.MATERIALIZED_VIEW)
+					.setObjectId(id.getId().toString())
+					.setObjectVersion(id.getVersion().orElse(null))
+					.setChangeType(ChangeType.UPDATE);
+			
+			messagePublisher.sendMessageAfterCommit(change);
+		});
+		
 	}
 	
 	/**

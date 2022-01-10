@@ -13,5 +13,12 @@ public interface TransactionalMessengerObserver {
 	 * then no message will be fired.
 	 * @param message
 	 */
-	public void fireChangeMessage(ChangeMessage message);
+	void fireChangeMessage(ChangeMessage message);
+
+	/**
+	 * This method will be called after a transaction is committed
+	 * 
+	 * @param message
+	 */
+	void fireLocalStackMessage(LocalStackMessage message);
 }

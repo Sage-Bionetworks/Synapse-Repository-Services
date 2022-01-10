@@ -17,13 +17,6 @@
 	<bean id="awsSQSClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSQSClient" scope="singleton" />
 
-	<!-- The RepositoryMessagePublisher publish repository change messages to 
-		an AWS topic -->
-	<bean id="messagePublisher"
-		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
-		init-method="initialize">
-	</bean>
-
 	<!-- This is how messages get rebroadcast -->
 	<bean id="messageSyndication"
 		class="org.sagebionetworks.repo.manager.message.MessageSyndicationImpl" />
