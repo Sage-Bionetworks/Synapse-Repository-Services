@@ -6,9 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -22,7 +20,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,16 +33,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
-	final private NodeDAO nodeDao;
+	final private MaterializedViewDao materializedViewDao;
 
 	@Autowired
 	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager,
-			TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, NodeDAO nodeDao) {
+			TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, MaterializedViewDao materializedViewDao) {
 		this.dao = dao;
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
-		this.nodeDao = nodeDao;
+		this.materializedViewDao = materializedViewDao;
 	}
 	
 	@Override
@@ -85,14 +82,17 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param idAndVersion
 	 * @param definingQuery
 	 */
-	SqlQuery bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
 		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
 				.build();
+		bindSchemaToView(idAndVersion, sqlQuery);
+	}
+	
+	void bindSchemaToView(IdAndVersion idAndVersion, SqlQuery sqlQuery) {
 		// create each column as needed.
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
-		return sqlQuery;
 	}
 	
 	static QuerySpecification getQuerySpecification(String definingSql) {
@@ -136,12 +136,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
 			throws Exception {
 		
-		String definingSql = nodeDao.getMaterializedViewDefiningSql("" + idAndVersion.getId())
+		String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
+		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).allowJoins(true)
+				.build();
 		
-		// re-bind the schema to the latest state of the dependent tables.
-		SqlQuery sqlQuery = bindSchemaToView(idAndVersion, querySpecification);
+		// schema of the current version is dynamic, while the schema of a snapshot is static.
+		if(!idAndVersion.getVersion().isPresent()) {
+			bindSchemaToView(idAndVersion, sqlQuery);
+		}
 		
 		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
 		IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);

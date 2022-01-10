@@ -36,10 +36,8 @@ public class MaterializedViewUpdateWorker implements ChangeMessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException, Exception {
-		if (ObjectType.MATERIALIZED_VIEW.equals(message.getObjectType())) {
-			final long tableId = KeyFactory.stringToKey(message.getObjectId());
-			final IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId)
-					.setVersion(message.getObjectVersion()).build();
+		if (ObjectType.MATERIALIZED_VIEW.equals(message.getObjectType())) { 
+			final IdAndVersion idAndVersion = KeyFactory.idAndVersion(message.getObjectId(), message.getObjectVersion());
 			try {
 				if (ChangeType.DELETE.equals(message.getChangeType())) {
 					materializedViewManager.deleteViewIndex(idAndVersion);
