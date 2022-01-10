@@ -6,11 +6,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -21,31 +23,33 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MaterializedViewManagerImpl implements MaterializedViewManager {
-
+	
+	private static final long PAGE_SIZE_LIMIT = 1000;
 	
 	public static final String DEFAULT_ETAG = "DEFAULT";
 	
 	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
+	final private TransactionalMessenger messagePublisher;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private NodeDAO nodeDao;
 
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager,
-			TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, NodeDAO nodeDao) {
+	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, NodeDAO nodeDao, TransactionalMessenger messagePublisher) {
 		this.dao = dao;
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.nodeDao = nodeDao;
+		this.messagePublisher = messagePublisher;
 	}
 	
 	@Override
@@ -77,6 +81,26 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		
 		bindSchemaToView(idAndVersion, querySpecification);
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+	}
+	
+	@Override
+	public void refreshDependentMaterializedViews(IdAndVersion tableId) {
+		ValidateArgument.required(tableId, "The tableId");
+		
+		PaginationIterator<IdAndVersion> idsItereator = new PaginationIterator<IdAndVersion>(
+			(long limit, long offset) -> dao.getMaterializedViewIdsPage(tableId, limit, offset),
+			PAGE_SIZE_LIMIT);
+		
+		idsItereator.forEachRemaining(id -> {
+			ChangeMessage change = new ChangeMessage()
+					.setObjectType(ObjectType.MATERIALIZED_VIEW)
+					.setObjectId(id.getId().toString())
+					.setObjectVersion(id.getVersion().orElse(null))
+					.setChangeType(ChangeType.UPDATE);
+			
+			messagePublisher.sendMessageAfterCommit(change);
+		});
+		
 	}
 	
 	/**

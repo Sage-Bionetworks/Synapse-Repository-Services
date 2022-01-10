@@ -17,12 +17,6 @@
 
 	<bean id="clock" class="org.sagebionetworks.util.DefaultClock" />
 
-	<bean id="transactionSynchronizationManager"
-		class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl" />
-	<!-- Transactional Messenger -->
-	<bean id="transactionalMessenger"
-		class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl" />
-
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 		
@@ -235,11 +229,6 @@
 	
 	<!-- Temp file provider -->
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" />
-	
-	<bean id="tableStatusDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.TableStatusDAOImpl"
-		scope="singleton">
-	</bean>
 	
 	<bean id="tableTransactionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDaoImpl"

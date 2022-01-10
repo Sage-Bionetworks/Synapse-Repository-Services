@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -12,6 +13,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * @author jmhill
  *
  */
+@Service
 public class TransactionSynchronizationProxyImpl implements TransactionSynchronizationProxy {
 	
 	@Override

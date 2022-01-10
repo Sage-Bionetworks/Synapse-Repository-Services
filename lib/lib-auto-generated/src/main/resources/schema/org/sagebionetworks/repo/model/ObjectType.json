@@ -153,6 +153,10 @@
         {
             "name": "MATERIALIZED_VIEW",
             "description": "A materialized view is defined by SQL run against one or more tables/views"
+        },
+        {
+        	"name": "TABLE_STATUS_EVENT",
+        	"description": "A change in the table status"
         }
     ]
 }

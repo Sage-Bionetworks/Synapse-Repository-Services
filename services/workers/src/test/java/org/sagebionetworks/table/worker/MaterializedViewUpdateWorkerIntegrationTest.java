@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.ArrayList;
@@ -19,10 +21,10 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
@@ -39,16 +41,23 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -82,6 +91,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	
 	@Autowired
 	private MaterializedViewManager materializedViewManager;
+	
+	@Autowired
+	private TableEntityManager tableManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -128,6 +140,53 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			
 		}, MAX_WAIT_MS);
 
+	}
+	
+	@Test
+	public void testTableSchemaChange() throws Exception {
+		
+		String projectId = createProject();
+		
+		List<ColumnModel> schema = Arrays.asList(
+			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("one")),
+			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.INTEGER).setName("two"))
+		);
+		
+		List<String> columnIds = TableModelUtils.getIds(schema);
+		
+		IdAndVersion tableId = createTable(projectId, columnIds);
+		
+		String sql = "SELECT * FROM " + tableId;
+		
+		// Wait for the table to build
+		asyncHelper.assertQueryResult(adminUserInfo, sql, (r) -> {
+			assertTrue(r.getQueryResult().getQueryResults().getRows().isEmpty());
+		}, MAX_WAIT_MS);
+				
+		IdAndVersion materializedViewId = createMaterializedView(projectId, sql);
+						
+		// The columns are the same as the source table
+		assertEquals(columnIds, columnModelManager.getColumnIdsForTable(materializedViewId));
+		
+		// Now simulate a schema change of the source table
+		schema = Lists.newArrayList(
+			columnModelManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.INTEGER).setName("three"))
+		);
+		
+		columnIds = TableModelUtils.getIds(schema);
+		
+		// This triggers the schema change and rebuild of the source table
+		tableManager.tableUpdated(adminUserInfo, columnIds, tableId.toString(), false);
+				
+		final List<String> expectedColumnIds = columnIds;
+		
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000, () -> {
+			// The columns should eventually by aligned with the source table
+			boolean sourceTableSynced = expectedColumnIds.equals(columnModelManager.getColumnIdsForTable(tableId));
+			boolean materializedViewSynced = expectedColumnIds.equals(columnModelManager.getColumnIdsForTable(materializedViewId));
+			return new Pair<>(sourceTableSynced && materializedViewSynced, null);
+		});
+		
 	}
 
 	/**
@@ -197,8 +256,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	public List<Entity> createProjectHierachy(int numberOfFiles) {
 
 		List<Entity> results = new ArrayList<>(numberOfFiles + 3);
-		Project project = entityManager.getEntity(adminUserInfo,
-				entityManager.createEntity(adminUserInfo, new Project().setName("A Project"), null), Project.class);
+		Project project = entityManager.getEntity(adminUserInfo, createProject(), Project.class);
 		results.add(project);
 
 		Folder folderOne = entityManager.getEntity(adminUserInfo, entityManager.createEntity(adminUserInfo,
@@ -236,6 +294,41 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			results.add(file);
 		}
 		return results;
+	}
+	
+	private String createProject() {
+		return entityManager.createEntity(adminUserInfo, new Project().setName("A Project"), null);
+	}
+	
+	private IdAndVersion createTable(String parentId, List<String> columnIds) {
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setParentId(parentId);
+		table.setColumnIds(columnIds);
+		
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		
+		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableManager.tableUpdated(adminUserInfo, table.getColumnIds(), tableId, false);
+		
+		return KeyFactory.idAndVersion(tableId, null);
+	}
+	
+	private IdAndVersion createMaterializedView(String parentId, String sql) {
+		MaterializedView materializedView = new MaterializedView();
+		
+		materializedView.setName(UUID.randomUUID().toString());
+		materializedView.setDefiningSQL(sql);
+		materializedView.setParentId(parentId);
+		
+		String materializedViewId = entityManager.createEntity(adminUserInfo, materializedView, null);
+		
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedViewId, null);
+		
+		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		materializedViewManager.registerSourceTables(idAndVersion, sql);
+		
+		return idAndVersion;
 	}
 
 }

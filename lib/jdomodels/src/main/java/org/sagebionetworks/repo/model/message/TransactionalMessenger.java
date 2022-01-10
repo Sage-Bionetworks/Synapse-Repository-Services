@@ -18,7 +18,7 @@ public interface TransactionalMessenger {
 	 * @param objectId
 	 * @param objectType
 	 */
-	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType);
+	void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType);
 	
 	/**
 	 * Send a change message after the current thread's transaction commits.
@@ -29,32 +29,39 @@ public interface TransactionalMessenger {
 	 * @param objectType
 	 * @param changeType
 	 */
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
+	void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
 
 	
 	/**
 	 * Send a message after a commit.
 	 * @param toSend
 	 */
-	public void sendMessageAfterCommit(MessageToSend toSend);
+	void sendMessageAfterCommit(MessageToSend toSend);
 
 	/**
 	 * Send a change message fashioned after the passed entity
 	 * after the current transaction commits.
 	 */
-	public void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType);
+	void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType);
 	
 	/**
 	 * Send the passed message after the current transaction commits.
 	 */
-	public void sendMessageAfterCommit(ChangeMessage message);
+	void sendMessageAfterCommit(ChangeMessage message);
+	
+	/**
+	 * Publishes the given message to its observers directly after the current transaction commits.
+	 * 
+	 * @param message A message is that is local to the current stack (e.g. does not migrate between stack and will not be re-played)
+	 */
+	void publishMessageAfterCommit(LocalStackMessage message);
 
 	/**
 	 * Register an observer that will be notified when there is a message after a commit.
 	 * 
 	 * @param observer
 	 */
-	public void registerObserver(TransactionalMessengerObserver observer);
+	void registerObserver(TransactionalMessengerObserver observer);
 	
 	
 	/**
@@ -62,13 +69,13 @@ public interface TransactionalMessenger {
 	 * @param observer
 	 * @return true if observer was registered.
 	 */
-	public boolean removeObserver(TransactionalMessengerObserver observer);
+	boolean removeObserver(TransactionalMessengerObserver observer);
 	
 	/**
 	 * Get an immutable list of all TransactionalMessengerObservers
 	 * @return
 	 */
-	public List<TransactionalMessengerObserver> getAllObservers();
+	List<TransactionalMessengerObserver> getAllObservers();
 	
 	/**
 	 * Register a batch of change messages as sent.  Each ChangeMessage in the batch must 
@@ -77,7 +84,7 @@ public interface TransactionalMessenger {
 	 * @param type The ObjectType of the batch.
 	 * @param batch
 	 */
-	public void registerMessagesSent(ObjectType type, List<ChangeMessage> batch);
+	void registerMessagesSent(ObjectType type, List<ChangeMessage> batch);
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).
@@ -86,5 +93,5 @@ public interface TransactionalMessenger {
 	 * @param limit
 	 * @return
 	 */
-	public List<ChangeMessage> listUnsentMessages(long limit);
+	List<ChangeMessage> listUnsentMessages(long limit);
 }

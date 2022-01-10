@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model.message;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
@@ -14,63 +15,76 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.ThreadLocalProvider;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
  * Unit (mocked) test for TransactionalMessengerImpl.
  *
  */
+@ExtendWith(MockitoExtension.class)
 public class TransactionalMessengerImplTest {
 	
-	DataSourceTransactionManager mockTxManager;
-	DBOChangeDAO mockChangeDAO;
-	TransactionSynchronizationProxy stubProxy;
-	TransactionalMessengerObserver mockObserver;
-	private TransactionalMessengerImpl messenger;
-	private TestClock testClock = new TestClock();
+	@Mock
+	private DBOChangeDAO mockChangeDAO;
 	
-	@Before
+	@Mock
+	private TransactionalMessengerObserver mockObserver;
+
+	private TransactionSynchronizationProxy stubProxy;
+	
+	@InjectMocks
+	private TransactionalMessengerImpl messenger;
+	
+	@Mock
+	private LocalStackMessage mockLocalMessage;
+	
+	@BeforeEach
 	public void before(){
-		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
-		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
-		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
+		messenger = new TransactionalMessengerImpl(mockChangeDAO, stubProxy);
 		messenger.registerObserver(mockObserver);
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testMessageKeyNull() {
-		new MessageKey(null);
+		assertThrows(IllegalArgumentException.class, () -> {			
+			new MessageKey(null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testMessageKeyNullId() {
-		new MessageKey(new ChangeMessage());
+		assertThrows(IllegalArgumentException.class, () -> {
+			new MessageKey(new ChangeMessage());
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testChangeMessageKeyNullType(){
 		ChangeMessage message = new ChangeMessage();
 		message.setObjectId("notNull");
-		new MessageKey(message);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			new MessageKey(message);
+		});
 	}
 	
 	@Test
@@ -115,7 +129,7 @@ public class TransactionalMessengerImplTest {
 		message.setObjectId("123");
 		message.setObjectType(ObjectType.ENTITY);
 		MessageKey two = new MessageKey(message);
-		assertEquals("Keys should be the same with or without the syn",one, two);
+		assertEquals(one, two, "Keys should be the same with or without the syn");
 	}
 	
 	@Test
@@ -202,20 +216,23 @@ public class TransactionalMessengerImplTest {
 		verify(mockObserver, times(1)).fireChangeMessage(first);
 		verify(mockObserver, times(2)).fireChangeMessage(any(ChangeMessage.class));
 	}
+	
+	@Test
+	public void testPublishMessageAfterCommmit() {
+		// Call under test
+		messenger.publishMessageAfterCommit(mockLocalMessage);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		
+		verify(mockObserver).fireLocalStackMessage(mockLocalMessage);
+	}
 
 	/**
 	 * PLFM-1662 was a bug the resulted in duplicate messages being broadcast. One of the messages did not have
 	 * a change number or time stamp, while the other messages was correct.
 	 */
 	@Test
-	public void testPLFM_1662(){
-		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
-		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
-		stubProxy = new TransactionSynchronizationProxyStub();
-		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
-		messenger.registerObserver(mockObserver);
-		
+	public void testPLFM_1662(){		
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));

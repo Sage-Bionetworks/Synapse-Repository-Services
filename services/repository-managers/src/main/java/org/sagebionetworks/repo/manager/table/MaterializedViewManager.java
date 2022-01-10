@@ -28,6 +28,13 @@ public interface MaterializedViewManager {
 	 * @param definingSql  The sql defining the materialized view
 	 */
 	void registerSourceTables(IdAndVersion idAndVersion, String definingSql);
+	
+	/**
+	 * Refresh all the (non-snapshot) materialized views that depend on the entity with the given id
+	 * 
+	 * @param entityId The id and (optional) version of the entity that might have changed
+	 */
+	void refreshDependentMaterializedViews(IdAndVersion entityId);
 
 	/**
 	 * Get the bound schema for the given materialized view.

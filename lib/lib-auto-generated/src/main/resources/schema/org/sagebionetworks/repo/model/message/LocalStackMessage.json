@@ -1,0 +1,12 @@
+{
+    "title": "LocalStackMessage",
+    "description": "JSON schema for a message that can be sent to the local stack and does not migrate.",
+    "type": "interface",
+    "implements": [
+    	{
+    		"$ref": "org.sagebionetworks.repo.model.message.Message"
+    	}
+    ],
+    "properties": {
+    }
+}

@@ -247,4 +247,13 @@ public class EntityTypeUtils {
 
 		return Stream.of(ViewEntityType.values()).anyMatch((viewType) -> viewType.name().equals(type.name()));
 	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return True if the type defines a table or a view, false otherwise
+	 */
+	public static boolean isTableOrViewType(EntityType type) {
+		return isViewType(type) || EntityType.table == type || EntityType.materializedview == type;
+	}
 }
