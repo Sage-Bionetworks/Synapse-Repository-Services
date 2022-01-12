@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -35,23 +34,24 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	public static final String DEFAULT_ETAG = "DEFAULT";
 	
-	final private MaterializedViewDao dao;
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
 	final private TransactionalMessenger messagePublisher;
 	final private TableIndexConnectionFactory connectionFactory;
-	final private NodeDAO nodeDao;
+	final private MaterializedViewDao materializedViewDao;
 
 	@Autowired
-	public MaterializedViewManagerImpl(MaterializedViewDao dao, ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport, TableIndexConnectionFactory connectionFactory, NodeDAO nodeDao, TransactionalMessenger messagePublisher) {
-		this.dao = dao;
+	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport,
+			TransactionalMessenger messagePublisher, TableIndexConnectionFactory connectionFactory,
+			MaterializedViewDao materializedViewDao) {
+		super();
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
-		this.connectionFactory = connectionFactory;
-		this.nodeDao = nodeDao;
 		this.messagePublisher = messagePublisher;
+		this.connectionFactory = connectionFactory;
+		this.materializedViewDao = materializedViewDao;
 	}
-	
+
 	@Override
 	public void validate(MaterializedView materializedView) {
 		ValidateArgument.required(materializedView, "The materialized view");		
@@ -68,15 +68,15 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
 		
 		Set<IdAndVersion> newSourceTables = getSourceTableIds(querySpecification);
-		Set<IdAndVersion> currentSourceTables = dao.getSourceTablesIds(idAndVersion);
+		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
 		
 		if (!newSourceTables.equals(currentSourceTables)) {
 			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
 			
 			toDelete.removeAll(newSourceTables);
 			
-			dao.deleteSourceTablesIds(idAndVersion, toDelete);
-			dao.addSourceTablesIds(idAndVersion, newSourceTables);
+			materializedViewDao.deleteSourceTablesIds(idAndVersion, toDelete);
+			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
 		}
 		
 		bindSchemaToView(idAndVersion, querySpecification);
@@ -88,7 +88,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		ValidateArgument.required(tableId, "The tableId");
 		
 		PaginationIterator<IdAndVersion> idsItereator = new PaginationIterator<IdAndVersion>(
-			(long limit, long offset) -> dao.getMaterializedViewIdsPage(tableId, limit, offset),
+			(long limit, long offset) -> materializedViewDao.getMaterializedViewIdsPage(tableId, limit, offset),
 			PAGE_SIZE_LIMIT);
 		
 		idsItereator.forEachRemaining(id -> {
@@ -109,14 +109,17 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param idAndVersion
 	 * @param definingQuery
 	 */
-	SqlQuery bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
+	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
 		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
 				.build();
+		bindSchemaToView(idAndVersion, sqlQuery);
+	}
+	
+	void bindSchemaToView(IdAndVersion idAndVersion, SqlQuery sqlQuery) {
 		// create each column as needed.
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
 		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
-		return sqlQuery;
 	}
 	
 	static QuerySpecification getQuerySpecification(String definingSql) {
@@ -160,12 +163,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
 			throws Exception {
 		
-		String definingSql = nodeDao.getMaterializedViewDefiningSql("" + idAndVersion.getId())
+		String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
+		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).allowJoins(true)
+				.build();
 		
-		// re-bind the schema to the latest state of the dependent tables.
-		SqlQuery sqlQuery = bindSchemaToView(idAndVersion, querySpecification);
+		// schema of the current version is dynamic, while the schema of a snapshot is static.
+		if(!idAndVersion.getVersion().isPresent()) {
+			bindSchemaToView(idAndVersion, sqlQuery);
+		}
 		
 		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
 		IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);

@@ -2165,20 +2165,4 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
 	}
-
-	@Override
-	public Optional<String> getMaterializedViewDefiningSql(String id) {
-		ValidateArgument.required(id, "id");
-		try {
-			String sql = "SELECT R." + COL_REVISION_DEFINING_SQL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
-					+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
-					+ " = R." + COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " = ? AND N." + COL_NODE_ID
-					+ " = ?";
-			return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class,
-					EntityType.materializedview.name(), KeyFactory.stringToKey(id)));
-		} catch (EmptyResultDataAccessException e) {
-			return Optional.empty();
-		}
-	}
-
 }

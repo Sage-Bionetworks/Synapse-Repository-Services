@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -30,10 +29,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -43,6 +41,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 
@@ -50,9 +49,6 @@ import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(MockitoExtension.class)
 public class MaterializedViewManagerImplTest {
-
-	@Mock
-	private MaterializedViewDao mockDao;
 
 	@Mock
 	private ColumnModelManager mockColumnModelManager;
@@ -70,7 +66,7 @@ public class MaterializedViewManagerImplTest {
 	private TableIndexManager mockTableIndexManager;
 	
 	@Mock
-	private NodeDAO mockNodeDao;
+	private MaterializedViewDao mockMaterializedViewDao;
 
 	@Mock
 	private TransactionalMessenger mockMessagePublisher;
@@ -210,17 +206,17 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedDeletes = Collections.emptySet();
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
 		
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -235,16 +231,16 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedDeletes = currentSourceTables;
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		
 	}
@@ -260,16 +256,16 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedDeletes = ImmutableSet.of(IdAndVersion.parse("syn456"));
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -281,15 +277,15 @@ public class MaterializedViewManagerImplTest {
 
 		String sql = "SELECT * FROM syn123";
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verifyNoMoreInteractions(mockDao);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verifyNoMoreInteractions(mockMaterializedViewDao);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -303,16 +299,16 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedDeletes = Collections.emptySet();
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -327,16 +323,16 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedDeletes = currentSourceTables;
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 		
 	}
@@ -352,16 +348,16 @@ public class MaterializedViewManagerImplTest {
 				IdAndVersion.parse("syn101112"));
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -374,15 +370,15 @@ public class MaterializedViewManagerImplTest {
 
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verifyNoMoreInteractions(mockDao);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verifyNoMoreInteractions(mockMaterializedViewDao);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -400,16 +396,16 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123.3"),
 				IdAndVersion.parse("syn456"));
 
-		when(mockDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
-		doReturn(null).when(managerSpy).bindSchemaToView(any(), any());
+		when(mockMaterializedViewDao.getSourceTablesIds(any())).thenReturn(currentSourceTables);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QuerySpecification.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
-		verify(mockDao).getSourceTablesIds(idAndVersion);
-		verify(mockDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
-		verify(mockDao).addSourceTablesIds(idAndVersion, expectedSources);
-		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+		verify(mockMaterializedViewDao).deleteSourceTablesIds(idAndVersion, expectedDeletes);
+		verify(mockMaterializedViewDao).addSourceTablesIds(idAndVersion, expectedSources);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QuerySpecification.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
 	}
@@ -427,7 +423,7 @@ public class MaterializedViewManagerImplTest {
 
 		assertEquals("The id of the materialized view is required.", message);
 
-		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMaterializedViewDao);
 
 	}
 
@@ -443,7 +439,7 @@ public class MaterializedViewManagerImplTest {
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 
-		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMaterializedViewDao);
 
 	}
 
@@ -459,7 +455,7 @@ public class MaterializedViewManagerImplTest {
 
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 
-		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMaterializedViewDao);
 
 	}
 
@@ -475,7 +471,7 @@ public class MaterializedViewManagerImplTest {
 
 		assertEquals("The definingSQL of the materialized view is required and must not be a blank string.", message);
 
-		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMaterializedViewDao);
 
 	}
 
@@ -596,7 +592,7 @@ public class MaterializedViewManagerImplTest {
 		);	
 		
 		// The second return must be an empty list because of the PaginationIterator that performs an additional call to check if there are more results
-		when(mockDao.getMaterializedViewIdsPage(any(), anyLong(), anyLong())).thenReturn(dependencies, Collections.emptyList());
+		when(mockMaterializedViewDao.getMaterializedViewIdsPage(any(), anyLong(), anyLong())).thenReturn(dependencies, Collections.emptyList());
 		
 		List<ChangeMessage> expectedMessages = Arrays.asList(
 			new ChangeMessage().setObjectType(ObjectType.MATERIALIZED_VIEW).setObjectId("123").setChangeType(ChangeType.UPDATE),
@@ -625,7 +621,7 @@ public class MaterializedViewManagerImplTest {
 		
 		assertEquals("The tableId is required.", message);
 
-		verifyZeroInteractions(mockDao);
+		verifyZeroInteractions(mockMaterializedViewDao);
 		verifyZeroInteractions(mockMessagePublisher);
 		
 	}
@@ -659,6 +655,7 @@ public class MaterializedViewManagerImplTest {
 	
 	@Test
 	public void testCreateOrRebuildViewHoldingExclusiveLock() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123");
 		doAnswer(invocation -> {
 			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
 			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[1];
@@ -666,24 +663,76 @@ public class MaterializedViewManagerImplTest {
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(), any(), any());
 		
-		when(mockNodeDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
-		when(mockColumnModelManager.createColumnModel(any())).thenReturn(
-				TableModelTestUtils.createColumn(333L, "foo", ColumnType.INTEGER),
-				TableModelTestUtils.createColumn(444L, "bar", ColumnType.STRING));
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+		
 		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
 		
 		// call under test
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 		
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(), eq( dependentIdAndVersion));
+		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingExclusiveLockWithSnapshot() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123.1");
+		doAnswer(invocation -> {
+			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[1];
+			runner.call(callback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(), any(), any());
+		
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
+		IdAndVersion dependentIdAndVersion = IdAndVersion.parse("syn456");
+		
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+		
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(), eq( dependentIdAndVersion));
+		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrRebuildViewHoldingExclusiveLockWithMultipleDependencies() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123");
+		doAnswer(invocation -> {
+			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
+			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[1];
+			runner.call(callback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(), any(), any());
+
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
+				.thenReturn(Optional.of("select * from syn456 join syn789"));
+		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
+
+		IdAndVersion[] dependentIdAndVersions = new IdAndVersion[] { IdAndVersion.parse("syn456"),
+				IdAndVersion.parse("syn789") };
+
+		// call under test
+		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
+
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+				eq(dependentIdAndVersions[0]), eq(dependentIdAndVersions[1]));
 		verify(managerSpy).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion);
 	}
 	
 	@Test
 	public void testCreateOrRebuildViewHoldingExclusiveLockWithNoDefiningSql() throws Exception {
 		
-		when(mockNodeDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());
+		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.empty());
 		
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
@@ -691,6 +740,8 @@ public class MaterializedViewManagerImplTest {
 		}).getMessage();
 		assertEquals("No defining SQL for: syn123.1", message);
 		
+		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(any());
+		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
 		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(), any(), any());
 		verify(managerSpy, never()).createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(any());
 	}

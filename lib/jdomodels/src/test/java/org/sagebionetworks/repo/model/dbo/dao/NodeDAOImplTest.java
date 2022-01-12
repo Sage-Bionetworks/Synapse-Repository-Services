@@ -5141,56 +5141,5 @@ public class NodeDAOImplTest {
 		assertEquals("offset is required.", message);
 	}
 	
-	@Test
-	public void testGetMaterializedViewDefiningSql() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.materializedview);
-			n.setDefiningSQL(sql);
-			n.setCreatedByPrincipalId(creatorUserGroupId);
-		});
-		// call under test
-		assertEquals(Optional.of(sql), nodeDao.getMaterializedViewDefiningSql(materializedView.getId()));
-	}
-	
-	@Test
-	public void testGetMaterializedViewDefiningSqlWithDoesNotExist() {
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getMaterializedViewDefiningSql("syn123"));
-	}
-	
-	@Test
-	public void testGetMaterializedViewDefiningSqlWithNullSql() {
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.dataset);
-			n.setDefiningSQL(null);
-			n.setCreatedByPrincipalId(creatorUserGroupId);
-		});
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getMaterializedViewDefiningSql(materializedView.getId()));
-	}
-	
-	@Test
-	public void testGetMaterializedViewDefiningSqlWithWrongNodeType() {
-		String sql = "select * from syn123";
-		Node materializedView = nodeDaoHelper.create(n -> {
-			n.setName("materializedView");
-			n.setNodeType(EntityType.dataset);
-			n.setDefiningSQL(sql);
-			n.setCreatedByPrincipalId(creatorUserGroupId);
-		});
-		// call under test
-		assertEquals(Optional.empty(), nodeDao.getMaterializedViewDefiningSql(materializedView.getId()));
-	}
-	
-	@Test
-	public void testGetMaterializedViewDefiningSqlWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			nodeDao.getMaterializedViewDefiningSql(null);
-		}).getMessage();
-		assertEquals("id is required.", message);
-	}
+
 }
