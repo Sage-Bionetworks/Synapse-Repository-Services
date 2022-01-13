@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,15 +33,6 @@ public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssoc
 	@Override
 	public String getQueueUrl() {
 		return sqsQueueUrl;
-	}
-
-	@Override
-	public FileHandleAssociationScanRangeRequest fromSqsMessage(Message message) {
-		try {
-			return objectMapper.readValue(message.getBody(), FileHandleAssociationScanRangeRequest.class);
-		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException("Could not parse FileHandleAssociationScanRangeRequest from message: " + e.getMessage(), e);
-		}
 	}
 
 	@Override

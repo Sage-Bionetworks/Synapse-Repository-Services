@@ -70,42 +70,7 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 		verify(mockConfig).getQueueName("FILE_HANDLE_SCAN_REQUEST");
 		verify(mockSqsClient).getQueueUrl("QueueName");
 	}
-	
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testFromSqsMessage() throws JsonProcessingException {
-		when(mockMessage.getBody()).thenReturn(messageBody);
-		when(mockObjectMapper.readValue(anyString(), any(Class.class))).thenReturn(request);
 		
-		// Call under test
-		FileHandleAssociationScanRangeRequest result = notifier.fromSqsMessage(mockMessage);
-		
-		assertEquals(request, result);
-		
-		verify(mockMessage).getBody();
-		verify(mockObjectMapper).readValue(messageBody, FileHandleAssociationScanRangeRequest.class);
-		
-	}
-	
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testFromSqsMessageWithException() throws JsonProcessingException {
-		when(mockMessage.getBody()).thenReturn(messageBody);
-		
-		JsonProcessingException ex = new JsonParseException(null, "Some error");
-		
-		doThrow(ex).when(mockObjectMapper).readValue(anyString(), any(Class.class));
-		
-		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			notifier.fromSqsMessage(mockMessage);			
-		});
-		
-		assertEquals(ex, result.getCause());
-		assertEquals("Could not parse FileHandleAssociationScanRangeRequest from message: Some error", result.getMessage());
-		
-	}
-	
 	@Test
 	public void testSendScanRequest() throws JsonProcessingException {
 		

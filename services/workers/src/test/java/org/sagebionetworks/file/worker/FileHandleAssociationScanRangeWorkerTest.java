@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -23,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
-import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
@@ -36,10 +34,7 @@ public class FileHandleAssociationScanRangeWorkerTest {
 
 	@Mock
 	private FileHandleAssociationScannerJobManager mockManager;
-	
-	@Mock
-	private FileHandleAssociationScannerNotifier mockNotifier;
-	
+		
 	@Mock
 	private WorkerLogger mockWorkerLogger;
 	
@@ -68,12 +63,10 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		boolean allJobsCompleted = false;
 		
 		when(mockManager.isScanJobCompleted(anyLong())).thenReturn(allJobsCompleted);
-		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, request);
 		
-		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);
 		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobCompletedCount");
@@ -87,12 +80,10 @@ public class FileHandleAssociationScanRangeWorkerTest {
 		boolean allJobsCompleted = true;
 		
 		when(mockManager.isScanJobCompleted(anyLong())).thenReturn(allJobsCompleted);
-		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, request);
 		
-		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);
 		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobCompletedCount");
@@ -103,21 +94,18 @@ public class FileHandleAssociationScanRangeWorkerTest {
 	
 	@Test
 	public void testRunWithRecoverableException() throws RecoverableMessageException, Exception {
-		
-		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
-		
+				
 		RecoverableMessageException ex = new RecoverableMessageException("Some ex");
 		
 		doThrow(ex).when(mockManager).processScanRangeRequest(any());
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
-			worker.run(mockCallback, mockMessage);
+			worker.run(mockCallback, mockMessage, request);
 		});
 		
 		assertEquals(ex, result);
 		
-		verify(mockNotifier).fromSqsMessage(mockMessage);
 		verify(mockManager).processScanRangeRequest(request);
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobRetryCount");
 		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
@@ -127,35 +115,16 @@ public class FileHandleAssociationScanRangeWorkerTest {
 	@Test
 	public void testRunWithUnrecoverableException() throws RecoverableMessageException, Exception {
 		
-		when(mockNotifier.fromSqsMessage(any())).thenReturn(request);
-		
 		RuntimeException ex = new RuntimeException("Some ex");
 		
 		doThrow(ex).when(mockManager).processScanRangeRequest(any());
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
-				
-		verify(mockNotifier).fromSqsMessage(mockMessage);
+		worker.run(mockCallback, mockMessage, request);
+			
 		verify(mockManager).processScanRangeRequest(request);
 		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "JobFailedCount");
 		Map<String, String> expectedDimensions = Collections.singletonMap("AssociationType", "FileEntity");
 		verify(mockWorkerLogger).logWorkerTimeMetric(eq(FileHandleAssociationScanRangeWorker.class), anyLong(), eq(expectedDimensions));
 	}
-	
-	@Test
-	public void testRunWithMessageParsingError() throws RecoverableMessageException, Exception {
-		
-		RuntimeException ex = new RuntimeException("Some error");
-		
-		doThrow(ex).when(mockNotifier).fromSqsMessage(any());
-		
-		// Call under test
-		worker.run(mockCallback, mockMessage);
-		
-		verify(mockNotifier).fromSqsMessage(mockMessage);
-		verify(mockWorkerLogger).logWorkerCountMetric(FileHandleAssociationScanRangeWorker.class, "ParseMessageErrorCount");
-		verifyZeroInteractions(mockManager);
-	}
-
 }
