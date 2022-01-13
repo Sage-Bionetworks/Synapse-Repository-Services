@@ -26,7 +26,11 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableQueryWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.table.worker.TableQueryWorker"></bean>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="tableQueryWorker" />
 								<property name="semaphoreMaxLockCount" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" />
