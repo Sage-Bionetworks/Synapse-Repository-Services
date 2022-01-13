@@ -338,41 +338,7 @@ public class FileHandleArchivalManagerTest {
 		assertEquals("If supplied the limit must be in the range (0, 100000]", ex.getMessage());
 				
 	}
-	
-	@Test
-	public void testParseArchiveKeysRequestFromSqsMessage() throws JsonProcessingException {
 		
-		when(mockMessage.getBody()).thenReturn("Message");
-		when(mockMapper.readValue(anyString(), any(Class.class))).thenReturn(mockKeysArchiveRequest);
-		
-		// Call under test
-		FileHandleKeysArchiveRequest result = manager.parseArchiveKeysRequestFromSqsMessage(mockMessage);
-		
-		assertEquals(mockKeysArchiveRequest, result);
-		
-		verify(mockMapper).readValue("Message", FileHandleKeysArchiveRequest.class);
-	}
-	
-	@Test
-	public void testParseArchiveKeysRequestFromSqsMessageWithParseEx() throws JsonProcessingException {
-		
-		when(mockMessage.getBody()).thenReturn("Message");
-		
-		JsonProcessingException ex = new JsonParseException(null, "Some error");
-		
-		doThrow(ex).when(mockMapper).readValue(anyString(), any(Class.class));
-		
-		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			manager.parseArchiveKeysRequestFromSqsMessage(mockMessage);
-		});
-		
-		assertEquals(ex, result.getCause());
-		assertEquals("Could not deserialize FileHandleKeysArchiveRequest message: Some error", result.getMessage());
-		verify(mockMapper).readValue("Message", FileHandleKeysArchiveRequest.class);
-		
-	}
-	
 	@Test
 	public void testArchiveUnlinkedFileHandlesByKey() {
 		String key = "key1";

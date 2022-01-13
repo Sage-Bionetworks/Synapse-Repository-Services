@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,7 +23,7 @@ import com.amazonaws.services.sqs.model.Message;
  * @author Marco Marasca
  *
  */
-public class FileHandleKeysArchiveWorker implements MessageDrivenRunner {
+public class FileHandleKeysArchiveWorker implements TypedMessageDrivenRunner<FileHandleKeysArchiveRequest> {
 	
 	private static final Logger LOG = LogManager.getLogger(FileHandleKeysArchiveWorker.class);
 
@@ -35,12 +35,16 @@ public class FileHandleKeysArchiveWorker implements MessageDrivenRunner {
 		this.userManager = userManager;
 		this.archivalManager = archivalManager;
 	}
+	
+	@Override
+	public Class<FileHandleKeysArchiveRequest> getObjectClass() {
+		return FileHandleKeysArchiveRequest.class;
+	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
+	public void run(ProgressCallback progressCallback, Message message, FileHandleKeysArchiveRequest request) throws RecoverableMessageException, Exception {
 
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		FileHandleKeysArchiveRequest request = archivalManager.parseArchiveKeysRequestFromSqsMessage(message);
 
 		String bucket = request.getBucket();
 		Instant modifiedBefore = Instant.ofEpochMilli(request.getModifiedBefore());

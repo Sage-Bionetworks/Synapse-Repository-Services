@@ -8,10 +8,9 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerJobManager;
-import org.sagebionetworks.repo.manager.file.FileHandleAssociationScannerNotifier;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -20,9 +19,8 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * Worker that handles a range scan request for a given association type, process an SQS message with the details about the range to scan
  */
-public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner {
+public class FileHandleAssociationScanRangeWorker implements TypedMessageDrivenRunner<FileHandleAssociationScanRangeRequest> {
 	
-	private static final String METRIC_PARSE_MESSAGE_ERROR_COUNT = "ParseMessageErrorCount";
 	private static final String METRIC_JOB_FAILED_COUNT = "JobFailedCount";
 	private static final String METRIC_JOB_COMPLETED_COUNT = "JobCompletedCount";
 	private static final String METRIC_ALL_JOBS_COMPLETED_COUNT = "AllJobsCompletedCount";
@@ -32,29 +30,22 @@ public class FileHandleAssociationScanRangeWorker implements MessageDrivenRunner
 	private static final Logger LOG = LogManager.getLogger(FileHandleAssociationScanRangeWorker.class);
 	
 	private FileHandleAssociationScannerJobManager manager;
-	private FileHandleAssociationScannerNotifier notifier;
 	private WorkerLogger workerLogger;
 
 	@Autowired
-	public FileHandleAssociationScanRangeWorker(FileHandleAssociationScannerJobManager manager, FileHandleAssociationScannerNotifier notifier, WorkerLogger workerLogger) {
+	public FileHandleAssociationScanRangeWorker(FileHandleAssociationScannerJobManager manager, WorkerLogger workerLogger) {
 		this.manager = manager;
-		this.notifier = notifier;
 		this.workerLogger = workerLogger;
+	}
+	
+	@Override
+	public Class<FileHandleAssociationScanRangeRequest> getObjectClass() {
+		return FileHandleAssociationScanRangeRequest.class;
 	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
+	public void run(ProgressCallback progressCallback, Message message, FileHandleAssociationScanRangeRequest request) throws RecoverableMessageException, Exception {
 		
-		final FileHandleAssociationScanRangeRequest request;
-		
-		try {
-			request = notifier.fromSqsMessage(message);
-		} catch (Throwable e) {
-			LOG.error("Could not process SQS message \n" + message.getBody() + "\n" + e.getMessage(), e);
-			logWorkerCountMetric(METRIC_PARSE_MESSAGE_ERROR_COUNT);
-			return;
-		}
-
 		long start = System.currentTimeMillis();
 		
 		try {

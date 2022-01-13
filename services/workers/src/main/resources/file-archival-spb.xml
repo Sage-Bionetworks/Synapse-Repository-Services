@@ -67,7 +67,11 @@
 						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="fileHandleKeysArchiveWorker"/>
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg ref="fileHandleKeysArchiveWorker"/>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="fileHandleKeysArchiveWorker" />
 								<property name="semaphoreMaxLockCount" value="20" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />

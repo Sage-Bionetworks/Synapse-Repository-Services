@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sagebionetworks.repo.model.ses.SESNotificationUtils.loadMessageFromClasspath;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,7 +30,7 @@ public class SESNotificationDaoImplTest {
 
 	@BeforeEach
 	public void before() throws IOException {
-		messageBody = loadMessageFromClasspath("permanent_general");
+		messageBody = "{}";
 		dao.clearAll();
 	}
 

@@ -14,9 +14,6 @@
 	<!-- This worker periodically starts a new scanner job, disptaching scan range requests -->
 	<bean id="fileHandleAssociationScanDispatcherWorker" class="org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker" scope="singleton" />
 	
-	<!-- This worker process an SQS message to scan a range of file handle associations -->
-	<bean id="fileHandleAssociationScanRangeWorker" class="org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker" scope="singleton" />
-	
 	<!-- This worker process the change messages for files and stream the data to S3 -->
 	<bean id="fileHandleStreamWorker" class="org.sagebionetworks.file.worker.FileHandleStreamWorker" scope="singleton" />
 	
@@ -63,7 +60,13 @@
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="fileHandleAssociationScanRangeWorker" />
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker"></bean>
+										</constructor-arg>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="fileHandleAssociationScanRangeWorker" />
 								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />

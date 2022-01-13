@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatusChangeEvent;
 
+import com.amazonaws.services.sqs.model.Message;
+
 @ExtendWith(MockitoExtension.class)
 public class MaterializedViewSourceUpdateWorkerTest {
 	
@@ -31,19 +33,22 @@ public class MaterializedViewSourceUpdateWorkerTest {
 	private ProgressCallback mockCallBack;
 	
 	@Mock
-	private TableStatusChangeEvent mockMessage;
+	private TableStatusChangeEvent mockEvent;
+	
+	@Mock
+	private Message mockMessage;
 
 	@Test
 	public void testRun() throws Exception {
-		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
-		when(mockMessage.getObjectId()).thenReturn("syn123");
-		when(mockMessage.getObjectVersion()).thenReturn(null);
-		when(mockMessage.getState()).thenReturn(TableState.AVAILABLE);
+		when(mockEvent.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockEvent.getObjectId()).thenReturn("syn123");
+		when(mockEvent.getObjectVersion()).thenReturn(null);
+		when(mockEvent.getState()).thenReturn(TableState.AVAILABLE);
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("123");
 		
 		// Call under test
-		worker.run(mockCallBack, mockMessage);
+		worker.run(mockCallBack, mockMessage, mockEvent);
 		
 		verify(mockManager).refreshDependentMaterializedViews(expectedIdAndVersion);
 		
@@ -51,15 +56,15 @@ public class MaterializedViewSourceUpdateWorkerTest {
 	
 	@Test
 	public void testRunWithVersion() throws Exception {
-		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
-		when(mockMessage.getObjectId()).thenReturn("syn123");
-		when(mockMessage.getObjectVersion()).thenReturn(2L);
-		when(mockMessage.getState()).thenReturn(TableState.AVAILABLE);
+		when(mockEvent.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockEvent.getObjectId()).thenReturn("syn123");
+		when(mockEvent.getObjectVersion()).thenReturn(2L);
+		when(mockEvent.getState()).thenReturn(TableState.AVAILABLE);
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("123.2");
 		
 		// Call under test
-		worker.run(mockCallBack, mockMessage);
+		worker.run(mockCallBack, mockMessage, mockEvent);
 		
 		verify(mockManager).refreshDependentMaterializedViews(expectedIdAndVersion);
 		
@@ -67,11 +72,11 @@ public class MaterializedViewSourceUpdateWorkerTest {
 	
 	@Test
 	public void testRunWithProcessingState() throws Exception {
-		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
-		when(mockMessage.getState()).thenReturn(TableState.PROCESSING);
+		when(mockEvent.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockEvent.getState()).thenReturn(TableState.PROCESSING);
 		
 		// Call under test
-		worker.run(mockCallBack, mockMessage);
+		worker.run(mockCallBack, mockMessage, mockEvent);
 		
 		verifyZeroInteractions(mockManager);
 		
@@ -79,11 +84,11 @@ public class MaterializedViewSourceUpdateWorkerTest {
 	
 	@Test
 	public void testRunWithFailedState() throws Exception {
-		when(mockMessage.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
-		when(mockMessage.getState()).thenReturn(TableState.PROCESSING_FAILED);
+		when(mockEvent.getObjectType()).thenReturn(ObjectType.TABLE_STATUS_EVENT);
+		when(mockEvent.getState()).thenReturn(TableState.PROCESSING_FAILED);
 		
 		// Call under test
-		worker.run(mockCallBack, mockMessage);
+		worker.run(mockCallBack, mockMessage, mockEvent);
 		
 		verifyZeroInteractions(mockManager);
 		
@@ -91,11 +96,11 @@ public class MaterializedViewSourceUpdateWorkerTest {
 	
 	@Test
 	public void testRunWithWrongObjectType() throws Exception {
-		when(mockMessage.getObjectType()).thenReturn(ObjectType.ENTITY);
+		when(mockEvent.getObjectType()).thenReturn(ObjectType.ENTITY);
 		
 		String message = assertThrows(IllegalStateException.class, () -> {			
 			// Call under test
-			worker.run(mockCallBack, mockMessage);
+			worker.run(mockCallBack, mockMessage, mockEvent);
 		}).getMessage();
 		
 		assertEquals("Unsupported object type: expected TABLE_STATUS_EVENT, got ENTITY", message);

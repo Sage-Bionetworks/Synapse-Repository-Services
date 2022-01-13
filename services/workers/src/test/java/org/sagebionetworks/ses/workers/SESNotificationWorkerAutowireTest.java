@@ -10,10 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.dbo.ses.SESNotificationDao;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -50,7 +50,7 @@ public class SESNotificationWorkerAutowireTest {
 		emailQuarantineDao.clearAll();
 		notificationDao.clearAll();
 		queueUrl = sqsClient.getQueueUrl(stackConfig.getQueueName(QUEUE_NAME)).getQueueUrl();
-		messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
+		messageBody = TestUtils.loadFromClasspath("ses/message_permanent_general.json");
 	}
 
 	@AfterEach

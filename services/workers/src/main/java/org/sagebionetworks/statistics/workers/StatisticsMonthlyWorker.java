@@ -6,8 +6,7 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProcessNotification;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,7 +18,7 @@ import com.amazonaws.services.sqs.model.Message;
  * @author Marco
  *
  */
-public class StatisticsMonthlyWorker implements MessageDrivenRunner {
+public class StatisticsMonthlyWorker implements TypedMessageDrivenRunner<StatisticsMonthlyProcessNotification> {
 
 	private static final Logger LOG = LogManager.getLogger(StatisticsMonthlyWorker.class);
 
@@ -32,19 +31,16 @@ public class StatisticsMonthlyWorker implements MessageDrivenRunner {
 		this.manager = manager;
 		this.workerLogger = workerLogger;
 	}
+	
+	@Override
+	public Class<StatisticsMonthlyProcessNotification> getObjectClass() {
+		return StatisticsMonthlyProcessNotification.class;
+	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
+	public void run(ProgressCallback progressCallback, Message message, StatisticsMonthlyProcessNotification notification) throws RecoverableMessageException, Exception {
 
 		try {
-			String messageBody = message.getBody();
-
-			if (LOG.isDebugEnabled()) {
-				LOG.debug("Process notification received: " + messageBody);
-			}
-
-			StatisticsMonthlyProcessNotification notification = StatisticsMonthlyUtils.fromNotificationBody(messageBody);
-
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
 			}

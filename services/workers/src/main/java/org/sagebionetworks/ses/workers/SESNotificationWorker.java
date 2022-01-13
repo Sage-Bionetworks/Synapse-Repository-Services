@@ -5,13 +5,14 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.ses.SESNotificationManager;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.repo.model.ses.SESJsonNotification;
+import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 
-public class SESNotificationWorker implements MessageDrivenRunner {
+public class SESNotificationWorker implements TypedMessageDrivenRunner<SESJsonNotification> {
 
 	private static final Logger LOG = LogManager.getLogger(SESNotificationWorker.class);
 
@@ -23,16 +24,19 @@ public class SESNotificationWorker implements MessageDrivenRunner {
 		this.notificationManager = notificationManager;
 		this.workerLogger = workerLogger;
 	}
+	
+	@Override
+	public Class<SESJsonNotification> getObjectClass() {
+		return SESJsonNotification.class;
+	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		String messageBody = message.getBody();
-
+	public void run(ProgressCallback progressCallback, Message message, SESJsonNotification notification) throws RecoverableMessageException, Exception {
 		try {
-			notificationManager.processMessage(messageBody);
+			notificationManager.processMessage(notification, message.getBody());
 		} catch (Throwable e) {
 
-			LOG.error("Cannot process message \n" + messageBody + ": \n" + e.getMessage(), e);
+			LOG.error("Cannot process message " + message.getBody() + ": " + e.getMessage(), e);
 
 			boolean willRetry = false;
 

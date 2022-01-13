@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.ses;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,6 @@ import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESJsonRecipient;
 import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,16 +57,9 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 
 	@Override
 	@WriteTransaction
-	public void processMessage(String messageBody) {
-		ValidateArgument.requiredNotBlank(messageBody, "The message body");
-
-		SESJsonNotification notification;
-
-		try {
-			notification = SESNotificationUtils.parseSQSMessage(messageBody);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
+	public void processMessage(SESJsonNotification notification, String messageBody) {
+		ValidateArgument.required(notification, "The notification");
+		ValidateArgument.requiredNotBlank(messageBody, "The messageBody");
 
 		SESNotificationType notificationType = parseNotificationType(notification.getNotificationType());
 
