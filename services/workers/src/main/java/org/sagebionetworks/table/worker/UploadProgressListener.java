@@ -1,11 +1,9 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Updates progress as a file is uloaded to S3.
@@ -17,14 +15,11 @@ public class UploadProgressListener implements ProgressListener {
 
 	public static final String MESSAGE_CREATE_CSV_FILE_HANDLE = "Create CSV FileHandle";
 	
-	ProgressCallback progressCallback;
-	Message originatingMessage;
+	AsyncJobProgressCallback progressCallback;
 	long startProgress;
 	double bytesTransferedSoFar;
 	double bytesPerRow;
 	long totalProgress;
-	AsynchJobStatusManager asynchJobStatusManager;
-	String jobId;
 	
 	/**
 	 * 
@@ -36,18 +31,13 @@ public class UploadProgressListener implements ProgressListener {
 	 * @param asynchJobStatusManager
 	 * @param jobId
 	 */
-	public UploadProgressListener(ProgressCallback progressCallback,
-			Message originatingMessage, long startProgress, double bytesPerRow,
-			long totalProgress, AsynchJobStatusManager asynchJobStatusManager,
-			String jobId) {
+	public UploadProgressListener(AsyncJobProgressCallback progressCallback, long startProgress, double bytesPerRow,
+			long totalProgress) {
 		super();
 		this.progressCallback = progressCallback;
-		this.originatingMessage = originatingMessage;
 		this.startProgress = startProgress;
 		this.bytesPerRow = bytesPerRow;
 		this.totalProgress = totalProgress;
-		this.asynchJobStatusManager = asynchJobStatusManager;
-		this.jobId = jobId;
 		this.bytesTransferedSoFar = 0;
 	}
 
@@ -61,8 +51,7 @@ public class UploadProgressListener implements ProgressListener {
 		}else{
 			currentProgress = (long) (startProgress + (bytesTransferedSoFar/bytesPerRow));
 		}
-		// Update the status
-		asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, MESSAGE_CREATE_CSV_FILE_HANDLE);
+		progressCallback.updateProgress(MESSAGE_CREATE_CSV_FILE_HANDLE, currentProgress, totalProgress);
 	}
 
 }

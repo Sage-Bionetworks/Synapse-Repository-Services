@@ -1,17 +1,19 @@
 package org.sagebionetworks.report.worker;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -29,17 +31,16 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class StorageReportCSVDownloadWorkerIntegrationTest {
 	
@@ -73,7 +74,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 	String project1Id;
 	String project2Id;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUser);
@@ -125,7 +126,7 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 		waitForEntityReplication(file3Id);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		entityManager.deleteEntity(adminUserInfo, file1Id);
 		entityManager.deleteEntity(adminUserInfo, file2Id);
@@ -170,9 +171,9 @@ public class StorageReportCSVDownloadWorkerIntegrationTest {
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
-				assertTrue("Job failed: "+status.getErrorDetails(), false);
+				fail("Job failed: "+status.getErrorDetails());
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job: "+status.getProgressMessage());
 				Thread.sleep(1000);
 				break;

@@ -2,22 +2,16 @@ package org.sagebionetworks.table.worker;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.Writer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -26,15 +20,13 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
-
 import au.com.bytecode.opencsv.CSVWriter;
-import au.com.bytecode.opencsv.Constants;
 
 /**
  * This worker will stream the results of a table SQL query to a local CSV file and upload the file
@@ -43,32 +35,37 @@ import au.com.bytecode.opencsv.Constants;
  * @author jmhill
  *
  */
-public class TableCSVDownloadWorker implements MessageDrivenRunner {
+public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableRequest, DownloadFromTableResult> {
 
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);
 
 	@Autowired
-	private AsynchJobStatusManager asynchJobStatusManager;
-	@Autowired
 	private TableQueryManager tableQueryManager;
-	@Autowired
-	private UserManager userManger;
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private Clock clock;
 	@Autowired
 	private TableExceptionTranslator tableExceptionTranslator;
-
+	
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws Exception {
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		String fileName = "Job-"+status.getJobId();
+	public Class<DownloadFromTableRequest> getRequestType() {
+		return DownloadFromTableRequest.class;
+	}
+	
+	@Override
+	public Class<DownloadFromTableResult> getResponseType() {
+		return DownloadFromTableResult.class;
+	}
+	
+	@Override
+	public DownloadFromTableResult run(ProgressCallback progressCallback, String jobId, UserInfo user, DownloadFromTableRequest request,
+			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+		String fileName = "Job-"+jobId;
 		File temp = null;
 		CSVWriter writer = null;
-		try{
-			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
+		
+		try {
 			// only run the count
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 			// Before we start determine how many rows there are.
@@ -81,12 +78,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// The CSV data will first be written to this file.
 			temp = File.createTempFile(
 					fileName,
-					"."
-							+ CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor()
-									.getSeparator()));
+					"." + CSVUtils.guessExtension(request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()));
 			writer = CSVUtils.createCSVWriter(new FileWriter(temp), request.getCsvTableDescriptor());
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
-			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
+			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, jobProgressCallback, currentProgress, totalProgress, clock);
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
@@ -94,35 +89,32 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			}finally{
 				writer.close();
 			}
-
+	
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
 			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
-			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
+			UploadProgressListener uploadListener = new UploadProgressListener(jobProgressCallback, startProgress, bytesPerRow, totalProgress);
 			String contentType = CSVUtils.guessContentType(request
 					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator());
 			S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
 			result.setResultsFileHandleId(fileHandle.getId());
-			// Create the file
-			// Now upload the file as a filehandle
-			asynchJobStatusManager.setComplete(status.getJobId(), result);
-		}catch (TableUnavailableException | LockUnavilableException e){
+			return result;
+		} catch (TableUnavailableException | LockUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
+			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);
 			// Throwing this will put the message back on the queue in 5 seconds.
 			throw new RecoverableMessageException();
 		} catch (TableFailedException e) {
-			// This means we cannot use this table
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-		}catch(Throwable e){
+			throw e;
+		} catch(Throwable e){
+			log.error("Worker Failed", e);
 			// Attempt to translate the exception into a 'user-friendly' message.
 			RuntimeException translatedException = tableExceptionTranslator.translateException(e);
-			// The job failed
-			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
-			log.error("Worker Failed", e);
-		}finally{
+
+			throw translatedException;
+		} finally {
 			if(writer != null){
 				try {
 					writer.close();

@@ -1,11 +1,8 @@
 package org.sagebionetworks.table.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
-
-import com.amazonaws.services.sqs.model.Message;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -25,12 +22,9 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 */
 	public static final long UPDATE_FEQUENCY_MS = 2000;
 	CSVWriter writer;
-	ProgressCallback progressCallback;
-	Message originatingMessage;
-	AsynchJobStatusManager asynchJobStatusManager;
+	AsyncJobProgressCallback progressCallback;
 	long currentProgress;
 	long totalProgress;
-	String jobId;
 	Clock clock;
 	/**
 	 * The time of the last progress update.
@@ -48,18 +42,13 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 *            timeout for this message will get extended as long progress
 	 *            continues to be made.
 	 */
-	public ProgressingCSVWriterStream(CSVWriter writer,
-			ProgressCallback progressCallback, Message originatingMessage,
-			AsynchJobStatusManager asynchJobStatusManager,
-			long currentProgress, long totalProgress, String jobId, Clock clock) {
+	public ProgressingCSVWriterStream(CSVWriter writer, AsyncJobProgressCallback progressCallback,
+			long currentProgress, long totalProgress, Clock clock) {
 		super();
 		this.writer = writer;
 		this.progressCallback = progressCallback;
-		this.originatingMessage = originatingMessage;
-		this.asynchJobStatusManager = asynchJobStatusManager;
 		this.currentProgress = currentProgress;
 		this.totalProgress = totalProgress;
-		this.jobId = jobId;
 		this.clock = clock;
 		this.lastUpdateTimeMS = clock.currentTimeMillis();
 	}
@@ -72,7 +61,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress
 			// Update the status
-			asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, BUILDING_THE_CSV);
+			progressCallback.updateProgress(BUILDING_THE_CSV, currentProgress, totalProgress);
 			// reset the clock
 			this.lastUpdateTimeMS = clock.currentTimeMillis();
 		}
