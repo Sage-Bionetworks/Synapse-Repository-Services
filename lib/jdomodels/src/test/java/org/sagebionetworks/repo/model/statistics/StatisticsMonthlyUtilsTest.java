@@ -59,21 +59,7 @@ public class StatisticsMonthlyUtilsTest {
 		
 		assertEquals("{\"objectType\":\"PROJECT\",\"month\":[2019,8]}", json);
 	}
-	
-	@Test
-	public void testFromNotificationBody() {
-		YearMonth month = YearMonth.of(2019, 8);
 		
-		StatisticsMonthlyProcessNotification notification = new StatisticsMonthlyProcessNotification(StatisticsObjectType.PROJECT, month);
-		
-		String notificationBody = "{\"objectType\":\"PROJECT\",\"month\":[2019,8]}";
-		
-		StatisticsMonthlyProcessNotification result = StatisticsMonthlyUtils.fromNotificationBody(notificationBody);
-		
-		assertEquals(notification, result);
-		
-	}
-	
 	@Test
 	public void testGetTimestampRange() {
 		YearMonth month = YearMonth.of(2019, 8);

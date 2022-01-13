@@ -78,14 +78,6 @@ public class StatisticsMonthlyUtils {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
-
-	public static StatisticsMonthlyProcessNotification fromNotificationBody(String json) {
-		try {
-			return OBJECT_MAPPER.readValue(json, StatisticsMonthlyProcessNotification.class);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-	}
 	
 	public static String createErrorDetails(Throwable ex) {
 		StringWriter writer = new StringWriter();
