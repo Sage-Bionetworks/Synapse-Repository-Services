@@ -44,7 +44,6 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.RestoreObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -116,17 +115,6 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		pushAndClearBatch(modifiedBefore, synapseBucketName, keysBatch);
 		
 		return new FileHandleArchivalResponse().setCount(Long.valueOf(unlinkedKeys.size()));
-	}
-	
-	@Override
-	public FileHandleKeysArchiveRequest parseArchiveKeysRequestFromSqsMessage(Message message) {
-		ValidateArgument.required(message, "The message");
-		
-		try {
-			return objectMapper.readValue(message.getBody(), FileHandleKeysArchiveRequest.class);
-		} catch (JsonProcessingException e) {
-			throw new IllegalStateException("Could not deserialize FileHandleKeysArchiveRequest message: " + e.getMessage(), e);
-		}
 	}
 	
 	@Override

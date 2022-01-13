@@ -6,13 +6,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalResponse;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
-import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
 import org.sagebionetworks.repo.model.file.FileHandleRestoreResult;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Entry point for file handles archival
@@ -37,14 +35,6 @@ public interface FileHandleArchivalManager {
 	 * @return The response containing information the archival request
 	 */
 	FileHandleArchivalResponse processFileHandleArchivalRequest(UserInfo user, FileHandleArchivalRequest request);
-
-	/**
-	 * Parses an SQS message into a {@link FileHandleKeysArchiveRequest} that is processed by a worker
-	 * 
-	 * @param message The SQS message containing the archival request of a set of keys in a bucket
-	 * @return The parsed request, throws if cannot be parsed
-	 */
-	FileHandleKeysArchiveRequest parseArchiveKeysRequestFromSqsMessage(Message message);
 
 	/**
 	 * Perform the archival of all the file handles that are unlinked and that match the given key in

@@ -69,16 +69,14 @@ public class FileHandleKeysArchiveWorkerTest {
 		List<String> keys = Arrays.asList("key1", "key2", "key3");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(adminUser);
-		when(mockManager.parseArchiveKeysRequestFromSqsMessage(any())).thenReturn(mockRequest);
 		when(mockRequest.getBucket()).thenReturn(bucket);
 		when(mockRequest.getModifiedBefore()).thenReturn(modifiedBefore);
 		when(mockRequest.getKeys()).thenReturn(keys);
 		when(mockManager.archiveUnlinkedFileHandlesByKey(any(), any(), any(), any())).thenReturn(mockResult);
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, mockRequest);
 		
-		verify(mockManager).parseArchiveKeysRequestFromSqsMessage(mockMessage);
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		verify(mockManager, times(3)).archiveUnlinkedFileHandlesByKey(eq(adminUser), eq(bucket), keyCaptor.capture(), eq(Instant.ofEpochMilli(modifiedBefore)));
 		
@@ -93,7 +91,6 @@ public class FileHandleKeysArchiveWorkerTest {
 		List<String> keys = Arrays.asList("key1", "key2", "key3");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(adminUser);
-		when(mockManager.parseArchiveKeysRequestFromSqsMessage(any())).thenReturn(mockRequest);
 		when(mockRequest.getBucket()).thenReturn(bucket);
 		when(mockRequest.getModifiedBefore()).thenReturn(modifiedBefore);
 		when(mockRequest.getKeys()).thenReturn(keys);
@@ -104,12 +101,11 @@ public class FileHandleKeysArchiveWorkerTest {
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
-			worker.run(mockCallback, mockMessage);
+			worker.run(mockCallback, mockMessage, mockRequest);
 		});
 		
 		assertEquals(ex, result);
 		
-		verify(mockManager).parseArchiveKeysRequestFromSqsMessage(mockMessage);
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		verify(mockManager).archiveUnlinkedFileHandlesByKey(adminUser, bucket, "key1", Instant.ofEpochMilli(modifiedBefore));
 	}
@@ -122,7 +118,6 @@ public class FileHandleKeysArchiveWorkerTest {
 		List<String> keys = Arrays.asList("key1", "key2", "key3");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(adminUser);
-		when(mockManager.parseArchiveKeysRequestFromSqsMessage(any())).thenReturn(mockRequest);
 		when(mockRequest.getBucket()).thenReturn(bucket);
 		when(mockRequest.getModifiedBefore()).thenReturn(modifiedBefore);
 		when(mockRequest.getKeys()).thenReturn(keys);
@@ -131,9 +126,8 @@ public class FileHandleKeysArchiveWorkerTest {
 		when(mockManager.archiveUnlinkedFileHandlesByKey(any(), any(), eq("key2"), any())).thenThrow(RuntimeException.class);
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, mockRequest);
 		
-		verify(mockManager).parseArchiveKeysRequestFromSqsMessage(mockMessage);
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		verify(mockManager, times(3)).archiveUnlinkedFileHandlesByKey(eq(adminUser), eq(bucket), keyCaptor.capture(), eq(Instant.ofEpochMilli(modifiedBefore)));
 		
@@ -147,15 +141,13 @@ public class FileHandleKeysArchiveWorkerTest {
 		Long modifiedBefore = System.currentTimeMillis();
 		List<String> keys = Collections.emptyList();
 		
-		when(mockManager.parseArchiveKeysRequestFromSqsMessage(any())).thenReturn(mockRequest);
 		when(mockRequest.getBucket()).thenReturn(bucket);
 		when(mockRequest.getModifiedBefore()).thenReturn(modifiedBefore);
 		when(mockRequest.getKeys()).thenReturn(keys);
 		
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, mockRequest);
 		
-		verify(mockManager).parseArchiveKeysRequestFromSqsMessage(mockMessage);
 		verifyNoMoreInteractions(mockManager);
 	}
 
