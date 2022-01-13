@@ -11,6 +11,8 @@ import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.services.sqs.model.Message;
+
 /**
  * The worker listens for table status changes, if available will trigger a re-build of all the materialized views that depend on the tables
  */
@@ -29,13 +31,13 @@ public class MaterializedViewSourceUpdateWorker implements TypedMessageDrivenRun
 	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, TableStatusChangeEvent message) throws RecoverableMessageException, Exception {
-		if (ObjectType.TABLE_STATUS_EVENT != message.getObjectType()) {
-			throw new IllegalStateException("Unsupported object type: expected " + ObjectType.TABLE_STATUS_EVENT.name() + ", got " + message.getObjectType().name());
+	public void run(ProgressCallback progressCallback, Message message, TableStatusChangeEvent event) throws RecoverableMessageException, Exception {
+		if (ObjectType.TABLE_STATUS_EVENT != event.getObjectType()) {
+			throw new IllegalStateException("Unsupported object type: expected " + ObjectType.TABLE_STATUS_EVENT.name() + ", got " + event.getObjectType());
 		}
 		// We refresh the depending views only when the state changed to available
-		if (message.getState() == TableState.AVAILABLE) {
-			final IdAndVersion tableId = KeyFactory.idAndVersion(message.getObjectId(), message.getObjectVersion());
+		if (event.getState() == TableState.AVAILABLE) {
+			final IdAndVersion tableId = KeyFactory.idAndVersion(event.getObjectId(), event.getObjectVersion());
 			
 			manager.refreshDependentMaterializedViews(tableId);
 		}

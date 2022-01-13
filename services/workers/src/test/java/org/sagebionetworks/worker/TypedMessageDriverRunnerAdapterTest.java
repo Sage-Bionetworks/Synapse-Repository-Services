@@ -61,7 +61,7 @@ public class TypedMessageDriverRunnerAdapterTest {
 		
 		verify(mockMapper).readTree("message body");
 		verify(mockMapper).readValue("message body", JSONEntity.class);
-		verify(mockRunner).run(mockCallback, mockEntity);
+		verify(mockRunner).run(mockCallback, mockMessage, mockEntity);
 		
 	}
 	
@@ -69,20 +69,20 @@ public class TypedMessageDriverRunnerAdapterTest {
 	public void testRunFromTopic() throws Exception {
 		
 		when(mockRunner.getObjectClass()).thenReturn(JSONEntity.class);
-		when(mockMessage.getBody()).thenReturn("message body");
+		when(mockMessage.getBody()).thenReturn("message body from topic");
 		when(mockMapper.readTree(anyString())).thenReturn(mockJsonNode);
 		when(mockMapper.readValue(anyString(), any(Class.class))).thenReturn(mockEntity);
 		when(mockJsonNode.has("Message")).thenReturn(true);
 		when(mockJsonNode.has("TopicArn")).thenReturn(true);
 		when(mockJsonNode.get("Message")).thenReturn(mockJsonNode);
-		when(mockJsonNode.textValue()).thenReturn("message body from topic");
+		when(mockJsonNode.textValue()).thenReturn("message body");
 		
 		// Call under test
 		adapter.run(mockCallback, mockMessage);
 		
-		verify(mockMapper).readTree("message body");
-		verify(mockMapper).readValue("message body from topic", JSONEntity.class);
-		verify(mockRunner).run(mockCallback, mockEntity);
+		verify(mockMapper).readTree("message body from topic");
+		verify(mockMapper).readValue("message body", JSONEntity.class);
+		verify(mockRunner).run(mockCallback, mockMessage, mockEntity);
 		
 	}
 }

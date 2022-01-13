@@ -38,7 +38,7 @@ public class TypedMessageDrivenRunnerAdapter<T> implements MessageDrivenRunner {
 			
 			final T convertedMessage = convertMessage(message);
 			
-			runner.run(progressCallback, convertedMessage);
+			runner.run(progressCallback, message, convertedMessage);
 	}
 	
 	private T convertMessage(Message message) throws JsonProcessingException {
