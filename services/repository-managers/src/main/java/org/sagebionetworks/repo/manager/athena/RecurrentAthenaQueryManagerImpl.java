@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,19 +49,6 @@ public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryMana
 			};
 		});
 		
-	}
-	
-	@Override
-	public RecurrentAthenaQueryResult fromSqsMessage(Message message) {
-		RecurrentAthenaQueryResult request;
-
-		try {
-			request = objectMapper.readValue(message.getBody(), RecurrentAthenaQueryResult.class);
-		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException("Could not parse RecurrentAthenaQueryResult from message: " + e.getMessage(), e);
-		}
-
-		return request;
 	}
 	
 	String toJsonMessage(RecurrentAthenaQueryResult request) {

@@ -59,7 +59,11 @@
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="recurrentAthenaQueryWorker" />
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg ref="recurrentAthenaQueryWorker"/>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="recurrentAthenaQueryWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />

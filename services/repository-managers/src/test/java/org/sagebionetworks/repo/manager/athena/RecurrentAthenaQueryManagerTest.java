@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,9 +37,7 @@ import com.amazonaws.services.athena.model.QueryExecutionStatus;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,41 +81,6 @@ public class RecurrentAthenaQueryManagerTest {
 				.withQueryName("SomeQueryName")
 				.withFunctionExecutionId("123")
 				.withQueryExecutionId("456");
-	}
-
-	@Test
-	public void testFromSqsMessage() throws JsonMappingException, JsonProcessingException {
-		
-		String messageBody = "{ \"body\": \"value\"}";
-		when(mockMessage.getBody()).thenReturn(messageBody);
-		when(mockObjectMapper.readValue(anyString(), any(Class.class))).thenReturn(mockRequest);
-		
-		// Call under test
-		manager.fromSqsMessage(mockMessage);
-		
-		verify(mockObjectMapper).readValue(messageBody, RecurrentAthenaQueryResult.class);
-		
-	}
-	
-	@Test
-	public void testFromSqsMessageWithJsonProcessingException() throws JsonMappingException, JsonProcessingException {
-		
-		JsonProcessingException ex = new JsonParseException(null, "Some error");
-		
-		String messageBody = "{ \"body\": \"value\"}";
-		
-		when(mockMessage.getBody()).thenReturn(messageBody);
-		
-		doThrow(ex).when(mockObjectMapper).readValue(anyString(), any(Class.class));
-		
-		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.fromSqsMessage(mockMessage);
-		});
-		
-		assertEquals(ex, result.getCause());
-		assertEquals("Could not parse RecurrentAthenaQueryResult from message: " + ex.getMessage(), result.getMessage());
-		
 	}
 	
 	@Test

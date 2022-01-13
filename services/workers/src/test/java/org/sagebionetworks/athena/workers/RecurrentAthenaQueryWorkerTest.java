@@ -1,6 +1,5 @@
 package org.sagebionetworks.athena.workers;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,12 +53,9 @@ public class RecurrentAthenaQueryWorkerTest {
 	@Test
 	public void testRun() throws RecoverableMessageException {
 		
-		when(mockManager.fromSqsMessage(any())).thenReturn(mockResult);
-				
 		// Call under test
-		worker.run(mockCallback, mockMessage);
+		worker.run(mockCallback, mockMessage, mockResult);
 		
-		verify(mockManager).fromSqsMessage(mockMessage);
 		verify(mockManager).processRecurrentAthenaQueryResult(mockResult, queueUrl);
 	}
 

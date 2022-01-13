@@ -5,7 +5,7 @@ import javax.annotation.PostConstruct;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryManager;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,7 +15,7 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * The worker process the SQS messages coming from the step functions that execute some athena query
  */
-public class RecurrentAthenaQueryWorker implements MessageDrivenRunner {
+public class RecurrentAthenaQueryWorker implements TypedMessageDrivenRunner<RecurrentAthenaQueryResult> {
 
 	private RecurrentAthenaQueryManager manager;
 	private AmazonSQSClient sqsClient;
@@ -38,11 +38,13 @@ public class RecurrentAthenaQueryWorker implements MessageDrivenRunner {
 	}
 	
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException {
-		RecurrentAthenaQueryResult result = manager.fromSqsMessage(message);
-		
+	public Class<RecurrentAthenaQueryResult> getObjectClass() {
+		return RecurrentAthenaQueryResult.class;
+	}
+	
+	@Override
+	public void run(ProgressCallback progressCallback, Message message, RecurrentAthenaQueryResult result) throws RecoverableMessageException {
 		manager.processRecurrentAthenaQueryResult(result, queueUrl);
-		
 	}
 
 }
