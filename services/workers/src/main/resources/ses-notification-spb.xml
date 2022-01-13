@@ -12,9 +12,6 @@
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<!-- This worker process a notification (bounce or complaint) coming from SES -->
-	<bean id="sesNotificationWorker" class="org.sagebionetworks.ses.workers.SESNotificationWorker" scope="singleton" />
-	
-	<!-- Trigger for above worker that process SES notifications -->
 	<bean id="sesNotificationWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
@@ -24,7 +21,13 @@
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="sesNotificationWorker" />
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.ses.workers.SESNotificationWorker"/>
+										</constructor-arg>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="sesNotificationWorker" />
 								<property name="semaphoreMaxLockCount" value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />

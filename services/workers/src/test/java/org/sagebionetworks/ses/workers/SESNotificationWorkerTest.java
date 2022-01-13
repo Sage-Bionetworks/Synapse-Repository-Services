@@ -7,13 +7,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.ses.SESNotificationManager;
+import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -27,23 +30,33 @@ public class SESNotificationWorkerTest {
 	private SESNotificationManager mockManager;
 
 	@Mock
-	private Message mockMessage;
+	private SESJsonNotification mockNotification;
 
 	@InjectMocks
 	private SESNotificationWorker worker;
 	
+	@Mock
+	private ProgressCallback mockCallback;
+
+	@Mock
+	private Message mockMessage;
+	
+	private String messageBody = "message body";
+	
+	@BeforeEach
+	public void before() {
+		when(mockMessage.getBody()).thenReturn(messageBody);
+	}
+	
 	@Test
 	public void testRunWithException() throws Exception {
 		
-		String notificationBody = "Some wrong body";
-		
-		when(mockMessage.getBody()).thenReturn(notificationBody);
-		doThrow(IllegalArgumentException.class).when(mockManager).processMessage(notificationBody);
+		doThrow(IllegalArgumentException.class).when(mockManager).processMessage(any(), any());
 		
 		// Call under test
-		worker.run(null, mockMessage);
+		worker.run(mockCallback, mockMessage, mockNotification);
 
-		verify(mockMessage).getBody();
+		verify(mockManager).processMessage(mockNotification, messageBody);
 		verify(mockLogger).logWorkerFailure(eq(SESNotificationWorker.class.getName()), any(IllegalArgumentException.class), eq(false));
 		verifyZeroInteractions(mockManager);
 	}
@@ -51,15 +64,10 @@ public class SESNotificationWorkerTest {
 	@Test
 	public void testRun() throws Exception {
 
-		String notificationBody = "Some notification";
-
-		when(mockMessage.getBody()).thenReturn(notificationBody);
-		
 		// Call under test
-		worker.run(null, mockMessage);
+		worker.run(mockCallback, mockMessage, mockNotification);
 
-		verify(mockMessage).getBody();
-		verify(mockManager).processMessage(notificationBody);
+		verify(mockManager).processMessage(mockNotification, messageBody);
 		verifyZeroInteractions(mockLogger);
 
 	}
