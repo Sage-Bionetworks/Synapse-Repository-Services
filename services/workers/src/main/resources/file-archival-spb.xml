@@ -10,16 +10,8 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
-
+	
 	<!-- This worker process the request for file handle archival -->
-	<bean id="fileHandleArchivalRequestWorker" class="org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker" scope="singleton" />
-	
-	<!-- This worker does the actual archiving of a set of file handle keys -->
-	<bean id="fileHandleKeysArchiveWorker" class="org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker" scope="singleton" />
-	
-	<!-- This worker process the request to restore a batch of file handles -->
-	<bean id="fileHandleRestoreRequestWorker" class="org.sagebionetworks.file.worker.FileHandleRestoreRequestWorker" scope="singleton"/>
-	
 	<bean id="fileHandleArchivalRequestWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -33,7 +25,13 @@
 						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="fileHandleArchivalRequestWorker"/>
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker"/>
+										</constructor-arg>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="fileHandleArchivalRequestWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
@@ -54,6 +52,7 @@
 		<property name="repeatInterval" value="2014" />
 	</bean>
 	
+	<!-- This worker does the actual archiving of a set of file handle keys -->
 	<bean id="fileHandleKeysArchiveWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -69,7 +68,9 @@
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
 									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
-										<constructor-arg ref="fileHandleKeysArchiveWorker"/>
+										<constructor-arg>
+											<bean class="org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker"/>
+										</constructor-arg>
 									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="fileHandleKeysArchiveWorker" />
@@ -92,6 +93,7 @@
 		<property name="repeatInterval" value="786" />
 	</bean>
 	
+	<!-- This worker process the request to restore a batch of file handles -->
 	<bean id="fileHandleRestoreRequestWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -105,7 +107,13 @@
 						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="fileHandleRestoreRequestWorker"/>
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.file.worker.FileHandleRestoreRequestWorker"/>
+										</constructor-arg>
+									</bean>
+								</property>
 								<property name="semaphoreLockKey" value="fileHandleRestoreRequestWorker" />
 								<property name="semaphoreMaxLockCount" value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
