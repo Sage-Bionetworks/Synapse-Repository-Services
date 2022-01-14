@@ -6,27 +6,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Umbrella worker for all table update transactions.
@@ -34,38 +29,38 @@ import com.amazonaws.services.sqs.model.Message;
  * @author John
  *
  */
-public class TableUpdateRequestWorker implements MessageDrivenRunner {
+public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTransactionRequest, TableUpdateTransactionResponse> {
 
 	public static final String WAITING_FOR_TABLE_LOCK = "Waiting for table lock";
 
 	static private Logger log = LogManager.getLogger(TableUpdateRequestWorker.class);
 	
 	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
+	private TableManagerSupport tableManagerSupport;
 	
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableUpdateRequestManagerProvider tableUpdateRequestManagerProvider;
 	
 	@Autowired
-	UserManager userManager;
-	
-	@Autowired
-	TableUpdateRequestManagerProvider tableUpdateRequestManagerProvider;
-	
-	@Autowired
-	TableExceptionTranslator tableExceptionTranslator;
-
+	private TableExceptionTranslator tableExceptionTranslator;
 
 	@Override
-	public void run(final ProgressCallback progressCallback, Message message)
+	public Class<TableUpdateTransactionRequest> getRequestType() {
+		return TableUpdateTransactionRequest.class;
+	}
+	
+	@Override
+	public Class<TableUpdateTransactionResponse> getResponseType() {
+		return TableUpdateTransactionResponse.class;
+	}
+	
+	@Override
+	public TableUpdateTransactionResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
+			TableUpdateTransactionRequest request, AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
-		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		try{
-			TableUpdateTransactionRequest request = AsynchJobUtils.extractRequestBody(status, TableUpdateTransactionRequest.class);
+		try {
 			ValidateArgument.required(request, "TableUpdateTransactionRequest");
 			ValidateArgument.required(request.getEntityId(), "TableUpdateTransactionRequest.entityId");
-			// Lookup the user that started the job
-			UserInfo userInfo = userManager.getUserInfo(status.getStartedByUserId());
 			// Lookup the type of the table
 			IdAndVersion idAndVersion = IdAndVersion.parse(request.getEntityId());	
 			EntityType tableType = tableManagerSupport.getTableEntityType(idAndVersion);
@@ -80,44 +75,36 @@ public class TableUpdateRequestWorker implements MessageDrivenRunner {
 				public void progressMade() {
 					long count = counter.getAndIncrement();
 					// update the job status.
-					asynchJobStatusManager.updateJobProgress(status.getJobId(), count, Long.MAX_VALUE, "Update: "+count);
+					jobProgressCallback.updateProgress("Update: "+count, count, Long.MAX_VALUE);
 				}
 				
 			};
 			progressCallback.addProgressListener(listener);
 			try{
 				// The manager does the rest of the work.
-				TableUpdateTransactionResponse responseBody = requestManager.updateTableWithTransaction(progressCallback, userInfo, request);
-				// Set the job complete.
-				asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
-				log.info("JobId: "+status.getJobId()+" complete");
-			}finally{
+				TableUpdateTransactionResponse response = requestManager.updateTableWithTransaction(progressCallback, user, request);
+				log.info("JobId: "+jobId+" complete");
+				return response;
+			} finally{
 				// unconditionally remove the listener.
 				progressCallback.removeProgressListener(listener);
 			}
 
-		}catch (TableUnavailableException e){
-			log.info(WAITING_FOR_TABLE_LOCK);
+		} catch (TableUnavailableException | LockUnavilableException e ){
+			log.info(WAITING_FOR_TABLE_LOCK + ":" + e.getMessage());
 			// reset the job progress.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, WAITING_FOR_TABLE_LOCK);
+			jobProgressCallback.updateProgress(WAITING_FOR_TABLE_LOCK, 0L, 100L);
 			throw new RecoverableMessageException(e);
-		}catch (LockUnavilableException e){
-			log.info("LockUnavilableException: "+e.getMessage());
+		} catch (RecoverableMessageException e) {
 			// reset the job progress.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, WAITING_FOR_TABLE_LOCK);
-			throw new RecoverableMessageException(e);
-		}catch (RecoverableMessageException e){
-			log.info("RecoverableMessageException: "+e.getMessage());
-			// reset the job progress.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, e.getMessage());
+			jobProgressCallback.updateProgress(e.getMessage(), 0L, 100L);
 			throw e;
-		}catch (Throwable e){
+		} catch (Throwable e){
 			log.error("Job failed:", e);
 			// Attempt to translate the exception to make it 'user-friendly'
 			RuntimeException translated = tableExceptionTranslator.translateException(e);
 			// job failed.
-			asynchJobStatusManager.setJobFailed(status.getJobId(), translated);
+			throw translated;
 		}
 	}
-
 }

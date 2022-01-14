@@ -25,14 +25,16 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableUpdateRequestWorker"/>
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.table.worker.TableUpdateRequestWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="tableUpdateRequestWorker" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="300" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('TABLE_UPDATE_TRANSACTION')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('TABLE_UPDATE_TRANSACTION')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
