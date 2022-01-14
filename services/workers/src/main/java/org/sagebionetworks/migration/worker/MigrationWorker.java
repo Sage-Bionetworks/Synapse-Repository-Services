@@ -2,16 +2,10 @@ package org.sagebionetworks.migration.worker;
 
 import java.io.IOException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.migration.AdminRequest;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
@@ -25,53 +19,41 @@ import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
-
-public class MigrationWorker implements MessageDrivenRunner {
-
-	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
-
-	static private Logger log = LogManager.getLogger(MigrationWorker.class);
-
-	@Autowired
-	private AsynchJobStatusManager asynchJobStatusManager;
-	@Autowired
-	private UserManager userManager;
+public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, AsyncMigrationResponse> {
+	
 	@Autowired
 	private MigrationManager migrationManager;
 	
-	@Override
-	public void run(ProgressCallback progressCallback, Message message)
-			throws RecoverableMessageException, Exception {
-		
-		try {
-			final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-			final UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
-			final AsyncMigrationRequest req = AsynchJobUtils.extractRequestBody(status, AsyncMigrationRequest.class);
-			processAsyncMigrationRequest(progressCallback, user, req, status.getJobId());
-		} catch (Throwable e) {
-			log.error("Failed", e);
-		}
+	@Autowired
+	public MigrationWorker(MigrationManager migrationManager) {
+		this.migrationManager = migrationManager;
 	}
 	
-	public void processAsyncMigrationRequest(
-			final ProgressCallback progressCallback, final UserInfo user,
-			final AsyncMigrationRequest mReq, final String jobId) throws Throwable {
-
-		try {
-			AdminResponse resp = processRequest(user, mReq.getAdminRequest(), jobId);
-			AsyncMigrationResponse mResp = new AsyncMigrationResponse();
-			mResp.setAdminResponse(resp);
-			asynchJobStatusManager.setComplete(jobId, mResp);
-		} catch (Throwable e) {
-			// Record the error
-			asynchJobStatusManager.setJobFailed(jobId, e);
-			throw e;
-		}
+	@Override
+	public Class<AsyncMigrationRequest> getRequestType() {
+		return AsyncMigrationRequest.class;
+	}
+	
+	@Override
+	public Class<AsyncMigrationResponse> getResponseType() {
+		return AsyncMigrationResponse.class;
+	}
+	
+	@Override
+	public AsyncMigrationResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, AsyncMigrationRequest request,
+			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+		
+		AdminResponse resp = processRequest(user, request.getAdminRequest(), jobId);
+		
+		AsyncMigrationResponse mResp = new AsyncMigrationResponse()
+			.setAdminResponse(resp);
+		
+		return mResp;
 	}
 	
 	AdminResponse processRequest(final UserInfo user, final AdminRequest req, final String jobId) throws DatastoreException, NotFoundException, IOException {
