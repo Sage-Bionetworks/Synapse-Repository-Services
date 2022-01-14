@@ -25,7 +25,11 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.file.worker.AddFilesToDownloadListWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.file.worker.AddFilesToDownloadListWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="addFilesToDownloadList" />
 								<property name="semaphoreMaxLockCount" value="8" />
