@@ -1,44 +1,41 @@
 package org.sagebionetworks.table.worker;
 
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.util.Clock;
-
-import com.amazonaws.services.sqs.model.Message;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+@ExtendWith(MockitoExtension.class)
 public class ProgressingCSVWriterStreamTest {
-	CSVWriter mockWriter;
-	ProgressCallback mockProgress;
-	Message mockMessage;
-	AsynchJobStatusManager mockAsynchJobStatusManager;
-	long currentProgress;
-	long totalProgress;
-	String jobId;
-	Clock mockClock;
-	ProgressingCSVWriterStream stream;
+	@Mock
+	private CSVWriter mockWriter;
+	@Mock
+	private Clock mockClock;
+	@Mock
+	private AsyncJobProgressCallback mockCallback;
 	
-	@Before
+	private long currentProgress;
+	private long totalProgress;
+	
+	private ProgressingCSVWriterStream stream;
+	
+	@BeforeEach
 	public void before(){
-		mockWriter = Mockito.mock(CSVWriter.class);
-		mockProgress = Mockito.mock(ProgressCallback.class);
-		mockAsynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
 		currentProgress = 0L;
 		totalProgress = 100;
-		jobId = "123";
-		mockClock = Mockito.mock(Clock.class);
+		stream = new ProgressingCSVWriterStream(mockWriter, mockCallback, currentProgress, totalProgress, mockClock);
 		when(mockClock.currentTimeMillis()).thenReturn(0L);
-		stream = new ProgressingCSVWriterStream(mockWriter, mockProgress, mockMessage, mockAsynchJobStatusManager, currentProgress, totalProgress, jobId, mockClock);
 	}
 	
 	@Test
@@ -49,12 +46,12 @@ public class ProgressingCSVWriterStreamTest {
 		stream.writeNext(one);
 		verify(mockWriter).writeNext(one);
 		verify(mockClock, never()).sleep(anyLong());
-		verify(mockAsynchJobStatusManager, never()).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
+		verifyZeroInteractions(mockCallback);
 		// Now a little over two seconds have elapse sine the start.
 		String[] two = new String[]{"2"};
 		stream.writeNext(two);
 		verify(mockWriter).writeNext(two);
-		verify(mockAsynchJobStatusManager).updateJobProgress(anyString(), anyLong(),anyLong(), anyString());
+		verify(mockCallback).updateProgress("Building the CSV...", currentProgress + 1, totalProgress);
 	}
 
 }

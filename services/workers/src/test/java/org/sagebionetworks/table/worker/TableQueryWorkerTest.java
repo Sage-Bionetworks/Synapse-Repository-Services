@@ -1,16 +1,18 @@
 package org.sagebionetworks.table.worker;
 
-import com.amazonaws.services.sqs.model.Message;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -21,34 +23,28 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.amazonaws.services.sqs.model.Message;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TableQueryWorkerTest {
 
 	@Mock
-	private AsynchJobStatusManager mockAsynchJobStatusManager;
-	@Mock
 	private TableQueryManager mockTableQueryManager;
 	@Mock
-	private UserManager mockUserManger;
-	@Mock
-	TableExceptionTranslator mockTableExceptionTranslator;
+	private TableExceptionTranslator mockTableExceptionTranslator;
 
 	@Mock
-	ProgressCallback mockProgressCallback;
+	private ProgressCallback mockProgressCallback;
 
-	TableQueryWorker worker;
+	@InjectMocks
+	private TableQueryWorker worker;
+	
+	@Mock
+	private AsyncJobProgressCallback mockJobCallback;
 
 	Long userId;
 	UserInfo userInfo;
@@ -58,21 +54,12 @@ public class TableQueryWorkerTest {
 	Message message;
 	
 	QueryResultBundle results;
-	
-	RuntimeException translatedException;
 
-	@Before
-	public void before() throws Exception {
-		worker = new TableQueryWorker();
-		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "tableQueryManager", mockTableQueryManager);
-		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-		
+	@BeforeEach
+	public void before() throws Exception {		
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
-		when(mockUserManger.getUserInfo(userId)).thenReturn(userInfo);
 
 		Query query = new Query();
 		query.setSql("select * from syn123");
@@ -84,60 +71,45 @@ public class TableQueryWorkerTest {
 		status.setJobId(jobId);
 		status.setRequestBody(request);
 		status.setStartedByUserId(userId);
-
-		message = new Message();
-		message.setBody(jobId);
-		when(mockAsynchJobStatusManager.lookupJobStatus(jobId)).thenReturn(status);
 		
 		results = new QueryResultBundle();
 		
 		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenReturn(results);
-
-		doAnswer(new Answer<RuntimeException>() {
-
-			@Override
-			public RuntimeException answer(InvocationOnMock invocation) throws Throwable {
-				Throwable exception = (Throwable) invocation.getArguments()[0];
-				translatedException = new RuntimeException("translated",exception);
-				return translatedException;
-			}
-		}).when(mockTableExceptionTranslator).translateException(any(Throwable.class));
 
 	}
 
 	@Test
 	public void testBasicQuery() throws Exception {
 		// call under test
-		worker.run(mockProgressCallback, message);
-		verify(mockAsynchJobStatusManager).setComplete(jobId, results);
+		QueryResultBundle response = worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		
+		assertEquals(results, response);
+		
+		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
 	}
 	
 	@Test
 	public void testTableUnavailableException() throws Exception {
 		// table not available
 		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(new TableUnavailableException(new TableStatus()));
-		try {
+		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, message);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
-		verify(mockAsynchJobStatusManager).updateJobProgress(eq(jobId), any(Long.class),  any(Long.class), anyString());
+			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		});
+		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockJobCallback).updateProgress("Waiting for the table index to become available...", 0L, 100L);
 	}
 	
 	@Test
 	public void testLockUnavilableExceptionException() throws Exception {
 		// table not available
 		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(new LockUnavilableException());
-		try {
+		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, message);
-			fail();
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
-		verify(mockAsynchJobStatusManager).updateJobProgress(eq(jobId), any(Long.class),  any(Long.class), anyString());
+			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		});
+		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockJobCallback).updateProgress("Waiting for the table index to become available...", 0L, 100L);
 	}
 	
 	@Test
@@ -146,25 +118,33 @@ public class TableQueryWorkerTest {
 		// table not available
 		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(exception);
 		// call under test
-		worker.run(mockProgressCallback, message);
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, exception);
+		TableFailedException result = assertThrows(TableFailedException.class, () -> {			
+			// call under test
+			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		});
+		
+		assertEquals(exception, result);
+		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
 	}
 	
 	@Test
 	public void testUnknownException() throws Exception {
+		
 		RuntimeException error = new RuntimeException("Bad stuff happened");
-		// table not available
 		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(error);
-		try {
+		
+		RuntimeException translatedException = new RuntimeException("translated");
+		
+		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
+
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, message);
-			fail();
-		} catch (Throwable e) {
-			// expected
-		}
+			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		});
+	
+		assertEquals(translatedException, result);
+		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
 		// the exception should be translated.
 		verify(mockTableExceptionTranslator).translateException(error);
-		// The translated exception should be set
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 }

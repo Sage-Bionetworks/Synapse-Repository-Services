@@ -21,10 +21,13 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.report.worker.StorageReportCSVDownloadWorker"/>
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.report.worker.StorageReportCSVDownloadWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="storageReportWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />

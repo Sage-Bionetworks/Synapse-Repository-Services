@@ -3,30 +3,20 @@ package org.sagebionetworks.table.worker;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
-import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class UploadProgressListenerTest {
 
-	ProgressCallback mockProgress;
-	AsynchJobStatusManager mockAsynchJobStatusManager;
-	Message originatingMessage;
-	String jobId;
-	
-	@Before
-	public void before(){
-		mockProgress = Mockito.mock(ProgressCallback.class);
-		mockAsynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
-		originatingMessage = new Message().withMessageId("123").withReceiptHandle("456");
-		jobId = "999";
-	}
+	@Mock
+	private AsyncJobProgressCallback mockCallback;
 	
 	@Test
 	public void testProgress(){
@@ -36,15 +26,16 @@ public class UploadProgressListenerTest {
 		long startPrgoress = totalProgress/2;
 		// Assume ten bytes per row.
 		long bytesPerRow = 10;
-		// Start making progress
-		UploadProgressListener listener = new UploadProgressListener(mockProgress, originatingMessage, startPrgoress, bytesPerRow, totalProgress, mockAsynchJobStatusManager, jobId);
+		
+		UploadProgressListener listener = new UploadProgressListener(mockCallback, startPrgoress, bytesPerRow, totalProgress);
 		// start
 		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT, 0));
 		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,10));
 		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,20));
 		listener.progressChanged(new ProgressEvent(ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT,1));
-		verify(mockAsynchJobStatusManager, times(1)).updateJobProgress(jobId, startPrgoress, totalProgress, UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE);
-		verify(mockAsynchJobStatusManager, times(1)).updateJobProgress(jobId, startPrgoress+1, totalProgress, UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE);
-		verify(mockAsynchJobStatusManager, times(2)).updateJobProgress(jobId, startPrgoress+3, totalProgress, UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE);
+		
+		verify(mockCallback, times(1)).updateProgress(UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE, startPrgoress, totalProgress);
+		verify(mockCallback, times(1)).updateProgress(UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE, startPrgoress+1, totalProgress);
+		verify(mockCallback, times(2)).updateProgress(UploadProgressListener.MESSAGE_CREATE_CSV_FILE_HANDLE, startPrgoress+3, totalProgress);
 	}
 }
