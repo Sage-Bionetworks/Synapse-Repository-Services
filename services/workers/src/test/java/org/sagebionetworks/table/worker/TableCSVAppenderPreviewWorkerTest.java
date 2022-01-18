@@ -1,48 +1,40 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import java.io.IOException;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * Unit test for TableCSVAppenderPreviewWorker.
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TableCSVAppenderPreviewWorkerTest {
 	
-	@Mock
-	private AsynchJobStatusManager mockAsynchJobStatusManager;
-	@Mock
-	private TableEntityManager mockTableEntityManager;
-	@Mock
-	private UserManager mockUserManger;
 	@Mock
 	private FileHandleManager mockFileHandleManager;
 	@Mock
@@ -50,39 +42,29 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
-	private Message mockMessage;
+	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
 	private S3Object mockS3Ojbect;
 	@Mock
-	private S3ObjectInputStream mockInputStream;
+	private S3ObjectInputStream mockInputStream;	
 	
-	
-	UploadToTablePreviewRequest body;
-
 	@InjectMocks
-	TableCSVAppenderPreviewWorker worker;
+	private TableCSVAppenderPreviewWorker worker;
 	
-	AsynchronousJobStatus status;
-	S3FileHandle fileHandle;
-	ObjectMetadata fileMetadata;
 
-	long userId;
-	UserInfo userInfo;
+	private UploadToTablePreviewRequest request;
+	private S3FileHandle fileHandle;
+	private ObjectMetadata fileMetadata;
 
-	@Before
+	private UserInfo userInfo;
+
+	@BeforeEach
 	public void before() throws JSONObjectAdapterException{
-		status = new AsynchronousJobStatus();
-		when(mockAsynchJobStatusManager.lookupJobStatus(anyString())).thenReturn(status);
 		
-		body = new UploadToTablePreviewRequest();
-		body.setUploadFileHandleId("fileHandleId");
-		status.setRequestBody(body);
-		status.setStartedByUserId(userId);
-		String jsonBody = EntityFactory.createJSONStringForEntity(body);
-		when(mockMessage.getBody()).thenReturn(jsonBody);
+		request = new UploadToTablePreviewRequest();
+		request.setUploadFileHandleId("fileHandleId");
 
-		userInfo = new UserInfo(false, userId);
-		when(mockUserManger.getUserInfo(userId)).thenReturn(userInfo);
+		userInfo = new UserInfo(false, 123L);
 		
 		fileHandle = new S3FileHandle();
 		fileHandle.setBucketName("bucketName");
@@ -96,8 +78,13 @@ public class TableCSVAppenderPreviewWorkerTest {
 	}
 	
 	@Test
-	public void testProgressListenerRemoved() throws Throwable{
-		worker.run(mockCallback, mockMessage);
+	public void testProgressListenerRemoved() throws Throwable {
+		
+		// We do not have a meaningful IS so this will throw but this test is only checking that the listener is removed
+		assertThrows(IOException.class, () -> {			
+			worker.run(mockCallback, "123", userInfo, request, mockJobCallback);
+		});
+		
 		verify(mockCallback).addProgressListener(any(ProgressListener.class));
 		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
 	}

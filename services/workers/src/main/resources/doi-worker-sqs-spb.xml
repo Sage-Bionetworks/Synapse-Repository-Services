@@ -24,7 +24,11 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.doi.worker.DoiWorker"/>
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.doi.worker.DoiWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="doiWorker" />
 								<property name="semaphoreMaxLockCount" value="8" />

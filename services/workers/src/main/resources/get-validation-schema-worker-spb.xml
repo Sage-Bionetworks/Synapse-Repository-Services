@@ -25,22 +25,20 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.schema.worker.GetValidationSchemaWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.schema.worker.GetValidationSchemaWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
-								<property name="semaphoreLockKey"
-									value="getValidationSchema" />
+								<property name="semaphoreLockKey" value="getValidationSchema" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('GET_VALIDATION_SCHEMA')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('GET_VALIDATION_SCHEMA')}" />
 								<property name="gate">
-									<bean
-										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 							</bean>
 						</constructor-arg>

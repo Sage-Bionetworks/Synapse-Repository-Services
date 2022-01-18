@@ -1,17 +1,19 @@
 package org.sagebionetworks.doi.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Collections;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -34,9 +36,9 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiWorkerIntegrationTest {
 	
@@ -66,9 +68,9 @@ public class DoiWorkerIntegrationTest {
 	private static final Long publicationYear = 1787L;
 	private static final DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
 
-	@Before
+	@BeforeEach
 	public void before(){
-		Assume.assumeTrue(config.getDoiDataciteEnabled());
+		assumeTrue(config.getDoiDataciteEnabled());
 		adminUser = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUser);
 		project = new Project();
@@ -77,7 +79,7 @@ public class DoiWorkerIntegrationTest {
 		submissionDoi = setUpRequestBody();
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if (config.getDoiDataciteEnabled()) {
 			doiAdminDao.clear(); // Remove all DOI associations
@@ -146,9 +148,9 @@ public class DoiWorkerIntegrationTest {
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
-				assertTrue("Job failed: "+status.getErrorDetails(), false);
+				fail("Job failed: "+status.getErrorDetails());
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job: "+status.getProgressMessage());
 				Thread.sleep(1000);
 				break;

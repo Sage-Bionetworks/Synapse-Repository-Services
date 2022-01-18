@@ -1,51 +1,39 @@
 package org.sagebionetworks.file.worker;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
+public class BulkFileDownloadWorker implements AsyncJobRunner<BulkFileDownloadRequest, BulkFileDownloadResponse> {
 
-public class BulkFileDownloadWorker implements MessageDrivenRunner {
-
-	private AsynchJobStatusManager asynchJobStatusManager;
-	private UserManager userManger;
 	private FileHandlePackageManager fileHandleSupport;
 
 	@Autowired
-	public BulkFileDownloadWorker(AsynchJobStatusManager asynchJobStatusManager, UserManager userManger,
-			FileHandlePackageManager fileHandleSupport) {
-		super();
-		this.asynchJobStatusManager = asynchJobStatusManager;
-		this.userManger = userManger;
+	public BulkFileDownloadWorker(FileHandlePackageManager fileHandleSupport) {
 		this.fileHandleSupport = fileHandleSupport;
 	}
-
+	
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		try {
-			if (!(status.getRequestBody() instanceof BulkFileDownloadRequest)) {
-				throw new IllegalArgumentException("Unexpected request body: " + status.getRequestBody());
-			}
-			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			BulkFileDownloadRequest request = AsynchJobUtils.extractRequestBody(status, BulkFileDownloadRequest.class);
-			// build the zip from the results
-			BulkFileDownloadResponse response = fileHandleSupport.buildZip(user, request);
-			asynchJobStatusManager.setComplete(status.getJobId(), response);
-		} catch (Throwable e) {
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
-		}
+	public Class<BulkFileDownloadRequest> getRequestType() {
+		return BulkFileDownloadRequest.class;
+	}
+	
+	@Override
+	public Class<BulkFileDownloadResponse> getResponseType() {
+		return BulkFileDownloadResponse.class;
+	}
+	
+	@Override
+	public BulkFileDownloadResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, BulkFileDownloadRequest request,
+			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+		// build the zip from the results
+		return fileHandleSupport.buildZip(user, request);
 	}
 
 }

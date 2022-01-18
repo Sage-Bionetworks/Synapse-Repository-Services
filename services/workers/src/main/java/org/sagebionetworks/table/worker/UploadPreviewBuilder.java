@@ -47,12 +47,9 @@ public class UploadPreviewBuilder {
 	int rowsScanned;
 	List<ColumnModel> suggestedColumns;
 
-	public UploadPreviewBuilder(CSVReader reader,
-			ProgressCallback progressCallback, UploadToTablePreviewRequest request) {
+	public UploadPreviewBuilder(CSVReader reader, UploadToTablePreviewRequest request) {
 		this.reader = reader;
-		this.progressCallback = progressCallback;
-		this.isFirstLineHeader = CSVUtils.isFirstRowHeader(request
-				.getCsvTableDescriptor());
+		this.isFirstLineHeader = CSVUtils.isFirstRowHeader(request.getCsvTableDescriptor());
 		this.startingRow = new ArrayList<String[]>(MAX_ROWS_IN_PREVIEW);
 		this.fullScan = CSVUtils.doFullScan(request);
 	}
@@ -320,7 +317,7 @@ public class UploadPreviewBuilder {
 
 			CSVReader reader = CSVUtils.createCSVReader(isr, csvTableDescriptor, request.getLinesToSkip());
 
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, null, request);
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, request);
 			UploadToTablePreviewResult result = builder.buildResult();
 			System.out.println(result);
 		}

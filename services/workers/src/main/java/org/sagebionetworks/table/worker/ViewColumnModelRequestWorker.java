@@ -3,51 +3,54 @@ package org.sagebionetworks.table.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
 import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.worker.AsyncJobProgressCallback;
+import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.model.Message;
-
-public class ViewColumnModelRequestWorker implements MessageDrivenRunner {
+public class ViewColumnModelRequestWorker implements AsyncJobRunner<ViewColumnModelRequest, ViewColumnModelResponse> {
 	
 	private static final Logger LOG = LogManager.getLogger(ViewColumnModelRequestWorker.class);
 	
-	@Autowired
-	private AsynchJobStatusManager asynchJobStatusManager;
+	private TableIndexConnectionFactory connectionFactory;
 	
 	@Autowired
-	private TableIndexConnectionFactory connectionFactory;
+	public ViewColumnModelRequestWorker(TableIndexConnectionFactory connectionFactory) {
+		this.connectionFactory = connectionFactory;
+	}
+	
+	@Override
+	public Class<ViewColumnModelRequest> getRequestType() {
+		return  ViewColumnModelRequest.class;
+	}
+	
+	@Override
+	public Class<ViewColumnModelResponse> getResponseType() {
+		return ViewColumnModelResponse.class;
+	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
-		
+	public ViewColumnModelResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, ViewColumnModelRequest request,
+			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
-			ViewColumnModelRequest request = AsynchJobUtils.extractRequestBody(status, ViewColumnModelRequest.class);
-			
 			String jobMessage = getStartingJobMessage(request);
 			
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, jobMessage);
+			jobProgressCallback.updateProgress(jobMessage, 0L, 100L);
 			
-			ViewColumnModelResponse response = processRequest(request);
+			return processRequest(request);
 			
-			asynchJobStatusManager.setComplete(status.getJobId(), response);
 		}  catch (Throwable e) {
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
 			LOG.error("ViewColumnModelRequest Job failed:", e);
+			throw e;
 		}
-		
 	}
 	
 	private ViewColumnModelResponse processRequest(ViewColumnModelRequest request) {

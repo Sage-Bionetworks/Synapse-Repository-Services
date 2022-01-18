@@ -24,22 +24,20 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.download.worker.AddToDownloadListWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.download.worker.AddToDownloadListWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
-								<property name="semaphoreLockKey"
-									value="downloadListAdd" />
+								<property name="semaphoreLockKey" value="downloadListAdd" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('ADD_TO_DOWNLOAD_LIST')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('ADD_TO_DOWNLOAD_LIST')}" />
 								<property name="gate">
-									<bean
-										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 
 							</bean>
@@ -66,22 +64,20 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.download.worker.DownloadListQueryWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.download.worker.DownloadListQueryWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
-								<property name="semaphoreLockKey"
-									value="downloadListQuery" />
+								<property name="semaphoreLockKey" value="downloadListQuery" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('QUERY_DOWNLOAD_LIST')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('QUERY_DOWNLOAD_LIST')}" />
 								<property name="gate">
-									<bean
-										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 
 							</bean>
@@ -109,22 +105,20 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.download.worker.DownloadListPackageWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.download.worker.DownloadListPackageWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
-								<property name="semaphoreLockKey"
-									value="downloadListPackage" />
+								<property name="semaphoreLockKey" value="downloadListPackage" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_PACKAGE')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="300" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_PACKAGE')}" />
 								<property name="gate">
-									<bean
-										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 
 							</bean>
@@ -151,22 +145,20 @@
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
-							<bean
-								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.download.worker.DownloadListManifestWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.download.worker.DownloadListManifestWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
-								<property name="semaphoreLockKey"
-									value="downloadListManifest" />
+								<property name="semaphoreLockKey" value="downloadListManifest" />
 								<property name="semaphoreMaxLockCount" value="8" />
-								<property
-									name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
-								<property name="queueName"
-									value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_MANIFEST')}" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DOWNLOAD_LIST_MANIFEST')}" />
 								<property name="gate">
-									<bean
-										class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
 
 							</bean>

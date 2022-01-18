@@ -25,8 +25,11 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.table.worker.TableCSVAppenderPreviewWorker" />
+									<bean class="org.sagebionetworks.worker.AsyncJobRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.table.worker.TableCSVAppenderPreviewWorker"/>
+										</constructor-arg>
+									</bean>
 								</property>
 								<property name="semaphoreLockKey" value="tableCSVAppenderPreview" />
 								<property name="semaphoreMaxLockCount" value="4" />
