@@ -20,6 +20,8 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -29,8 +31,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
-import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -238,6 +238,15 @@ public class SQLUtils {
 		StringBuilder builder = new StringBuilder();
 		appendTableNameForId(id, type, builder);
 		return builder.toString();
+	}
+	
+	/**
+	 * Get the table alias for the given index.
+	 * @param tableIndex
+	 * @return
+	 */
+	public static String getTableAliasForIndex(int tableIndex) {
+		return "_A"+tableIndex;
 	}
 
 	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
@@ -699,31 +708,6 @@ public class SQLUtils {
 	 */
 	public static String createSQLGetDistinctValues(IdAndVersion tableId, String columnName){
 		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
-	}
-	
-	/**
-	 * SQL to create a table if it does not exist.
-	 * @param tableId
-	 * @return
-	 */
-	public static String createTableIfDoesNotExistSQL(IdAndVersion tableId, boolean isView){
-		StringBuilder builder = new StringBuilder();
-		builder.append("CREATE TABLE IF NOT EXISTS ");
-		builder.append(getTableNameForId(tableId, TableType.INDEX));
-		builder.append("( ");
-		builder.append(ROW_ID).append(" BIGINT NOT NULL, ");
-		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
-		if(isView){
-			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
-			builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
-		}
-		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
-		if(isView){
-			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
-			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
-		}
-		builder.append(")");
-		return builder.toString();
 	}
 
 	/**

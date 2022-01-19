@@ -42,6 +42,8 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
@@ -188,18 +190,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public List<ColumnChangeDetails> setIndexSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnModel> newSchema){
+	public List<ColumnChangeDetails> setIndexSchema(final IndexDescription indexDescription, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
-		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
+		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion());
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(tableId, isTableView, changes);
+		updateTableSchema(indexDescription, changes);
 
 		//apply changes to multi-value column indexes
-		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId);
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(indexDescription.getIdAndVersion());
 		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromExpectedSchema(newSchema, existingListColumnIndexTableNames);
 		boolean alterTemp = false;
-		applyListColumnIndexTableChanges(tableId, listColumnIndexTableChanges, alterTemp);
+		applyListColumnIndexTableChanges(indexDescription.getIdAndVersion(), listColumnIndexTableChanges, alterTemp);
 		return changes;
 	}
 
@@ -316,17 +318,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 	}
 
-	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isTableView) {
+	void createTableIfDoesNotExist(IndexDescription indexDescription) {
 		// create the table if it does not exist
-		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
+		tableIndexDao.createTableIfDoesNotExist(indexDescription);
 		// Create all of the status tables unconditionally.
-		tableIndexDao.createSecondaryTables(tableId);
+		tableIndexDao.createSecondaryTables(indexDescription.getIdAndVersion());
 	}
 
 	@Override
-	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
-		
-		createTableIfDoesNotExist(tableId, isTableView);
+	public boolean updateTableSchema(final IndexDescription indexDescription, List<ColumnChangeDetails> changes) {
+		IdAndVersion tableId = indexDescription.getIdAndVersion();
+		createTableIfDoesNotExist(indexDescription);
 		
 		boolean alterTemp = false;
 		// Alter the table
@@ -652,7 +654,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		 */
 		List<ColumnModel> boundSchema = tableManagerSupport.getTableSchema(idAndVersion);
 		boolean isTableView = false;
-		List<ColumnChangeDetails> changes = setIndexSchema(idAndVersion, isTableView, boundSchema);
+		List<ColumnChangeDetails> changes = setIndexSchema(new TableIndexDescription(idAndVersion), boundSchema);
 		if(changes != null && !changes.isEmpty()) {
 			log.warn("PLFM-5639: table: "+idAndVersion.toString()+" required the following schema changes: "+changes);
 		}
@@ -693,8 +695,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param schemaChangeData
 	 */
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
-		boolean isTableView = false;
-		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
+		updateTableSchema(new TableIndexDescription(idAndVersion), schemaChangeData.getChange().getDetails());
 
 		boolean alterTemp = false;
 		alterListColumnIndexTableWithSchemaChange(idAndVersion, schemaChangeData.getChange().getDetails(), alterTemp);
@@ -720,15 +721,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = rowChange.getChange();
 		// match the schema to the change set.
-		boolean isTableView = false;
-		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
+		setIndexSchema(new TableIndexDescription(idAndVersion), sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
 	}
 	
 	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
 		// This will make sure that the table is properly created if it does not exist
-		createTableIfDoesNotExist(idAndVersion, false);
+		createTableIfDoesNotExist(new TableIndexDescription(idAndVersion));
 		
 		// Unconditionally remove the search column to avoid situations such as those in PLFM-7024
 		tableIndexDao.getDatabaseColumnInfo(idAndVersion, TableConstants.ROW_SEARCH_CONTENT).ifPresent(column -> {

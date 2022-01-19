@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -91,14 +93,14 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	List<ColumnChangeDetails> setIndexSchema(IdAndVersion tableId, boolean isTableView,
+	List<ColumnChangeDetails> setIndexSchema(IndexDescription indexDescription,
 			List<ColumnModel> currentSchema);
 
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	boolean updateTableSchema(IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes);
+	boolean updateTableSchema(IndexDescription indexDescription, List<ColumnChangeDetails> changes);
 
 	/**
 	 * Delete the index for this table.

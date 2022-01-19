@@ -83,12 +83,13 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.search.TableRowData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
@@ -552,9 +553,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView) {
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
-		template.update(sql);
+	public void createTableIfDoesNotExist(IndexDescription description) {
+		template.update(description.getCreateOrUpdateIndexSql());
 	}
 
 	@Override

@@ -357,6 +357,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
+		case MATERIALIZED_VIEW:
 			return getViewStateNumber(idAndVersion);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);

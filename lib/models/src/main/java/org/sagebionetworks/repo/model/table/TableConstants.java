@@ -38,6 +38,15 @@ public class TableConstants {
 	public static final String ROW_SEARCH_CONTENT = "ROW_SEARCH_CONTENT";
 	
 	/**
+	 * For a given view alias, get the benefactor column name.
+	 * @param viewAlias The short alias for a view.
+	 * @return
+	 */
+	public static String getBenefactorColumnNameForViewAlias(String viewAlias) {
+		return ROW_BENEFACTOR+"_"+viewAlias;
+	}
+	
+	/**
 	 * FileHandle IDs 
 	 */
 	public static final String FILE_ID = "FILE_ID";

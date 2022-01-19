@@ -1110,32 +1110,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateTableIfDoesNotExistSQL(){
-		boolean isView = false;
-		// call under test
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
-		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
-				+ "ROW_ID BIGINT NOT NULL, "
-				+ "ROW_VERSION BIGINT NOT NULL, "
-				+ "PRIMARY KEY (ROW_ID))", sql);
-	}
-
-	@Test
-	public void testCreateTableIfDoesNotExistSQLView(){
-		boolean isView = true;
-		// call under test
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
-		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
-				+ "ROW_ID BIGINT NOT NULL, "
-				+ "ROW_VERSION BIGINT NOT NULL, "
-				+ "ROW_ETAG varchar(36) NOT NULL, "
-				+ "ROW_BENEFACTOR BIGINT NOT NULL, "
-				+ "PRIMARY KEY (ROW_ID), "
-				+ "KEY `IDX_ETAG` (ROW_ETAG), "
-				+ "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR))", sql);
-	}
-
-	@Test
 	public void testCreateTruncateSql(){
 		String sql = SQLUtils.createTruncateSql(tableId);
 		assertEquals("DELETE FROM T999", sql);
