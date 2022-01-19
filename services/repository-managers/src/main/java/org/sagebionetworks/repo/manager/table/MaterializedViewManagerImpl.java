@@ -196,51 +196,51 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	}
 
 	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {
-		try {
-			// Is the index out-of-synch?
-			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
-				// nothing to do
-				return;
-			}
-		
-			// Start the worker
-			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
-			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-			// For now, always rebuild the materialized view from scratch.
-			indexManager.deleteTableIndex(idAndVersion);
-			
-			// Need the MD5 for the original schema.
-			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
-
-			// create the table in the index.
-			indexManager.setIndexSchema(new MaterializedViewIndexDescription(idAndVersion, null), viewSchema);
-			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
-			
-			Long viewCRC = null;
-			if(idAndVersion.getVersion().isPresent()) {
-				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
-			}else {
-				viewCRC = buildMaterializedViewFromSources(idAndVersion, indexManager, viewSchema);
-			}
-			// now that table is created and populated the indices on the table can be
-			// optimized.
-			indexManager.optimizeTableIndices(idAndVersion);
-
-			//for any list columns, build separate tables that serve as an index
-			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
-
-			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
-			// Attempt to set the table to complete.
-			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
-		} catch (InvalidStatusTokenException e) {
-			throw new RecoverableMessageException(e);
-		} catch (Exception e) {
-			// failed.
-			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
-			throw e;
-		}
+//		try {
+//			// Is the index out-of-synch?
+//			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
+//				// nothing to do
+//				return;
+//			}
+//		
+//			// Start the worker
+//			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
+//			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+//			// For now, always rebuild the materialized view from scratch.
+//			indexManager.deleteTableIndex(idAndVersion);
+//			
+//			// Need the MD5 for the original schema.
+//			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
+//			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
+//
+//			// create the table in the index.
+//			indexManager.setIndexSchema(new MaterializedViewIndexDescription(idAndVersion, null), viewSchema);
+//			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
+//			
+//			Long viewCRC = null;
+//			if(idAndVersion.getVersion().isPresent()) {
+//				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
+//			}else {
+//				viewCRC = buildMaterializedViewFromSources(idAndVersion, indexManager, viewSchema);
+//			}
+//			// now that table is created and populated the indices on the table can be
+//			// optimized.
+//			indexManager.optimizeTableIndices(idAndVersion);
+//
+//			//for any list columns, build separate tables that serve as an index
+//			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
+//
+//			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
+//			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+//			// Attempt to set the table to complete.
+//			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+//		} catch (InvalidStatusTokenException e) {
+//			throw new RecoverableMessageException(e);
+//		} catch (Exception e) {
+//			// failed.
+//			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
+//			throw e;
+//		}
 	}
 
 	/**
