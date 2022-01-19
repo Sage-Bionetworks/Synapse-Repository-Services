@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,8 +38,6 @@ public class TableCSVAppenderPreviewWorkerTest {
 	private FileHandleManager mockFileHandleManager;
 	@Mock
 	private SynapseS3Client mockS3Client;
-	@Mock
-	private ProgressCallback mockCallback;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -82,11 +79,11 @@ public class TableCSVAppenderPreviewWorkerTest {
 		
 		// We do not have a meaningful IS so this will throw but this test is only checking that the listener is removed
 		assertThrows(IOException.class, () -> {			
-			worker.run(mockCallback, "123", userInfo, request, mockJobCallback);
+			worker.run("123", userInfo, request, mockJobCallback);
 		});
 		
-		verify(mockCallback).addProgressListener(any(ProgressListener.class));
-		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
+		verify(mockJobCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockJobCallback).removeProgressListener(any(ProgressListener.class));
 	}
 
 }

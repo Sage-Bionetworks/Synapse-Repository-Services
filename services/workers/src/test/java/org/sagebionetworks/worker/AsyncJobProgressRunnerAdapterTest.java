@@ -79,7 +79,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		when(mockStatus.getRequestBody()).thenReturn(mockRequest);
 		when(mockStatus.getStartedByUserId()).thenReturn(userId);
 		when(mockUserManager.getUserInfo(any())).thenReturn(mockUser);
-		when(mockRunner.run(any(), any(), any(), any(), any())).thenReturn(mockResponse);
+		when(mockRunner.run(any(), any(), any(), any())).thenReturn(mockResponse);
 		when(mockRunner.getRequestType()).thenReturn(AsynchronousRequestBody.class);
 	}
 	
@@ -91,7 +91,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		
 		verify(mockJobManager).lookupJobStatus(jobId);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockRunner).run(eq(mockCallback), eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
+		verify(mockRunner).run(eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
 		verify(mockJobManager).setComplete(jobId, mockResponse);
 		verifyNoMoreInteractions(mockJobManager);
 	}
@@ -104,7 +104,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		
 		verify(mockJobManager).lookupJobStatus(jobId);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockRunner).run(eq(mockCallback), eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
+		verify(mockRunner).run(eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
 		verify(mockJobManager).setComplete(jobId, mockResponse);
 		AsyncJobProgressCallback callback = captorJobProgressCallback.getValue();
 		// Emulates a worker invoking the callback
@@ -118,14 +118,14 @@ public class AsyncJobProgressRunnerAdapterTest {
 		
 		RuntimeException ex = new RuntimeException("failed");
 		
-		when(mockRunner.run(any(), any(), any(), any(), any())).thenThrow(ex);
+		when(mockRunner.run(any(), any(), any(), any())).thenThrow(ex);
 		
 		// Call under test
 		adapter.run(mockCallback, mockMessage);
 		
 		verify(mockJobManager).lookupJobStatus(jobId);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockRunner).run(eq(mockCallback), eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
+		verify(mockRunner).run(eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
 		verify(mockJobManager).setJobFailed(jobId, ex);
 		verifyNoMoreInteractions(mockJobManager);
 	}
@@ -135,7 +135,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		
 		RecoverableMessageException ex = new RecoverableMessageException("retry");
 		
-		when(mockRunner.run(any(), any(), any(), any(), any())).thenThrow(ex);
+		when(mockRunner.run(any(), any(), any(), any())).thenThrow(ex);
 		
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {			
 			// Call under test
@@ -146,7 +146,7 @@ public class AsyncJobProgressRunnerAdapterTest {
 		
 		verify(mockJobManager).lookupJobStatus(jobId);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockRunner).run(eq(mockCallback), eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
+		verify(mockRunner).run(eq(jobId), eq(mockUser), eq(mockRequest), captorJobProgressCallback.capture());
 		verifyNoMoreInteractions(mockJobManager);
 	}
 

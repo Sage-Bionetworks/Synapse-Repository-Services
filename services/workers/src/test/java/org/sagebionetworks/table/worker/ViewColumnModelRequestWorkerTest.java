@@ -14,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -36,9 +35,6 @@ public class ViewColumnModelRequestWorkerTest {
 	
 	@InjectMocks
 	private ViewColumnModelRequestWorker worker;
-	
-	@Mock
-	private ProgressCallback mockCallback;
 
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
@@ -81,7 +77,7 @@ public class ViewColumnModelRequestWorkerTest {
 		expectedResponse.setResults(mockModelResults);
 		
 		// Call under test
-		ViewColumnModelResponse result = worker.run(mockCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		ViewColumnModelResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		
@@ -113,7 +109,7 @@ public class ViewColumnModelRequestWorkerTest {
 		expectedResponse.setNextPageToken(nextPageToken);
 		
 		// Call under test
-		ViewColumnModelResponse result = worker.run(mockCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		ViewColumnModelResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		
@@ -140,7 +136,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			worker.run(mockCallback, jobId, mockUser, mockRequest, mockJobCallback);
+			worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		});
 		
 		assertEquals(ex, result);

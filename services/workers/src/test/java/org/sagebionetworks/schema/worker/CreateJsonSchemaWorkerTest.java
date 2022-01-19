@@ -52,7 +52,7 @@ public class CreateJsonSchemaWorkerTest {
 	public void testRun() throws RecoverableMessageException, Exception {
 		when(mockJsonSchemaManager.createJsonSchema(any(), any())).thenReturn(mockResponse);
 		// call under test
-		CreateSchemaResponse result = worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		CreateSchemaResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 
 		assertEquals(mockResponse, result);
 

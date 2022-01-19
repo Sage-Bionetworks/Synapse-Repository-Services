@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.download.DownloadListManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
@@ -27,9 +26,6 @@ public class DownloadListManifestWorkerTest {
 
 	@InjectMocks
 	DownloadListManifestWorker worker;
-
-	@Mock
-	private ProgressCallback mockProgressCallback;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -50,11 +46,11 @@ public class DownloadListManifestWorkerTest {
 	public void testRun() throws RecoverableMessageException, Exception {
 		when(mockDownloadListManger.createManifest(any(), any(), any())).thenReturn(responseBody);
 		// call under test
-		DownloadListManifestResponse result = worker.run(mockProgressCallback, jobId, user, requestBody, mockJobCallback);
+		DownloadListManifestResponse result = worker.run(jobId, user, requestBody, mockJobCallback);
 
 		assertEquals(responseBody, result);
 
-		verify(mockDownloadListManger).createManifest(mockProgressCallback, user, requestBody);
+		verify(mockDownloadListManger).createManifest(mockJobCallback, user, requestBody);
 	}
 
 }

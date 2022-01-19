@@ -48,8 +48,6 @@ public class TableCSVDownloadWorkerTest {
 	@Mock
 	private TableExceptionTranslator mockTableExceptionTranslator;
 	@Mock
-	private ProgressCallback mockProgressCallback;
-	@Mock
 	private AsyncJobProgressCallback mockJobProgressCallback;
 	@Captor
 	private ArgumentCaptor<LocalFileUploadRequest> fileUploadCaptor;
@@ -95,7 +93,7 @@ public class TableCSVDownloadWorkerTest {
 		when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId("8888"));
 		
 		// call under test
-		DownloadFromTableResult response = worker.run(mockProgressCallback, jobId, userInfo, request, mockJobProgressCallback);
+		DownloadFromTableResult response = worker.run(jobId, userInfo, request, mockJobProgressCallback);
 		
 		assertEquals(results, response);
 		
@@ -113,7 +111,7 @@ public class TableCSVDownloadWorkerTest {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(new TableUnavailableException(new TableStatus()));
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobProgressCallback);
+			worker.run(jobId, userInfo, request, mockJobProgressCallback);
 		});
 	}
 
@@ -123,7 +121,7 @@ public class TableCSVDownloadWorkerTest {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(new LockUnavilableException());
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobProgressCallback);
+			worker.run(jobId, userInfo, request, mockJobProgressCallback);
 		});
 	}
 
@@ -135,7 +133,7 @@ public class TableCSVDownloadWorkerTest {
 		
 		TableFailedException result = assertThrows(TableFailedException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobProgressCallback);
+			worker.run(jobId, userInfo, request, mockJobProgressCallback);
 		});
 		
 		assertEquals(result, exception);
@@ -150,7 +148,7 @@ public class TableCSVDownloadWorkerTest {
 		when(mockTableQueryManager.runQueryDownloadAsStream(any(), any(),any(), any())).thenThrow(error);
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobProgressCallback);
+			worker.run(jobId, userInfo, request, mockJobProgressCallback);
 		});
 		
 		assertEquals(translatedException, result);

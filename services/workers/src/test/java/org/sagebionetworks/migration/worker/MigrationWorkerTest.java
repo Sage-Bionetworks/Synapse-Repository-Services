@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.AdminRequest;
@@ -45,9 +44,6 @@ public class MigrationWorkerTest {
 	private MigrationManager mockMigrationManager;
 	@InjectMocks
 	private MigrationWorker migrationWorker;
-	
-	@Mock
-	private ProgressCallback mockCallback;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -82,7 +78,7 @@ public class MigrationWorkerTest {
 		when(mockRequest.getAdminRequest()).thenReturn(adminRequest);
 				
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockTypeCount, result.getAdminResponse());
 		
@@ -101,7 +97,7 @@ public class MigrationWorkerTest {
 		when(mockMigrationManager.processAsyncMigrationTypeCountsRequest(any(), any())).thenReturn(mockTypeCounts);
 		
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockTypeCounts, result.getAdminResponse());
 		
@@ -116,7 +112,7 @@ public class MigrationWorkerTest {
 		when(mockRequest.getAdminRequest()).thenReturn(mReq);
 		when(mockMigrationManager.processAsyncMigrationTypeChecksumRequest(any(), any())).thenReturn(mockTypeChecksum);
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockTypeChecksum, result.getAdminResponse());
 		
@@ -132,7 +128,7 @@ public class MigrationWorkerTest {
 		when(mockMigrationManager.processAsyncMigrationRangeChecksumRequest(any(), any())).thenReturn(mockRangeChecksum);
 		
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockRangeChecksum, result.getAdminResponse());
 		
@@ -149,7 +145,7 @@ public class MigrationWorkerTest {
 		when(mockRequest.getAdminRequest()).thenReturn(mri);
 	
 		assertThrows(IllegalArgumentException.class, () -> {			
-			migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+			migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		});
 	}
 
@@ -162,7 +158,7 @@ public class MigrationWorkerTest {
 		when(mockMigrationManager.backupRequest(any(), any())).thenReturn(mockBackupRange);
 		
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockBackupRange, result.getAdminResponse());
 		
@@ -178,7 +174,7 @@ public class MigrationWorkerTest {
 		when(mockMigrationManager.calculateOptimalRanges(any(), any())).thenReturn(mockOptimalRange);
 		
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockOptimalRange, result.getAdminResponse());
 		
@@ -198,7 +194,7 @@ public class MigrationWorkerTest {
 		when(mockMigrationManager.calculateBatchChecksums(any(), any())).thenReturn(mockBatchChecksum);
 		
 		// Call under test
-		AsyncMigrationResponse result = migrationWorker.run(mockCallback, jobId, user, mockRequest, mockJobCallback);
+		AsyncMigrationResponse result = migrationWorker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockBatchChecksum, result.getAdminResponse());
 		verify(mockMigrationManager).calculateBatchChecksums(user, request);

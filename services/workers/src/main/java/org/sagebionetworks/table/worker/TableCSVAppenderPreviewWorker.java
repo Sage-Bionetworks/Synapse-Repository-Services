@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -51,8 +50,8 @@ public class TableCSVAppenderPreviewWorker implements AsyncJobRunner<UploadToTab
 	}
 
 	@Override
-	public UploadToTablePreviewResult run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			UploadToTablePreviewRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public UploadToTablePreviewResult run(String jobId, UserInfo user, UploadToTablePreviewRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
 		CSVReader reader = null;
 		try {
@@ -82,14 +81,14 @@ public class TableCSVAppenderPreviewWorker implements AsyncJobRunner<UploadToTab
 					jobProgressCallback.updateProgress("Processed: " + (count), count, Long.MAX_VALUE);
 				}
 			};
-			progressCallback.addProgressListener(listener);
+			jobProgressCallback.addProgressListener(listener);
 			try {
 				// This builder does the work of building an actual preview.
 				UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, request);
 				return builder.buildResult();
 			} finally {
 				// unconditionally remove the listener
-				progressCallback.removeProgressListener(listener);
+				jobProgressCallback.removeProgressListener(listener);
 			}
 		} catch (Throwable e) {
 			log.error("Worker Failed", e);

@@ -1,6 +1,5 @@
 package org.sagebionetworks.file.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
@@ -32,8 +31,8 @@ public class AddFilesToDownloadListWorker implements AsyncJobRunner<AddFileToDow
 	}
 
 	@Override
-	public AddFileToDownloadListResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			AddFileToDownloadListRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public AddFileToDownloadListResponse run(String jobId, UserInfo user, AddFileToDownloadListRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
 		ValidateArgument.required(request, "AddFileToDownloadListRequest");
 		if(request.getFolderId() != null && request.getQuery() != null) {
@@ -43,7 +42,7 @@ public class AddFilesToDownloadListWorker implements AsyncJobRunner<AddFileToDow
 		if(request.getFolderId() != null) {
 			resultList = bulkDownloadManager.addFilesFromFolder(user, request.getFolderId());
 		}else if(request.getQuery() != null) {
-			resultList = bulkDownloadManager.addFilesFromQuery(progressCallback, user, request.getQuery());
+			resultList = bulkDownloadManager.addFilesFromQuery(jobProgressCallback, user, request.getQuery());
 		}else {
 			throw new IllegalArgumentException(MUST_PROVIDE_EITHER_FOLDER_ID_OR_QUERY);
 		}

@@ -1,6 +1,5 @@
 package org.sagebionetworks.doi.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
@@ -31,8 +30,7 @@ public class DoiWorker implements AsyncJobRunner<DoiRequest, DoiResponse> {
 	}
 
 	@Override
-	public DoiResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, DoiRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public DoiResponse run(String jobId, UserInfo user, DoiRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		Doi doi = doiManager.createOrUpdateDoi(user, request.getDoi());
 		DoiResponse response = new DoiResponse().setDoi(doi);
 		return response;

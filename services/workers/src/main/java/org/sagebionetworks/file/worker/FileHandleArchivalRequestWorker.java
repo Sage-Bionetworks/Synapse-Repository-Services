@@ -1,6 +1,5 @@
 package org.sagebionetworks.file.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleArchivalRequest;
@@ -33,8 +32,7 @@ public class FileHandleArchivalRequestWorker implements AsyncJobRunner<FileHandl
 	}
 
 	@Override
-	public FileHandleArchivalResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, FileHandleArchivalRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public FileHandleArchivalResponse run(String jobId, UserInfo user, FileHandleArchivalRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		return archivalManager.processFileHandleArchivalRequest(user, request);
 	}
 

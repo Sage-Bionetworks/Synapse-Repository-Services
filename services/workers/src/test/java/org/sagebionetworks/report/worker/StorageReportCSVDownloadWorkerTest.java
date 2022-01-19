@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.report.StorageReportManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -43,9 +42,6 @@ public class StorageReportCSVDownloadWorkerTest {
 
 	@InjectMocks
 	private StorageReportCSVDownloadWorker storageReportWorker;
-
-	@Mock
-	private ProgressCallback mockCallback;
 	
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
@@ -80,7 +76,7 @@ public class StorageReportCSVDownloadWorkerTest {
 		DownloadStorageReportResponse expected = new DownloadStorageReportResponse().setResultsFileHandleId(resultS3FileHandleId);
 		
 		// Call under test
-		DownloadStorageReportResponse response = storageReportWorker.run(mockCallback, jobId, adminUser, request, mockJobCallback);
+		DownloadStorageReportResponse response = storageReportWorker.run(jobId, adminUser, request, mockJobCallback);
 		
 		assertEquals(expected, response);
 
@@ -103,7 +99,7 @@ public class StorageReportCSVDownloadWorkerTest {
 
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
 			// Call under test
-			storageReportWorker.run(mockCallback, jobId, adminUser, request, mockJobCallback);
+			storageReportWorker.run(jobId, adminUser, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);

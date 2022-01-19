@@ -1,6 +1,5 @@
 package org.sagebionetworks.download.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.download.DownloadListManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
@@ -30,10 +29,10 @@ public class DownloadListManifestWorker implements AsyncJobRunner<DownloadListMa
 	}
 
 	@Override
-	public DownloadListManifestResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			DownloadListManifestRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public DownloadListManifestResponse run(String jobId, UserInfo user, DownloadListManifestRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
-		return downloadListManager.createManifest(progressCallback, user, request);
+		return downloadListManager.createManifest(jobProgressCallback, user, request);
 	}
 
 }

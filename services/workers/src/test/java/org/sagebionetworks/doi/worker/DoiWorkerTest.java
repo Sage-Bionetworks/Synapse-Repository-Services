@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
@@ -24,12 +23,8 @@ public class DoiWorkerTest {
 
 	@Mock
 	private DoiManager mockDoiManager;
-
 	@InjectMocks
 	private DoiWorker doiWorker;
-
-	@Mock
-	private ProgressCallback mockCallback;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -54,7 +49,7 @@ public class DoiWorkerTest {
 
 		DoiResponse expected = new DoiResponse().setDoi(mockResponseDoi);
 
-		DoiResponse result = doiWorker.run(mockCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		DoiResponse result = doiWorker.run(jobId, mockUser, mockRequest, mockJobCallback);
 
 		assertEquals(expected, result);
 

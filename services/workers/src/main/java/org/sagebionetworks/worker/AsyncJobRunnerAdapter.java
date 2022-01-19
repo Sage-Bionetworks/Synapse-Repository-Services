@@ -41,10 +41,10 @@ public class AsyncJobRunnerAdapter<RequestType extends AsynchronousRequestBody, 
 		try {
 			UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 			
+			AsyncJobProgressCallback callbackWrapper = new AsyncJobProgressCallbackAdapter(jobManager, progressCallback, jobId);
+			
 			RequestType request = AsynchJobUtils.extractRequestBody(status, runner.getRequestType());
-			ResponseType response = runner.run(progressCallback, jobId, user, request, (progressMessage, progressCurrent, progressTotal) -> {
-				jobManager.updateJobProgress(jobId, progressCurrent, progressTotal, progressMessage);
-			});
+			ResponseType response = runner.run(jobId, user, request, callbackWrapper);
 			
 			jobManager.setComplete(jobId, response);
 			

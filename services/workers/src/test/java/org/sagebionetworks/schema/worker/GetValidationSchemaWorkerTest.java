@@ -32,9 +32,6 @@ public class GetValidationSchemaWorkerTest {
 
 	@InjectMocks
 	private GetValidationSchemaWorker worker;
-
-	@Mock
-	private ProgressCallback mockProgressCallback;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -60,7 +57,7 @@ public class GetValidationSchemaWorkerTest {
 		GetValidationSchemaResponse expected = new GetValidationSchemaResponse().setValidationSchema(mockSchema);
 
 		// call under test
-		GetValidationSchemaResponse result = worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		GetValidationSchemaResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 
 		assertEquals(expected, result);
 
