@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -514,8 +515,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 
 			// create the table in the index.
-			boolean isTableView = true;
-			indexManager.setIndexSchema(idAndVersion, isTableView, viewSchema);
+			indexManager.setIndexSchema(new ViewIndexDescription(idAndVersion), viewSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -538,7 +538,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.
-			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			log.warn("InvalidStatusTokenException occurred for "+idAndVersion+", message will be returned to the queue");
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			// failed.

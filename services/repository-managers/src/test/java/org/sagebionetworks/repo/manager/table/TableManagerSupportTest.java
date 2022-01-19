@@ -610,8 +610,19 @@ public class TableManagerSupportTest {
 		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
+
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(expectedNumber, version);
+	}
+	
+	@Test
+	public void testGetTableVersionWithMaterializedView() throws LimitExceededException {
+		Long expectedNumber = 123L;
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.materializedview);
 
 		// call under test
 		Long version = manager.getTableVersion(idAndVersion);

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -15,15 +16,19 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -174,16 +179,23 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			bindSchemaToView(idAndVersion, sqlQuery);
 		}
 		
+		// Check if each dependency is available. Note: Getting the status of a dependency can also trigger it to update.
 		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
+		for(IdAndVersion dependent: dependentTables) {
+			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent);
+			if(!TableState.AVAILABLE.equals(status.getState())) {
+				throw new RecoverableMessageException();
+			}
+		}
 		IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
 		// continue with a read lock on each dependent table.
 		tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, (ProgressCallback innerCallback) -> {
-			createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion);
+			createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion, sqlQuery);
 			return null;
 		}, dependentArray);
 	}
 
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion) {
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {
 //		try {
 //			// Is the index out-of-synch?
 //			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
@@ -202,8 +214,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 //			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
 //
 //			// create the table in the index.
-//			boolean isTableView = true;
-//			indexManager.setIndexSchema(idAndVersion, isTableView, viewSchema);
+//			indexManager.setIndexSchema(new MaterializedViewIndexDescription(idAndVersion, null), viewSchema);
 //			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
 //			
 //			Long viewCRC = null;

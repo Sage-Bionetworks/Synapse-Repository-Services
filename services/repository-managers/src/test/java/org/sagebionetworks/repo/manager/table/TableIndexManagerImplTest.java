@@ -78,6 +78,8 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
@@ -468,9 +470,8 @@ public class TableIndexManagerImplTest {
 
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
-		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, isTableView, schema);
+		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -479,9 +480,8 @@ public class TableIndexManagerImplTest {
 	public void testSetIndexSchemaWithNoColumns() {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
-		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, isTableView, new LinkedList<ColumnModel>());
+		manager.setIndexSchema(new TableIndexDescription(tableId), new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -501,9 +501,8 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
 		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Collections.emptySet());
-		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, isTableView, schema);
+		manager.setIndexSchema(new TableIndexDescription(tableId), schema);
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
@@ -572,11 +571,10 @@ public class TableIndexManagerImplTest {
 				.thenReturn(Collections.singletonList(existingColumn))
 				// on the second time, our new column has been added
 				.thenReturn(Arrays.asList(existingColumn, createdColumn));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
-		boolean isTableView = false;
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
-		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		managerSpy.updateTableSchema(new TableIndexDescription(tableId), columnChanges);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
@@ -600,11 +598,10 @@ public class TableIndexManagerImplTest {
 		current.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
-		boolean isTableView = true;
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(tableId, isTableView, changes);
-		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
@@ -621,11 +618,10 @@ public class TableIndexManagerImplTest {
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
-		boolean isTableView = true;
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(tableId, isTableView, changes);
-		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
@@ -650,16 +646,14 @@ public class TableIndexManagerImplTest {
 				.thenReturn(Collections.singletonList(existingColumn))
 				// on the second time, our new column has been added
 				.thenReturn(Arrays.asList(existingColumn, createdColumn));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// Simulate a table with search enabled
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
 		
-		boolean isTableView = false;
-		
 		// call under test
-		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
+		managerSpy.updateTableSchema(new TableIndexDescription(tableId), columnChanges);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
@@ -692,17 +686,15 @@ public class TableIndexManagerImplTest {
 				.thenReturn(Collections.singletonList(existingColumn))
 				// on the second time, our column has been updated
 				.thenReturn(Arrays.asList(updatedColumn));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		doNothing().when(managerSpy).updateSearchIndex(any());
 		// Simulate a table with search enabled
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
 		
-		boolean isTableView = false;
-		
 		// call under test
-		managerSpy.updateTableSchema(tableId, isTableView, columnChanges);
+		managerSpy.updateTableSchema(new TableIndexDescription(tableId), columnChanges);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, isTableView);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
@@ -1125,12 +1117,12 @@ public class TableIndexManagerImplTest {
 
 		long changeNumber = 333l;
 		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		
 		// call under test
 		managerSpy.applyRowChangeToIndex(tableId, change);
 
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		// apply change
 		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 	}
@@ -1140,11 +1132,11 @@ public class TableIndexManagerImplTest {
 		long changeNumber = 333l;
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// Call under test
 		managerSpy.applySchemaChangeToIndex(tableId, change);
 
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		boolean alterTemp = false;
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 	}
@@ -1155,12 +1147,12 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		long changeNumber = 444L;
 		TableChangeMetaData mockChange = setupMockRowChange(changeNumber);
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		// set schema
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		// apply change
 		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
@@ -1206,13 +1198,13 @@ public class TableIndexManagerImplTest {
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
 		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.empty());
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		doNothing().when(managerSpy).updateSearchIndex(any());
 
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
 		verify(mockIndexDao).addSearchColumn(tableId);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
@@ -1229,12 +1221,12 @@ public class TableIndexManagerImplTest {
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
 		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.of(new DatabaseColumnInfo()));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
 		verify(mockIndexDao).removeSearchColumn(tableId);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
@@ -1250,13 +1242,13 @@ public class TableIndexManagerImplTest {
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
 		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.of(new DatabaseColumnInfo()));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		doNothing().when(managerSpy).updateSearchIndex(any());
 		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
 		verify(mockIndexDao).removeSearchColumn(tableId);
 		verify(mockIndexDao).addSearchColumn(tableId);
@@ -1274,12 +1266,12 @@ public class TableIndexManagerImplTest {
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
 		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.empty());
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any(), anyBoolean());
+		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
-		verify(managerSpy).createTableIfDoesNotExist(tableId, false);
+		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 		verifyNoMoreInteractions(mockIndexDao);
@@ -2510,20 +2502,18 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testCreateTableIfDoesNotExists() {
 		
-		boolean isTableView = false;
-		manager.createTableIfDoesNotExist(tableId, isTableView);
+		manager.createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
+		verify(mockIndexDao).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	
 	@Test
 	public void testCreateTableIfDoesNotExistsForView() {
 		
-		boolean isTableView = true;
-		manager.createTableIfDoesNotExist(tableId, isTableView);
+		manager.createTableIfDoesNotExist(new ViewIndexDescription(tableId));
 		
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
+		verify(mockIndexDao).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
 		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	

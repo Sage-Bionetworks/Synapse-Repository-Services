@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldTypeMapper;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
 import org.sagebionetworks.table.cluster.search.TableRowData;
@@ -39,10 +40,9 @@ public interface TableIndexDAO {
 	/**
 	 * Create a table with the given name if it does not exist.
 	 * 
-	 * @param tableId The ID of the table.
-	 * @param isView  Is this table a View?
+	 * @param indexDescription defines the index
 	 */
-	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView);
+	void createTableIfDoesNotExist(IndexDescription indexDescription);
 
 	/**
 	 * Alter the given table as needed. The table will be changed according to the

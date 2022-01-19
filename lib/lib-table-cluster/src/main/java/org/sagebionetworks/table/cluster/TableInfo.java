@@ -37,7 +37,7 @@ public class TableInfo implements ColumnLookup {
 		tableIdAndVersion = IdAndVersion.parse(originalTableName);
 		tableAlias = tableNameCorrelation.getTableAlias().orElse(null);
 		translatedTableName = SQLUtils.getTableNameForId(tableIdAndVersion, TableType.INDEX);
-		this.translatedTableAlias = "_A"+tableIndex;
+		this.translatedTableAlias = SQLUtils.getTableAliasForIndex(tableIndex);
 		this.tableSchema = schema;
 		this.tableIndex = tableIndex;
 		this.translationReferences = schema.stream().map(c-> new SchemaColumnTranslationReference(c)).collect(Collectors.toList());

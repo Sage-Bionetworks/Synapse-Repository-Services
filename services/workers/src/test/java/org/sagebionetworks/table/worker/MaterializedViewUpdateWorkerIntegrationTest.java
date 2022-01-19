@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -46,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -63,7 +65,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MaterializedViewUpdateWorkerIntegrationTest {
 	
-	public static final Long MAX_WAIT_MS = 30_000L;
+	public static final Long MAX_WAIT_MS = 30_000_000L;
 
 	@Autowired
 	private TableManagerSupport tableManagerSupport;
@@ -119,7 +121,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	@Disabled // This test is not ready yet.
 	@Test
-	public void testMaterializedViewOfFileView() throws AssertionError, AsynchJobFailedException {
+	public void testMaterializedViewOfFileView() throws Exception {
 		EntityView view = createEntityView();
 
 		String definingSql = "select * from " + view.getId();
@@ -193,8 +195,10 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	 * Helper to create an EntityView
 	 * 
 	 * @return
+	 * @throws InterruptedException 
+	 * @throws DatastoreException 
 	 */
-	public EntityView createEntityView() {
+	public EntityView createEntityView() throws DatastoreException, InterruptedException {
 
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
@@ -225,8 +229,12 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				AnnotationsV2TestUtils.putAnnotations(annos, "booleanKey", Boolean.toString(i % 2 == 0),
 						AnnotationsValueType.BOOLEAN);
 				entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
+				file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
+				// each file needs to be replicated.
+				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(), MAX_WAIT_MS);
 			}
 		}
+	
 
 		String projectId = entites.get(0).getId();
 		List<String> scope = Arrays.asList(projectId);
@@ -260,10 +268,10 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		results.add(project);
 
 		Folder folderOne = entityManager.getEntity(adminUserInfo, entityManager.createEntity(adminUserInfo,
-				new Folder().setName("folder one").setParentId(project.getParentId()), null), Folder.class);
+				new Folder().setName("folder one").setParentId(project.getId()), null), Folder.class);
 		results.add(folderOne);
 		Folder folderTwo = entityManager.getEntity(adminUserInfo, entityManager.createEntity(adminUserInfo,
-				new Folder().setName("folder two").setParentId(project.getParentId()), null), Folder.class);
+				new Folder().setName("folder two").setParentId(project.getId()), null), Folder.class);
 		results.add(folderTwo);
 
 		// grant the user read on the project
