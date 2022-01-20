@@ -5,7 +5,6 @@ import java.io.FileWriter;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.report.StorageReportManager;
@@ -53,8 +52,8 @@ public class StorageReportCSVDownloadWorker implements AsyncJobRunner<DownloadSt
 	}
 
 	@Override
-	public DownloadStorageReportResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			DownloadStorageReportRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public DownloadStorageReportResponse run(String jobId, UserInfo user, DownloadStorageReportRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
 		String fileName = "Job-" + jobId;
 		File temp = null;

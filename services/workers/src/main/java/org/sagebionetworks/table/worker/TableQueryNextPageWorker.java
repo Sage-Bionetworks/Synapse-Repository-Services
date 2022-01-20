@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
@@ -39,10 +38,9 @@ public class TableQueryNextPageWorker implements AsyncJobRunner<QueryNextPageTok
 	}
 	
 	@Override
-	public QueryResult run(ProgressCallback progressCallback, String jobId, UserInfo user, QueryNextPageToken request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public QueryResult run(String jobId, UserInfo user, QueryNextPageToken request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
-			return tableQueryManger.queryNextPage(progressCallback, user, request);
+			return tableQueryManger.queryNextPage(jobProgressCallback, user, request);
 		} catch (TableUnavailableException e) {
 			// This just means we cannot do this right now.  We can try again later.
 			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);

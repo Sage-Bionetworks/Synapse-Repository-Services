@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
@@ -55,8 +54,8 @@ public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTrans
 	}
 	
 	@Override
-	public TableUpdateTransactionResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			TableUpdateTransactionRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public TableUpdateTransactionResponse run(String jobId, UserInfo user, TableUpdateTransactionRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
 		try {
 			ValidateArgument.required(request, "TableUpdateTransactionRequest");
@@ -79,15 +78,15 @@ public class TableUpdateRequestWorker implements AsyncJobRunner<TableUpdateTrans
 				}
 				
 			};
-			progressCallback.addProgressListener(listener);
+			jobProgressCallback.addProgressListener(listener);
 			try{
 				// The manager does the rest of the work.
-				TableUpdateTransactionResponse response = requestManager.updateTableWithTransaction(progressCallback, user, request);
+				TableUpdateTransactionResponse response = requestManager.updateTableWithTransaction(jobProgressCallback, user, request);
 				log.info("JobId: "+jobId+" complete");
 				return response;
 			} finally{
 				// unconditionally remove the listener.
-				progressCallback.removeProgressListener(listener);
+				jobProgressCallback.removeProgressListener(listener);
 			}
 
 		} catch (TableUnavailableException | LockUnavilableException e ){

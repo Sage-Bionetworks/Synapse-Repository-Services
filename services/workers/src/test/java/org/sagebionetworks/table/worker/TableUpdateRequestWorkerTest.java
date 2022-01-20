@@ -36,9 +36,7 @@ import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 public class TableUpdateRequestWorkerTest {
 	
 	@Mock
-	private TableManagerSupport mockTableManagerSupport;	
-	@Mock
-	private ProgressCallback mockProgressCallback;
+	private TableManagerSupport mockTableManagerSupport;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -84,7 +82,7 @@ public class TableUpdateRequestWorkerTest {
 		when(mockTableUpdateRequestManager.updateTableWithTransaction(any(), any(), any())).thenReturn(responseBody);
 		makeProgress();
 		// call under test
-		TableUpdateTransactionResponse result = worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		TableUpdateTransactionResponse result = worker.run(jobId, userInfo, request, mockJobCallback);
 		
 		assertEquals(responseBody, result);
 		// progress should be made three times
@@ -101,7 +99,7 @@ public class TableUpdateRequestWorkerTest {
 			listener.progressMade();
 			listener.progressMade();
 			return null;
-		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
+		}).when(mockJobCallback).addProgressListener(any(ProgressListener.class));
 	}
 	
 	/** 
@@ -121,13 +119,13 @@ public class TableUpdateRequestWorkerTest {
 		
 		// call under test
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);
 		
-		verify(mockProgressCallback).addProgressListener(any(ProgressListener.class));
-		verify(mockProgressCallback).removeProgressListener(any(ProgressListener.class));
+		verify(mockJobCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockJobCallback).removeProgressListener(any(ProgressListener.class));
 		// The error should be translated.
 		verify(mockTableExceptionTranslator).translateException(error);
 	}
@@ -140,7 +138,7 @@ public class TableUpdateRequestWorkerTest {
 		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);
@@ -153,7 +151,7 @@ public class TableUpdateRequestWorkerTest {
 		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);
@@ -166,7 +164,7 @@ public class TableUpdateRequestWorkerTest {
 		when(mockTableExceptionTranslator.translateException(any())).thenReturn(translatedException);
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);
@@ -181,7 +179,7 @@ public class TableUpdateRequestWorkerTest {
 		
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		verify(mockJobCallback).updateProgress(TableUpdateRequestWorker.WAITING_FOR_TABLE_LOCK, 0L, 100L);
@@ -196,7 +194,7 @@ public class TableUpdateRequestWorkerTest {
 		
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 
 		});
 		
@@ -212,7 +210,7 @@ public class TableUpdateRequestWorkerTest {
 		
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		verify(mockJobCallback).updateProgress("message", 0L, 100L);
@@ -231,7 +229,7 @@ public class TableUpdateRequestWorkerTest {
 		
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(translatedException, result);

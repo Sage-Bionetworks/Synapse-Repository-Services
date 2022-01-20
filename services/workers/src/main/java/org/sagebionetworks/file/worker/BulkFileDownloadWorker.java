@@ -1,6 +1,5 @@
 package org.sagebionetworks.file.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -30,8 +29,7 @@ public class BulkFileDownloadWorker implements AsyncJobRunner<BulkFileDownloadRe
 	}
 	
 	@Override
-	public BulkFileDownloadResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, BulkFileDownloadRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public BulkFileDownloadResponse run(String jobId, UserInfo user, BulkFileDownloadRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		// build the zip from the results
 		return fileHandleSupport.buildZip(user, request);
 	}

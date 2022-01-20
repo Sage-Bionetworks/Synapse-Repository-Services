@@ -2,7 +2,6 @@ package org.sagebionetworks.migration.worker;
 
 import java.io.IOException;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -45,8 +44,7 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 	}
 	
 	@Override
-	public AsyncMigrationResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, AsyncMigrationRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public AsyncMigrationResponse run(String jobId, UserInfo user, AsyncMigrationRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		
 		AdminResponse resp = processRequest(user, request.getAdminRequest(), jobId);
 		

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandlePackageManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -27,8 +26,6 @@ public class BulkFileDownloadWorkerTest {
 	private FileHandlePackageManager mockBulkDownloadManager;
 	@InjectMocks
 	private BulkFileDownloadWorker worker;
-	@Mock
-	private ProgressCallback mockProgress;
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
@@ -50,7 +47,7 @@ public class BulkFileDownloadWorkerTest {
 		when(mockBulkDownloadManager.buildZip(any(), any())).thenReturn(mockResponse);
 		
 		// call under test
-		BulkFileDownloadResponse result = worker.run(mockProgress, jobId, user, mockRequest, mockJobCallback);
+		BulkFileDownloadResponse result = worker.run(jobId, user, mockRequest, mockJobCallback);
 		
 		assertEquals(mockResponse, result);
 		

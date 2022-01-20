@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
@@ -34,9 +33,6 @@ public class FileHandleRestoreRequestWorkerTest {
 	
 	@InjectMocks
 	private FileHandleRestoreRequestWorker worker;
-
-	@Mock
-	private ProgressCallback mockProgressCallback;
 	
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
@@ -62,7 +58,7 @@ public class FileHandleRestoreRequestWorkerTest {
 				.setRestoreResults(Arrays.asList(mockResult, mockResult));
 		
 		// Call under test
-		FileHandleRestoreResponse result = worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		FileHandleRestoreResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		
@@ -77,7 +73,7 @@ public class FileHandleRestoreRequestWorkerTest {
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+			worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		});
 		
 		assertEquals("The fileHandleIds list is required and must not be empty.", result.getMessage());
@@ -92,7 +88,7 @@ public class FileHandleRestoreRequestWorkerTest {
 					
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+			worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		});
 		
 		assertEquals("The fileHandleIds list is required and must not be empty.", result.getMessage());
@@ -109,7 +105,7 @@ public class FileHandleRestoreRequestWorkerTest {
 					
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+			worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		});
 		
 		assertEquals("The number of file handles exceed the maximum allowed (Was: 1001, Max:1000).", result.getMessage());
@@ -138,7 +134,7 @@ public class FileHandleRestoreRequestWorkerTest {
 			);
 		
 		// Call under test
-		FileHandleRestoreResponse result = worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		FileHandleRestoreResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		

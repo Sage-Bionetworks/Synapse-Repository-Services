@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -38,8 +37,7 @@ public class ViewColumnModelRequestWorker implements AsyncJobRunner<ViewColumnMo
 	}
 
 	@Override
-	public ViewColumnModelResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, ViewColumnModelRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public ViewColumnModelResponse run(String jobId, UserInfo user, ViewColumnModelRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
 			String jobMessage = getStartingJobMessage(request);
 			

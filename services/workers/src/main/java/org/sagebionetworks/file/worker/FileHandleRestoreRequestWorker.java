@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
@@ -41,8 +40,7 @@ public class FileHandleRestoreRequestWorker implements AsyncJobRunner<FileHandle
 	}
 	
 	@Override
-	public FileHandleRestoreResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, FileHandleRestoreRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public FileHandleRestoreResponse run(String jobId, UserInfo user, FileHandleRestoreRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		ValidateArgument.requiredNotEmpty(request.getFileHandleIds(), "The fileHandleIds list");
 		ValidateArgument.requirement(request.getFileHandleIds().size() <= MAX_BATCH_SIZE, "The number of file handles exceed the maximum allowed (Was: " + request.getFileHandleIds().size() + ", Max:" +MAX_BATCH_SIZE + ").");
 		

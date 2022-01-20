@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
@@ -41,10 +40,9 @@ public class TableQueryWorker implements AsyncJobRunner<QueryBundleRequest, Quer
 	}
 	
 	@Override
-	public QueryResultBundle run(ProgressCallback progressCallback, String jobId, UserInfo user, QueryBundleRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public QueryResultBundle run(String jobId, UserInfo user, QueryBundleRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
-			return tableQueryManager.queryBundle(progressCallback, user, request);
+			return tableQueryManager.queryBundle(jobProgressCallback, user, request);
 		} catch (TableUnavailableException | LockUnavilableException e) {
 			// This just means we cannot do this right now.  We can try again later.
 			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);

@@ -25,9 +25,6 @@ public class FileHandleArchivalRequestWorkerTest {
 		
 	@InjectMocks
 	private FileHandleArchivalRequestWorker worker;
-
-	@Mock
-	private ProgressCallback mockProgressCallback;
 	
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
@@ -49,7 +46,7 @@ public class FileHandleArchivalRequestWorkerTest {
 		when(mockManager.processFileHandleArchivalRequest(any(), any())).thenReturn(mockResponse);
 		
 		// Call under test
-		FileHandleArchivalResponse result = worker.run(mockProgressCallback, jobId, mockUser, mockRequest, mockJobCallback);
+		FileHandleArchivalResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
 		
 		assertEquals(mockResponse, result);
 		

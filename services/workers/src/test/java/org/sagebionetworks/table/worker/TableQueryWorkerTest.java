@@ -12,7 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -36,9 +35,6 @@ public class TableQueryWorkerTest {
 	private TableQueryManager mockTableQueryManager;
 	@Mock
 	private TableExceptionTranslator mockTableExceptionTranslator;
-
-	@Mock
-	private ProgressCallback mockProgressCallback;
 
 	@InjectMocks
 	private TableQueryWorker worker;
@@ -74,41 +70,41 @@ public class TableQueryWorkerTest {
 		
 		results = new QueryResultBundle();
 		
-		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenReturn(results);
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenReturn(results);
 
 	}
 
 	@Test
 	public void testBasicQuery() throws Exception {
 		// call under test
-		QueryResultBundle response = worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+		QueryResultBundle response = worker.run(jobId, userInfo, request, mockJobCallback);
 		
 		assertEquals(results, response);
 		
-		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockTableQueryManager).queryBundle(mockJobCallback, userInfo, request);
 	}
 	
 	@Test
 	public void testTableUnavailableException() throws Exception {
 		// table not available
-		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(new TableUnavailableException(new TableStatus()));
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(new TableUnavailableException(new TableStatus()));
 		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
-		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockTableQueryManager).queryBundle(mockJobCallback, userInfo, request);
 		verify(mockJobCallback).updateProgress("Waiting for the table index to become available...", 0L, 100L);
 	}
 	
 	@Test
 	public void testLockUnavilableExceptionException() throws Exception {
 		// table not available
-		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(new LockUnavilableException());
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(new LockUnavilableException());
 		assertThrows(RecoverableMessageException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
-		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockTableQueryManager).queryBundle(mockJobCallback, userInfo, request);
 		verify(mockJobCallback).updateProgress("Waiting for the table index to become available...", 0L, 100L);
 	}
 	
@@ -116,22 +112,22 @@ public class TableQueryWorkerTest {
 	public void testTableFailedExceptionException() throws Exception {
 		TableFailedException exception = new TableFailedException(new TableStatus());
 		// table not available
-		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(exception);
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(exception);
 		// call under test
 		TableFailedException result = assertThrows(TableFailedException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 		
 		assertEquals(exception, result);
-		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockTableQueryManager).queryBundle(mockJobCallback, userInfo, request);
 	}
 	
 	@Test
 	public void testUnknownException() throws Exception {
 		
 		RuntimeException error = new RuntimeException("Bad stuff happened");
-		when(mockTableQueryManager.queryBundle(mockProgressCallback, userInfo, request)).thenThrow(error);
+		when(mockTableQueryManager.queryBundle(mockJobCallback, userInfo, request)).thenThrow(error);
 		
 		RuntimeException translatedException = new RuntimeException("translated");
 		
@@ -139,11 +135,11 @@ public class TableQueryWorkerTest {
 
 		RuntimeException result = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			worker.run(mockProgressCallback, jobId, userInfo, request, mockJobCallback);
+			worker.run(jobId, userInfo, request, mockJobCallback);
 		});
 	
 		assertEquals(translatedException, result);
-		verify(mockTableQueryManager).queryBundle(mockProgressCallback, userInfo, request);
+		verify(mockTableQueryManager).queryBundle(mockJobCallback, userInfo, request);
 		// the exception should be translated.
 		verify(mockTableExceptionTranslator).translateException(error);
 	}

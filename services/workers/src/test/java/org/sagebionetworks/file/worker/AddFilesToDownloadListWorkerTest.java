@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -29,9 +28,6 @@ public class AddFilesToDownloadListWorkerTest {
 	
 	@Mock
 	private BulkDownloadManager mockBulkDownloadManager;
-	
-	@Mock
-	private ProgressCallback mockProgressCallback;
 	
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
@@ -86,7 +82,7 @@ public class AddFilesToDownloadListWorkerTest {
 		expectedResponse.setDownloadList(addFolderDownloadList);
 		
 		// call under test
-		AddFileToDownloadListResponse result = worker.run(mockProgressCallback, jobId, user, addFolderRequest, mockJobCallback);
+		AddFileToDownloadListResponse result = worker.run(jobId, user, addFolderRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		
@@ -97,18 +93,18 @@ public class AddFilesToDownloadListWorkerTest {
 	
 	@Test
 	public void testRunAddQuery() throws RecoverableMessageException, Exception {
-		when(mockBulkDownloadManager.addFilesFromQuery(mockProgressCallback, user, query)).thenReturn(addQueryDownloadList);
+		when(mockBulkDownloadManager.addFilesFromQuery(mockJobCallback, user, query)).thenReturn(addQueryDownloadList);
 		
 		AddFileToDownloadListResponse expectedResponse = new AddFileToDownloadListResponse();
 		expectedResponse.setDownloadList(addQueryDownloadList);
 		
 		// call under test
-		AddFileToDownloadListResponse result = worker.run(mockProgressCallback, jobId, user, addQueryRequest, mockJobCallback);
+		AddFileToDownloadListResponse result = worker.run(jobId, user, addQueryRequest, mockJobCallback);
 		
 		assertEquals(expectedResponse, result);
 		
 		verify(mockBulkDownloadManager, never()).addFilesFromFolder(any(UserInfo.class), any(String.class));
-		verify(mockBulkDownloadManager).addFilesFromQuery(mockProgressCallback, user, addQueryRequest.getQuery());
+		verify(mockBulkDownloadManager).addFilesFromQuery(mockJobCallback, user, addQueryRequest.getQuery());
 	}
 	
 	@Test
@@ -119,7 +115,7 @@ public class AddFilesToDownloadListWorkerTest {
 		
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, user, addQueryRequest, mockJobCallback);
+			worker.run(jobId, user, addQueryRequest, mockJobCallback);
 		}).getMessage();
 		
 		assertEquals(AddFilesToDownloadListWorker.SET_EITHER_FOLDER_ID_OR_QUERY_BUT_NOT_BOTH, result);
@@ -133,7 +129,7 @@ public class AddFilesToDownloadListWorkerTest {
 		addQueryRequest.setQuery(null);
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, user, addQueryRequest, mockJobCallback);
+			worker.run(jobId, user, addQueryRequest, mockJobCallback);
 		}).getMessage();
 		
 		assertEquals(AddFilesToDownloadListWorker.MUST_PROVIDE_EITHER_FOLDER_ID_OR_QUERY, result);
@@ -146,7 +142,7 @@ public class AddFilesToDownloadListWorkerTest {
 		// call under test
 		assertThrows(RecoverableMessageException.class, ()->{
 			// call under test
-			worker.run(mockProgressCallback, jobId, user, addQueryRequest, mockJobCallback);
+			worker.run(jobId, user, addQueryRequest, mockJobCallback);
 		});
 	}
 	
@@ -157,7 +153,7 @@ public class AddFilesToDownloadListWorkerTest {
 		
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			worker.run(mockProgressCallback, jobId, user, addQueryRequest, mockJobCallback);
+			worker.run(jobId, user, addQueryRequest, mockJobCallback);
 		});
 		
 		assertEquals(exception, result);

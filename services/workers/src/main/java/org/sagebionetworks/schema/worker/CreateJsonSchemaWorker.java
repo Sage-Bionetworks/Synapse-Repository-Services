@@ -1,6 +1,5 @@
 package org.sagebionetworks.schema.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -30,8 +29,7 @@ public class CreateJsonSchemaWorker implements AsyncJobRunner<CreateSchemaReques
 	}
 	
 	@Override
-	public CreateSchemaResponse run(ProgressCallback progressCallback, String jobId, UserInfo user, CreateSchemaRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public CreateSchemaResponse run(String jobId, UserInfo user, CreateSchemaRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		jobProgressCallback.updateProgress("Starting job...", 0L, 100L);
 		return schemaManager.createJsonSchema(user, request);
 	}

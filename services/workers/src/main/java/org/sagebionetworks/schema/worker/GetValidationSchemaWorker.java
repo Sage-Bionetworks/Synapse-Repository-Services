@@ -1,6 +1,5 @@
 package org.sagebionetworks.schema.worker;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.GetValidationSchemaRequest;
@@ -27,8 +26,8 @@ public class GetValidationSchemaWorker implements AsyncJobRunner<GetValidationSc
 	}
 
 	@Override
-	public GetValidationSchemaResponse run(ProgressCallback progressCallback, String jobId, UserInfo user,
-			GetValidationSchemaRequest request, AsyncJobProgressCallback jobProgressCallback)
+	public GetValidationSchemaResponse run(String jobId, UserInfo user, GetValidationSchemaRequest request,
+			AsyncJobProgressCallback jobProgressCallback)
 			throws RecoverableMessageException, Exception {
 		jobProgressCallback.updateProgress("Starting job...", 0L, 100L);
 		

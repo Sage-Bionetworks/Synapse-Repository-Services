@@ -5,7 +5,6 @@ import java.io.FileWriter;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -59,8 +58,7 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 	}
 	
 	@Override
-	public DownloadFromTableResult run(ProgressCallback progressCallback, String jobId, UserInfo user, DownloadFromTableRequest request,
-			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
+	public DownloadFromTableResult run(String jobId, UserInfo user, DownloadFromTableRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		String fileName = "Job-"+jobId;
 		File temp = null;
 		CSVWriter writer = null;
@@ -69,7 +67,7 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			// only run the count
 			QueryOptions queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, queryOptions);
+			QueryResultBundle queryResult = tableQueryManager.querySinglePage(jobProgressCallback, user, request, queryOptions);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -85,7 +83,7 @@ public class TableCSVDownloadWorker implements AsyncJobRunner<DownloadFromTableR
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManager.runQueryDownloadAsStream(progressCallback, user, request, stream);
+				result = tableQueryManager.runQueryDownloadAsStream(jobProgressCallback, user, request, stream);
 			}finally{
 				writer.close();
 			}
