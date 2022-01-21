@@ -35,7 +35,8 @@ public class WorkerProfiler {
 	 * @param message
 	 * @throws Throwable
 	 */
-	@Around("execution(* org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner.run(..))"
+	@Around("execution(* org.sagebionetworks.worker.AsyncJobRunner.run(..))"
+			+ " || execution(* org.sagebionetworks.worker.TypedMessageDrivenRunner.run(..))"
 			+ " || execution(* org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner.run(..))"
 			+ " || execution(* org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner.run(..))")
 	public Object profileMessageDrivenRunner(ProceedingJoinPoint pjp)
