@@ -1,36 +1,36 @@
 package org.sagebionetworks.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.worker.job.tracking.JobTracker;
 import org.sagebionetworks.worker.utils.WorkerProfiler;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class WorkerProfilerTest {
 
 	@Mock
-	JobTracker mockJobTracker;
+	private JobTracker mockJobTracker;
 	
 	@Mock
-	ProceedingJoinPoint mockProceedingJoinPoint;
+	private ProceedingJoinPoint mockProceedingJoinPoint;
 	
-	WorkerProfiler profiler;
+	private WorkerProfiler profiler;
 	
-	Object mockResponse;
+	private Object mockResponse;
 	
-	String workerName;
+	private String workerName;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Throwable{
 		profiler = new WorkerProfiler();
 		ReflectionTestUtils.setField(profiler, "jobTracker", mockJobTracker);
@@ -53,14 +53,14 @@ public class WorkerProfilerTest {
 	public void testProfileMessageDrivenRunnerFailure() throws Throwable{
 		Exception someError = new Exception("some error");
 		when(mockProceedingJoinPoint.proceed()).thenThrow(someError);
-		// call under test
-		try{
+		
+		Exception result = assertThrows(Exception.class, () -> {
+			// call under test
 			profiler.profileMessageDrivenRunner(mockProceedingJoinPoint);
-			fail("shoudl have failed");
-		}catch (Exception e){
-			// expected
-			assertEquals(someError, e);
-		}
+		});
+	
+		assertEquals(result, someError);
+		
 		// the job should start and stop even with a failure
 		verify(mockJobTracker).jobStarted(workerName);
 		verify(mockJobTracker).jobEnded(workerName);
