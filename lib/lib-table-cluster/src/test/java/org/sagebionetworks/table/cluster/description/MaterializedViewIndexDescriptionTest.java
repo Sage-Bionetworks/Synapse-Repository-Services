@@ -87,7 +87,11 @@ public class MaterializedViewIndexDescriptionTest {
 				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview)
 		);
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"), dependencies);
+		List<BenefactorDescription> expected = Arrays.asList(
+				new BenefactorDescription("ROW_BENEFACTOR_A0", ObjectType.ENTITY),
+				new BenefactorDescription("ROW_BENEFACTOR_A1", ObjectType.ENTITY)
+				);
 		// call under test
-		assertEquals(Arrays.asList("ROW_BENEFACTOR_A0","ROW_BENEFACTOR_A1"), mid.getBenefactorColumnNames());
+		assertEquals(expected, mid.getBenefactors());
 	}
 }

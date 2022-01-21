@@ -24,6 +24,6 @@ public class TableIndexDescriptionTest {
 	public void testGetBenefactorColumnNames() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
 		// call under test
-		assertEquals(Collections.emptyList(), tid.getBenefactorColumnNames());
+		assertEquals(Collections.emptyList(), tid.getBenefactors());
 	}
 }

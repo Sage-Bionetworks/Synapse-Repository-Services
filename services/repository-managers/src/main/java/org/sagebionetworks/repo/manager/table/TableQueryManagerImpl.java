@@ -660,14 +660,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query, IndexDescription indexDescription)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		if(indexDescription.getBenefactorColumnNames().isEmpty()) {
+		if(indexDescription.getBenefactors().isEmpty()) {
 			// with no benefactors nothing is needed.
 			return query;
 		}
-		if(indexDescription.getBenefactorColumnNames().size() > 1) {
+		if(indexDescription.getBenefactors().size() > 1) {
 			throw new UnsupportedOperationException("Need to add support for more than one benefactor column");
 		}
-		BenefactorDescription firstBenefactorDescription = indexDescription.getBenefactorColumnNames().get(0);
+		BenefactorDescription firstBenefactorDescription = indexDescription.getBenefactors().get(0);
 		// Get a connection to the table.
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);

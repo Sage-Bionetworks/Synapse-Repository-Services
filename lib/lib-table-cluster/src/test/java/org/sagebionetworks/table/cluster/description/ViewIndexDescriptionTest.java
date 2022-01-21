@@ -28,7 +28,7 @@ public class ViewIndexDescriptionTest {
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
-				vid.getBenefactorColumnNames());
+				vid.getBenefactors());
 	}
 	
 	@Test
@@ -37,7 +37,7 @@ public class ViewIndexDescriptionTest {
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
-				vid.getBenefactorColumnNames());
+				vid.getBenefactors());
 	}
 
 	@Test
@@ -47,6 +47,6 @@ public class ViewIndexDescriptionTest {
 		assertEquals(
 				Collections
 						.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.EVALUATION)),
-				vid.getBenefactorColumnNames());
+				vid.getBenefactors());
 	}
 }

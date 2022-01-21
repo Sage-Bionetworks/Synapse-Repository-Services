@@ -33,7 +33,7 @@ public interface IndexDescription {
 	 * The description of each benefactor column in this table/view.
 	 * @return Will return an empty if there are no benefactors.s
 	 */
-	List<BenefactorDescription> getBenefactorColumnNames();
+	List<BenefactorDescription> getBenefactors();
 	
 	
 	/**

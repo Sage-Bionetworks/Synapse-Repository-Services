@@ -52,7 +52,7 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<BenefactorDescription> getBenefactorColumnNames() {
+	public List<BenefactorDescription> getBenefactors() {
 		return Collections.singletonList(description);
 	}
 	

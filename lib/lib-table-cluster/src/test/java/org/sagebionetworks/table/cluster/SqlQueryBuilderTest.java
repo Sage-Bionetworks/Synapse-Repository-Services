@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public class SqlQueryBuilderTest {
 	public void testBuildSqlString() throws ParseException{
 		SqlQuery result = new SqlQueryBuilder("select * from syn123", userId)
 		.schemaProvider(schemaProvider)
+		.indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123")))
 		.build();
 		assertEquals("SELECT _C12_, ROW_ID, ROW_VERSION FROM T123", result.getOutputSQL());
 	}

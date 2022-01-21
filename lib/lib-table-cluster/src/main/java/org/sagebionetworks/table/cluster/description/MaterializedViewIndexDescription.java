@@ -29,7 +29,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		this.benefactorDescriptions = new ArrayList<>();
 		for (int i = 0; i < dependencies.size(); i++) {
 			IndexDescription dependency = dependencies.get(i);
-			for (BenefactorDescription desc : dependency.getBenefactorColumnNames()) {
+			for (BenefactorDescription desc : dependency.getBenefactors()) {
 				String tableAlias = SQLUtils.getTableAliasForIndex(i);
 				String newBenefactorColumnName = desc.getBenefactorColumnName() + tableAlias;
 				benefactorDescriptions.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
@@ -62,7 +62,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<BenefactorDescription> getBenefactorColumnNames() {
+	public List<BenefactorDescription> getBenefactors() {
 		return benefactorDescriptions;
 	}
 

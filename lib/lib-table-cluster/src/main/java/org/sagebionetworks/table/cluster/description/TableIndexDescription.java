@@ -40,7 +40,7 @@ public class TableIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<BenefactorDescription> getBenefactorColumnNames() {
+	public List<BenefactorDescription> getBenefactors() {
 		return Collections.emptyList();
 	}
 	
