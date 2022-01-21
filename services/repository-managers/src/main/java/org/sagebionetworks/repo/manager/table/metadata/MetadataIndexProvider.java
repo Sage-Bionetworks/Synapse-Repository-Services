@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.table.metadata;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -21,12 +20,6 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
  *
  */
 public interface MetadataIndexProvider extends HasViewObjectType, ObjectFieldTypeMapper {
-
-	/**
-	 * @return The {@link ObjectType} of the benefactor of the rows of the view,
-	 *         this is used to add row level filtering according to the permissions
-	 */
-	ObjectType getBenefactorObjectType();
 
 	/**
 	 * Returns the {@link DefaultColumnModel} for a view given the provided type

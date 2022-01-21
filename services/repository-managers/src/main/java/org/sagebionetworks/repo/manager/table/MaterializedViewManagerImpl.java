@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -167,23 +168,27 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	void createOrRebuildViewHoldingExclusiveLock(ProgressCallback callback, IdAndVersion idAndVersion)
 			throws Exception {
-		
+
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+
 		String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
 		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).allowJoins(true)
-				.build();
-		
-		// schema of the current version is dynamic, while the schema of a snapshot is static.
-		if(!idAndVersion.getVersion().isPresent()) {
+				.indexDescription(indexDescription).build();
+
+		// schema of the current version is dynamic, while the schema of a snapshot is
+		// static.
+		if (!idAndVersion.getVersion().isPresent()) {
 			bindSchemaToView(idAndVersion, sqlQuery);
 		}
-		
-		// Check if each dependency is available. Note: Getting the status of a dependency can also trigger it to update.
+
+		// Check if each dependency is available. Note: Getting the status of a
+		// dependency can also trigger it to update.
 		List<IdAndVersion> dependentTables = sqlQuery.getTableIds();
-		for(IdAndVersion dependent: dependentTables) {
+		for (IdAndVersion dependent : dependentTables) {
 			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(dependent);
-			if(!TableState.AVAILABLE.equals(status.getState())) {
+			if (!TableState.AVAILABLE.equals(status.getState())) {
 				throw new RecoverableMessageException();
 			}
 		}
@@ -196,51 +201,51 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	}
 
 	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IdAndVersion idAndVersion, SqlQuery definingSql) {
-//		try {
-//			// Is the index out-of-synch?
-//			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
-//				// nothing to do
-//				return;
-//			}
-//		
-//			// Start the worker
-//			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
-//			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-//			// For now, always rebuild the materialized view from scratch.
-//			indexManager.deleteTableIndex(idAndVersion);
-//			
-//			// Need the MD5 for the original schema.
-//			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-//			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
-//
-//			// create the table in the index.
-//			indexManager.setIndexSchema(new MaterializedViewIndexDescription(idAndVersion, null), viewSchema);
-//			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
-//			
-//			Long viewCRC = null;
-//			if(idAndVersion.getVersion().isPresent()) {
-//				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
-//			}else {
-//				viewCRC = buildMaterializedViewFromSources(idAndVersion, indexManager, viewSchema);
-//			}
-//			// now that table is created and populated the indices on the table can be
-//			// optimized.
-//			indexManager.optimizeTableIndices(idAndVersion);
-//
-//			//for any list columns, build separate tables that serve as an index
-//			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
-//
-//			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-//			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
-//			// Attempt to set the table to complete.
-//			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
-//		} catch (InvalidStatusTokenException e) {
-//			throw new RecoverableMessageException(e);
-//		} catch (Exception e) {
-//			// failed.
-//			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
-//			throw e;
-//		}
+		try {
+			// Is the index out-of-synch?
+			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
+				// nothing to do
+				return;
+			}
+		
+			// Start the worker
+			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
+			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+			// For now, always rebuild the materialized view from scratch.
+			indexManager.deleteTableIndex(idAndVersion);
+			
+			// Need the MD5 for the original schema.
+			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
+			List<ColumnModel> viewSchema = columModelManager.getTableSchema(idAndVersion);
+
+			// create the table in the index.
+			indexManager.setIndexSchema(definingSql.getIndexDescription(), viewSchema);
+			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
+			
+			Long viewCRC = null;
+			if(idAndVersion.getVersion().isPresent()) {
+				throw new UnsupportedOperationException("MaterializedView snapshots not currently supported");
+			}else {
+				viewCRC = buildMaterializedViewFromSources(idAndVersion, indexManager, viewSchema);
+			}
+			// now that table is created and populated the indices on the table can be
+			// optimized.
+			indexManager.optimizeTableIndices(idAndVersion);
+
+			//for any list columns, build separate tables that serve as an index
+			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
+
+			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			// Attempt to set the table to complete.
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+		} catch (InvalidStatusTokenException e) {
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
+			// failed.
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
+			throw e;
+		}
 	}
 
 	/**

@@ -515,7 +515,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 
 			// create the table in the index.
-			indexManager.setIndexSchema(new ViewIndexDescription(idAndVersion), viewSchema);
+			indexManager.setIndexSchema(tableManagerSupport.getIndexDescription(idAndVersion), viewSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;

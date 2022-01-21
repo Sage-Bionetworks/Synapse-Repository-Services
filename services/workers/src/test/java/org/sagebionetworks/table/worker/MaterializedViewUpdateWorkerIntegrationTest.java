@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;

@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -926,7 +928,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion), viewSchema);
+		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion, EntityType.entityview), viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
@@ -972,7 +974,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion), viewSchema);
+		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion, EntityType.entityview), viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());

@@ -108,6 +108,9 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
@@ -850,7 +853,8 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetCellValues() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.table);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryAsStream();
 		
 		RowReferenceSet rows = new RowReferenceSet();
@@ -871,8 +875,7 @@ public class TableEntityManagerTest {
 		row = result.getRows().get(1);
 		assertEquals(new Long(3), row.getRowId());
 		
-		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
-		verify(mockTableManagerSupport).getTableEntityType(idAndVersion);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
 	
 	/**
@@ -882,7 +885,8 @@ public class TableEntityManagerTest {
 	@Test
 	public void testGetCellValuesMissing() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.table);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryAsStream();
 		
 		RowReferenceSet rows = new RowReferenceSet();
@@ -901,14 +905,14 @@ public class TableEntityManagerTest {
 		assertEquals(1, result.getRows().size());
 		Row row = result.getRows().get(0);
 		assertEquals(new Long(1), row.getRowId());
-		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
-		verify(mockTableManagerSupport).getTableEntityType(idAndVersion);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
 	
 	@Test
 	public void testGetCellValuesNonTable() throws DatastoreException, NotFoundException, IOException {
 		// get cell values is only authorized for tables.
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -923,18 +927,22 @@ public class TableEntityManagerTest {
 
 	@Test
 	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(any(), any());
 
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			manager.getCellValues(user, tableId, null, null);
 		});
+		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
 
 	@Test
 	public void testGetCellValue() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.table);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryAsStream();
 		
 		final int columnIndex = 1;
@@ -943,13 +951,14 @@ public class TableEntityManagerTest {
 		Row result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
 		assertNotNull(result);
 		assertEquals("string1", result.getValues().get(0));
-		verify(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
+		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 	}
 	
 	@Test
 	public void testGetCellValueNotFound() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableManagerSupport.getTableEntityType(idAndVersion)).thenReturn(EntityType.table);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupQueryAsStream();
 		
 		final int columnIndex = 1;
@@ -959,16 +968,6 @@ public class TableEntityManagerTest {
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
 			manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
-		});
-	}
-
-	@Test
-	public void testGetColumnValuesFailReadAccess() throws Exception {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
-
-		assertThrows(UnauthorizedException.class, ()->{
-			// call under test.
-			manager.getCellValue(user, tableId, null, null);
 		});
 	}
 	

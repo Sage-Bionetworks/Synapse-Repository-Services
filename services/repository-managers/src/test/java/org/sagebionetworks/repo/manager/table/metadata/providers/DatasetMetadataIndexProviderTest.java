@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
@@ -74,7 +73,6 @@ public class DatasetMetadataIndexProviderTest {
 		assertEquals(ColumnType.ENTITYID, provider.getIdColumnType());
 		assertEquals(ColumnType.ENTITYID, provider.getParentIdColumnType());
 		assertEquals(ColumnType.ENTITYID, provider.getBenefactorIdColumnType());
-		assertEquals(ObjectType.ENTITY, provider.getBenefactorObjectType());
 	}
 
 	@Test

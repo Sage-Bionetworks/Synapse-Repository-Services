@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -260,16 +259,6 @@ public class EntityMetadataIndexProviderUnitTest {
 		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
 
 		assertEquals(expected, model);
-	}
-	
-	@Test
-	public void testGetBenefactorObjectType() {
-		
-		// Call under test
-		ObjectType objectType = provider.getBenefactorObjectType();
-		
-		assertEquals(ObjectType.ENTITY, objectType);
-		
 	}
 	
 	@Test

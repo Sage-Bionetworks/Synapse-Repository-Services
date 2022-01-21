@@ -7,20 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +50,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
@@ -74,6 +72,10 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 
@@ -113,6 +115,8 @@ public class TableManagerSupportTest {
 	MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
 	DefaultColumnModelMapper mockDefaultColumnModelMapper;
+	@Mock
+	MaterializedViewDao mockMaterializedViewDao;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
@@ -640,31 +644,33 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateTableReadAccessTableEntityNoDownload(){
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, ()->{
 			//  call under test
-			manager.validateTableReadAccess(userInfo, idAndVersion);
+			manager.validateTableReadAccess(userInfo, indexDescription);
 		});
-		
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 	}
 	
 	@Test
 	public void testValidateTableReadAccessTableEntityNoRead(){
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, ()->{
 			//  call under test
-			manager.validateTableReadAccess(userInfo, idAndVersion);
+			manager.validateTableReadAccess(userInfo, indexDescription);
 		});
 	}
 	
 	@Test
 	public void testValidateTableReadAccessFileView(){
-		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test
-		manager.validateTableReadAccess(userInfo, idAndVersion);
+		manager.validateTableReadAccess(userInfo, indexDescription);
 		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		//  do not need download for FileView
 		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
@@ -672,10 +678,11 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testValidateTableReadAccessFileViewNoRead(){
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		assertThrows(UnauthorizedException.class, ()->{
 			//  call under test
-			manager.validateTableReadAccess(userInfo, idAndVersion);
+			manager.validateTableReadAccess(userInfo, indexDescription);
 		});
 	}
 	
@@ -923,5 +930,87 @@ public class TableManagerSupportTest {
 		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
 		verify(managerSpy).getTableType(idAndVersion);
 		verifyZeroInteractions(mockTransactionalMessenger);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithTable() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.table);
+		// call under test
+		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription expected = new TableIndexDescription(idAndVersion);
+		assertEquals(expected, result);
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verifyZeroInteractions(mockMaterializedViewDao);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithEntityView() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.entityview);
+		// call under test
+		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		assertEquals(expected, result);
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verifyZeroInteractions(mockMaterializedViewDao);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithDataset() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.dataset);
+		// call under test
+		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		assertEquals(expected, result);
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verifyZeroInteractions(mockMaterializedViewDao);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithSubmissionView() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.submissionview);
+		// call under test
+		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		assertEquals(expected, result);
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verifyZeroInteractions(mockMaterializedViewDao);
+	}
+	
+	@Test
+	public void testGetIndexDescriptionWithMaterializedView() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		IndexDescription tableIndexDescription = new TableIndexDescription(tableId);
+		IdAndVersion fileViewId = IdAndVersion.parse("syn222");
+		IndexDescription fileViewIndexDescription = new ViewIndexDescription(fileViewId, EntityType.entityview);
+		IdAndVersion submissionViewId = IdAndVersion.parse("syn333");
+		IndexDescription submissionViewIndexDescription = new ViewIndexDescription(submissionViewId, EntityType.submissionview);
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.materializedview, EntityType.table,
+				EntityType.entityview, EntityType.submissionview);
+		when(mockMaterializedViewDao.getSourceTablesIds(any()))
+				.thenReturn(Sets.newHashSet(tableId, fileViewId, submissionViewId));
+		
+		// call under test
+		IndexDescription result = manager.getIndexDescription(idAndVersion);
+		
+		IndexDescription expected = new MaterializedViewIndexDescription(idAndVersion,
+				Arrays.asList(tableIndexDescription, fileViewIndexDescription, submissionViewIndexDescription));
+		assertEquals(expected, result);
+		
+		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
+		verify(mockNodeDao).getNodeTypeById(tableId.getId().toString());
+		verify(mockNodeDao).getNodeTypeById(fileViewId.getId().toString());
+		verify(mockNodeDao).getNodeTypeById(submissionViewId.getId().toString());
+		verify(mockNodeDao, times(4)).getNodeTypeById(any());
+		verify(mockMaterializedViewDao).getSourceTablesIds(idAndVersion);
+	}
+	
+	@Test
+	public void testGetIndexDescription() {
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.folder);
+		String message = assertThrows(IllegalStateException.class, ()->{
+			// call under test
+			manager.getIndexDescription(idAndVersion);
+		}).getMessage();
+		assertEquals("Unknown type: folder", message);
 	}
 }

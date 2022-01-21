@@ -27,7 +27,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -262,17 +261,7 @@ public class SubmissionMetadataIndexProviderUnitTest {
 			boolean present = model.findCustomFieldByColumnName(field.getColumnName()).isPresent();
 			assertTrue(present);
 		}
-	}
-
-	@Test
-	public void testGetBenefactorObjectType() {
-
-		// Call under test
-		ObjectType objectType = provider.getBenefactorObjectType();
-
-		assertEquals(ObjectType.EVALUATION, objectType);
-
-	}
+	}	
 
 	@Test
 	public void testValidateScopeAndTypeWithUnderLimit() {

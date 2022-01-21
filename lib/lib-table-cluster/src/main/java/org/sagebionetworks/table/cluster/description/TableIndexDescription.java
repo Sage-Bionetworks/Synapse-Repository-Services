@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -39,8 +40,18 @@ public class TableIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getBenefactorColumnNames() {
+	public List<BenefactorDescription> getBenefactorColumnNames() {
 		return Collections.emptyList();
+	}
+	
+	@Override
+	public EntityType getTableType() {
+		return EntityType.table;
+	}
+
+	@Override
+	public boolean isEtagColumnIncluded() {
+		return false;
 	}
 
 	@Override
@@ -59,4 +70,10 @@ public class TableIndexDescription implements IndexDescription {
 		TableIndexDescription other = (TableIndexDescription) obj;
 		return Objects.equals(idAndVersion, other.idAndVersion);
 	}
+
+	@Override
+	public String toString() {
+		return "TableIndexDescription [idAndVersion=" + idAndVersion + "]";
+	}
+
 }

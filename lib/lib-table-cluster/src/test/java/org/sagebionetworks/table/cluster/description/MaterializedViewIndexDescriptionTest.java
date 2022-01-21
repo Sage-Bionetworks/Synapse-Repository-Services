@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 public class MaterializedViewIndexDescriptionTest {
@@ -25,7 +27,7 @@ public class MaterializedViewIndexDescriptionTest {
 
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithSingleView() {
-		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(IdAndVersion.parse("syn999")));
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
@@ -41,8 +43,8 @@ public class MaterializedViewIndexDescriptionTest {
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMultipleViews() {
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999")),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"))
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview)
 		);
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
@@ -61,8 +63,8 @@ public class MaterializedViewIndexDescriptionTest {
 	@Test
 	public void testGetCreateOrUpdateIndexSqlWithMaterializedViewDependency() {
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999")),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"))
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview)
 		);
 		MaterializedViewIndexDescription dependency = new MaterializedViewIndexDescription(IdAndVersion.parse("456"), dependencies);
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"), Arrays.asList(dependency));
@@ -81,8 +83,8 @@ public class MaterializedViewIndexDescriptionTest {
 	@Test
 	public void testGetBenefactorColumnNames() {
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn999")),
-				new ViewIndexDescription(IdAndVersion.parse("syn888"))
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview)
 		);
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(IdAndVersion.parse("syn123"), dependencies);
 		// call under test
