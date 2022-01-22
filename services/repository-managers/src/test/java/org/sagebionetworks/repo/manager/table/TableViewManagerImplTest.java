@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -91,6 +90,7 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -914,6 +914,8 @@ public class TableViewManagerImplTest {
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
 		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		viewCRC = 987L;
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema)).thenReturn(viewCRC);
@@ -928,7 +930,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion, EntityType.entityview), viewSchema);
+		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
@@ -963,6 +965,8 @@ public class TableViewManagerImplTest {
 		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		setupReader("foo,bar");
 		
 		// call under test
@@ -974,7 +978,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).deleteTableIndex(idAndVersion);
 		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
-		verify(mockIndexManager).setIndexSchema(new ViewIndexDescription(idAndVersion, EntityType.entityview), viewSchema);
+		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());
