@@ -959,7 +959,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.dataset);
 		// call under test
 		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.dataset);
 		assertEquals(expected, result);
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);
@@ -970,7 +970,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.submissionview);
 		// call under test
 		IndexDescription result = manager.getIndexDescription(idAndVersion);
-		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.entityview);
+		IndexDescription expected = new ViewIndexDescription(idAndVersion, EntityType.submissionview);
 		assertEquals(expected, result);
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verifyZeroInteractions(mockMaterializedViewDao);

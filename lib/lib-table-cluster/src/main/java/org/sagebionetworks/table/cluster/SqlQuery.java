@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -135,6 +136,8 @@ public class SqlQuery {
 		this.overrideOffset = overrideOffset;
 		this.userId = userId;
 		this.indexDescrption = indexDescription;
+		
+		SqlType sqlType = SQLTranslatorUtils.getSqlType(indexDescription.getIdAndVersion(), tableAndColumnMapper.getTableIds());
 
 		if (sortList != null && !sortList.isEmpty()) {
 			// change the query to use the sort list
@@ -191,10 +194,10 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (this.isAggregatedResult || tableAndColumnMapper.getNumberOfTables() > 1) {
+		if (this.isAggregatedResult ) {
 			this.includesRowIdAndVersion = false;
 		}else{
-			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), indexDescrption.isEtagColumnIncluded());
+			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), indexDescrption.getColumnNamesToAddToSelect(sqlType));
 			this.includesRowIdAndVersion = true;
 		}
 

@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster.description;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -52,6 +53,14 @@ public class TableIndexDescription implements IndexDescription {
 	@Override
 	public boolean isEtagColumnIncluded() {
 		return false;
+	}
+	
+	@Override
+	public List<String> getColumnNamesToAddToSelect(SqlType type) {
+		if(!SqlType.query.equals(type)) {
+			throw new IllegalArgumentException("Only 'query' is supported for tables");
+		}
+		return Arrays.asList(ROW_ID, ROW_VERSION);
 	}
 
 	@Override

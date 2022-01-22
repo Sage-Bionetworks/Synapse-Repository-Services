@@ -1,8 +1,11 @@
 package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
@@ -48,5 +51,32 @@ public class ViewIndexDescriptionTest {
 				Collections
 						.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.EVALUATION)),
 				vid.getBenefactors());
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithQuery() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		// call under test
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query);
+		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_ETAG), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithBuild() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			vid.getColumnNamesToAddToSelect(SqlType.build);
+		}).getLocalizedMessage();
+		assertEquals("Only 'query' is supported for views", message);
+	}
+	@Test
+	public void testGetColumnNamesToAddToSelectWithNull() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			vid.getColumnNamesToAddToSelect(null);
+		}).getLocalizedMessage();
+		assertEquals("Only 'query' is supported for views", message);
 	}
 }

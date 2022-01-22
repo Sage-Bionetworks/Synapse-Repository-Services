@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -236,11 +238,9 @@ public class SQLTranslatorUtils {
 	 * @param selectList
 	 * @return
 	 */
-	public static void addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
-		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
-		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
-		if(includeEtag){
-			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
+	public static void addMetadataColumnsToSelect(SelectList selectList, List<String> columnsToAdd){
+		for(String columnToAdd: columnsToAdd) {
+			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(columnToAdd));
 		}
 		selectList.recursiveSetParent();
 	}
@@ -1023,6 +1023,21 @@ public class SQLTranslatorUtils {
 		result.setName(derivedColumn.toSqlWithoutQuotes());
 		result.setId(null);
 		return result;
+	}
+	
+	/**
+	 * Determine the SqlType that should be used for this case.
+	 * @param IdAndVersion the IdAndVersion of the table/view 
+	 * @param fromClauseIds this list of IdAndVersions in the from clause.
+	 * @return
+	 */
+	public static SqlType getSqlType(IdAndVersion tableId, List<IdAndVersion> fromClauseIds) {
+		if (fromClauseIds.size() < 2
+				&& tableId.equals(fromClauseIds.get(0))) {
+			return SqlType.query;
+		} else {
+			return SqlType.build;
+		}
 	}
 	
 	/**

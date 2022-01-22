@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -976,12 +978,55 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
 				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+	}
+	
+	@Test
+	public void testTranslateWithJoinWithAlowJoinTrueWithView() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		schemaMap.put(IdAndVersion.parse("syn2"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+
+		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).indexDescription(indexDescription).build();
+		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_,"
+				+ " _A1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewQuery() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn123"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+
+		sql = "select * from syn123";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).indexDescription(indexDescription).build();
+		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
@@ -993,10 +1038,14 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has\"quote")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a join syn2 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by a.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
 				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
 				query.getOutputSQL());
@@ -1008,11 +1057,38 @@ public class SQLQueryTest {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		schemaMap.put(IdAndVersion.parse("syn1"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn1")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_ "
 				+ "FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+	}
+
+	@Test
+	public void testTranslateWithJoinWithMultipleOfSameView() throws ParseException {
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(IdAndVersion.parse("syn1"),
+				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
+
+		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).indexDescription(indexDescription).build();
+		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_,"
+				+ " _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR"
+				+ " FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
@@ -1040,10 +1116,15 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn1")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a left outer join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 LEFT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1056,10 +1137,15 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn1")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a right join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1072,10 +1158,15 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn1")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a right outer join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.allowJoins(true).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1084,7 +1175,8 @@ public class SQLQueryTest {
 	@Test
 	public void testTranslateWithIsInfinity() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
-		schemaMap.put(IdAndVersion.parse("syn1"),
+		idAndVersion = IdAndVersion.parse("syn1");
+		schemaMap.put(idAndVersion,
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
 
 		sql = "select * from syn1 a where isInfinity(doubletype)";
@@ -1100,7 +1192,8 @@ public class SQLQueryTest {
 	@Test
 	public void testTranslateWithIsNaN() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
-		schemaMap.put(IdAndVersion.parse("syn1"),
+		idAndVersion = IdAndVersion.parse("syn1");
+		schemaMap.put(idAndVersion,
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
 
 		sql = "select * from syn1 a where isNaN(doubletype)";
@@ -1116,7 +1209,8 @@ public class SQLQueryTest {
 	@Test
 	public void testGetSchemaOfSelect() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
-		schemaMap.put(IdAndVersion.parse("syn1"),
+		idAndVersion = IdAndVersion.parse("syn1");
+		schemaMap.put(idAndVersion,
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("doubletype")));
 
 		sql = "select * from syn1 a where isNaN(doubletype)";

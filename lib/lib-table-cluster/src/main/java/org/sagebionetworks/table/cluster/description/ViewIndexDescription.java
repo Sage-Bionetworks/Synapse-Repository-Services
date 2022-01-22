@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -66,6 +67,14 @@ public class ViewIndexDescription implements IndexDescription {
 		return true;
 	}
 
+	@Override
+	public List<String> getColumnNamesToAddToSelect(SqlType type) {
+		if(!SqlType.query.equals(type)) {
+			throw new IllegalArgumentException("Only 'query' is supported for views");
+		}
+		return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(description, idAndVersion, viewType);

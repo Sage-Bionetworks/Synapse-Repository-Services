@@ -52,6 +52,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
@@ -631,25 +632,15 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testAddRowIdAndVersionToSelect() throws ParseException{
-		boolean includeEtag = false;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		List<String> toAdd = Arrays.asList("ROW_ID", "ROW_VERSION");
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, toAdd);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", element.toSql());
 		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
 			assertNotNull(derivedColumn.getParent());
 		}
 	}
 	
-	@Test
-	public void testAddRowIdAndVersionToSelectWithEtag() throws ParseException{
-		boolean includeEtag = true;
-		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
-		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", element.toSql());
-		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
-			assertNotNull(derivedColumn.getParent());
-		}
-	}
 	
 	@Test
 	public void testReadWithHeadersWithEtagRow() throws SQLException{
@@ -2888,6 +2879,30 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithTableIdMatachsFromClause() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn111"));
+		// call under test
+		assertEquals(SqlType.query, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithNoMatch() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"));
+		// call under test
+		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithMultipleTablesInFrom() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"), IdAndVersion.parse("syn333"));
+		// call under test
+		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
 	}
 	
 }
