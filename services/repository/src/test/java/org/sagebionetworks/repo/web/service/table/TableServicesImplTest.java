@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 
@@ -106,7 +107,7 @@ public class TableServicesImplTest {
 		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
 			return columns;
 		};
-		sqlQuery = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).build();
+		sqlQuery = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(IdAndVersion.parse(tableId))).build();
 		
 		List<ColumnModel> columns = new LinkedList<ColumnModel>();
 		

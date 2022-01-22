@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -668,6 +670,8 @@ public class MaterializedViewManagerImplTest {
 		
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema); 
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
 		
@@ -693,6 +697,8 @@ public class MaterializedViewManagerImplTest {
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(), any(), any());
 		
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any())).thenReturn(Optional.of("select * from syn456"));
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
@@ -701,6 +707,7 @@ public class MaterializedViewManagerImplTest {
 		// call under test
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 		
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
 		verify(mockColumnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersion);
@@ -720,6 +727,8 @@ public class MaterializedViewManagerImplTest {
 
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
 				.thenReturn(Optional.of("select * from syn456 join syn789"));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));
@@ -731,6 +740,7 @@ public class MaterializedViewManagerImplTest {
 		managerSpy.createOrRebuildViewHoldingExclusiveLock(mockProgressCallback, idAndVersion);
 
 		verify(mockMaterializedViewDao).getMaterializedViewDefiningSql(idAndVersion);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(SqlQuery.class));
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[0]);
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(dependentIdAndVersions[1]);
@@ -746,6 +756,8 @@ public class MaterializedViewManagerImplTest {
 		when(mockMaterializedViewDao.getMaterializedViewDefiningSql(any()))
 				.thenReturn(Optional.of("select * from syn456 join syn789"));
 		when(mockColumnModelManager.getTableSchema(any())).thenReturn(syn123Schema);
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE),
 				new TableStatus().setState(TableState.PROCESSING));
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(SqlQuery.class));

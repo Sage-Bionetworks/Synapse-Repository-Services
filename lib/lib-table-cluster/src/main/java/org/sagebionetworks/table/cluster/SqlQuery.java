@@ -77,12 +77,6 @@ public class SqlQuery {
 	private final boolean includesRowIdAndVersion;
 
 	/**
-	 * Should the query results include the row's etag?
-	 * Note: This is true for view queries.
-	 */
-//	private final boolean includeEntityEtag;
-
-	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
 	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
 	 * will be null when isAggregatedResults = true.
@@ -128,6 +122,7 @@ public class SqlQuery {
 			IndexDescription indexDescription
 			) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
+		ValidateArgument.required(indexDescription, "indexDescription");
 		this.model = parsedModel;
 		this.schemaProvider = schemaProvider;
 		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);

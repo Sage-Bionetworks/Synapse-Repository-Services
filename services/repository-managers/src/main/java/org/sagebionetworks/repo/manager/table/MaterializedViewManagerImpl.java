@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -117,6 +118,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 */
 	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
 		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
+				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
