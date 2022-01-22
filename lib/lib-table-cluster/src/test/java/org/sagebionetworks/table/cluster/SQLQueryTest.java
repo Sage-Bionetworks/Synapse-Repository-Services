@@ -1023,10 +1023,10 @@ public class SQLQueryTest {
 				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
-		sql = "select * from syn123";
+		sql = "select * from syn123 WHERE bar = 'some text'";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.allowJoins(true).indexDescription(indexDescription).build();
-		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123",
+		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C333_ = :b0",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
