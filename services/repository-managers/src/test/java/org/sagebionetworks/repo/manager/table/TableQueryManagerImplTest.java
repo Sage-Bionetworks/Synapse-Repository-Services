@@ -1665,7 +1665,22 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
+	}
+	
+	@Test
+	public void testBuildBenefactorFilterWithOtherBenefactorColumnName() throws ParseException, EmptyResultException{
+		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		String benefactorColumnName = "BENEFACTOR_TWO";
+		
+		// call under test
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
 		assertNotNull(filtered);
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
@@ -1680,7 +1695,7 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
@@ -1706,7 +1721,7 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
@@ -1719,7 +1734,7 @@ public class TableQueryManagerImplTest {
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(123L);
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123 )", filtered.toSql());
@@ -1730,7 +1745,7 @@ public class TableQueryManagerImplTest {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		// call under test
-		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
 
 		// should make filter always evaluate to false

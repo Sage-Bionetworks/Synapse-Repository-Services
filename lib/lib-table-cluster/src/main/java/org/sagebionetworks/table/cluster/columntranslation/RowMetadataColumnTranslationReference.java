@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 
 /**
@@ -11,7 +12,8 @@ import org.sagebionetworks.repo.model.table.TableConstants;
  * userQueryColumnName and translatedColumnName are the same
  */
 public enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
-	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null), ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
+	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null),
+	ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
 	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING, 36L),
 	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.INTEGER, null);
 
@@ -54,12 +56,25 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 	 * @return
 	 */
 	public static Optional<ColumnTranslationReference> lookupColumnReference(String rhs) {
+		if(rhs.toUpperCase().startsWith(TableConstants.ROW_BENEFACTOR)) {
+			return Optional.of(new RowMetadataReferenceWrapper(rhs, ROW_BENEFACTOR));
+		}
 		return Arrays.stream(RowMetadataColumnTranslationReference.values())
 				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> (ColumnTranslationReference) r);
 	}
 
 	@Override
 	public Long getMaximumListLength() {
+		return null;
+	}
+
+	@Override
+	public FacetType getFacetType() {
+		return null;
+	}
+
+	@Override
+	public String getDefaultValues() {
 		return null;
 	}
 }

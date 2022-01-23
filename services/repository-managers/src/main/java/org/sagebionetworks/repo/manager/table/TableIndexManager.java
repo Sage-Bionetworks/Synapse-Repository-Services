@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -308,5 +309,13 @@ public interface TableIndexManager {
 	 * @param idAndVersion
 	 */
 	void resetViewSynchronizeLock(ReplicationType type, IdAndVersion idAndVersion);
+
+	/**
+	 * Populate the index of a materialized view.
+	 * @param viewSchema
+	 * @param definingSql
+	 * @return
+	 */
+	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
 
 }

@@ -1546,5 +1546,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String sql = "SELECT " + TableConstants.ROW_ID + ", " + TableConstants.ROW_SEARCH_CONTENT + " FROM " + SQLUtils.getTableNameForId(id, TableType.INDEX) + " WHERE " + TableConstants.ROW_ID + " IN(:" + TableConstants.ROW_ID + ") ORDER BY " + TableConstants.ROW_ID;
 		return namedTemplate.query(sql, Collections.singletonMap(TableConstants.ROW_ID, rowIds), (RowMapper<RowSearchContent>) (rs, rowNum) -> new RowSearchContent(rs.getLong(1), rs.getString(2)));
 	}
+
+	@Override
+	public void update(String sql, Map<String, Object> parameters) {
+		namedTemplate.update(sql, parameters);
+	}
 	
 }

@@ -668,19 +668,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new UnsupportedOperationException("Need to add support for more than one benefactor column");
 		}
 		BenefactorDescription firstBenefactorDescription = indexDescription.getBenefactors().get(0);
+		String benefactorColumnName = firstBenefactorDescription.getBenefactorColumnName();
 		// Get a connection to the table.
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = null;
 		try {
-			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, firstBenefactorDescription.getBenefactorColumnName());
+			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, benefactorColumnName);
 		} catch (BadSqlGrammarException e) { // table has not been created yet
 			tableBenefactors = Collections.emptySet();
 		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, firstBenefactorDescription.getBenefactorType(), tableBenefactors);
-		return buildBenefactorFilter(query, accessibleBenefactors);
+		return buildBenefactorFilter(query, accessibleBenefactors, benefactorColumnName);
 	}
 
 	/**
@@ -693,7 +694,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 */
 	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery,
-			Set<Long> accessibleBenefactors) {
+			Set<Long> accessibleBenefactors, String benefactorColumnName) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if (accessibleBenefactors.isEmpty()) {
@@ -712,7 +713,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				filterBuilder.append(where.getSearchCondition().toSql());
 				filterBuilder.append(") AND ");
 			}
-			filterBuilder.append(TableConstants.ROW_BENEFACTOR);
+			filterBuilder.append(benefactorColumnName);
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
 			for (Long id : accessibleBenefactors) {

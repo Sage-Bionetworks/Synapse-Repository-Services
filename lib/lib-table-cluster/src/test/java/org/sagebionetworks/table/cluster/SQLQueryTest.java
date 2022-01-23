@@ -1207,6 +1207,53 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testTranslateWithMaterializedViewWithDoubleDefiningSql() throws ParseException {
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
+		schemaMap.put(materializedViewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(viewId, EntityType.dataset));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		
+		// this query is used to build the materialized view.
+		sql = "select doubletype from syn1";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).indexDescription(indexDescription).build();
+		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_BENEFACTOR FROM T1",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithDoubleQuerySql() throws ParseException {
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
+		schemaMap.put(materializedViewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(viewId, EntityType.dataset));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		
+		// this is a query against a materialized view.
+		sql = "select * from syn123";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.allowJoins(true).indexDescription(indexDescription).build();
+		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_ID, ROW_VERSION FROM T123",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithDoubleQuery() {
+		
+	}
+	
+	@Test
 	public void testGetSchemaOfSelect() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		idAndVersion = IdAndVersion.parse("syn1");

@@ -388,4 +388,5 @@ public class SqlQuery {
 	public IndexDescription getIndexDescription() {
 		return this.indexDescrption;
 	}
+	
 }

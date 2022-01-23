@@ -33,6 +33,12 @@ public class RowMetadataColumnTranslationReferenceTest {
 	}
 	
 	@Test
+	public void testLookupColumnReferenceWithStartsWithRowBenefactor() {
+		assertEquals(Optional.of(new RowMetadataReferenceWrapper("ROW_BENEFACTOR_A0", RowMetadataColumnTranslationReference.ROW_BENEFACTOR)),
+				RowMetadataColumnTranslationReference.lookupColumnReference("ROW_BENEFACTOR_A0"));
+	}
+	
+	@Test
 	public void testLookupColumnReferenceWithNoMatch() {
 		assertEquals(Optional.empty(),
 				RowMetadataColumnTranslationReference.lookupColumnReference("foo"));

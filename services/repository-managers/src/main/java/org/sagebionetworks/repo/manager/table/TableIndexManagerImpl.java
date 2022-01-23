@@ -40,7 +40,9 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SQLUtils;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
@@ -1021,6 +1023,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 */
 	private static boolean isColumnEligibleForSearchIndex(ColumnModel column) {
 		return TableConstants.SEARCH_TYPES.contains(column.getColumnType());
+	}
+	
+	@Override
+	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql) {
+		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), definingSql.getIndexDescription());
+			tableIndexDao.update(insertSql, definingSql.getParameters());
+			return 1L;
+		});
 	}
 	
 }
