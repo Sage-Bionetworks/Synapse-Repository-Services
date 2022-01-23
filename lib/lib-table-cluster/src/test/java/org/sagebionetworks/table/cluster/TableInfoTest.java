@@ -231,7 +231,7 @@ public class TableInfoTest {
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
-		assertEquals(RowMetadataColumnTranslationReference.ROW_ID, transRef.orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference(), transRef.orElse(null));
 	}
 
 	@Test
@@ -242,7 +242,7 @@ public class TableInfoTest {
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
-		assertEquals(RowMetadataColumnTranslationReference.ROW_VERSION, transRef.orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_VERSION.getColumnTranslationReference(), transRef.orElse(null));
 	}
 
 	@Test
@@ -253,7 +253,7 @@ public class TableInfoTest {
 		// call under test
 		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
 		assertNotNull(transRef);
-		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR, transRef.orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), transRef.orElse(null));
 	}
 
 	@Test

@@ -9,17 +9,9 @@ import org.junit.Test;
 public class RowMetadataColumnTranslationReferenceTest {
 
 	@Test
-	public void testEnums() {
-		for (RowMetadataColumnTranslationReference reference : RowMetadataColumnTranslationReference.values()) {
-			// user query name are not translated for these columns
-			assertEquals(reference.getUserQueryColumnName(), reference.getTranslatedColumnName());
-		}
-	}
-
-	@Test
 	public void testLookupColumnReferenceWithEachType() {
 		for (RowMetadataColumnTranslationReference reference : RowMetadataColumnTranslationReference.values()) {
-			assertEquals(Optional.of(reference),
+			assertEquals(Optional.of(reference.getColumnTranslationReference()),
 					RowMetadataColumnTranslationReference.lookupColumnReference(reference.name()));
 		}
 	}
@@ -27,7 +19,7 @@ public class RowMetadataColumnTranslationReferenceTest {
 	@Test
 	public void testLookupColumnReferenceWithEachTypeWithLowerCase() {
 		for (RowMetadataColumnTranslationReference reference : RowMetadataColumnTranslationReference.values()) {
-			assertEquals(Optional.of(reference),
+			assertEquals(Optional.of(reference.getColumnTranslationReference()),
 					RowMetadataColumnTranslationReference.lookupColumnReference(reference.name().toLowerCase()));
 		}
 	}
@@ -36,6 +28,12 @@ public class RowMetadataColumnTranslationReferenceTest {
 	public void testLookupColumnReferenceWithStartsWithRowBenefactor() {
 		assertEquals(Optional.of(new RowMetadataReferenceWrapper("ROW_BENEFACTOR_A0", RowMetadataColumnTranslationReference.ROW_BENEFACTOR)),
 				RowMetadataColumnTranslationReference.lookupColumnReference("ROW_BENEFACTOR_A0"));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithStartsWithRowBenefactorLower() {
+		assertEquals(Optional.of(new RowMetadataReferenceWrapper("ROW_BENEFACTOR_A0", RowMetadataColumnTranslationReference.ROW_BENEFACTOR)),
+				RowMetadataColumnTranslationReference.lookupColumnReference("row_benefactor_a0"));
 	}
 	
 	@Test

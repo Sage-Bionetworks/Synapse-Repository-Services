@@ -4,14 +4,13 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 
 /**
  * ColumnTranslationReference for row metadata columns. For these, the
  * userQueryColumnName and translatedColumnName are the same
  */
-public enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
+public enum RowMetadataColumnTranslationReference {
 	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null),
 	ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
 	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING, 36L),
@@ -27,23 +26,23 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 		this.columnType = columnType;
 		this.maximumSize = maximumSize;
 	}
+	
+	public ColumnTranslationReference getColumnTranslationReference() {
+		return new RowMetadataReferenceWrapper(this.columnName, this);
+	}
 
-	@Override
 	public ColumnType getColumnType() {
 		return columnType;
 	}
 
-	@Override
-	public String getUserQueryColumnName() {
-		return columnName;
-	}
+//	public String getUserQueryColumnName() {
+//		return columnName;
+//	}
+//
+//	public String getTranslatedColumnName() {
+//		return columnName;
+//	}
 
-	@Override
-	public String getTranslatedColumnName() {
-		return columnName;
-	}
-
-	@Override
 	public Long getMaximumSize() {
 		return maximumSize;
 	}
@@ -57,24 +56,10 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 	 */
 	public static Optional<ColumnTranslationReference> lookupColumnReference(String rhs) {
 		if(rhs.toUpperCase().startsWith(TableConstants.ROW_BENEFACTOR)) {
-			return Optional.of(new RowMetadataReferenceWrapper(rhs, ROW_BENEFACTOR));
+			return Optional.of(new RowMetadataReferenceWrapper(rhs.toUpperCase(), ROW_BENEFACTOR));
 		}
 		return Arrays.stream(RowMetadataColumnTranslationReference.values())
-				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> (ColumnTranslationReference) r);
+				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> r.getColumnTranslationReference());
 	}
 
-	@Override
-	public Long getMaximumListLength() {
-		return null;
-	}
-
-	@Override
-	public FacetType getFacetType() {
-		return null;
-	}
-
-	@Override
-	public String getDefaultValues() {
-		return null;
-	}
 }
