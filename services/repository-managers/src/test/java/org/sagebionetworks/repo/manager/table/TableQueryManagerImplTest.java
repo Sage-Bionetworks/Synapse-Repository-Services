@@ -1683,7 +1683,7 @@ public class TableQueryManagerImplTest {
 		QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND BENEFACTOR_TWO IN ( 456, 123 )", filtered.toSql());
 	}
 	
 	@Test
