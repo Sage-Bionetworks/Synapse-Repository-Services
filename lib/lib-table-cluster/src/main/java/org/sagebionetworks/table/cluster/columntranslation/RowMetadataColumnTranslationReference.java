@@ -35,14 +35,6 @@ public enum RowMetadataColumnTranslationReference {
 		return columnType;
 	}
 
-//	public String getUserQueryColumnName() {
-//		return columnName;
-//	}
-//
-//	public String getTranslatedColumnName() {
-//		return columnName;
-//	}
-
 	public Long getMaximumSize() {
 		return maximumSize;
 	}
