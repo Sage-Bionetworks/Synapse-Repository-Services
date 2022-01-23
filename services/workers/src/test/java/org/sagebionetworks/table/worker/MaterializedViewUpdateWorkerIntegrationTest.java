@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
@@ -13,7 +12,6 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -65,7 +63,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MaterializedViewUpdateWorkerIntegrationTest {
 	
-	public static final Long MAX_WAIT_MS = 30_000_000L;
+	public static final Long MAX_WAIT_MS = 30_000L;
 
 	@Autowired
 	private TableManagerSupport tableManagerSupport;
