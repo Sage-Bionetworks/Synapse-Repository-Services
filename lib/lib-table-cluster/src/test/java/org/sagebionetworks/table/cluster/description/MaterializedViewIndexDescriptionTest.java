@@ -93,7 +93,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.query);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.query, true);
 		assertEquals(Arrays.asList(ROW_ID, ROW_VERSION), result);
 	}
 	
@@ -105,7 +105,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.build);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.build, true);
 		assertEquals(Arrays.asList("_A0.ROW_BENEFACTOR", "_A1.ROW_BENEFACTOR"), result);
 	}
 	
@@ -117,7 +117,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		assertThrows(IllegalArgumentException.class, ()->{
-			mid.getColumnNamesToAddToSelect(null);
+			mid.getColumnNamesToAddToSelect(null, true);
 		});
 	}
 }

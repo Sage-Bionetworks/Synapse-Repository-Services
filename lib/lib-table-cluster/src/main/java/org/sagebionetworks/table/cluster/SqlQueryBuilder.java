@@ -18,6 +18,7 @@ public class SqlQueryBuilder {
 	private Long overrideLimit;
 	private Long maxBytesPerPage;
 	private List<SortItem> sortList;
+	private Boolean includeEntityEtag;
 	private List<FacetColumnRequest> selectedFacets;
 	private List<QueryFilter> additionalFilters;
 	private Long userId;
@@ -86,6 +87,11 @@ public class SqlQueryBuilder {
 		return this;
 	}
 	
+	public SqlQueryBuilder includeEntityEtag(Boolean includeEntityEtag) {
+		this.includeEntityEtag = includeEntityEtag;
+		return this;
+	}
+	
 	public SqlQueryBuilder selectedFacets(List<FacetColumnRequest> selectedFacets) {
 		this.selectedFacets = selectedFacets;
 		return this;
@@ -119,7 +125,7 @@ public class SqlQueryBuilder {
 	}
 
 	public SqlQuery build(){
-		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
+		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList, includeEntityEtag,
 				selectedFacets, additionalFilters, userId, allowJoins, indexDescription);
 	}
 

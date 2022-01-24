@@ -46,7 +46,7 @@ public interface IndexDescription {
 	 * The list of column names to add to the select statement.
 	 * @return
 	 */
-	List<String> getColumnNamesToAddToSelect(SqlType type);
+	List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag);
 	
 
 }

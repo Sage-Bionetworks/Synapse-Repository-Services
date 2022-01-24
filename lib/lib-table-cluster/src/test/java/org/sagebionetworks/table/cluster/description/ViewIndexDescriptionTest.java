@@ -54,11 +54,21 @@ public class ViewIndexDescriptionTest {
 	}
 	
 	@Test
-	public void testGetColumnNamesToAddToSelectWithQuery() {
+	public void testGetColumnNamesToAddToSelectWithQueryWithEtag() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = true;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query);
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_ETAG), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtag() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = false;
+		// call under test
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
+		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
 	}
 	
 	@Test
@@ -66,7 +76,7 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			vid.getColumnNamesToAddToSelect(SqlType.build);
+			vid.getColumnNamesToAddToSelect(SqlType.build, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
 	}
@@ -75,7 +85,7 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			vid.getColumnNamesToAddToSelect(null);
+			vid.getColumnNamesToAddToSelect(null, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
 	}

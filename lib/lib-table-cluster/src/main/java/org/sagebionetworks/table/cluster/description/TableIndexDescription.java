@@ -56,7 +56,7 @@ public class TableIndexDescription implements IndexDescription {
 	}
 	
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type) {
+	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtags) {
 		if(!SqlType.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for tables");
 		}

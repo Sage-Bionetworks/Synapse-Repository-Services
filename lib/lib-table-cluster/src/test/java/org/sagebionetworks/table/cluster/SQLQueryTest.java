@@ -822,11 +822,19 @@ public class SQLQueryTest {
 		// should default to false
 		assertFalse(query.includeEntityEtag());
 	}
+	
+	@Test
+	public void testSelectViewWithoutEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
+				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).includeEntityEtag(null).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
+	}
 
 	@Test
 	public void testViewDefaultEtag() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
-				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
 		// should default to false
 		assertFalse(query.includeEntityEtag());
 	}
@@ -834,9 +842,19 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectViewWithEtag() throws ParseException {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
+				.includeEntityEtag(true)
 				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
 		assertTrue(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithEtagFalse() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(schema))
+				.includeEntityEtag(false)
+				.indexDescription(new ViewIndexDescription(idAndVersion, EntityType.entityview)).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
 	}
 
 	@Test

@@ -68,11 +68,16 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type) {
+	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
 		if(!SqlType.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for views");
 		}
-		return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
+		if(includeEtag) {
+			return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
+		}else {
+			return Arrays.asList(ROW_ID, ROW_VERSION);
+		}
+	
 	}
 	
 	@Override

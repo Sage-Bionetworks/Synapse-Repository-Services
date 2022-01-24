@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -76,6 +77,13 @@ public class SqlQuery {
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
 	private final boolean includesRowIdAndVersion;
+	
+
+	/**
+	 * Should the query results include the row's etag?
+	 * Note: This is true for view queries.
+	 */
+	private final boolean includeEntityEtag;
 
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
@@ -116,6 +124,7 @@ public class SqlQuery {
 			Long overrideLimit,
 			Long maxBytesPerPage,
 			List<SortItem> sortList,
+			Boolean includeEntityEtag,
 			List<FacetColumnRequest> selectedFacets,
 			List<QueryFilter> additionalFilters,
 			Long userId,
@@ -138,6 +147,13 @@ public class SqlQuery {
 		this.indexDescrption = indexDescription;
 		
 		SqlType sqlType = SQLTranslatorUtils.getSqlType(indexDescription.getIdAndVersion(), tableAndColumnMapper.getTableIds());
+		
+		// only a view can include the etag
+		if(EntityTypeUtils.isViewType(indexDescription.getTableType()) && includeEntityEtag != null){
+			this.includeEntityEtag = includeEntityEtag;
+		}else{
+			this.includeEntityEtag = false;
+		}
 
 		if (sortList != null && !sortList.isEmpty()) {
 			// change the query to use the sort list
@@ -196,8 +212,9 @@ public class SqlQuery {
 		}
 		if (this.isAggregatedResult ) {
 			this.includesRowIdAndVersion = false;
-		}else{
-			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), indexDescrption.getColumnNamesToAddToSelect(sqlType));
+		} else {
+			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
+					indexDescrption.getColumnNamesToAddToSelect(sqlType, this.includeEntityEtag));
 			this.includesRowIdAndVersion = true;
 		}
 
@@ -219,7 +236,7 @@ public class SqlQuery {
 	 * @return
 	 */
 	public boolean includeEntityEtag(){
-		return indexDescrption.isEtagColumnIncluded();
+		return this.includeEntityEtag;
 	}
 
 	/**

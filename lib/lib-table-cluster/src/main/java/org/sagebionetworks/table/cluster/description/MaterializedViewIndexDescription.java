@@ -84,7 +84,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type) {
+	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
 		ValidateArgument.required(type, "SqlType");
 		switch (type) {
 		case build:

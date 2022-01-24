@@ -35,7 +35,7 @@ public class TableIndexDescriptionTest {
 	public void testGetColumnNamesToAddToSelectWithQuery() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
 		// call under test
-		List<String> result = tid.getColumnNamesToAddToSelect(SqlType.query);
+		List<String> result = tid.getColumnNamesToAddToSelect(SqlType.query, true);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
 	}
 	
@@ -44,7 +44,7 @@ public class TableIndexDescriptionTest {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tid.getColumnNamesToAddToSelect(SqlType.build);
+			tid.getColumnNamesToAddToSelect(SqlType.build, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
@@ -53,7 +53,7 @@ public class TableIndexDescriptionTest {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tid.getColumnNamesToAddToSelect(null);
+			tid.getColumnNamesToAddToSelect(null, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
