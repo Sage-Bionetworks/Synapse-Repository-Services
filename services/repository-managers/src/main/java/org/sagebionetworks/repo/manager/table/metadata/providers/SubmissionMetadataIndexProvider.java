@@ -10,7 +10,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -94,11 +93,6 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	public ColumnType getBenefactorIdColumnType() {
 		// The evaluation the submission is part of drives the ACL
 		return ColumnType.EVALUATIONID;
-	}
-
-	@Override
-	public ObjectType getBenefactorObjectType() {
-		return ObjectType.EVALUATION;
 	}
 
 	@Override

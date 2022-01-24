@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
@@ -13,7 +12,6 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -25,7 +23,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -48,6 +45,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -65,7 +63,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MaterializedViewUpdateWorkerIntegrationTest {
 	
-	public static final Long MAX_WAIT_MS = 30_000_000L;
+	public static final Long MAX_WAIT_MS = 30_000L;
 
 	@Autowired
 	private TableManagerSupport tableManagerSupport;
@@ -119,12 +117,23 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		entityManager.truncateAll();
 	}
 
-	@Disabled // This test is not ready yet.
 	@Test
 	public void testMaterializedViewOfFileView() throws Exception {
-		EntityView view = createEntityView();
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		EntityView view = createEntityView(entites);
+		
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		Long projectId = KeyFactory.stringToKey(project.getId());
+		// the user can only see files with the project as their benefactor.
+		List<String> fileIdsUserCanSee = entites.stream()
+				.filter((e) -> e instanceof FileEntity
+						&& projectId.equals(entityManager.getEntityHeader(adminUserInfo, e.getId()).getBenefactorId()))
+				.map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(3, fileIdsUserCanSee.size());
 
-		String definingSql = "select * from " + view.getId();
+		// Currently do not support doubles so the double key is excluded.
+		String definingSql = "select id, stringKey, longKey, dateKey, booleanKey from " + view.getId();
 
 		MaterializedView materializedView = entityManager.getEntity(
 				adminUserInfo, entityManager.createEntity(adminUserInfo, new MaterializedView()
@@ -132,14 +141,17 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				MaterializedView.class);
 		materializedViewManager.registerSourceTables(IdAndVersion.parse(materializedView.getId()), definingSql);
 		
-		String finalSql = "select * from "+materializedView.getId();
+		String finalSql = "select * from "+materializedView.getId()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "1004", "false")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "1006", "false")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "1008", "false"))
+		);
 		
 		// Wait for the query against the materialized view to have the expected results.
 		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
-			
-			System.out.println(results.toString());
-			assertFalse(true);
-			
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
 	}
@@ -198,10 +210,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	 * @throws InterruptedException 
 	 * @throws DatastoreException 
 	 */
-	public EntityView createEntityView() throws DatastoreException, InterruptedException {
+	public EntityView createEntityView(List<Entity> entites) throws DatastoreException, InterruptedException {
 
-		int numberOfFiles = 5;
-		List<Entity> entites = createProjectHierachy(numberOfFiles);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		List<ColumnModel> schema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview,
 				viewTypeMask);

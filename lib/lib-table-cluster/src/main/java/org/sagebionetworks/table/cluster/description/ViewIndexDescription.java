@@ -5,22 +5,29 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 
 public class ViewIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
+	private final EntityType viewType;
+	private final BenefactorDescription description;
 	
-	public ViewIndexDescription(IdAndVersion idAndVersion) {
+	public ViewIndexDescription(IdAndVersion idAndVersion, EntityType viewtype) {
 		super();
 		this.idAndVersion = idAndVersion;
+		this.viewType = viewtype;
+		ObjectType benefactorType = EntityType.submissionview.equals(viewtype)? ObjectType.EVALUATION: ObjectType.ENTITY;
+		this.description = new BenefactorDescription(ROW_BENEFACTOR, benefactorType);
 	}
 
 	@Override
@@ -46,13 +53,36 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getBenefactorColumnNames() {
-		return Collections.singletonList(TableConstants.ROW_BENEFACTOR);
+	public List<BenefactorDescription> getBenefactors() {
+		return Collections.singletonList(description);
+	}
+	
+	@Override
+	public EntityType getTableType() {
+		return viewType;
 	}
 
 	@Override
+	public boolean isEtagColumnIncluded() {
+		return true;
+	}
+
+	@Override
+	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
+		if(!SqlType.query.equals(type)) {
+			throw new IllegalArgumentException("Only 'query' is supported for views");
+		}
+		if(includeEtag) {
+			return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
+		}else {
+			return Arrays.asList(ROW_ID, ROW_VERSION);
+		}
+	
+	}
+	
+	@Override
 	public int hashCode() {
-		return Objects.hash(idAndVersion);
+		return Objects.hash(description, idAndVersion, viewType);
 	}
 
 	@Override
@@ -64,8 +94,13 @@ public class ViewIndexDescription implements IndexDescription {
 			return false;
 		}
 		ViewIndexDescription other = (ViewIndexDescription) obj;
-		return Objects.equals(idAndVersion, other.idAndVersion);
+		return Objects.equals(description, other.description) && Objects.equals(idAndVersion, other.idAndVersion)
+				&& viewType == other.viewType;
 	}
 
-	
+	@Override
+	public String toString() {
+		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
+				+ description + "]";
+	}
 }

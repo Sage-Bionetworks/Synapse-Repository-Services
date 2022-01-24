@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -20,13 +21,18 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.cluster.description.BenefactorDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -236,11 +242,9 @@ public class SQLTranslatorUtils {
 	 * @param selectList
 	 * @return
 	 */
-	public static void addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
-		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ID));
-		selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_VERSION));
-		if(includeEtag){
-			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(ROW_ETAG));
+	public static void addMetadataColumnsToSelect(SelectList selectList, List<String> columnsToAdd){
+		for(String columnToAdd: columnsToAdd) {
+			selectList.addDerivedColumn(SqlElementUtils.createNonQuotedDerivedColumn(columnToAdd));
 		}
 		selectList.recursiveSetParent();
 	}
@@ -1007,12 +1011,16 @@ public class SQLTranslatorUtils {
 		Long maximumSize = null;
 		Long maxListLength = null;
 		ColumnType columnType = null;
+		String defaultValue = null;
+		FacetType facetType = null;
 		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
 			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
 			if(ctr != null) {
 				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
 				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 				columnType = ctr.getColumnType();
+				defaultValue = ctr.getDefaultValues();
+				facetType = ctr.getFacetType();
 			}
 		}
 
@@ -1021,8 +1029,25 @@ public class SQLTranslatorUtils {
 		result.setMaximumSize(maximumSize);
 		result.setMaximumListLength(maxListLength);
 		result.setName(derivedColumn.toSqlWithoutQuotes());
+		result.setFacetType(facetType);
+		result.setDefaultValue(defaultValue);
 		result.setId(null);
 		return result;
+	}
+	
+	/**
+	 * Determine the SqlType that should be used for this case.
+	 * @param IdAndVersion the IdAndVersion of the table/view 
+	 * @param fromClauseIds this list of IdAndVersions in the from clause.
+	 * @return
+	 */
+	public static SqlType getSqlType(IdAndVersion tableId, List<IdAndVersion> fromClauseIds) {
+		if (fromClauseIds.size() < 2
+				&& tableId.equals(fromClauseIds.get(0))) {
+			return SqlType.query;
+		} else {
+			return SqlType.build;
+		}
 	}
 	
 	/**
@@ -1040,5 +1065,25 @@ public class SQLTranslatorUtils {
 			return currentValue;
 		}
 		return currentValue + newValue;
+	}
+
+	/**
+	 * Create the SQL used to build a materialized view from a defining SQL query.
+	 * @param outputSQL The translated SQL
+	 * @param indexDescription
+	 * @return
+	 */
+	public static String createMaterializedViewInsertSql(List<ColumnModel> schemaOfSelect, String outputSQL, IndexDescription indexDescription) {
+		String tableName = SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableType.INDEX);
+		StringJoiner joiner = new StringJoiner(",");
+		// start with the columns from the select
+		for(ColumnModel cm: schemaOfSelect) {
+			joiner.add(SQLUtils.getColumnNameForId(cm.getId()));
+		}
+		// add benefactor columns as needed
+		for(BenefactorDescription benDesc: indexDescription.getBenefactors()) {
+			joiner.add(benDesc.getBenefactorColumnName());
+		}
+		return String.format("INSERT INTO %s (%s) %s", tableName, joiner.toString(), outputSQL);
 	}
 }

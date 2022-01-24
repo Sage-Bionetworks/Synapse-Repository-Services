@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 
 /**
  * Low-level support for all of the table managers. Contains low-level business
@@ -270,7 +271,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion tableId)
+	void validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
@@ -303,7 +304,7 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @param benefactorIds
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds);
+	Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds);
 
 	/**
 	 * Get the default ColumnModels for a view based on the object type and the
@@ -399,5 +400,12 @@ public interface TableManagerSupport extends SchemaProvider {
 	 * @return
 	 */
 	long getTableSchemaCount(IdAndVersion idAndVersion);
+	
+	/**
+	 * Get the index description for the given table/view.
+	 * @param idAndVersion
+	 * @return
+	 */
+	IndexDescription getIndexDescription(IdAndVersion idAndVersion);
 
 }

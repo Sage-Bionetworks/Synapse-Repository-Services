@@ -677,4 +677,11 @@ public interface TableIndexDAO {
 	 */
 	List<RowSearchContent> fetchSearchContent(IdAndVersion idAndVersion, Set<Long> rowIds);
 
+	/**
+	 * Execute an update statement with the given parameters;
+	 * @param string
+	 * @param parameters
+	 */
+	void update(String string, Map<String, Object> parameters);
+
 }

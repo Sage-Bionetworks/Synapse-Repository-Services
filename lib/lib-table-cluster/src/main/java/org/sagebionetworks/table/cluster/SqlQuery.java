@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -75,6 +77,7 @@ public class SqlQuery {
 	 * Does this query include ROW_ID and ROW_VERSION?
 	 */
 	private final boolean includesRowIdAndVersion;
+	
 
 	/**
 	 * Should the query results include the row's etag?
@@ -100,13 +103,13 @@ public class SqlQuery {
 	private final Long userId;
 
 	private final List<FacetColumnRequest> selectedFacets;
-
-	private final EntityType tableType;
 	
 	private final boolean isIncludeSearch;
 	
 	private final TableAndColumnMapper tableAndColumnMapper;
 	private final List<ColumnModel> schemaOfSelect;
+	
+	private final IndexDescription indexDescrption;
 
 	/**
 	 * @param tableId
@@ -122,13 +125,14 @@ public class SqlQuery {
 			Long maxBytesPerPage,
 			List<SortItem> sortList,
 			Boolean includeEntityEtag,
-			EntityType tableType,
 			List<FacetColumnRequest> selectedFacets,
 			List<QueryFilter> additionalFilters,
 			Long userId,
-			boolean allowJoins
+			boolean allowJoins,
+			IndexDescription indexDescription
 			) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
+		ValidateArgument.required(indexDescription, "indexDescription");
 		this.model = parsedModel;
 		this.schemaProvider = schemaProvider;
 		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
@@ -140,16 +144,12 @@ public class SqlQuery {
 		this.overrideLimit = overrideLimit;
 		this.overrideOffset = overrideOffset;
 		this.userId = userId;
-
-		if(tableType == null){
-			// default to table
-			this.tableType = EntityType.table;
-		}else{
-			this.tableType = tableType;
-		}
-
+		this.indexDescrption = indexDescription;
+		
+		SqlType sqlType = SQLTranslatorUtils.getSqlType(indexDescription.getIdAndVersion(), tableAndColumnMapper.getTableIds());
+		
 		// only a view can include the etag
-		if(EntityTypeUtils.isViewType(this.tableType) && includeEntityEtag != null){
+		if(EntityTypeUtils.isViewType(indexDescription.getTableType()) && includeEntityEtag != null){
 			this.includeEntityEtag = includeEntityEtag;
 		}else{
 			this.includeEntityEtag = false;
@@ -210,10 +210,11 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (this.isAggregatedResult || tableAndColumnMapper.getNumberOfTables() > 1) {
+		if (this.isAggregatedResult ) {
 			this.includesRowIdAndVersion = false;
-		}else{
-			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
+		} else {
+			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
+					indexDescrption.getColumnNamesToAddToSelect(sqlType, this.includeEntityEtag));
 			this.includesRowIdAndVersion = true;
 		}
 
@@ -370,15 +371,11 @@ public class SqlQuery {
 	 * @return
 	 */
 	public EntityType getTableType(){
-		return this.tableType;
+		return this.indexDescrption.getTableType();
 	}
 
 	public boolean isIncludesRowIdAndVersion() {
 		return includesRowIdAndVersion;
-	}
-
-	public boolean isIncludeEntityEtag() {
-		return includeEntityEtag;
 	}
 
 	public Long getOverrideOffset() {
@@ -404,4 +401,9 @@ public class SqlQuery {
 	public SchemaProvider getSchemaProvider() {
 		return schemaProvider;
 	}
+	
+	public IndexDescription getIndexDescription() {
+		return this.indexDescrption;
+	}
+	
 }

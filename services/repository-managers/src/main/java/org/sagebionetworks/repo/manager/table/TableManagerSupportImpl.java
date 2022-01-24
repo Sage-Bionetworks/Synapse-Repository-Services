@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
@@ -44,6 +46,10 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -82,6 +88,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
 	private DefaultColumnModelMapper defaultColumnMapper;
+	@Autowired
+	private MaterializedViewDao materializedViewDao;
+	
 
 	/*
 	 * (non-Javadoc)
@@ -395,23 +404,18 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 
 	@Override
-	public EntityType validateTableReadAccess(UserInfo userInfo, IdAndVersion idAndVersion)
+	public void validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		// They must have read permission to access table content.
-		authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+		authorizationManager.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)
 				.checkAuthorizationOrElseThrow();
-
-		// Lookup the entity type for this table.
-		EntityType entityTpe = getTableEntityType(idAndVersion);
-		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
-		if (ObjectType.TABLE.equals(type)) {
+		if (EntityType.table.equals(indexDescription.getTableType())) {
 			// And they must have download permission to access table content.
 			authorizationManager
-					.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
+					.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
 					.checkAuthorizationOrElseThrow();
 		}
-		return entityTpe;
 	}
 
 	@Override
@@ -423,12 +427,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo user, ViewScopeType scopeType, Set<Long> benefactorIds) {
-		MetadataIndexProvider provider = metadataIndexProviderFactory
-				.getMetadataIndexProvider(scopeType.getObjectType());
-
-		ObjectType benefactorType = provider.getBenefactorObjectType();
-
+	public Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds) {
 		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds);
 	}
 
@@ -531,6 +530,23 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return columnModelManager.getTableSchemaCount(idAndVersion);
 	}
 
-
+	@Override
+	public IndexDescription getIndexDescription(IdAndVersion idAndVersion) {
+		EntityType type = nodeDao.getNodeTypeById(idAndVersion.getId().toString());
+		switch (type) {
+		case table:
+			return new TableIndexDescription(idAndVersion);
+		case entityview:
+		case dataset:
+		case submissionview:
+			return new ViewIndexDescription(idAndVersion, type);
+		case materializedview:
+			return new MaterializedViewIndexDescription(idAndVersion,
+					materializedViewDao.getSourceTablesIds(idAndVersion).stream()
+							.map(childId -> getIndexDescription(childId)).collect(Collectors.toList()));
+		default:
+			throw new IllegalStateException("Unknown type: " + type);
+		}
+	}
 
 }

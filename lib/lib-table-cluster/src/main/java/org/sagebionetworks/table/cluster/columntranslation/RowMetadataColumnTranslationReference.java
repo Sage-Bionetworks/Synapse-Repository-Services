@@ -10,8 +10,9 @@ import org.sagebionetworks.repo.model.table.TableConstants;
  * ColumnTranslationReference for row metadata columns. For these, the
  * userQueryColumnName and translatedColumnName are the same
  */
-public enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
-	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null), ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
+public enum RowMetadataColumnTranslationReference {
+	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER, null),
+	ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER, null),
 	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING, 36L),
 	ROW_BENEFACTOR(TableConstants.ROW_BENEFACTOR, ColumnType.INTEGER, null);
 
@@ -25,23 +26,15 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 		this.columnType = columnType;
 		this.maximumSize = maximumSize;
 	}
+	
+	public ColumnTranslationReference getColumnTranslationReference() {
+		return new RowMetadataReferenceWrapper(this.columnName, this);
+	}
 
-	@Override
 	public ColumnType getColumnType() {
 		return columnType;
 	}
 
-	@Override
-	public String getUserQueryColumnName() {
-		return columnName;
-	}
-
-	@Override
-	public String getTranslatedColumnName() {
-		return columnName;
-	}
-
-	@Override
 	public Long getMaximumSize() {
 		return maximumSize;
 	}
@@ -54,12 +47,11 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 	 * @return
 	 */
 	public static Optional<ColumnTranslationReference> lookupColumnReference(String rhs) {
+		if(rhs.toUpperCase().startsWith(TableConstants.ROW_BENEFACTOR)) {
+			return Optional.of(new RowMetadataReferenceWrapper(rhs.toUpperCase(), ROW_BENEFACTOR));
+		}
 		return Arrays.stream(RowMetadataColumnTranslationReference.values())
-				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> (ColumnTranslationReference) r);
+				.filter(r -> rhs.equalsIgnoreCase(r.columnName)).findFirst().map(r -> r.getColumnTranslationReference());
 	}
 
-	@Override
-	public Long getMaximumListLength() {
-		return null;
-	}
 }

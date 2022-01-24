@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -59,7 +60,8 @@ public class FacetTransformerRangeTest {
 		SchemaProvider schemaProvider = (IdAndVersion tableId) -> {
 			return schema;
 		};
-		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId).build();
+		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schemaProvider, userId)
+				.indexDescription(new TableIndexDescription(IdAndVersion.parse("syn123"))).build();
 		
 		rowSet = new RowSet();
 		

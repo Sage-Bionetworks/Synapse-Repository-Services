@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 /**
  * This matches &ltcolumn reference&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class ColumnReference extends SQLElement implements Replaceable<ColumnReference> {
+public class ColumnReference extends SQLElement implements Replaceable<Element> {
 
 	ColumnName nameLHS;
 	ColumnName nameRHS;

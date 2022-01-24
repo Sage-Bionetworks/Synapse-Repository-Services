@@ -475,7 +475,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 				
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -550,7 +550,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(doubleColumn), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -601,7 +601,7 @@ public class TableIndexDAOImplTest {
 			return allTypes;
 		};
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -632,7 +632,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		
 		// Now query for the results
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -683,7 +683,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now a count query
 		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId,
-				schemaProvider(allTypes), userId).build();
+				schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -740,7 +740,7 @@ public class TableIndexDAOImplTest {
 				"select foo, sum(bar) from "
 						+ tableId
 						+ " where foo is not null group by foo order by sum(bar) desc limit 1 offset 0",
-				schemaProvider(schema), userId).build();
+				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -793,7 +793,7 @@ public class TableIndexDAOImplTest {
 		// Now create the query
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
-				schemaProvider(schema), userId).build();
+				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -2048,7 +2048,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2102,7 +2102,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_noAnnotationsInReplication() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2134,7 +2134,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_WithObjectIdFilter() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2191,7 +2191,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTable(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -2225,7 +2225,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2261,7 +2261,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Query the results
 		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
 		assertEquals(2, result.getRows().size());
@@ -2278,7 +2278,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -2318,7 +2318,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testCreateViewSnapshotFromEntityReplicationWithDoubleAnnotation(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -2361,7 +2361,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCreateViewSnapshotFromEntityReplication_ListColumns(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 
@@ -2407,7 +2407,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testPopulateViewFromSnapshot(){
 		tableId = IdAndVersion.parse("syn123.45");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
@@ -2473,7 +2473,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		
@@ -3085,7 +3085,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3120,7 +3120,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3156,7 +3156,7 @@ public class TableIndexDAOImplTest {
 		long timeFilter = System.currentTimeMillis() - 1000;
 		
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -3592,7 +3592,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3621,7 +3621,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3656,7 +3656,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3694,7 +3694,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3732,7 +3732,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3770,7 +3770,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_ViewUpToDate(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3799,7 +3799,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_Limit(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3828,7 +3828,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_FilterTypes(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3862,7 +3862,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -3996,7 +3996,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testDeleteRowsFromView() {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -4030,7 +4030,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testDeleteRowsFromViewEmpty() {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 		
@@ -4081,7 +4081,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCopyEntityReplicationToViewWithRowFilter() {
 		long limit = 100;
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);		
 
@@ -4122,7 +4122,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCopyEntityReplicationToViewWithRowFilterNull() {
 		long limit = 100;
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);			
 		
@@ -4144,7 +4144,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testPopulateListColumnIndexTableView_NoIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
@@ -4182,7 +4182,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testPopulateListColumnIndexTableView_WithIdFilter() {
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount, includeMultiValue);
@@ -4321,7 +4321,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds, false);
 
-		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4473,7 +4473,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testRefreshViewBenefactors() throws ParseException{
 		tableId = IdAndVersion.parse("syn123.45");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
 		tableIndexDAO.deleteTable(tableId);
@@ -4514,7 +4514,7 @@ public class TableIndexDAOImplTest {
 		long maxBytesPerBatch = 10;
 		tableIndexDAO.populateViewFromSnapshot(tableId, rows.iterator(), maxBytesPerBatch);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4579,7 +4579,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQueryBuilder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4593,7 +4593,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testViewWithMultipleVersions() throws ParseException{
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		// delete all data
@@ -4625,7 +4625,7 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		
-		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).build();
+		SqlQuery query = new SqlQueryBuilder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -4673,7 +4673,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatIdAndVersionFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;
@@ -4724,7 +4724,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithHierarchyFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;
@@ -4765,7 +4765,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatFilter() {
 		tableId = IdAndVersion.parse("syn123");
-		indexDescription = new ViewIndexDescription(tableId);
+		indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		Long objectIdOne = 22L;
 		Long objectIdTwo = 33L;
 		Long objectIdThree = 44L;

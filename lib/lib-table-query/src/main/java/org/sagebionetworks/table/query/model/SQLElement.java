@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * An element that be serialized to SQL.
@@ -230,13 +231,19 @@ public abstract class SQLElement implements Element {
 
 	@Override
 	public final <T extends Element> boolean isInContext(Class<T> type) {
+		return getContext(type).isPresent();
+	}
+	
+	@Override
+	public <T extends Element> Optional<T> getContext(Class<T> type){
 		if(this.parent == null) {
-			return false;
+			return Optional.empty();
 		}
 		if(type.isInstance(this.parent)) {
-			return true;
+			return Optional.of((T)this.parent);
 		}
-		return this.parent.isInContext(type);
+		return this.parent.getContext(type);
 	}
+	
 	
 }

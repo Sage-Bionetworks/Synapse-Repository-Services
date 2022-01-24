@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -17,6 +18,8 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	private final String id;
 	private final Long maximumSize;
 	private final Long maximumListLength;
+	private final FacetType facetType;
+	private final String defaultValue;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
@@ -29,6 +32,8 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		this.userQueryColumnName = columnModel.getName();
 		this.maximumSize = columnModel.getMaximumSize();
 		this.maximumListLength = columnModel.getMaximumListLength();
+		this.facetType = columnModel.getFacetType();
+		this.defaultValue = columnModel.getDefaultValue();
 	}
 
 	@Override
@@ -62,6 +67,22 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	public Long getMaximumListLength() {
 		return this.maximumListLength;
 	}
+	
+	@Override
+	public FacetType getFacetType() {
+		return this.facetType;
+	}
+
+	@Override
+	public String getDefaultValues() {
+		return this.defaultValue;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(columnType, defaultValue, facetType, id, maximumListLength, maximumSize,
+				translatedColumnName, userQueryColumnName);
+	}
 
 	@Override
 	public boolean equals(Object obj) {
@@ -72,7 +93,8 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 			return false;
 		}
 		SchemaColumnTranslationReference other = (SchemaColumnTranslationReference) obj;
-		return columnType == other.columnType && Objects.equals(id, other.id)
+		return columnType == other.columnType && Objects.equals(defaultValue, other.defaultValue)
+				&& facetType == other.facetType && Objects.equals(id, other.id)
 				&& Objects.equals(maximumListLength, other.maximumListLength)
 				&& Objects.equals(maximumSize, other.maximumSize)
 				&& Objects.equals(translatedColumnName, other.translatedColumnName)
@@ -80,15 +102,11 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	}
 
 	@Override
-	public int hashCode() {
-		return Objects.hash(columnType, id, maximumListLength, maximumSize, translatedColumnName, userQueryColumnName);
-	}
-
-	@Override
 	public String toString() {
 		return "SchemaColumnTranslationReference [columnType=" + columnType + ", userQueryColumnName="
 				+ userQueryColumnName + ", translatedColumnName=" + translatedColumnName + ", id=" + id
-				+ ", maximumSize=" + maximumSize + ", maximumListLength=" + maximumListLength + "]";
+				+ ", maximumSize=" + maximumSize + ", maximumListLength=" + maximumListLength + ", facetType="
+				+ facetType + ", defaultValue=" + defaultValue + "]";
 	}
 
 }

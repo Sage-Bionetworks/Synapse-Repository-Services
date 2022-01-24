@@ -72,6 +72,7 @@ import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.SchemaChange;
@@ -473,10 +474,10 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Override
 	public RowSet getCellValues(UserInfo userInfo, String tableId, List<RowReference> rows, List<ColumnModel> columns)
 			throws IOException, NotFoundException {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);		
-		tableManagerSupport.validateTableReadAccess(userInfo, idAndVersion);
-		EntityType type = tableManagerSupport.getTableEntityType(idAndVersion);
-		if(!EntityType.table.equals(type)){
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);	
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+		tableManagerSupport.validateTableReadAccess(userInfo, indexDescription);
+		if(!EntityType.table.equals(indexDescription.getTableType())){
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
@@ -486,7 +487,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		};
 		final Map<Long, Row> rowMap = new HashMap<Long, Row>(rows.size());
 		try {
-			SqlQuery query = new SqlQueryBuilder(sql, schemaProvider, userInfo.getId()).build();
+			SqlQuery query = new SqlQueryBuilder(sql, schemaProvider, userInfo.getId()).indexDescription(indexDescription).build();
 			indexDao.queryAsStream(null, query, new  RowHandler() {
 				@Override
 				public void nextRow(Row row) {

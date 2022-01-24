@@ -4,33 +4,42 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class MaterializedViewIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
-	private final List<String> benefactorNames;
+	private final List<BenefactorDescription> benefactorDescriptions;
+	private final List<String> buildColumnsToAddToSelect;
 
 	/**
 	 * 
-	 * @param idAndVersion The IdAndVersion of this {@link MaterializedView} 
+	 * @param idAndVersion The IdAndVersion of this {@link MaterializedView}
 	 * @param dependencies Note: The order of this list should match the order of
 	 *                     dependencies in the from clause.
 	 */
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
-		this.benefactorNames = new ArrayList<>();
+		this.buildColumnsToAddToSelect = new ArrayList<>();
+		this.benefactorDescriptions = new ArrayList<>();
 		for (int i = 0; i < dependencies.size(); i++) {
 			IndexDescription dependency = dependencies.get(i);
-			for (String benefactorName : dependency.getBenefactorColumnNames()) {
+			for (BenefactorDescription desc : dependency.getBenefactors()) {
 				String tableAlias = SQLUtils.getTableAliasForIndex(i);
-				benefactorNames.add(benefactorName + tableAlias);
+				buildColumnsToAddToSelect.add(tableAlias + "." + desc.getBenefactorColumnName());
+				String newBenefactorColumnName = desc.getBenefactorColumnName() + tableAlias;
+				benefactorDescriptions
+						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
 			}
 		}
 	}
@@ -49,9 +58,9 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		builder.append(ROW_ID).append(" BIGINT NOT NULL AUTO_INCREMENT, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL DEFAULT 0, ");
 		StringBuilder benefactorIndicies = new StringBuilder();
-		for (String benefactorNames : benefactorNames) {
-			builder.append(benefactorNames).append(" BIGINT NOT NULL, ");
-			benefactorIndicies.append(", KEY (").append(benefactorNames).append(")");
+		for (BenefactorDescription desc : benefactorDescriptions) {
+			builder.append(desc.getBenefactorColumnName()).append(" BIGINT NOT NULL, ");
+			benefactorIndicies.append(", KEY (").append(desc.getBenefactorColumnName()).append(")");
 		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		builder.append(benefactorIndicies.toString());
@@ -60,13 +69,36 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getBenefactorColumnNames() {
-		return benefactorNames;
+	public List<BenefactorDescription> getBenefactors() {
+		return benefactorDescriptions;
+	}
+
+	@Override
+	public EntityType getTableType() {
+		return EntityType.materializedview;
+	}
+
+	@Override
+	public boolean isEtagColumnIncluded() {
+		return false;
+	}
+
+	@Override
+	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
+		ValidateArgument.required(type, "SqlType");
+		switch (type) {
+		case build:
+			return buildColumnsToAddToSelect;
+		case query:
+			return Arrays.asList(ROW_ID, ROW_VERSION);
+		default:
+			throw new IllegalArgumentException("Unknown type: " + type);
+		}
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorNames, idAndVersion);
+		return Objects.hash(benefactorDescriptions, idAndVersion);
 	}
 
 	@Override
@@ -78,8 +110,14 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 			return false;
 		}
 		MaterializedViewIndexDescription other = (MaterializedViewIndexDescription) obj;
-		return Objects.equals(benefactorNames, other.benefactorNames)
+		return Objects.equals(benefactorDescriptions, other.benefactorDescriptions)
 				&& Objects.equals(idAndVersion, other.idAndVersion);
+	}
+
+	@Override
+	public String toString() {
+		return "MaterializedViewIndexDescription [idAndVersion=" + idAndVersion + ", benefactorDescriptions="
+				+ benefactorDescriptions + "]";
 	}
 
 }

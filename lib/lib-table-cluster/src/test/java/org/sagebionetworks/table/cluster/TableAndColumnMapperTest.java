@@ -308,7 +308,7 @@ public class TableAndColumnMapperTest {
 		// call under test
 		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
 		assertTrue(optionalMatch.isPresent());
-		assertEquals(RowMetadataColumnTranslationReference.ROW_ID, optionalMatch.get().getColumnTranslationReference());
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference(), optionalMatch.get().getColumnTranslationReference());
 		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
 		assertEquals("syn123", tableInfo.getOriginalTableName());
 		assertEquals(0, tableInfo.getTableIndex());

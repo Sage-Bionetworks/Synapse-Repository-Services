@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -87,6 +88,14 @@ public interface Element {
 	 *         hierarchy.
 	 */
 	public <T extends Element> boolean isInContext(Class<T> type);
+	
+	/**
+	 * Get a contextual element by walking the parent hierarchy to find the first element of the given type.
+	 * @param <T>
+	 * @param type The type of element to find.
+	 * @return Optional.empty() if the given type is not in the parent hierarchy.
+	 */
+	public <T extends Element> Optional<T> getContext(Class<T> type);
 	
 
 	/**

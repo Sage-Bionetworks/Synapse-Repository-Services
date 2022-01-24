@@ -2,10 +2,10 @@ package org.sagebionetworks.table.cluster;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -19,12 +19,12 @@ public class SqlQueryBuilder {
 	private Long maxBytesPerPage;
 	private List<SortItem> sortList;
 	private Boolean includeEntityEtag;
-	private EntityType tableType;
 	private List<FacetColumnRequest> selectedFacets;
 	private List<QueryFilter> additionalFilters;
 	private Long userId;
-	// Joins are now allowed by default.
+	// Joins are not allowed by default.
 	private boolean allowJoins = false;
+	private IndexDescription indexDescription;
 	
 	/**
 	 * Start with the SQL.
@@ -92,11 +92,6 @@ public class SqlQueryBuilder {
 		return this;
 	}
 	
-	public SqlQueryBuilder tableType(EntityType tableType) {
-		this.tableType = tableType;
-		return this;
-	}
-	
 	public SqlQueryBuilder selectedFacets(List<FacetColumnRequest> selectedFacets) {
 		this.selectedFacets = selectedFacets;
 		return this;
@@ -118,10 +113,20 @@ public class SqlQueryBuilder {
 		this.allowJoins = allowJoins;
 		return this;
 	}
+	
+	/**
+	 * 
+	 * @param indexDescription
+	 * @return
+	 */
+	public SqlQueryBuilder indexDescription(IndexDescription indexDescription) {
+		this.indexDescription = indexDescription;
+		return this;
+	}
 
 	public SqlQuery build(){
-		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList,
-				includeEntityEtag, tableType, selectedFacets, additionalFilters, userId, allowJoins);
+		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList, includeEntityEtag,
+				selectedFacets, additionalFilters, userId, allowJoins, indexDescription);
 	}
 
 

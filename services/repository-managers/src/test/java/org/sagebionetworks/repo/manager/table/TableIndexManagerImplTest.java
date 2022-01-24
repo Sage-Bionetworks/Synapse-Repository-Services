@@ -53,7 +53,9 @@ import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -600,8 +602,8 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(new ViewIndexDescription(tableId), changes);
-		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, EntityType.entityview), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, EntityType.entityview));
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
@@ -620,8 +622,8 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		// call under test
-		managerSpy.updateTableSchema(new ViewIndexDescription(tableId), changes);
-		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
+		managerSpy.updateTableSchema(new ViewIndexDescription(tableId, EntityType.entityview), changes);
+		verify(managerSpy).createTableIfDoesNotExist(new ViewIndexDescription(tableId, EntityType.entityview));
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
@@ -2511,9 +2513,9 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testCreateTableIfDoesNotExistsForView() {
 		
-		manager.createTableIfDoesNotExist(new ViewIndexDescription(tableId));
+		manager.createTableIfDoesNotExist(new ViewIndexDescription(tableId, EntityType.entityview));
 		
-		verify(mockIndexDao).createTableIfDoesNotExist(new ViewIndexDescription(tableId));
+		verify(mockIndexDao).createTableIfDoesNotExist(new ViewIndexDescription(tableId, EntityType.entityview));
 		verify(mockIndexDao).createSecondaryTables(tableId);
 	}
 	

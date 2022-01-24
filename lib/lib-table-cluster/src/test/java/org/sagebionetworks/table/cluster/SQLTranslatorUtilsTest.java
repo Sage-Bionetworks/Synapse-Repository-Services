@@ -30,12 +30,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -44,6 +46,7 @@ import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -52,6 +55,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlType;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
+import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
@@ -244,7 +252,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsRowIdLower() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID));
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
 		// call under test
@@ -260,7 +268,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsRowIdUpper() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID));
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
 		// call under test
@@ -276,7 +284,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsCountRowId() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID));
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_ID.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("count(row_id)").derivedColumn();
 		// call under test
@@ -292,7 +300,7 @@ public class SQLTranslatorUtilsTest {
 		
 	@Test
 	public void testGetSelectColumnsRowVersionUpper() throws ParseException{
-		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION));
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(RowMetadataColumnTranslationReference.ROW_VERSION.getColumnTranslationReference()));
 		
 		DerivedColumn derivedColumn = new TableQueryParser("ROW_VERSION").derivedColumn();
 		// call under test
@@ -631,25 +639,15 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testAddRowIdAndVersionToSelect() throws ParseException{
-		boolean includeEtag = false;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		List<String> toAdd = Arrays.asList("ROW_ID", "ROW_VERSION");
+		SQLTranslatorUtils.addMetadataColumnsToSelect(element, toAdd);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", element.toSql());
 		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
 			assertNotNull(derivedColumn.getParent());
 		}
 	}
 	
-	@Test
-	public void testAddRowIdAndVersionToSelectWithEtag() throws ParseException{
-		boolean includeEtag = true;
-		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
-		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", element.toSql());
-		for(DerivedColumn derivedColumn: element.createIterable(DerivedColumn.class)) {
-			assertNotNull(derivedColumn.getParent());
-		}
-	}
 	
 	@Test
 	public void testReadWithHeadersWithEtagRow() throws SQLException{
@@ -2709,7 +2707,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithDoubleInSelect() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleInSelect() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2723,8 +2721,24 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("CASE WHEN _A1._DBL_C777_ IS NULL THEN _A1._C777_ ELSE _A1._DBL_C777_ END", translated.get().toSql());
 	}
 	
+	@Disabled // we do not handle double correctly yet.
 	@Test
-	public void testtranslateColumnReferenceWithDoubleInSelectSingleTable() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleInSelectWithBuildSql() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select r.aDouble from syn123 t join syn456 r").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		ColumnReference columnReference = model.getFirstElementOfType(ColumnReference.class);
+		// call under test
+		Optional<ColumnReference> translated = SQLTranslatorUtils.translateColumnReference(columnReference, mapper);
+		assertTrue(translated.isPresent());
+		assertEquals("_A1._C777_, _A1._DBL_C777_", translated.get().toSql());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceWithDoubleInSelectSingleTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select r.aDouble from syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnNameMap.get("aDouble"), columnNameMap.get("bar")));
@@ -2738,7 +2752,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithDoubleNotInSelect() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleNotInSelect() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456 r where r.aDouble > 1.0").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2753,7 +2767,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithDoubleInSelectAsSetFunctionParameter() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleInSelectAsSetFunctionParameter() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select max(r.aDouble) from syn123 t join syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2768,7 +2782,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithDoubleInSelectAsMySQLFunctionParameter() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleInSelectAsMySQLFunctionParameter() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select round(r.aDouble) from syn123 t join syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2783,7 +2797,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithDoubleInSelectAsUnestParameter() throws ParseException {
+	public void testTranslateColumnReferenceWithDoubleInSelectAsUnestParameter() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select unnest(r.aDouble) from syn123 t join syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2798,7 +2812,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
+	public void testTranslateColumnReferenceWithRowIdAndMultipleTables() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select r.ROW_ID from syn123 t join syn456 r").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2813,7 +2827,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testtranslateColumnReferenceWithRowIdAndSingleTable() throws ParseException {
+	public void testTranslateColumnReferenceWithRowIdAndSingleTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select ROW_ID from syn123").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
 		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
@@ -2844,6 +2858,30 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testGetSchemaOfDerivedColumnWithFacetsAndDefault() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setDefaultValue("123");
+		cm.setFacetType(FacetType.range);
+		cm.setName("foo");
+		cm.setId("111");
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(cm));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("foo");
+		expected.setColumnType(ColumnType.INTEGER);
+		expected.setDefaultValue("123");
+		expected.setFacetType(FacetType.range);
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
 	public void testAddLongWithNull() {
 		assertEquals(null, SQLTranslatorUtils.addLongsWithNull(null, null));
 		assertEquals(123L, SQLTranslatorUtils.addLongsWithNull(null, 123L));
@@ -2867,6 +2905,7 @@ public class SQLTranslatorUtilsTest {
 			expected.setMaximumSize(cm.getMaximumSize());
 			expected.setMaximumListLength(cm.getMaximumListLength());
 			expected.setId(null);
+			expected.setFacetType(cm.getFacetType());
 
 			// call under test
 			assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
@@ -2888,6 +2927,56 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithTableIdMatachsFromClause() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn111"));
+		// call under test
+		assertEquals(SqlType.query, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithNoMatch() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"));
+		// call under test
+		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
+	}
+	
+	@Test
+	public void testGetSqlTypeWithMultipleTablesInFrom() {
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"), IdAndVersion.parse("syn333"));
+		// call under test
+		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
+	}
+	
+	@Test
+	public void testCreateMaterializedViewInsertSqlWithDependentView() {
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		IdAndVersion viewId = IdAndVersion.parse("syn111");
+		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
+		String outputSQL = "select _C111_,_C333_, ROW_BENEFACTOR from T111"; 
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, EntityType.entityview));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		// call under test
+		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
+		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR_A0) select _C111_,_C333_, ROW_BENEFACTOR from T111", result);
+	}
+	
+	@Test
+	public void testCreateMaterializedViewInsertSqlWithDependentTable() {
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		IdAndVersion tableId = IdAndVersion.parse("syn111");
+		List<ColumnModel> schemaOfSelect = Arrays.asList(columnFoo, columnBar);
+		String outputSQL = "select _c1_, _c2_ from T111"; 
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		// call under test
+		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
+		assertEquals("INSERT INTO T123 (_C111_,_C333_) select _c1_, _c2_ from T111", result);
 	}
 	
 }

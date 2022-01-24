@@ -65,11 +65,6 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	@Override
-	public ObjectType getBenefactorObjectType() {
-		return ObjectType.ENTITY;
-	}
-
-	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
 		return DATASET_FILE_COLUMNS;
 	}

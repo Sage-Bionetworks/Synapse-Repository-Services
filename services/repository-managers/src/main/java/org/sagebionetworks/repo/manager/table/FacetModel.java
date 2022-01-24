@@ -148,7 +148,7 @@ public class FacetModel {
 
 			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getSchemaProvider(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage(), sqlQuery.getUserId())
 					.includeEntityEtag(sqlQuery.includeEntityEtag())
-					.tableType(sqlQuery.getTableType())
+					.indexDescription(sqlQuery.getIndexDescription())
 					.selectedFacets(sqlQuery.getSelectedFacets())
 					.build();
 		}catch (ParseException e){

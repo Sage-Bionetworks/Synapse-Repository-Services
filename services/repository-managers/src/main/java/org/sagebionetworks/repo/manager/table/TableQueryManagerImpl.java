@@ -11,7 +11,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -34,12 +33,13 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
-import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.BenefactorDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -152,10 +152,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// We now have the table's ID.
 		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		// 2. Validate the user has read access on this table
-		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, idAndVersion);
-		
+		tableManagerSupport.validateTableReadAccess(user, indexDescription);
+
 		// 3. Get the table's schema count
 		long count = tableManagerSupport.getTableSchemaCount(idAndVersion);
 		if (count < 1L) {
@@ -163,15 +163,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		// 4. Add row level filter as needed.
-		if (EntityTypeUtils.isViewType(tableType)) {
-			// Table views must have a row level filter applied to the query
-			model = addRowLevelFilter(user, model);
-		}
+		// Table views must have a row level filter applied to the query
+		model = addRowLevelFilter(user, model, indexDescription);
 		// Return the prepared query.
 		return new SqlQueryBuilder(model, user.getId()).schemaProvider(tableManagerSupport).overrideOffset(query.getOffset())
 				.overrideLimit(query.getLimit()).maxBytesPerPage(maxBytesPerPage)
-				.includeEntityEtag(query.getIncludeEntityEtag()).selectedFacets(query.getSelectedFacets())
-				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).tableType(tableType).build();
+				.includeEntityEtag(query.getIncludeEntityEtag())
+				.indexDescription(indexDescription).selectedFacets(query.getSelectedFacets())
+				.sortList(query.getSort()).additionalFilters(query.getAdditionalFilters()).build();
 	}
 
 	/**
@@ -659,23 +658,31 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query)
+	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query, IndexDescription indexDescription)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
+		if(indexDescription.getBenefactors().isEmpty()) {
+			// with no benefactors nothing is needed.
+			return query;
+		}
+		if(indexDescription.getBenefactors().size() > 1) {
+			throw new UnsupportedOperationException("Need to add support for more than one benefactor column");
+		}
+		BenefactorDescription firstBenefactorDescription = indexDescription.getBenefactors().get(0);
+		String benefactorColumnName = firstBenefactorDescription.getBenefactorColumnName();
 		// Get a connection to the table.
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = null;
 		try {
-			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
+			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, benefactorColumnName);
 		} catch (BadSqlGrammarException e) { // table has not been created yet
 			tableBenefactors = Collections.emptySet();
 		}
-		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 		// Get the sub-set of benefactors visible to the user.
-		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, scopeType, tableBenefactors);
-		return buildBenefactorFilter(query, accessibleBenefactors);
+		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, firstBenefactorDescription.getBenefactorType(), tableBenefactors);
+		return buildBenefactorFilter(query, accessibleBenefactors, benefactorColumnName);
 	}
 
 	/**
@@ -688,7 +695,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 */
 	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery,
-			Set<Long> accessibleBenefactors) {
+			Set<Long> accessibleBenefactors, String benefactorColumnName) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if (accessibleBenefactors.isEmpty()) {
@@ -707,7 +714,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				filterBuilder.append(where.getSearchCondition().toSql());
 				filterBuilder.append(") AND ");
 			}
-			filterBuilder.append(TableConstants.ROW_BENEFACTOR);
+			filterBuilder.append(benefactorColumnName);
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
 			for (Long id : accessibleBenefactors) {
