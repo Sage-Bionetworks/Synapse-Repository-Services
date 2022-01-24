@@ -62,46 +62,35 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000 * 60 * 10; // 10 mins
 
-
-	private final TableStatusDAO tableStatusDAO;
-	private final TimeoutUtils timeoutUtils;
-	private final TransactionalMessenger transactionalMessenger;
-	private final ConnectionFactory tableConnectionFactory;
-	private final ColumnModelManager columnModelManager;
-	private final NodeDAO nodeDao;
-	private final TableRowTruthDAO tableTruthDao;
-	private final ViewScopeDao viewScopeDao;
-	private final WriteReadSemaphoreRunner writeReadSemaphoreRunner;
-	private final AuthorizationManager authorizationManager;
-	private final ViewSnapshotDao viewSnapshotDao;
-	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
-	private final DefaultColumnModelMapper defaultColumnMapper;
-	private final MaterializedViewDao materializedViewDao;
-	
 	@Autowired
-	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
-			TransactionalMessenger transactionalMessenger, ConnectionFactory tableConnectionFactory,
-			ColumnModelManager columnModelManager, NodeDAO nodeDao, TableRowTruthDAO tableTruthDao,
-			ViewScopeDao viewScopeDao, WriteReadSemaphoreRunner writeReadSemaphoreRunner,
-			AuthorizationManager authorizationManager, ViewSnapshotDao viewSnapshotDao,
-			MetadataIndexProviderFactory metadataIndexProviderFactory, DefaultColumnModelMapper defaultColumnMapper,
-			MaterializedViewDao materializedViewDao) {
-		super();
-		this.tableStatusDAO = tableStatusDAO;
-		this.timeoutUtils = timeoutUtils;
-		this.transactionalMessenger = transactionalMessenger;
-		this.tableConnectionFactory = tableConnectionFactory;
-		this.columnModelManager = columnModelManager;
-		this.nodeDao = nodeDao;
-		this.tableTruthDao = tableTruthDao;
-		this.viewScopeDao = viewScopeDao;
-		this.writeReadSemaphoreRunner = writeReadSemaphoreRunner;
-		this.authorizationManager = authorizationManager;
-		this.viewSnapshotDao = viewSnapshotDao;
-		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
-		this.defaultColumnMapper = defaultColumnMapper;
-		this.materializedViewDao = materializedViewDao;
-	}
+	private TableStatusDAO tableStatusDAO;
+	@Autowired
+	private TimeoutUtils timeoutUtils;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private ConnectionFactory tableConnectionFactory;
+	@Autowired
+	private ColumnModelManager columnModelManager;
+	@Autowired
+	private NodeDAO nodeDao;
+	@Autowired
+	private TableRowTruthDAO tableTruthDao;
+	@Autowired
+	private ViewScopeDao viewScopeDao;
+	@Autowired
+	private WriteReadSemaphoreRunner writeReadSemaphoreRunner;
+	@Autowired
+	private AuthorizationManager authorizationManager;
+	@Autowired
+	private ViewSnapshotDao viewSnapshotDao;
+	@Autowired
+	private MetadataIndexProviderFactory metadataIndexProviderFactory;
+	@Autowired
+	private DefaultColumnModelMapper defaultColumnMapper;
+	@Autowired
+	private MaterializedViewDao materializedViewDao;
+	
 
 	/*
 	 * (non-Javadoc)
