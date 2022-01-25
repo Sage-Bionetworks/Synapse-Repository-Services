@@ -30,6 +30,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -245,7 +246,7 @@ public class ITDocker {
 	@Test
 	public void testSendRegistryEvents() throws Exception {
 		String registryUserName = config.getDockerRegistryUser();
-		String registryPassword =config.getDockerRegistryPassword();
+		String registryPassword = config.getDockerRegistryPassword();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
@@ -266,6 +267,7 @@ public class ITDocker {
 		request.setHeaders(requestHeaders);
 		String body = EntityFactory.createJSONStringForEntity(registryEvents);
 		simpleClient.post(request, body);
+		
 		// check that repo was created
 		EntityChildrenRequest childRequest = new EntityChildrenRequest();
 		childRequest.setParentId(projectId);
@@ -274,6 +276,11 @@ public class ITDocker {
 		assertNotNull(response);
 		assertNotNull(response.getPage());
 		assertEquals(1, response.getPage().size());
+		
+		// Check the the repository can be found by name
+		EntityId entityId = synapseOne.getEntityIdForDockerRepositoryName(host + "/" + repositoryPath);
+		assertEquals(response.getPage().get(0).getId(), entityId.getId());
+		
 	}
 
 	@Test

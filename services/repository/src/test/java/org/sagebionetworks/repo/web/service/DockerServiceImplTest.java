@@ -1,26 +1,32 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.DockerManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class DockerServiceImplTest {
 	
-	private DockerServiceImpl dockerService;
+	@Mock
+	private UserManager mockUserManager;
 	
 	@Mock
 	private DockerManager dockerManager;
@@ -28,15 +34,12 @@ public class DockerServiceImplTest {
 	@Mock
 	private Consumer consumer;
 	
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		dockerService = new DockerServiceImpl();
-		ReflectionTestUtils.setField(dockerService, "dockerManager", dockerManager);
-		ReflectionTestUtils.setField(dockerService, "consumer", consumer);
-		
-	}
-
+	@InjectMocks
+	private DockerServiceImpl dockerService;
+	
+	@Mock
+	private UserInfo mockUser;
+	
 	@Test
 	public void testDockerRegistryNotification() {
 		DockerRegistryEventList events = new DockerRegistryEventList();
@@ -67,6 +70,19 @@ public class DockerServiceImplTest {
 		assertEquals("Count", profileData.getUnit());
 		assertNotNull(profileData.getTimestamp());
 
+	}
+	
+	@Test
+	public void testGetEntityIdForRepositoryName() {
+		Long userId = 123L;
+		String repoName = "repository";
+		
+		when(mockUserManager.getUserInfo(anyLong())).thenReturn(mockUser);
+		
+		// Call under test
+		dockerService.getEntityIdForRepositoryName(userId, repoName);
+		
+		verify(dockerManager).getEntityIdForRepositoryName(mockUser, repoName);
 	}
 
 }

@@ -3009,6 +3009,15 @@ public interface SynapseClient extends BaseClient {
 	EntityId getEntityIdByAlias(String alias) throws SynapseException;
 	
 	/**
+	 * Get the entity id that matches the given managed docker repository name
+	 * 
+	 * @param repositoryName The name of the managed repository
+	 * @return
+	 * @throws SynapseException
+	 */
+	EntityId getEntityIdForDockerRepositoryName(String repositoryName) throws SynapseException;
+	
+	/**
 	 * Get a page of children for an Entity.
 	 * @param request
 	 * @return

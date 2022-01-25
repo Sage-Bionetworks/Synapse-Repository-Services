@@ -1,21 +1,23 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DockerNodeDao;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
@@ -24,13 +26,14 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DockerManagerImplAutowiredTest {
 
@@ -60,7 +63,7 @@ public class DockerManagerImplAutowiredTest {
 	private UserInfo adminUserInfo;
 	private String projectId;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
@@ -70,7 +73,7 @@ public class DockerManagerImplAutowiredTest {
 		repositoryPath = projectId+"/path";
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		entityManager.deleteEntity(adminUserInfo, projectId);
 	}
@@ -134,6 +137,28 @@ public class DockerManagerImplAutowiredTest {
 		assertNotNull(retrievedCommit.getCreatedOn());
 		assertEquals(TAG, retrievedCommit.getTag());
 		assertEquals(DIGEST, retrievedCommit.getDigest());
+	}
+	
+	@Test
+	public void testGetEntityIdForRepositoryName() {
+		
+		String repoName = SERVICE+"/"+repositoryPath;
+		
+		assertThrows(NotFoundException.class, () -> {			
+			dockerManager.getEntityIdForRepositoryName(adminUserInfo, repoName);
+		});
+		
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(
+						RegistryEventAction.push, SERVICE, adminUserInfo.getId(), repositoryPath, TAG, DIGEST, MEDIA_TYPE);
+		
+		dockerManager.dockerRegistryNotification(events);
+		
+		// Call under test
+		EntityId result = dockerManager.getEntityIdForRepositoryName(adminUserInfo, repoName);
+		
+		assertNotNull(result.getId());
+		
 	}
 
 }

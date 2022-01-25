@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
@@ -20,7 +21,7 @@ public interface DockerService {
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(Long userId, String accessToken, String service, List<String> scopes);
+	DockerAuthorizationToken authorizeDockerAccess(Long userId, String accessToken, String service, List<String> scopes);
 	
 	/**
 	 * 
@@ -28,7 +29,7 @@ public interface DockerService {
 	 * @param entityId
 	 * @param dockerCommit
 	 */
-	public void addDockerCommit(Long userId, String entityId, DockerCommit dockerCommit);
+	void addDockerCommit(Long userId, String entityId, DockerCommit dockerCommit);
 	
 	/**
 	 * 
@@ -40,7 +41,7 @@ public interface DockerService {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<DockerCommit> listDockerTags(Long userId,
+	PaginatedResults<DockerCommit> listDockerTags(Long userId,
 			String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
 	
 	
@@ -49,7 +50,14 @@ public interface DockerService {
 	 * 
 	 * @param registryEvents
 	 */
-	public void dockerRegistryNotification(DockerRegistryEventList registryEvents);
+	void dockerRegistryNotification(DockerRegistryEventList registryEvents);
+	
+	/**
+	 * @param userId
+	 * @param repositoryName
+	 * @return The entity id matching the given repository name, not that the repository must be a managed repository
+	 */
+	EntityId getEntityIdForRepositoryName(Long userId, String repositoryName);
 
 
 }
