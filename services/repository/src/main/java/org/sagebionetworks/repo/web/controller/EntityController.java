@@ -1552,7 +1552,7 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY + "/id" }, method = RequestMethod.GET, params = { UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
 	public @ResponseBody EntityId getEntityIdByDockerRepositoryName(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam String repositoryName) throws NotFoundException {
+			@RequestParam(value = UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME) String repositoryName) throws NotFoundException {
 		return serviceProvider.getDockerService().getEntityIdForRepositoryName(userId, repositoryName);
 	}
 
