@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -21,13 +22,13 @@ public interface DockerManager {
 	 * @param scope
 	 * @return
 	 */
-	public DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String accessToken, String service, List<String> scopes);
+	DockerAuthorizationToken authorizeDockerAccess(UserInfo userInfo, String accessToken, String service, List<String> scopes);
 
 	/**
 	 * Process (push, pull) event notifications from Docker Registry
 	 * @param registryEvents
 	 */
-	public void dockerRegistryNotification(DockerRegistryEventList registryEvents);
+	void dockerRegistryNotification(DockerRegistryEventList registryEvents);
 	
 	/**
 	 * 
@@ -49,5 +50,12 @@ public interface DockerManager {
 	 * the *latest* commit for each tag.
 	 */
 	PaginatedResults<DockerCommit> listDockerTags(UserInfo userInfo, String entityId, DockerCommitSortBy sortBy, boolean ascending, long limit, long offset);
+	
+	/**
+	 * @param userInfo
+	 * @param repositoryName
+	 * @return The id of entity matching the given repository name, the name of the repository must be a managed repository
+	 */
+	EntityId getEntityIdForRepositoryName(UserInfo userInfo, String repositoryName);
 
 }

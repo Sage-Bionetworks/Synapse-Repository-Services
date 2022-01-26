@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.net.util.Base64;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DockerTokenUtilTest {
 	

@@ -10,6 +10,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.DockerManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -69,6 +70,12 @@ public class DockerServiceImpl implements DockerService {
 		} catch (Exception e) {
 			log(e);
 		}
+	}
+	
+	@Override
+	public EntityId getEntityIdForRepositoryName(Long userId, String repositoryName) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return dockerManager.getEntityIdForRepositoryName(userInfo, repositoryName);
 	}
 
 }

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -36,12 +37,17 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
+@Service
 public class DockerManagerImpl implements DockerManager {
+	
+	public static final String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
+	
 	@Autowired
 	private NodeDAO nodeDao;
 	
@@ -49,27 +55,25 @@ public class DockerManagerImpl implements DockerManager {
 	private DockerNodeDao dockerNodeDao;
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
 
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	DockerCommitDao dockerCommitDao;
+	private DockerCommitDao dockerCommitDao;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
-	StackConfiguration stackConfiguration;
+	private StackConfiguration stackConfiguration;
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
 	 * Answer Docker Registry authorization request.
@@ -140,7 +144,9 @@ public class DockerManagerImpl implements DockerManager {
 				
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
-				if (!stackConfiguration.getDockerRegistryHosts().contains(host)) continue;
+				if (!stackConfiguration.getDockerRegistryHosts().contains(host)) {
+					continue;
+				}
 				// note the user ID was authenticated in the authorization check
 				Long userId = Long.parseLong(event.getActor().getName());
 				// the 'repository path' does not include the registry host or the tag
@@ -153,7 +159,7 @@ public class DockerManagerImpl implements DockerManager {
 				commit.setDigest(event.getTarget().getDigest());
 				commit.setCreatedOn(new Date());
 
-				String entityId =  dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
+				String entityId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 				if (entityId==null) {
 					// The node doesn't already exist
 					try {
@@ -215,5 +221,21 @@ public class DockerManagerImpl implements DockerManager {
 		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
 		List<DockerCommit> commits = dockerCommitDao.listDockerTags(entityId, sortBy, ascending, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(commits, limit, offset);
+	}
+	
+	@Override
+	public EntityId getEntityIdForRepositoryName(UserInfo userInfo, String repositoryName) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.requiredNotBlank(repositoryName, "The repositoryName");
+		
+		String entityId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
+		
+		if (entityId == null) {
+			throw new NotFoundException("A repository named " + repositoryName + " does not exist or it is not a managed repository.");
+		}
+		
+		authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+
+		return new EntityId().setId(entityId);
 	}
 }

@@ -1539,6 +1539,22 @@ public class EntityController {
 	public @ResponseBody EntityId getEntityIdByAlias(@PathVariable String alias) throws NotFoundException {
 		return serviceProvider.getEntityService().getEntityIdForAlias(alias);
 	}
+	
+	/**
+	 * For managed docker repositories find the entity id matching the given repository name
+	 * 
+	 * @param repositoryName The name of a managed docker repository
+	 * @throws NotFoundException If the given repository name does not refer to an entity or if the repository is not a managed repository
+	 * @throws UnauthorizedException If the user does not have READ access to the entity pointing to the repository name
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY + "/id" }, method = RequestMethod.GET, params = { UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
+	public @ResponseBody EntityId getEntityIdByDockerRepositoryName(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME) String repositoryName) throws NotFoundException {
+		return serviceProvider.getDockerService().getEntityIdForRepositoryName(userId, repositoryName);
+	}
 
 	/**
 	 * Get a page of children for a given parent ID. This service can also be used
