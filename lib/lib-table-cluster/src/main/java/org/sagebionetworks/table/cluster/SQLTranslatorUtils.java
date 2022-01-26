@@ -32,7 +32,7 @@ import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationRefe
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlType;
+import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -1035,20 +1035,6 @@ public class SQLTranslatorUtils {
 		return result;
 	}
 	
-	/**
-	 * Determine the SqlType that should be used for this case.
-	 * @param IdAndVersion the IdAndVersion of the table/view 
-	 * @param fromClauseIds this list of IdAndVersions in the from clause.
-	 * @return
-	 */
-	public static SqlType getSqlType(IdAndVersion tableId, List<IdAndVersion> fromClauseIds) {
-		if (fromClauseIds.size() < 2
-				&& tableId.equals(fromClauseIds.get(0))) {
-			return SqlType.query;
-		} else {
-			return SqlType.build;
-		}
-	}
 	
 	/**
 	 * Addition for Longs that can be null.

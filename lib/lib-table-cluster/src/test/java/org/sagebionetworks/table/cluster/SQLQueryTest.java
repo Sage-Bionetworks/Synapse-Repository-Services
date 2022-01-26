@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -980,10 +981,10 @@ public class SQLQueryTest {
 	}
 
 	@Test
-	public void testTranslateWithJoinWithAlowJoinFalse() throws ParseException {
+	public void testTranslateWithJoinWithQueryContext() throws ParseException {
 		sql = "select * from syn1 join syn2 on (syn1.id = syn2.id) WHERE syn1.foo is not null";
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema)).allowJoins(false)
+			new SqlQueryBuilder(sql, userId).schemaProvider(schemaProvider(tableSchema)).sqlContext(SqlContext.query)
 					.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
@@ -1003,7 +1004,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
 				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
 				query.getOutputSQL());
@@ -1024,7 +1025,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_,"
 				+ " _A1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
 				query.getOutputSQL());
@@ -1032,7 +1033,7 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testTranslateWithMaterializedViewQuery() throws ParseException {
+	public void testTranslateWithMaterializedViewWithQueryContext() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		schemaMap.put(IdAndVersion.parse("syn123"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
@@ -1043,7 +1044,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn123 WHERE bar = 'some text'";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C333_ = :b0",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
@@ -1063,7 +1064,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a join syn2 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by a.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_ "
 				+ "FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
 				query.getOutputSQL());
@@ -1083,7 +1084,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_ "
 				+ "FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
@@ -1091,19 +1092,19 @@ public class SQLQueryTest {
 	}
 
 	@Test
-	public void testTranslateWithJoinWithMultipleOfSameView() throws ParseException {
+	public void testTranslateWithJoinWithMultipleOfSameViewWithBuildContext() throws ParseException {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		schemaMap.put(IdAndVersion.parse("syn1"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview),
-				new ViewIndexDescription(IdAndVersion.parse("syn2"), EntityType.entityview));
+				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_,"
 				+ " _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR"
 				+ " FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
@@ -1121,7 +1122,7 @@ public class SQLQueryTest {
 
 		sql = "select b.`has space`, sum(a.foo) from syn1 a left join syn2 b on (a.foo = b.foo) group by b.`has space`";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.sqlContext(SqlContext.build).indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
 				"SELECT _A1._C222_, SUM(_A0._C111_) FROM T1 _A0 LEFT JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) GROUP BY _A1._C222_",
 				query.getOutputSQL());
@@ -1142,7 +1143,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a left outer join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 LEFT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1158,12 +1159,12 @@ public class SQLQueryTest {
 		
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new TableIndexDescription(IdAndVersion.parse("syn1")));
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a right join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1179,12 +1180,12 @@ public class SQLQueryTest {
 		
 		List<IndexDescription> dependencies = Arrays.asList(
 				new TableIndexDescription(IdAndVersion.parse("syn1")),
-				new TableIndexDescription(IdAndVersion.parse("syn1")));
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select * from syn1 a right outer join syn2 b on (a.foo = b.foo)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.indexDescription(indexDescription).sqlContext(SqlContext.build).build();
 		assertEquals(
 				"SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C222_ FROM T1 _A0 RIGHT OUTER JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ )",
 				query.getOutputSQL());
@@ -1199,7 +1200,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a where isInfinity(doubletype)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
 				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
 						+ " ROW_ID, ROW_VERSION FROM T1 "
@@ -1216,7 +1217,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a where isNaN(doubletype)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		assertEquals(
 				"SELECT _C111_," + " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END,"
 						+ " ROW_ID, ROW_VERSION FROM T1 "
@@ -1240,14 +1241,13 @@ public class SQLQueryTest {
 		// this query is used to build the materialized view.
 		sql = "select doubletype from syn1";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_BENEFACTOR FROM T1",
 				query.getOutputSQL());
 	}
 	
 	@Test
 	public void testTranslateWithMaterializedViewWithDoubleQuerySql() throws ParseException {
-
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		IdAndVersion viewId = IdAndVersion.parse("syn1");
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
@@ -1261,7 +1261,7 @@ public class SQLQueryTest {
 		// this is a query against a materialized view.
 		sql = "select * from syn123";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(indexDescription).build();
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
 		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_ID, ROW_VERSION FROM T123",
 				query.getOutputSQL());
 	}
@@ -1280,7 +1280,7 @@ public class SQLQueryTest {
 
 		sql = "select * from syn1 a where isNaN(doubletype)";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.allowJoins(true).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
 		// call under test
 		List<ColumnModel> schema = query.getSchemaOfSelect();
 		List<ColumnModel> expected = Arrays.asList(

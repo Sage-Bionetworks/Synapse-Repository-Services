@@ -49,15 +49,10 @@ public class TableIndexDescription implements IndexDescription {
 	public EntityType getTableType() {
 		return EntityType.table;
 	}
-
-	@Override
-	public boolean isEtagColumnIncluded() {
-		return false;
-	}
 	
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtags) {
-		if(!SqlType.query.equals(type)) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtags) {
+		if(!SqlContext.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for tables");
 		}
 		return Arrays.asList(ROW_ID, ROW_VERSION);

@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -22,9 +23,8 @@ public class SqlQueryBuilder {
 	private List<FacetColumnRequest> selectedFacets;
 	private List<QueryFilter> additionalFilters;
 	private Long userId;
-	// Joins are not allowed by default.
-	private boolean allowJoins = false;
 	private IndexDescription indexDescription;
+	private SqlContext sqlContext;
 	
 	/**
 	 * Start with the SQL.
@@ -102,15 +102,8 @@ public class SqlQueryBuilder {
 		return this;
 	}
 	
-	/**
-	 * AllowJoins is false by default. If allowJions is false and the SQL contains a
-	 * JOIN, then an IllegalArgumentException will be thrown.
-	 * 
-	 * @param allowJoins
-	 * @return
-	 */
-	public SqlQueryBuilder allowJoins(boolean allowJoins) {
-		this.allowJoins = allowJoins;
+	public SqlQueryBuilder sqlContext(SqlContext sqlContext) {
+		this.sqlContext = sqlContext;
 		return this;
 	}
 	
@@ -126,7 +119,7 @@ public class SqlQueryBuilder {
 
 	public SqlQuery build(){
 		return new SqlQuery(model, schemaProvider, overrideOffset, overrideLimit, maxBytesPerPage, sortList, includeEntityEtag,
-				selectedFacets, additionalFilters, userId, allowJoins, indexDescription);
+				selectedFacets, additionalFilters, userId, indexDescription, sqlContext);
 	}
 
 

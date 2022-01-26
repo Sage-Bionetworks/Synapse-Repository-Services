@@ -93,7 +93,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.query, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, true);
 		assertEquals(Arrays.asList(ROW_ID, ROW_VERSION), result);
 	}
 	
@@ -105,7 +105,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.build, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, true);
 		assertEquals(Arrays.asList("_A0.ROW_BENEFACTOR", "_A1.ROW_BENEFACTOR"), result);
 	}
 	

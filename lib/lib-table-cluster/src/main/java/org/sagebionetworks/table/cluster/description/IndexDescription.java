@@ -35,18 +35,14 @@ public interface IndexDescription {
 	 */
 	List<BenefactorDescription> getBenefactors();
 	
-	
+
 	/**
-	 * Does this table/view include an etag column.
-	 * @return
+	 * Provide the column names that should be added to the select statement for the given context.
+	 * @param context
+	 * @param includeEtag
+	 * @return Return an empty list if nothing should be added.
 	 */
-	boolean isEtagColumnIncluded();
-	
-	/**
-	 * The list of column names to add to the select statement.
-	 * @return
-	 */
-	List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag);
+	List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag);
 	
 
 }

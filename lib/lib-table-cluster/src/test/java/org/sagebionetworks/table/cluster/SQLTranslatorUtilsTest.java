@@ -57,7 +57,6 @@ import org.sagebionetworks.table.cluster.columntranslation.RowMetadataColumnTran
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
@@ -2927,30 +2926,6 @@ public class SQLTranslatorUtilsTest {
 		expected.setId(null);
 		// call under test
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
-	}
-	
-	@Test
-	public void testGetSqlTypeWithTableIdMatachsFromClause() {
-		IdAndVersion tableId = IdAndVersion.parse("syn111");
-		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn111"));
-		// call under test
-		assertEquals(SqlType.query, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
-	}
-	
-	@Test
-	public void testGetSqlTypeWithNoMatch() {
-		IdAndVersion tableId = IdAndVersion.parse("syn111");
-		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"));
-		// call under test
-		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
-	}
-	
-	@Test
-	public void testGetSqlTypeWithMultipleTablesInFrom() {
-		IdAndVersion tableId = IdAndVersion.parse("syn111");
-		List<IdAndVersion> fromClauseIds = Arrays.asList(IdAndVersion.parse("syn222"), IdAndVersion.parse("syn333"));
-		// call under test
-		assertEquals(SqlType.build, SQLTranslatorUtils.getSqlType(tableId, fromClauseIds));
 	}
 	
 	@Test

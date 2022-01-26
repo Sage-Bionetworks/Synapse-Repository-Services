@@ -79,20 +79,15 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public boolean isEtagColumnIncluded() {
-		return false;
-	}
-
-	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
-		ValidateArgument.required(type, "SqlType");
-		switch (type) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag) {
+		ValidateArgument.required(context, "SqlContext");
+		switch (context) {
 		case build:
 			return buildColumnsToAddToSelect;
 		case query:
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		default:
-			throw new IllegalArgumentException("Unknown type: " + type);
+			throw new IllegalArgumentException("Unknown context: " + context);
 		}
 	}
 
