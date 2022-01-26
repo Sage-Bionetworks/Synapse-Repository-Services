@@ -442,5 +442,30 @@ public class DatasetIntegrationTest {
 				MAX_WAIT
 		);
 	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7076
+	@Test
+	public void testDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
+		
+		List<DatasetItem> items = null;
+		
+		Dataset dataset = asyncHelper.createDataset(userInfo, 
+			new Dataset().setParentId(project.getId())
+				.setName("aDataset")
+				.setColumnIds(Arrays.asList(stringColumn.getId()))
+				.setItems(items)
+		);
+		
+		// Query the dataset
+		Query query = new Query();
+		query.setSql("select * from " + dataset.getId());
+		query.setIncludeEntityEtag(true);
+		
+		List<Row> expectedRows = Collections.emptyList();
+		
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+	}
 
 }
