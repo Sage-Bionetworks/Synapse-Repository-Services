@@ -4715,6 +4715,27 @@ public class NodeDAOImplTest {
 		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(itemsV2, fetched);
 	}
+	
+	@Test
+	public void testGetDatasetItemsWithNoItems() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		List<DatasetItem> items = null;
+		toDelete.add(project.getId());
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+		assertEquals(items, dataset.getItems());
+		// Call under test
+		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		assertEquals(Collections.emptyList(), fetched);
+	}
 
 	@Test
 	public void testCreateTableWithSearchFlag() {
@@ -4787,6 +4808,8 @@ public class NodeDAOImplTest {
 			nodeDao.getDatasetItems(datasetId);
 		});
 	}
+	
+	
 	
 	@Test
 	public void testCreateAndGetMaterializedView() {
