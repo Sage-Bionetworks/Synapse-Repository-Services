@@ -1549,7 +1549,7 @@ public class EntityController {
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY + "/id" }, method = RequestMethod.GET, params = { UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
+	@RequestMapping(value = { UrlHelpers.ENTITY_DOCKER_REPO_ID }, method = RequestMethod.GET, params = { UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
 	public @ResponseBody EntityId getEntityIdByDockerRepositoryName(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME) String repositoryName) throws NotFoundException {
