@@ -2213,6 +2213,15 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
+	public void testAddDatasetItemsToDownloadListWithEmpty() {
+		List<DatasetItem> toAdd = Collections.emptyList();
+		
+		// call under test
+		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
+		assertEquals(0L, count);
+	}
+	
+	@Test
 	public void testGetItemManifestDetailsWithVersionNumber() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName(String.join("-", "project", "" + 1));

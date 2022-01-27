@@ -445,7 +445,7 @@ public class DatasetIntegrationTest {
 	
 	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7076
 	@Test
-	public void testDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
+	public void testQueryDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
 		
 		List<DatasetItem> items = null;
 		
