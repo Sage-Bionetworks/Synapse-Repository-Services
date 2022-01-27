@@ -1096,6 +1096,7 @@ public class UrlHelpers {
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
 	public static final String ENTITY_ID_DOCKER_TAG = ENTITY_ID+"/dockerTag";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
+	public static final String ENTITY_DOCKER_REPO_ID = ENTITY + "/dockerRepo/id";
 	
 	public static final String PARAM_DOCKER_REPOSITORY_NAME = "repositoryName";
 

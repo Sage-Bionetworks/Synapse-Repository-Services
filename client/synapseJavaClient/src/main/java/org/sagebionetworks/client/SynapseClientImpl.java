@@ -5268,7 +5268,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public EntityId getEntityIdForDockerRepositoryName(String repositoryName) throws SynapseException {
 		ValidateArgument.required(repositoryName, "repositoryName");
-		String url = ENTITY+"/id?repositoryName="+repositoryName;
+		String url = ENTITY+"/dockerRepo/id?repositoryName="+repositoryName;
 		return getJSONEntity(getRepoEndpoint(), url, EntityId.class);
 	}
 	
