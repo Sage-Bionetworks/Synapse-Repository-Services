@@ -1,19 +1,24 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
@@ -23,6 +28,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -38,91 +44,109 @@ import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
  * @author John
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AdministrationServiceImplTest {
 
 	@Mock
-	ObjectTypeSerializer mockObjectTypeSerializer;
+	private AuthenticationManager mockAuthManager;
 	@Mock
-	UserManager mockUserManager;
+	private ObjectTypeSerializer mockObjectTypeSerializer;
 	@Mock
-	StackStatusManager mockStackStatusManager;
+	private UserManager mockUserManager;
 	@Mock
-	MessageSyndication mockMessageSyndication;
+	private StackStatusManager mockStackStatusManager;
 	@Mock
-	DBOChangeDAO mockChangeDAO;
+	private MessageSyndication mockMessageSyndication;
 	@Mock
-	IdGenerator mockIdGenerator;
+	private DBOChangeDAO mockChangeDAO;
 	@Mock
-	PasswordValidator mockPasswordValidator;
+	private IdGenerator mockIdGenerator;
+	@Mock
+	private PasswordValidator mockPasswordValidator;
 
 	@InjectMocks
-	AdministrationServiceImpl adminService;
+	private AdministrationServiceImpl adminService;
 	
-	Long nonAdminUserId = 98345L;
-	UserInfo nonAdmin;
-	Long adminUserId = 842059834L;
-	UserInfo admin;
-	String exportScript;
+	private Long nonAdminUserId = 98345L;
+	private UserInfo nonAdmin;
+	private Long adminUserId = 842059834L;
+	private UserInfo admin;
+	private String exportScript;
 	
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException{
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
-		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
-		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
-		exportScript = "the export script";
-		when(mockIdGenerator.createRestoreScript()).thenReturn(exportScript);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testListChangeMessagesUnauthorized() throws DatastoreException, NotFoundException{
-		adminService.listChangeMessages(nonAdminUserId, 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {			
+			adminService.listChangeMessages(nonAdminUserId, 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
+		});
 	}
 
 	@Test 
 	public void testListChangeMessagesAuthorized() throws DatastoreException, NotFoundException{
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		adminService.listChangeMessages(adminUserId, 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testRebroadcastChangeMessagesToQueueUnauthorized() throws DatastoreException, NotFoundException{
-		adminService.rebroadcastChangeMessagesToQueue(nonAdminUserId, "queuename", 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {
+			adminService.rebroadcastChangeMessagesToQueue(nonAdminUserId, "queuename", 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
+		});
 	}
 
 	@Test 
 	public void testRebroadcastChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		adminService.rebroadcastChangeMessagesToQueue(adminUserId, "queuename", 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testReFireChangeMessagesToQueueUnauthorized() throws DatastoreException, NotFoundException{
-		adminService.reFireChangeMessages(nonAdminUserId, 0L, Long.MAX_VALUE);
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {
+			adminService.reFireChangeMessages(nonAdminUserId, 0L, Long.MAX_VALUE);
+		});
 	}
 
 	@Test 
 	public void testReFireChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		adminService.reFireChangeMessages(adminUserId, 0L, Long.MAX_VALUE);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testGetCurrentChangeNumberUnauthorized() throws DatastoreException, NotFoundException{
-		adminService.getCurrentChangeNumber(nonAdminUserId);
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {
+			adminService.getCurrentChangeNumber(nonAdminUserId);
+		});
 	}
 
 	@Test 
 	public void testGetCurrentChangeNumberAuthorized() throws DatastoreException, NotFoundException{
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		adminService.getCurrentChangeNumber(adminUserId);
 	}
 
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCreateOrUpdateChangeMessagesUnauthorized() throws UnauthorizedException, NotFoundException {
-		adminService.createOrUpdateChangeMessages(nonAdminUserId, new ChangeMessages());
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {
+			adminService.createOrUpdateChangeMessages(nonAdminUserId, new ChangeMessages());
+		});
 	}
 
 	@Test
 	public void testCreateOrUpdateChangeMessagesAuthorized() throws UnauthorizedException, NotFoundException {
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		ChangeMessages batch =  new ChangeMessages();
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
@@ -135,6 +159,9 @@ public class AdministrationServiceImplTest {
 	
 	@Test
 	public void testCreateIdGeneratorExport() {
+		exportScript = "exportScript";
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
+		when(mockIdGenerator.createRestoreScript()).thenReturn(exportScript);
 		// call under test
 		IdGeneratorExport export = this.adminService.createIdGeneratorExport(adminUserId);
 		assertNotNull(export);
@@ -142,18 +169,54 @@ public class AdministrationServiceImplTest {
 	}
 	
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCreateIdGeneratorExportNonAdmin() {
-		// call under test
-		this.adminService.createIdGeneratorExport(nonAdminUserId);
+		when(mockUserManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdmin);
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			this.adminService.createIdGeneratorExport(nonAdminUserId);
+		});
 	}
 
-	@Test (expected = InvalidPasswordException.class)
+	@Test
 	public void testCreateOrGetTestUser_bannedPassword(){
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
 		String bannedPassword = "hunter2";
 		doThrow(InvalidPasswordException.class).when(mockPasswordValidator).validatePassword(bannedPassword);
 		NewIntegrationTestUser testUser = new NewIntegrationTestUser();
 		testUser.setPassword(bannedPassword);
-		adminService.createOrGetTestUser(adminUserId, testUser);
+		
+		assertThrows(InvalidPasswordException.class, () -> {
+			adminService.createOrGetTestUser(adminUserId, testUser);
+		});
+	}
+	
+	@Test
+	public void testGetUserAccessToken() {
+		LoginResponse expected = new LoginResponse().setAccessToken("token");
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		when(mockAuthManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(expected);
+		
+		// Call under test
+		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId);
+		
+		assertEquals(expected, result);
+		
+		verify(mockUserManager).getUserInfo(adminUserId);
+		verify(mockAuthManager).loginWithNoPasswordCheck(nonAdminUserId, null);
+	}
+	
+	@Test
+	public void testGetUserAccessTokenUnauthorized() {
+		
+		when(mockUserManager.getUserInfo(any())).thenReturn(nonAdmin);
+		
+		assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			adminService.getUserAccessToken(adminUserId, nonAdminUserId);
+		});
+		
+		verify(mockUserManager).getUserInfo(adminUserId);
 	}
 }

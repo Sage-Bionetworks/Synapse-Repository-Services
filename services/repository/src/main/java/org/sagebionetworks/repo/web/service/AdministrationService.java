@@ -157,4 +157,13 @@ public interface AdministrationService {
 	 */
 	FeatureStatus setFeatureStatus(Long userId, Feature feature, FeatureStatus status);
 
+	/**
+	 * Obtain a login response containing an access token for the given target user
+	 *
+	 * @param userId
+	 * @param targetUserId
+	 * @return
+	 */
+	public LoginResponse getUserAccessToken(Long userId, Long targetUserId);
+
 }

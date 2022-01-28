@@ -1219,6 +1219,16 @@ public class UrlHelpers {
 	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";
 	
 	/**
+	 * Obtains the administrator access token to be used as a bearer token (e.g. during integration tests)
+	 */
+	public static final String ADMIN_TOKEN = ADMIN + "/token";
+	
+	/**
+	 * Request paramter to specify a target user id
+	 */
+	public static final String PARAM_TARGET_USER_ID = "targetUserId";
+	
+	/**
 	 * Request parameter to get the next page of a paginated query response.
 	 */
 	public static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken";
