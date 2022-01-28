@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.worker.AsyncJobProgressCallback;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -41,7 +42,7 @@ public class TableQueryNextPageWorker implements AsyncJobRunner<QueryNextPageTok
 	public QueryResult run(String jobId, UserInfo user, QueryNextPageToken request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
 			return tableQueryManger.queryNextPage(jobProgressCallback, user, request);
-		} catch (TableUnavailableException e) {
+		} catch (TableUnavailableException | LockUnavilableException e) {
 			// This just means we cannot do this right now.  We can try again later.
 			jobProgressCallback.updateProgress("Waiting for the table index to become available...", 0L, 100L);
 			throw new RecoverableMessageException();
