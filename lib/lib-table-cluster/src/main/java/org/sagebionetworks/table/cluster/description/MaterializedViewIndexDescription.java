@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MaterializedViewIndexDescription implements IndexDescription {
@@ -20,6 +21,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<String> buildColumnsToAddToSelect;
+	private final List<IndexDescription> dependencies;
 
 	/**
 	 * 
@@ -30,6 +32,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
+		this.dependencies = dependencies;
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
 		for (int i = 0; i < dependencies.size(); i++) {
@@ -79,26 +82,26 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public boolean isEtagColumnIncluded() {
-		return false;
-	}
-
-	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
-		ValidateArgument.required(type, "SqlType");
-		switch (type) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag) {
+		ValidateArgument.required(context, "SqlContext");
+		switch (context) {
 		case build:
 			return buildColumnsToAddToSelect;
 		case query:
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		default:
-			throw new IllegalArgumentException("Unknown type: " + type);
+			throw new IllegalArgumentException("Unknown context: " + context);
 		}
+	}
+	
+	@Override
+	public List<IndexDescription> getDependencies() {
+		return dependencies;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorDescriptions, idAndVersion);
+		return Objects.hash(benefactorDescriptions, buildColumnsToAddToSelect, dependencies, idAndVersion);
 	}
 
 	@Override
@@ -111,13 +114,15 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		}
 		MaterializedViewIndexDescription other = (MaterializedViewIndexDescription) obj;
 		return Objects.equals(benefactorDescriptions, other.benefactorDescriptions)
-				&& Objects.equals(idAndVersion, other.idAndVersion);
+				&& Objects.equals(buildColumnsToAddToSelect, other.buildColumnsToAddToSelect)
+				&& Objects.equals(dependencies, other.dependencies) && Objects.equals(idAndVersion, other.idAndVersion);
 	}
 
 	@Override
 	public String toString() {
 		return "MaterializedViewIndexDescription [idAndVersion=" + idAndVersion + ", benefactorDescriptions="
-				+ benefactorDescriptions + "]";
+				+ benefactorDescriptions + ", buildColumnsToAddToSelect=" + buildColumnsToAddToSelect
+				+ ", dependencies=" + dependencies + "]";
 	}
 
 }

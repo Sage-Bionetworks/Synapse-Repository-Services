@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 /**
  * Provides information about the index of a table/view.
@@ -35,18 +36,20 @@ public interface IndexDescription {
 	 */
 	List<BenefactorDescription> getBenefactors();
 	
+
+	/**
+	 * Provide the column names that should be added to the select statement for the given context.
+	 * @param context
+	 * @param includeEtag
+	 * @return Return an empty list if nothing should be added.
+	 */
+	List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag);
 	
 	/**
-	 * Does this table/view include an etag column.
+	 * Get the dependencies of this Index.
 	 * @return
 	 */
-	boolean isEtagColumnIncluded();
-	
-	/**
-	 * The list of column names to add to the select statement.
-	 * @return
-	 */
-	List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag);
+	List<IndexDescription> getDependencies();
 	
 
 }

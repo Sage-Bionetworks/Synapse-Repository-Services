@@ -28,6 +28,7 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
@@ -118,8 +119,10 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param definingQuery
 	 */
 	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
-		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
-				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
+		// in this context, nothing is known about the materialized view's dependencies so an empty list is used.
+		List<IndexDescription> dependencies = Collections.emptyList();
+		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, dependencies))
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
@@ -177,7 +180,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
-		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).allowJoins(true)
+		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 				.indexDescription(indexDescription).build();
 
 		// schema of the current version is dynamic, while the schema of a snapshot is

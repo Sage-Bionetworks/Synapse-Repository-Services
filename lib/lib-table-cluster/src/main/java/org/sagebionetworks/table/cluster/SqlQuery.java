@@ -17,12 +17,12 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -109,7 +109,9 @@ public class SqlQuery {
 	private final TableAndColumnMapper tableAndColumnMapper;
 	private final List<ColumnModel> schemaOfSelect;
 	
-	private final IndexDescription indexDescrption;
+	private final IndexDescription indexDescription;
+	
+	private final SqlContext sqlContext;
 
 	/**
 	 * @param tableId
@@ -128,15 +130,20 @@ public class SqlQuery {
 			List<FacetColumnRequest> selectedFacets,
 			List<QueryFilter> additionalFilters,
 			Long userId,
-			boolean allowJoins,
-			IndexDescription indexDescription
+			IndexDescription indexDescription,
+			SqlContext sqlContextIn
 			) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.model = parsedModel;
 		this.schemaProvider = schemaProvider;
+		if(sqlContextIn == null) {
+			this.sqlContext = SqlContext.query;
+		}else {
+			this.sqlContext = sqlContextIn;
+		}
 		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
-		if(!allowJoins && this.tableAndColumnMapper.getTableIds().size() > 1) {
+		if(this.tableAndColumnMapper.getTableIds().size() > 1 && !SqlContext.build.equals(this.sqlContext)) {
 			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 		}
 		this.maxBytesPerPage = maxBytesPerPage;
@@ -144,9 +151,7 @@ public class SqlQuery {
 		this.overrideLimit = overrideLimit;
 		this.overrideOffset = overrideOffset;
 		this.userId = userId;
-		this.indexDescrption = indexDescription;
-		
-		SqlType sqlType = SQLTranslatorUtils.getSqlType(indexDescription.getIdAndVersion(), tableAndColumnMapper.getTableIds());
+		this.indexDescription = indexDescription;
 		
 		// only a view can include the etag
 		if(EntityTypeUtils.isViewType(indexDescription.getTableType()) && includeEntityEtag != null){
@@ -207,6 +212,7 @@ public class SqlQuery {
 		// Create a copy of the paginated model.
 		try {
 			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
+			transformedModel.setSqlContext(this.sqlContext);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -214,12 +220,12 @@ public class SqlQuery {
 			this.includesRowIdAndVersion = false;
 		} else {
 			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
-					indexDescrption.getColumnNamesToAddToSelect(sqlType, this.includeEntityEtag));
+					indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag));
 			this.includesRowIdAndVersion = true;
 		}
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
-		this.outputSQL = transformedModel.toSql();
+		this.outputSQL = transformedModel.toSql();		
 	}
 	
 	/**
@@ -371,7 +377,7 @@ public class SqlQuery {
 	 * @return
 	 */
 	public EntityType getTableType(){
-		return this.indexDescrption.getTableType();
+		return this.indexDescription.getTableType();
 	}
 
 	public boolean isIncludesRowIdAndVersion() {
@@ -403,7 +409,11 @@ public class SqlQuery {
 	}
 	
 	public IndexDescription getIndexDescription() {
-		return this.indexDescrption;
+		return this.indexDescription;
+	}
+	
+	public SqlContext getSqlContext() {
+		return this.sqlContext;
 	}
 	
 }

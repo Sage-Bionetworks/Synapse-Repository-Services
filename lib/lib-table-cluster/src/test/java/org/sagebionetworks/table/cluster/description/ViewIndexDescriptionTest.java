@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class ViewIndexDescriptionTest {
 
@@ -58,7 +59,7 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		boolean includeEtag = true;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_ETAG), result);
 	}
 	
@@ -67,7 +68,7 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		boolean includeEtag = false;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
 	}
 	
@@ -76,7 +77,7 @@ public class ViewIndexDescriptionTest {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			vid.getColumnNamesToAddToSelect(SqlType.build, true);
+			vid.getColumnNamesToAddToSelect(SqlContext.build, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
 	}
@@ -88,5 +89,11 @@ public class ViewIndexDescriptionTest {
 			vid.getColumnNamesToAddToSelect(null, true);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
+	}
+	
+	@Test
+	public void testGetDependencies() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		assertEquals(Collections.emptyList(), vid.getDependencies());
 	}
 }

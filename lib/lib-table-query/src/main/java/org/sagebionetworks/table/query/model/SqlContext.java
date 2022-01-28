@@ -1,9 +1,9 @@
-package org.sagebionetworks.table.cluster.description;
+package org.sagebionetworks.table.query.model;
 
 /**
- * An enumeration to indicates the type of SQL that is being processed.
+ * An enumeration to indicates the context of SQL that is being processed.
  */
-public enum SqlType {
+public enum SqlContext {
 
 	/**
 	 * Indicates that the SQL is used to build a table/view. This type is set when

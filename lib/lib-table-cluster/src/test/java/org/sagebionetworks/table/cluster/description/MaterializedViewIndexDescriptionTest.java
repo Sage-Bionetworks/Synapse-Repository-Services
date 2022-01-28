@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class MaterializedViewIndexDescriptionTest {
 
@@ -93,7 +94,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.query, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, true);
 		assertEquals(Arrays.asList(ROW_ID, ROW_VERSION), result);
 	}
 	
@@ -105,7 +106,7 @@ public class MaterializedViewIndexDescriptionTest {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlType.build, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, true);
 		assertEquals(Arrays.asList("_A0.ROW_BENEFACTOR", "_A1.ROW_BENEFACTOR"), result);
 	}
 	
@@ -119,5 +120,15 @@ public class MaterializedViewIndexDescriptionTest {
 		assertThrows(IllegalArgumentException.class, ()->{
 			mid.getColumnNamesToAddToSelect(null, true);
 		});
+	}
+	
+	@Test
+	public void testGetDependencies() {
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		assertEquals(dependencies, mid.getDependencies());
 	}
 }
