@@ -18,20 +18,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.repo.model.OAuthErrorResponse;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -55,8 +51,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
-import org.sagebionetworks.repo.web.OAuthErrorCode;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -66,52 +60,26 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
-public class ITOpenIDConnectTest {
+public class ITOpenIDConnectTest extends BaseITTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
 	private static SynapseAdminClient synapseAnonymous;
-	private static Long user1ToDelete;
-	private static Long user2ToDelete;
-	private static StackConfiguration config;
 	private static SimpleHttpClient simpleClient;
 
 	private String clientToDelete;
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		config = StackConfigurationSingleton.singleton();
-		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
-		
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
 
 		simpleClient = new SimpleHttpClientImpl();
-	}
-	
-	@AfterAll
-	public static void afterClass() throws Exception {
-		try {
-			if (user1ToDelete!=null) adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
-		try {
-			if (user2ToDelete!=null) adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseException e) { }
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		try {
 			if (clientToDelete!=null) {
-				synapseOne.deleteOAuthClient(clientToDelete);
+				synapse.deleteOAuthClient(clientToDelete);
 			}
 		} catch (SynapseException e) {
 			// already gone
@@ -122,7 +90,7 @@ public class ITOpenIDConnectTest {
 		OAuthClient client = new OAuthClient();
 		client.setClient_name("some client");
 		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		client = synapseOne.createOAuthClient(client);
+		client = synapse.createOAuthClient(client);
 		clientToDelete = client.getClient_id();
 		if (verified) {
 			return adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
@@ -137,7 +105,7 @@ public class ITOpenIDConnectTest {
 
 		assertFalse(client.getVerified());
 		
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 		assertEquals(client.getClient_id(), secret.getClient_id());
 		assertNotNull(secret.getClient_secret());
 		
@@ -169,7 +137,7 @@ public class ITOpenIDConnectTest {
 		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 		
 		// Re-read the client to fetch the latest etag (changed above when the secret was generated)
-		client = synapseOne.getOAuthClient(client.getClient_id());
+		client = synapse.getOAuthClient(client.getClient_id());
 		// Verify the client
 		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 		
@@ -183,7 +151,7 @@ public class ITOpenIDConnectTest {
 		
 		// The client is not verified, we cannot authorize the request
 		ex = assertThrows(SynapseForbiddenException.class, () -> {
-			synapseOne.authorizeClient(authorizationRequest);
+			synapse.authorizeClient(authorizationRequest);
 		});
 		
 		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
@@ -192,7 +160,7 @@ public class ITOpenIDConnectTest {
 		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 		
 		// We should now be able to authorize the request
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 		
 		// Un-verify the client
 		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), false);
@@ -261,7 +229,7 @@ public class ITOpenIDConnectTest {
 		
 		OAuthClient client = setUpOAuthClient(false);
 		
-		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertEquals(client, synapse.getOAuthClient(client.getClient_id()));
 		assertFalse(client.getVerified());
 		
 		// Sets the verified status of the client (only admins and ACT can do this)
@@ -269,13 +237,13 @@ public class ITOpenIDConnectTest {
 		assertTrue(client.getVerified());
 		
 		// Re-read the client as the user
-		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertEquals(client, synapse.getOAuthClient(client.getClient_id()));
 		assertTrue(client.getVerified());
 		
-		OAuthClientList clientList = synapseOne.listOAuthClients(null);
+		OAuthClientList clientList = synapse.listOAuthClients(null);
 		assertEquals(client, clientList.getResults().get(0));
 		
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 		assertEquals(client.getClient_id(), secret.getClient_id());
 		assertNotNull(secret.getClient_secret());
 				
@@ -307,12 +275,12 @@ public class ITOpenIDConnectTest {
 		assertFalse(description.getScope().isEmpty());
 		
 		// We have not yet authorized the client
-		assertFalse(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		assertFalse(synapse.hasUserAuthorizedClient(authorizationRequest));
 		
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 		
 		// Now we HAVE authorized the client
-		assertTrue(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		assertTrue(synapse.hasUserAuthorizedClient(authorizationRequest));
 		
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
@@ -327,7 +295,7 @@ public class ITOpenIDConnectTest {
 		// we can also authorize the client using client_secret_post
 		
 		// first, get a new authorization code
-		oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 		// now authorize the client
 		{
 			SimpleHttpRequest request = new SimpleHttpRequest();
@@ -348,7 +316,7 @@ public class ITOpenIDConnectTest {
 		}
 
 		Jwt<JwsHeader, Claims> parsedIdToken = JSONWebTokenHelper.parseJWT(tokenResponse.getId_token(), jsonWebKeySet);
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		String myId = myProfile.getOwnerId();
 		Claims idClaims = parsedIdToken.getBody();
 		assertEquals(myId, idClaims.get("userid", String.class));
@@ -384,9 +352,9 @@ public class ITOpenIDConnectTest {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
 		
-		OAuthClient retrieved = synapseOne.getOAuthClient(client.getClient_id());
+		OAuthClient retrieved = synapse.getOAuthClient(client.getClient_id());
 		retrieved.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
-		OAuthClient updated = synapseOne.updateOAuthClient(retrieved);
+		OAuthClient updated = synapse.updateOAuthClient(retrieved);
 		assertEquals(retrieved.getClient_name(), updated.getClient_name());
 		
 		// Note, we use a bearer token to authorize the client 
@@ -430,11 +398,11 @@ public class ITOpenIDConnectTest {
 	@Test
 	public void testRefreshTokenGrantTypeRoundTrip() throws Exception {
 		OAuthClient client = setUpOAuthClient(true);
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
 
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
@@ -511,29 +479,29 @@ public class ITOpenIDConnectTest {
 
 		// Audit clients -- there should only be one active client
 		// Call under test
-		OAuthClientAuthorizationHistoryList authzHistory = synapseOne.getClientAuthorizationHistory(null);
+		OAuthClientAuthorizationHistoryList authzHistory = synapse.getClientAuthorizationHistory(null);
 		assertEquals(1, authzHistory.getResults().size());
 		assertNull(authzHistory.getNextPageToken());
 		assertEquals(client.getClient_id(), authzHistory.getResults().get(0).getClient().getClient_id());
 
 		// Audit tokens -- there should only be one token for the sole active client
 		// Call under test
-		OAuthRefreshTokenInformationList tokenList = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		OAuthRefreshTokenInformationList tokenList = synapse.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
 		assertEquals(1, tokenList.getResults().size());
 		assertNull(tokenList.getNextPageToken());
-		assertEquals(synapseOne.getMyProfile().getOwnerId(), tokenList.getResults().get(0).getPrincipalId());
+		assertEquals(synapse.getMyProfile().getOwnerId(), tokenList.getResults().get(0).getPrincipalId());
 		assertEquals(client.getClient_id(), tokenList.getResults().get(0).getClientId());
 		assertEquals(authorizationRequest.getClaims(), tokenList.getResults().get(0).getClaims());
 
 		// Retrieving the refresh token metadata should yield the same result
-		OAuthRefreshTokenInformation metadata = synapseOne.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
+		OAuthRefreshTokenInformation metadata = synapse.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
 		assertEquals(tokenList.getResults().get(0), metadata);
 
 		// Rename the refresh token
 		metadata.setName("a new refresh token name");
 		// Call under test
-		synapseOne.updateRefreshTokenMetadata(metadata);
-		OAuthRefreshTokenInformation newMetadata = synapseOne.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
+		synapse.updateRefreshTokenMetadata(metadata);
+		OAuthRefreshTokenInformation newMetadata = synapse.getRefreshTokenMetadata(tokenList.getResults().get(0).getTokenId());
 
 		assertEquals(metadata.getName(), newMetadata.getName());
 
@@ -546,7 +514,7 @@ public class ITOpenIDConnectTest {
 		}
 
 		// Revoke the refresh token
-		synapseOne.revokeRefreshToken(metadata.getTokenId());
+		synapse.revokeRefreshToken(metadata.getTokenId());
 
 		// Client should be unable to use access token
 		try {
@@ -576,11 +544,11 @@ public class ITOpenIDConnectTest {
 	public void testRevokeAllTokensFromClient() throws Exception {
 		// START Set up, use authorization code
 		OAuthClient client = setUpOAuthClient(true);
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
 
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
@@ -593,30 +561,30 @@ public class ITOpenIDConnectTest {
 		}
 		// END Set up. We now have a refresh token
 
-		OAuthRefreshTokenInformationList tokens = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		OAuthRefreshTokenInformationList tokens = synapse.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
 		String tokenId = tokens.getResults().get(0).getTokenId();
 
 		// Test revoking all refresh tokens from a client
-		assertTrue(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		assertTrue(synapse.hasUserAuthorizedClient(authorizationRequest));
 
 		// Call under test
-		synapseOne.revokeMyRefreshTokensFromClient(client.getClient_id());
+		synapse.revokeMyRefreshTokensFromClient(client.getClient_id());
 
-		assertFalse(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		assertFalse(synapse.hasUserAuthorizedClient(authorizationRequest));
 
 		assertThrows(SynapseNotFoundException.class, () ->
-				synapseOne.getRefreshTokenMetadata(tokenId));
+				synapse.getRefreshTokenMetadata(tokenId));
 	}
 
 	@Test
 	public void testRevokeTokensViaClient() throws Exception {
 		// START Set up, use authorization code
 		OAuthClient client = setUpOAuthClient(true);
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 
 		OIDCAuthorizationRequest authorizationRequest = setUpAuthorizationRequest(client);
 
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapse.authorizeClient(authorizationRequest);
 
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
@@ -629,7 +597,7 @@ public class ITOpenIDConnectTest {
 		}
 		// END Set up. We now have a refresh token
 
-		OAuthRefreshTokenInformationList tokens = synapseOne.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
+		OAuthRefreshTokenInformationList tokens = synapse.getRefreshTokenMetadataForAuthorizedClient(client.getClient_id(), null);
 		String tokenId = tokens.getResults().get(0).getTokenId();
 
 		// Test revoking a token as a client
@@ -645,6 +613,6 @@ public class ITOpenIDConnectTest {
 		}
 
 		assertThrows(SynapseNotFoundException.class, () ->
-				synapseOne.getRefreshTokenMetadata(tokenId));
+				synapse.getRefreshTokenMetadata(tokenId));
 	}
 }

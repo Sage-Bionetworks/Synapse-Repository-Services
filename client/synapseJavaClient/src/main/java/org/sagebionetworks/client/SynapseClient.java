@@ -4028,5 +4028,4 @@ public interface SynapseClient extends BaseClient {
 	 */
 	FileHandleRestoreResponse getFileHandleRestoreResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
-
 }

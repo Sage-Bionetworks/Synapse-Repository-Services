@@ -409,4 +409,11 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		String uri = ADMIN + "/feature/" + feature.name() + "/status";
 		return postJSONEntity(getRepoEndpoint(), uri, status, FeatureStatus.class);
 	}
+	
+	@Override
+	public LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException {
+		ValidateArgument.required(targetUserId, "The targetUserId");
+		String uri = ADMIN + USER + "/" + targetUserId +"/token";
+		return getJSONEntity(getRepoEndpoint(), uri, LoginResponse.class);
+	}
 }

@@ -1,18 +1,15 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -26,11 +23,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @author deflaux
  */
-public class IT510SynapseJavaClientSearchTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
+public class IT510SynapseJavaClientSearchTest extends BaseITTest {
 	
 	private static final long MAX_WAIT_TIME_MS = 2*60*1000; // 2 min
 	
@@ -39,20 +32,10 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	private static Project project;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Only run this test if search is enabled.
-		Assume.assumeTrue(config.getSearchEnabled());
-		
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(config.getMigrationAdminUsername());
-		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		assumeTrue(config.getSearchEnabled());
 		
 		// Setup a project for this test.
 		project = new Project();
@@ -61,9 +44,8 @@ public class IT510SynapseJavaClientSearchTest {
 
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// There's nothing to do if search is disabled
 		if (!config.getSearchEnabled()) {
 			return;
@@ -72,8 +54,6 @@ public class IT510SynapseJavaClientSearchTest {
 		if (synapse != null && project != null) {
 			synapse.deleteEntity(project);
 		}
-		
-		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
@@ -108,7 +88,7 @@ public class IT510SynapseJavaClientSearchTest {
 			System.out.println("Waiting for entity to be published to the search index, id: "+id+"...");
 			Thread.sleep(2000);
 			long elapse = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for entity to be published to the search index, id: "+id,elapse < MAX_WAIT_TIME_MS);
+			assertTrue(elapse < MAX_WAIT_TIME_MS, "Timed out waiting for entity to be published to the search index, id: "+id);
 		}
 	}
 

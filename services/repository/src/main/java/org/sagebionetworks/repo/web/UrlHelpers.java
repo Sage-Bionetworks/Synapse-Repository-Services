@@ -1219,9 +1219,9 @@ public class UrlHelpers {
 	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";
 	
 	/**
-	 * Obtains the administrator access token to be used as a bearer token (e.g. during integration tests)
+	 * Obtains the access token of a user with the given id to be used as a bearer token (e.g. during integration tests)
 	 */
-	public static final String ADMIN_TOKEN = ADMIN + "/token";
+	public static final String ADMIN_USER_TOKEN = ADMIN_USER + ID + "/token";
 	
 	/**
 	 * Request paramter to specify a target user id

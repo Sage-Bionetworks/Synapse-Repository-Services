@@ -12,21 +12,16 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.springframework.http.HttpStatus;
 
-public class ITUnhandledException {
+public class ITUnhandledException extends BaseITTest {
 	
 	private static TempSynapseClient synapseClient;
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
-
 		// Set up admin.
 		synapseClient = new TempSynapseClient();
+		synapseClient.setBearerAuthorizationToken(adminSynapse.getAccessToken());
 		
-		synapseClient.setUsername(config.getMigrationAdminUsername());
-		synapseClient.setApiKey(config.getMigrationAdminAPIKey());
-
-
 		SynapseClientHelper.setEndpoints(synapseClient);
 	}
 	

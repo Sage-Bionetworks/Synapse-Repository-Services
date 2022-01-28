@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,10 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -53,12 +47,12 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 
-public class ITStorageLocation {
-	private static Long userToDelete;
+public class ITStorageLocation extends BaseITTest {
+	
 	private static String externalS3Bucket;
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
 	private static SynapseS3Client synapseS3Client;
 	private static File tmpDir;
 
@@ -70,17 +64,6 @@ public class ITStorageLocation {
 	public static void beforeClass() throws Exception {
 		StackConfiguration config = StackConfigurationSingleton.singleton();
 		externalS3Bucket = config.getExternalS3TestBucketName();
-
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 
 		// Make tmp dir.
@@ -89,7 +72,6 @@ public class ITStorageLocation {
 
 	@BeforeEach
 	public void before() throws SynapseException {
-		adminSynapse.clearAllLocks();
 		filesToDelete = new ArrayList<>();
 
 		// Create a test project which we will need.
@@ -113,12 +95,6 @@ public class ITStorageLocation {
 
 	@AfterAll
 	public static void afterClass() {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) {
-			// Ignore possible exceptions
-		}
-
 		tmpDir.delete();
 	}
 

@@ -8,15 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedIds;
@@ -39,26 +33,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 
-public class ITDiscussion {
+public class ITDiscussion extends BaseITTest {
 
 	private static final long TIMEOUT = 30 * 1000;
-	private static SynapseClient synapse;
-	private static SynapseAdminClient adminSynapse;
-	private static Long userToDelete;
 	private Project project;
 	private String projectId;
-
-	@BeforeAll
-	public static void beforeClass() throws SynapseException, JSONObjectAdapterException {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(config.getMigrationAdminUsername());
-		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-	}
 
 	@BeforeEach
 	public void before() throws SynapseException {
@@ -74,12 +53,7 @@ public class ITDiscussion {
 		if (project != null) adminSynapse.deleteEntity(project, true);
 		synapse.unsubscribeAll();
 	}
-
-	@AfterAll
-	public static void tearDown() throws SynapseException, JSONObjectAdapterException {
-		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
-	}
-
+	
 	@Test
 	public void testForum() throws SynapseException {
 		// create a forum

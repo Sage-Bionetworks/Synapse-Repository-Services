@@ -20,50 +20,22 @@ import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 
-public class ITStatistics {
+public class ITStatistics extends BaseITTest {
 
 	private static final int MONTHS_COUNT = 12;
-	private static SynapseAdminClient adminClient;
-	private static SynapseClient client;
-
-	private static Long userId;
 	
 	private Project project;
 
-	@BeforeAll
-	public static void beforeClass() throws Exception {
-		adminClient = new SynapseAdminClientImpl();
-		client = new SynapseClientImpl();
-		
-		SynapseClientHelper.setEndpoints(adminClient);
-		SynapseClientHelper.setEndpoints(client);
-
-		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminClient.clearAllLocks();
-		
-		// Associate the client with the user session
-		userId = SynapseClientHelper.createUser(adminClient, client);
-	}
-
 	@BeforeEach
 	public void before() throws SynapseException {
-		project = client.createEntity(new Project());
+		project = synapse.createEntity(new Project());
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		try {
-			adminClient.deleteEntity(project);
+			synapse.deleteEntity(project);
 		} catch (SynapseNotFoundException e) {
-		}
-	}
-
-	@AfterAll
-	public static void afterClass() throws Exception {
-		try {
-			adminClient.deleteUser(userId);
-		} catch (SynapseException e) {
 		}
 	}
 
@@ -76,7 +48,7 @@ public class ITStatistics {
 		request.setFileDownloads(true);
 		request.setFileUploads(true);
 
-		ObjectStatisticsResponse response = client.getStatistics(request);
+		ObjectStatisticsResponse response = synapse.getStatistics(request);
 		
 		assertNotNull(response);
 		assertEquals(project.getId(), response.getObjectId());

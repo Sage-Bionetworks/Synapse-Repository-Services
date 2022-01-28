@@ -1,7 +1,7 @@
 package org.sagebionetworks;
 
-import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,11 +14,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -39,12 +39,9 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 /**
  * Related to IT500SynapseJavaClient
  */
-public class IT501SynapseJavaClientMessagingTest {
+public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
-	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 
 	private static final Long LIMIT = 100L;
@@ -53,7 +50,6 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static final String MESSAGE_BODY_WITH_EXTENDED_CHARS = "G\u00E9rard Depardieum, Camille Saint-Sa\u00EBns and Myl\u00E8ne Demongeot";
 	private static final long MAX_MESSAGE_WAIT = 60 * 1000;
 
-	private static String oneId;
 	private static String twoId;
 
 	private static FileHandle oneToRuleThemAll;
@@ -66,20 +62,12 @@ public class IT501SynapseJavaClientMessagingTest {
 	private List<String> cleanup;
 	private static Project project;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
-		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		synapseOne = new SynapseClientImpl();
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
-		
+		// Create second user
 		synapseTwo = new SynapseClientImpl();
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	
-		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
 		
 		// Create a file handle to use with all the messages
@@ -96,12 +84,12 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		project = synapseOne.createEntity(new Project());
-		oneToRuleThemAll = synapseOne.multipartUpload(file, null, false, false);
+		project = synapse.createEntity(new Project());
+		oneToRuleThemAll = synapse.multipartUpload(file, null, false, false);
 	}
 	
 	@SuppressWarnings("serial")
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminSynapse.clearAllLocks();
 		cleanup = new ArrayList<String>();
@@ -109,19 +97,19 @@ public class IT501SynapseJavaClientMessagingTest {
 		oneToTwo = new MessageToUser();
 		oneToTwo.setFileHandleId(oneToRuleThemAll.getId());
 		oneToTwo.setRecipients(Collections.singleton(twoId));
-		oneToTwo = synapseOne.sendMessage(oneToTwo);
+		oneToTwo = synapse.sendMessage(oneToTwo);
 		cleanup.add(oneToTwo.getId());
 		
 		waitForMessage(synapseTwo, oneToTwo.getId());
 
 		twoToOne = new MessageToUser();
 		twoToOne.setFileHandleId(oneToRuleThemAll.getId());
-		twoToOne.setRecipients(Collections.singleton(oneId));
+		twoToOne.setRecipients(Collections.singleton(userToDelete.toString()));
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 		cleanup.add(twoToOne.getId());
 		
-		waitForMessage(synapseOne, twoToOne.getId());
+		waitForMessage(synapse, twoToOne.getId());
 
 		fileHandleIdWithExtendedChars = null;
 	}
@@ -155,7 +143,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		}
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id : cleanup) {
 			adminSynapse.deleteMessage(id);
@@ -169,15 +157,11 @@ public class IT501SynapseJavaClientMessagingTest {
 		} catch (SynapseException e) { }
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (SynapseException e) { }
-		
-		try {
-			adminSynapse.deleteUser(user1ToDelete);
 		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
@@ -190,7 +174,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	@SuppressWarnings("serial")
 	@Test
 	public void testGetInbox() throws Exception {
-		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+		PaginatedResults<MessageBundle> messages = synapse.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(1, messages.getResults().size());
 		assertEquals(twoToOne, messages.getResults().get(0).getMessage());
@@ -202,7 +186,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	@Test
 	public void testGetOutbox() throws Exception {
-		PaginatedResults<MessageToUser> messages = synapseOne.getOutbox(null,
+		PaginatedResults<MessageToUser> messages = synapse.getOutbox(null,
 				null, LIMIT, OFFSET);
 		assertEquals(1, messages.getResults().size());
 		assertEquals(oneToTwo, messages.getResults().get(0));
@@ -214,8 +198,8 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	@Test
 	public void testGetMessage() throws Exception {
-		assertEquals(oneToTwo, synapseOne.getMessage(oneToTwo.getId()));
-		assertEquals(twoToOne, synapseOne.getMessage(twoToOne.getId()));
+		assertEquals(oneToTwo, synapse.getMessage(oneToTwo.getId()));
+		assertEquals(twoToOne, synapse.getMessage(twoToOne.getId()));
 		
 		assertEquals(oneToTwo, synapseTwo.getMessage(oneToTwo.getId()));
 		assertEquals(twoToOne, synapseTwo.getMessage(twoToOne.getId()));
@@ -225,12 +209,12 @@ public class IT501SynapseJavaClientMessagingTest {
 	public void testForwardMessage() throws Exception {
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(twoToOne.getRecipients());
-		MessageToUser forwarded = synapseOne.forwardMessage(oneToTwo.getId(), recipients);
+		MessageToUser forwarded = synapse.forwardMessage(oneToTwo.getId(), recipients);
 		cleanup.add(forwarded.getId());
 		
-		waitForMessage(synapseOne, forwarded.getId());
+		waitForMessage(synapse, forwarded.getId());
 		
-		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+		PaginatedResults<MessageBundle> messages = synapse.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(2, messages.getResults().size());
 		assertEquals(forwarded, messages.getResults().get(0).getMessage());
@@ -239,7 +223,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	@Test
 	public void testGetConversation() throws Exception {
-		PaginatedResults<MessageToUser> ones = synapseOne.getConversation(oneToTwo.getId(), MessageSortBy.SEND_DATE, null, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> ones = synapse.getConversation(oneToTwo.getId(), MessageSortBy.SEND_DATE, null, LIMIT, OFFSET);
 		assertEquals(2, ones.getResults().size());
 		assertEquals(twoToOne, ones.getResults().get(0));
 		assertEquals(oneToTwo, ones.getResults().get(1));
@@ -253,9 +237,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageStatus status = new MessageStatus();
 		status.setMessageId(twoToOne.getId());
 		status.setStatus(MessageStatusType.READ);
-		synapseOne.updateMessageStatus(status);
+		synapse.updateMessageStatus(status);
 		
-		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+		PaginatedResults<MessageBundle> messages = synapse.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(0, messages.getResults().size());
 	}
@@ -268,7 +252,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		int i;
 		for (i = 1; i <= 100; i++) {
 			try {
-				oneToTwo = synapseOne.sendMessage(oneToTwo);
+				oneToTwo = synapse.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
 			} catch (SynapseServerException e) {
 				if (e instanceof SynapseTooManyRequestsException) {
@@ -322,7 +306,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject("a test");
 		mtu.setRecipients(new HashSet<String>(Arrays.asList(new String[]{twoId})));
-		mtu = synapseOne.sendStringMessage(mtu, MESSAGE_BODY_WITH_EXTENDED_CHARS);
+		mtu = synapse.sendStringMessage(mtu, MESSAGE_BODY_WITH_EXTENDED_CHARS);
 		cleanup.add(mtu.getId());
 		this.fileHandleIdWithExtendedChars = mtu.getFileHandleId();
 
@@ -339,9 +323,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());
 		cleanup.add(message.getId());
 		
-		waitForMessage(synapseOne, message.getId());
+		waitForMessage(synapse, message.getId());
 		
-		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+		PaginatedResults<MessageBundle> messages = synapse.getInbox(null,
 				MessageSortBy.SEND_DATE, true, LIMIT, OFFSET);
 		assertEquals(message, messages.getResults().get(0).getMessage());
 	}

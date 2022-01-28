@@ -296,5 +296,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	FeatureStatus setFeatureStatus(Feature feature, FeatureStatus status) throws SynapseException;
+	
+
+	/**
+	 * Obtains a login response with the access token of the user with the given id
+	 *  
+	 * @param targetUserId
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException;
 
 }

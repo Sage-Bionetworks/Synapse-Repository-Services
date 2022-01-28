@@ -1,27 +1,25 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -33,35 +31,25 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.util.SerializationUtils;
 
-public class IT502SynapseJavaClientAccountTest {
-	private static SynapseAdminClient adminSynapse;
+public class IT502SynapseJavaClientAccountTest extends BaseITTest {
 	private static SynapseAdminClient synapseAnonymous;
-	private static SynapseClient synapseOne;
-	private static Long user1ToDelete;
 	private Long user2ToDelete;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
 	}
 	
 	private String s3KeyToDelete;
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
 		s3KeyToDelete = null;
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (s3KeyToDelete!=null) {
 			EmailValidationUtil.deleteFile(s3KeyToDelete);
@@ -72,13 +60,6 @@ public class IT502SynapseJavaClientAccountTest {
 				adminSynapse.deleteUser(user2ToDelete);
 			} catch (SynapseException e) { }
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
 	}
 	
 	private String getTokenFromFile(String key, String endpoint) throws Exception {
@@ -154,32 +135,32 @@ public class IT502SynapseJavaClientAccountTest {
 		s3KeyToDelete = EmailValidationUtil.getBucketKeyForEmail(email);
 		assertFalse(EmailValidationUtil.doesFileExist(s3KeyToDelete, 2000L));
 		String endpoint = "https://www.synapse.org?";
-		synapseOne.additionalEmailValidation(
-				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
+		synapse.additionalEmailValidation(
+				Long.parseLong(synapse.getMyProfile().getOwnerId()), 
 				email, endpoint);
 		
 		// complete the email addition
 		String encodedToken = getTokenFromFile(s3KeyToDelete, endpoint);
 		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
 		// we are _not_ setting it to be the notification email
-		synapseOne.addEmail(token, false);
+		synapse.addEmail(token, false);
 		// check also that 'false' can be set by omitting the parameter
-		synapseOne.addEmail(token, null);
+		synapse.addEmail(token, null);
 		
 		// now remove the email
-		synapseOne.removeEmail(email);
+		synapse.removeEmail(email);
 	}
 	
 	@Test
 	public void testNotificationEmail() throws SynapseException {
-		UserProfile up = synapseOne.getMyProfile();
+		UserProfile up = synapse.getMyProfile();
 		assertEquals(1, up.getEmails().size());
 		String myEmail = up.getEmails().get(0);
-		NotificationEmail notificationEmail = synapseOne.getNotificationEmail();
+		NotificationEmail notificationEmail = synapse.getNotificationEmail();
 		// the current notification email is the one/only email that I have
 		assertEquals(myEmail, notificationEmail.getEmail());
 		// no-op, just checking that everything's wired up right
-		synapseOne.setNotificationEmail(myEmail);
+		synapse.setNotificationEmail(myEmail);
 	}
 	
 	@Test
@@ -188,10 +169,10 @@ public class IT502SynapseJavaClientAccountTest {
 		// This is valid but already in use
 		request.setAlias("public");
 		request.setType(AliasType.TEAM_NAME);
-		AliasCheckResponse response = synapseOne.checkAliasAvailable(request);
+		AliasCheckResponse response = synapse.checkAliasAvailable(request);
 		assertNotNull(response);
 		assertTrue(response.getValid());
-		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
+		assertFalse(response.getAvailable(), "The 'public' group name should already have this alias so it cannot be available!");
 	}
 
 	@Test
@@ -199,7 +180,7 @@ public class IT502SynapseJavaClientAccountTest {
 		PrincipalAliasRequest request = new PrincipalAliasRequest();
 		request.setAlias("anonymous");
 		request.setType(AliasType.USER_NAME);
-		PrincipalAliasResponse response = synapseOne.getPrincipalAlias(request);
+		PrincipalAliasResponse response = synapse.getPrincipalAlias(request);
 		assertNotNull(response);
 		assertEquals(response.getPrincipalId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}

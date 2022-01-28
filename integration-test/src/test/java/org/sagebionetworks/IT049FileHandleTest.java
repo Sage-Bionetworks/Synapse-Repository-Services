@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.collections4.IterableUtils;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,10 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.client.AsynchJobType;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -85,11 +80,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.cloud.storage.StorageException;
 import com.google.common.collect.Lists;
 
-public class IT049FileHandleTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
+public class IT049FileHandleTest extends BaseITTest {
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -103,24 +94,12 @@ public class IT049FileHandleTest {
 	// Hard-coded dev test bucket
 	private String googleCloudBucket = "dev.test.gcp-storage.sagebase.org";
 
-	private static StackConfiguration config;
 	private static SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	private static SynapseS3Client synapseS3Client;
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		config = StackConfigurationSingleton.singleton();
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 		if (config.getGoogleCloudEnabled()) {
 			googleCloudStorageClient = SynapseGoogleCloudClientFactory.createGoogleCloudStorageClient();
@@ -129,7 +108,6 @@ public class IT049FileHandleTest {
 	
 	@BeforeEach
 	public void before() throws SynapseException {
-		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<>();
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
@@ -151,13 +129,6 @@ public class IT049FileHandleTest {
 		}
 
 		synapse.deleteEntity(project, true);
-	}
-	
-	@AfterAll
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) { }
 	}
 	
 	@Test
@@ -470,7 +441,7 @@ public class IT049FileHandleTest {
 		TableEntity table = new TableEntity();
 		table.setParentId(project.getId());
 		table.setName("BulkDownloadTest");
-		table = adminSynapse.createEntity(table);
+		table = synapse.createEntity(table);
 		
 		ExternalFileHandle efh = new ExternalFileHandle();
 		efh.setContentType("text/plain");
@@ -488,7 +459,7 @@ public class IT049FileHandleTest {
 		BulkFileDownloadRequest request = new BulkFileDownloadRequest();
 		request.setRequestedFiles(Arrays.asList(fha));
 		
-		String jobId = adminSynapse.startBulkFileDownload(request);
+		String jobId = synapse.startBulkFileDownload(request);
 		BulkFileDownloadResponse respones = waitForJob(jobId);
 		assertNotNull(respones);
 		assertNotNull(respones.getFileSummary());
@@ -511,7 +482,7 @@ public class IT049FileHandleTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return adminSynapse.getBulkFileDownloadResults(jobId);
+				return synapse.getBulkFileDownloadResults(jobId);
 			} catch (SynapseResultNotReadyException e) {
 				System.out.println("Waiting for job: "+e.getJobStatus());
 			}

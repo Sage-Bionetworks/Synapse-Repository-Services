@@ -1,20 +1,21 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -30,22 +31,12 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * This test will push data from a backup into Synapse
  * and make sure other methods in the admin client work 
  */
-public class IT101Administration {
+public class IT101Administration extends BaseITTest {
 
-	private static SynapseAdminClient adminSynapse;
-	
 	private List<Entity> toDelete = null;
-
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-	}
 	
-	@Before
-	public void before()throws Exception {
+	@BeforeEach
+	public void before() throws Exception {
 		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<Entity>();
 		// always restore the status
@@ -56,7 +47,7 @@ public class IT101Administration {
 		}
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(adminSynapse != null && toDelete != null){
 			for(Entity e: toDelete){
@@ -85,7 +76,7 @@ public class IT101Administration {
 		
 		// Now create a project
 		Project project = new Project();
-		project = adminSynapse.createEntity(project);
+		project = synapse.createEntity(project);
 		String projectId = project.getId();
 		this.toDelete.add(project);
 		
@@ -100,7 +91,7 @@ public class IT101Administration {
 		
 		// Now we should not be able get the project
 		try {
-			adminSynapse.getEntity(projectId, Project.class);
+			synapse.getEntity(projectId, Project.class);
 		}catch(SynapseServerException e){
 			assertTrue(e.getMessage().indexOf("Synapse is down for maintenance.") > -1);
 		}
@@ -108,7 +99,7 @@ public class IT101Administration {
 		String newDescription = "Updating the description";
 		project.setDescription(newDescription);
 		try{
-			adminSynapse.putEntity(project);
+			synapse.putEntity(project);
 			fail("Updating an entity in read only mode should have failed");
 		}catch(SynapseServerException e){
 			assertTrue(e.getMessage().indexOf("Synapse is down for maintenance.") > -1);
@@ -117,7 +108,7 @@ public class IT101Administration {
 			status.setStatus(StatusEnum.READ_WRITE);
 			status = adminSynapse.updateCurrentStackStatus(status);
 			assertEquals(StatusEnum.READ_WRITE, status.getStatus());
-			project = adminSynapse.putEntity(project);
+			project = synapse.putEntity(project);
 			assertNotNull(project);
 			assertEquals(newDescription, project.getDescription());
 		}
@@ -147,10 +138,43 @@ public class IT101Administration {
 	}
 	
 	@Test
+	public void testGetAndUpdateStatus() throws Exception {
+		StackStatus status = adminSynapse.getCurrentStackStatus();
+		assertNotNull(status);
+		// Set the status
+		status.setPendingMaintenanceMessage("Testing that we can set the pending message");
+		StackStatus updated = adminSynapse.updateCurrentStackStatus(status);
+		assertEquals(status, updated);
+		// Clear out the message
+		status.setPendingMaintenanceMessage(null);
+		updated = adminSynapse.updateCurrentStackStatus(status);
+		assertEquals(status, updated);
+	}
+	
+	@Test
 	public void testCreateIdGeneratorExport() throws SynapseException {
 		// call under test
 		IdGeneratorExport export = adminSynapse.createIdGeneratorExport();
 		assertNotNull(export);
 		assertNotNull(export.getExportScript());
+	}
+	
+	@Test
+	public void testGetUserAccessToken() throws SynapseException {
+		// An initially anonymous client
+		SynapseClient userClient = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(userClient);
+		
+		// The user is not authenticated
+		assertThrows(SynapseForbiddenException.class, () -> {			
+			userClient.createEntity(new Project());
+		});
+		
+		// Obtain the token of the test user
+		String userToken = adminSynapse.getUserAccessToken(userToDelete).getAccessToken();
+		userClient.setBearerAuthorizationToken(userToken);
+		
+		// The userClient now impersonates the test user
+		toDelete.add(userClient.createEntity(new Project()));
 	}
 }

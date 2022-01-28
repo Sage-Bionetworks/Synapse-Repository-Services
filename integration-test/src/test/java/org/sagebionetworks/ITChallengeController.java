@@ -1,10 +1,11 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,15 +13,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -32,14 +28,11 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 
-public class ITChallengeController {
+public class ITChallengeController extends BaseITTest {
 
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	private static String adminUserId;
 
 	private List<String> entitiesToDelete;
@@ -50,20 +43,9 @@ public class ITChallengeController {
 	private Team registeredTeam;
 	private ChallengeTeam challengeTeam;
 	
-	@BeforeClass 
+	@BeforeAll
 	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
 		adminUserId = adminSynapse.getMyProfile().getOwnerId();
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		
-		assertEquals(userToDelete.toString(), synapse.getMyProfile().getOwnerId());
 	}
 	
 	private Team createTeam(String name) throws SynapseException {
@@ -80,7 +62,7 @@ public class ITChallengeController {
 		return team;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminSynapse.clearAllLocks();
 		entitiesToDelete = new ArrayList<String>();
@@ -98,7 +80,7 @@ public class ITChallengeController {
 		assertEquals(adminUserId, initialMembers.getResults().get(0).getMember().getOwnerId());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (challengeTeam!=null) {
 			adminSynapse.deleteChallengeTeam(challengeTeam.getId());
@@ -122,11 +104,6 @@ public class ITChallengeController {
 		for(String id : activitiesToDelete) {
 			synapse.deleteActivity(id);
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	private void checkChallengeParticipants(String challengeId, Set<String> affiliated, 
@@ -222,7 +199,7 @@ public class ITChallengeController {
 		
 		// no longer registratable
 		registratableTeams = synapse.listRegistratableTeams(challengeId, 10L, 0L);
-		assertTrue(registratableTeams.getResults().toString(), registratableTeams.getResults().isEmpty());
+		assertTrue(registratableTeams.getResults().isEmpty(), registratableTeams.getResults().toString());
 		assertEquals(new Long(0L), registratableTeams.getTotalNumberOfResults());
 		
 		// having registered the Team, both users are now affiliated

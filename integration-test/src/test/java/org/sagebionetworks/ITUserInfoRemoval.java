@@ -20,9 +20,8 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 
-public class ITUserInfoRemoval {
+public class ITUserInfoRemoval extends BaseITTest {
 
-	private static SynapseAdminClient adminClient;
 	private static SynapseClient client;
 
 	private static Long userId;
@@ -32,23 +31,17 @@ public class ITUserInfoRemoval {
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		adminClient = new SynapseAdminClientImpl();
 		client = new SynapseClientImpl();
-		
-		SynapseClientHelper.setEndpoints(adminClient);
-		SynapseClientHelper.setEndpoints(client);
 
-		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminClient.clearAllLocks();
+		SynapseClientHelper.setEndpoints(client);
 		
-		userId = SynapseClientHelper.createUser(adminClient, client, username, password, true);
+		userId = SynapseClientHelper.createUser(adminSynapse, client, username, password, true);
 	}
 
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
-			adminClient.deleteUser(userId);
+			adminSynapse.deleteUser(userId);
 		} catch (SynapseException e) {
 		}
 	}
@@ -70,11 +63,11 @@ public class ITUserInfoRemoval {
 		client.updateMyProfile(profile);
 
 		// Method under test
-		adminClient.redactUserInformation(userId.toString());
+		adminSynapse.redactUserInformation(userId.toString());
 
 		String expectedEmail = "gdpr-synapse+" + userId.toString() + "@sagebase.org";
 
-		UserProfile clearedProfile = adminClient.getUserProfile(userId.toString());
+		UserProfile clearedProfile = adminSynapse.getUserProfile(userId.toString());
 		assertEquals(expectedEmail, clearedProfile.getEmail());
 		assertEquals("", clearedProfile.getFirstName());
 		assertEquals("", clearedProfile.getLastName());

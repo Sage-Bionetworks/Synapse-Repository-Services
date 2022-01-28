@@ -362,7 +362,7 @@ public class AdministrationController {
 	}
 	
 	/**
-	 * Obtains an access token for the provided target user, if not target user is supplied a token for the administrator is returned
+	 * Obtains an access token for the provided target user, if the target user is supplied a token for the administrator is returned
 	 * 
 	 * @param userId
 	 * @return
@@ -372,11 +372,12 @@ public class AdministrationController {
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_TOKEN, method = RequestMethod.GET)
-	public @ResponseBody LoginResponse getUserAccessToken(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.PARAM_TARGET_USER_ID) Long targetUserId)
+	@RequestMapping(value = UrlHelpers.ADMIN_USER_TOKEN, method = RequestMethod.GET)
+	public @ResponseBody LoginResponse getUserAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long targetUserId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
-		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId == null ? userId : targetUserId);
+		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId);
 	}
 
 }

@@ -26,8 +26,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -65,12 +63,9 @@ import com.google.common.collect.Sets;
  * Integration tests for team services
  * 
  */
-public class IT500SynapseJavaClientTeamTest {
+public class IT500SynapseJavaClientTeamTest extends BaseITTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
-	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
@@ -89,6 +84,7 @@ public class IT500SynapseJavaClientTeamTest {
 	private Folder dataset;
 	
 	private static Set<String> bootstrappedTeams = Sets.newHashSet();
+	
 	static {
 		// note, this must match the bootstrapped teams defined in managers-spb.xml
 		bootstrappedTeams.add("2"); // Administrators
@@ -111,16 +107,7 @@ public class IT500SynapseJavaClientTeamTest {
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
-		
+		// Create a second test user
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo, UUID.randomUUID().toString(), "password"+UUID.randomUUID(), TEST_EMAIL, true);
@@ -134,10 +121,10 @@ public class IT500SynapseJavaClientTeamTest {
 		handlesToDelete = new ArrayList<>();
 		teamsToDelete = new ArrayList<>();
 		
-		project = synapseOne.createEntity(new Project());
+		project = synapse.createEntity(new Project());
 		dataset = new Folder();
 		dataset.setParentId(project.getId());
-		dataset = synapseOne.createEntity(dataset);
+		dataset = synapse.createEntity(dataset);
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
@@ -146,7 +133,7 @@ public class IT500SynapseJavaClientTeamTest {
 		// getBootstrapTeamsPlus(num) returns the right count for assertions.
 		long numTeams = 0L;
 		do {
-			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
+			PaginatedResults<Team> teams = synapse.getTeams(null, 10, 0);
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
 				if (!bootstrappedTeams.contains(team.getId())) {
@@ -187,9 +174,6 @@ public class IT500SynapseJavaClientTeamTest {
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
-			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
-		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
 	}
@@ -198,7 +182,7 @@ public class IT500SynapseJavaClientTeamTest {
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		return createdTeam;
 	}
@@ -210,7 +194,7 @@ public class IT500SynapseJavaClientTeamTest {
 
 		Team createdTeam = createTeam(name, description);
 
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		assertNotNull(createdTeam.getId());
@@ -223,23 +207,23 @@ public class IT500SynapseJavaClientTeamTest {
 		assertNotNull(createdTeam.getEtag());
 		assertNull(createdTeam.getIcon());
 		// get the Team
-		Team retrievedTeam = synapseOne.getTeam(createdTeam.getId());
+		Team retrievedTeam = synapse.getTeam(createdTeam.getId());
 		assertEquals(createdTeam, retrievedTeam);
 
 		String newTeamName = "A new team name";
 		retrievedTeam.setName(newTeamName);
-		Team updatedTeam = synapseOne.updateTeam(retrievedTeam);
+		Team updatedTeam = synapse.updateTeam(retrievedTeam);
 
 		assertNotEquals(updatedTeam.getEtag(), retrievedTeam.getEtag());
 		assertEquals(updatedTeam.getName(), retrievedTeam.getName());
 
 		// delete Team
-		synapseOne.deleteTeam(updatedTeam.getId());
+		synapse.deleteTeam(updatedTeam.getId());
 		// delete the Team again (should be idempotent)
-		synapseOne.deleteTeam(updatedTeam.getId());
+		synapse.deleteTeam(updatedTeam.getId());
 		// retrieve the Team (should get a 404)
 		try {
-			synapseOne.getTeam(updatedTeam.getId());
+			synapse.getTeam(updatedTeam.getId());
 			fail("Failed to delete Team "+updatedTeam.getId());
 		} catch (SynapseException e) {
 			// as expected
@@ -252,7 +236,7 @@ public class IT500SynapseJavaClientTeamTest {
 		// upload an icon and get the file handle
 		// before setting the icon
 		try {
-			synapseOne.getTeamIcon(createdTeam.getId());
+			synapse.getTeamIcon(createdTeam.getId());
 			fail("Expected: Not Found");
 		} catch (SynapseException e) {
 			// expected
@@ -269,18 +253,18 @@ public class IT500SynapseJavaClientTeamTest {
 		} finally {
 			if (pw != null) pw.close();
 		}
-		FileHandle fileHandle = synapseOne.multipartUpload(file, null, true, false);
+		FileHandle fileHandle = synapse.multipartUpload(file, null, true, false);
 		handlesToDelete.add(fileHandle.getId());
 
 		// update the Team with the icon
 		createdTeam.setIcon(fileHandle.getId());
-		Team updatedTeam = synapseOne.updateTeam(createdTeam);
+		Team updatedTeam = synapse.updateTeam(createdTeam);
 		// get the icon url
-		URL url = synapseOne.getTeamIcon(updatedTeam.getId());
+		URL url = synapse.getTeamIcon(updatedTeam.getId());
 		assertNotNull(url);
 		// check that we can download the Team icon to a file
 		File target = File.createTempFile("temp", null);
-		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
+		synapse.downloadTeamIcon(updatedTeam.getId(), target);
 		assertTrue(target.length() > 0);
 
 	}
@@ -308,7 +292,7 @@ public class IT500SynapseJavaClientTeamTest {
 		teams = waitForTeams(teamName.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 
-		List<Team> teamList = synapseOne.listTeams(Collections.singletonList(Long.parseLong(team.getId())));
+		List<Team> teamList = synapse.listTeams(Collections.singletonList(Long.parseLong(team.getId())));
 		assertEquals(1L, teamList.size());
 		assertEquals(team, teamList.get(0));
 	}
@@ -318,25 +302,25 @@ public class IT500SynapseJavaClientTeamTest {
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
 		Team team = createTeam(name, description);
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		String myPrincipalId = myProfile.getOwnerId();
 
 		// query for team members.  should get just the creator
-		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 1, 0);
+		PaginatedResults<TeamMember> members = synapse.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 1, 0);
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(team.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 
 		// check that if we get admin team members, we get the creator
-		PaginatedResults<TeamMember> adminMembers = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ADMIN, 1, 0);
+		PaginatedResults<TeamMember> adminMembers = synapse.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ADMIN, 1, 0);
 		tm = adminMembers.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(team.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 
 		// check that if we get nonadmin team members, we get no one
-		PaginatedResults<TeamMember> nonAdminMembers = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.MEMBER, 1, 0);
+		PaginatedResults<TeamMember> nonAdminMembers = synapse.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.MEMBER, 1, 0);
 		assertEquals(0, nonAdminMembers.getTotalNumberOfResults());
 
 		// check that if we get members with the fragment, we get the creator
@@ -347,12 +331,12 @@ public class IT500SynapseJavaClientTeamTest {
 		assertEquals(team.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 
-		assertEquals(1L, synapseOne.countTeamMembers(team.getId(), null));
+		assertEquals(1L, synapse.countTeamMembers(team.getId(), null));
 
 		// while we're at it, check the 'getTeamMember' service
-		assertEquals(tm, synapseOne.getTeamMember(team.getId(), myPrincipalId));
+		assertEquals(tm, synapse.getTeamMember(team.getId(), myPrincipalId));
 
-		TeamMembershipStatus tms = synapseOne.getTeamMembershipStatus(team.getId(), myPrincipalId);
+		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(team.getId(), myPrincipalId);
 		assertEquals(team.getId(), tms.getTeamId());
 		assertEquals(myPrincipalId, tms.getUserId());
 		assertTrue(tms.getIsMember());
@@ -364,7 +348,7 @@ public class IT500SynapseJavaClientTeamTest {
 	@Test
 	public void testAddRemoveMember() throws SynapseException, InterruptedException {
 		Team team = createTeam("A team name", "A team description");
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		String myPrincipalId = myProfile.getOwnerId();
 
 		// add a member to the team
@@ -376,7 +360,7 @@ public class IT500SynapseJavaClientTeamTest {
 		mrs.setTeamId(team.getId());
 		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		// check membership status
-		TeamMembershipStatus tms = synapseOne.getTeamMembershipStatus(team.getId(), otherPrincipalId);
+		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(team.getId(), otherPrincipalId);
 		assertEquals(team.getId(), tms.getTeamId());
 		assertEquals(otherPrincipalId, tms.getUserId());
 		assertFalse(tms.getIsMember());
@@ -395,11 +379,11 @@ public class IT500SynapseJavaClientTeamTest {
 
 		// Test listTeamMembers
 		PaginatedResults<TeamMember> members = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 10, 0);
-		List<TeamMember> teamMembers = synapseOne.listTeamMembers(team.getId(), Collections.singletonList(Long.parseLong(myPrincipalId)));
+		List<TeamMember> teamMembers = synapse.listTeamMembers(team.getId(), Collections.singletonList(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
 
 		// Add the other user to the team
-		synapseOne.addTeamMember(team.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapse.addTeamMember(team.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 
 		tms = synapseTwo.getTeamMembershipStatus(team.getId(), otherPrincipalId);
 		assertEquals(team.getId(), tms.getTeamId());
@@ -413,17 +397,17 @@ public class IT500SynapseJavaClientTeamTest {
 		members = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 2, 0);
 		assertEquals(2L, members.getResults().size());
 
-		assertEquals(2L, synapseOne.countTeamMembers(team.getId(), null));
+		assertEquals(2L, synapse.countTeamMembers(team.getId(), null));
 
 		// query for teams based on member's id
-		PaginatedResults<Team> teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
+		PaginatedResults<Team> teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(2L, teams.getTotalNumberOfResults());
 		assertEquals(team, teams.getResults().get(0));
 		// remove the member from the team
-		synapseOne.removeTeamMember(team.getId(), otherPrincipalId);
+		synapse.removeTeamMember(team.getId(), otherPrincipalId);
 
 		// query for teams based on member's id (should get nothing)
-		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
+		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(0L, teams.getTotalNumberOfResults());
 	}
 
@@ -438,10 +422,10 @@ public class IT500SynapseJavaClientTeamTest {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(team.getId());
 		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		synapseOne.addTeamMember(team.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapse.addTeamMember(team.getId(), otherPrincipalId, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 
 		// make the other member an admin
-		synapseOne.setTeamMemberPermissions(team.getId(), otherPrincipalId, true);
+		synapse.setTeamMemberPermissions(team.getId(), otherPrincipalId, true);
 
 		PaginatedResults<TeamMember> members = waitForTeamMembers(team.getId(), otherDName.substring(0,otherDName.length()-4), TeamMemberTypeFilterOptions.ALL,1, 0);
 		assertFalse(members.getResults().isEmpty());
@@ -451,10 +435,10 @@ public class IT500SynapseJavaClientTeamTest {
 		assertTrue(otherMember.getIsAdmin());
 
 		// remove admin privileges
-		synapseOne.setTeamMemberPermissions(team.getId(), otherPrincipalId, false);
+		synapse.setTeamMemberPermissions(team.getId(), otherPrincipalId, false);
 
 		// now repeat the permissions change, but by accessing the ACL
-		AccessControlList acl = synapseOne.getTeamACL(team.getId());
+		AccessControlList acl = synapse.getTeamACL(team.getId());
 
 		Set<ACCESS_TYPE> otherAccessTypes = null;
 		for (ResourceAccess ra : acl.getResourceAccess()) {
@@ -467,14 +451,14 @@ public class IT500SynapseJavaClientTeamTest {
 		adminRa.setPrincipalId(Long.parseLong(otherPrincipalId));
 		adminRa.setAccessType(ModelConstants.TEAM_ADMIN_PERMISSIONS);
 		acl.getResourceAccess().add(adminRa);
-		AccessControlList updatedACL = synapseOne.updateTeamACL(acl);
+		AccessControlList updatedACL = synapse.updateTeamACL(acl);
 		assertEquals(acl.getResourceAccess(), updatedACL.getResourceAccess());
 	}
 	
 	private PaginatedResults<Team> waitForTeams(String prefix, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
-			PaginatedResults<Team> teams = synapseOne.getTeams(prefix,limit, offset);
+			PaginatedResults<Team> teams = synapse.getTeams(prefix,limit, offset);
 			if(teams.getTotalNumberOfResults() < 1){
 				Thread.sleep(1000);
 				System.out.println("Waiting for principal prefix worker");
@@ -490,7 +474,7 @@ public class IT500SynapseJavaClientTeamTest {
 	private PaginatedResults<TeamMember> waitForTeamMembers(String teamId, String prefix, TeamMemberTypeFilterOptions memberType, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while (true){
-			PaginatedResults<TeamMember> teamMembers = synapseOne.getTeamMembers(teamId, prefix, memberType, limit, offset);
+			PaginatedResults<TeamMember> teamMembers = synapse.getTeamMembers(teamId, prefix, memberType, limit, offset);
 			if (teamMembers.getResults().isEmpty()) {
 				System.out.println("Waiting for principal prefix worker");
 				Thread.sleep(1000);
@@ -511,7 +495,7 @@ public class IT500SynapseJavaClientTeamTest {
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 
 		// Create AccessRestriction
@@ -548,13 +532,13 @@ public class IT500SynapseJavaClientTeamTest {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		UserProfile synapseOneProfile = synapseOne.getMyProfile();
+		UserProfile synapseOneProfile = synapse.getMyProfile();
 		String myPrincipalId = synapseOneProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create an invitation
@@ -570,7 +554,7 @@ public class IT500SynapseJavaClientTeamTest {
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipInvitation created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		MembershipInvitation created = synapse.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(myPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -584,12 +568,12 @@ public class IT500SynapseJavaClientTeamTest {
 		assertEquals(1L, openInvitationCount.getCount().longValue());
 
 		// get the invitation
-		MembershipInvitation retrieved = synapseOne.getMembershipInvitation(created.getId());
+		MembershipInvitation retrieved = synapse.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
 		
 		{
 			// query for invitations based on user
-			PaginatedResults<MembershipInvitation> invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, null, 1, 0);
+			PaginatedResults<MembershipInvitation> invitations = synapse.getOpenMembershipInvitations(inviteePrincipalId, null, 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation = invitations.getResults().get(0);
 			assertEquals(expiresOn, invitation.getExpiresOn());
@@ -597,15 +581,15 @@ public class IT500SynapseJavaClientTeamTest {
 			assertEquals(createdTeam.getId(), invitation.getTeamId());
 			assertEquals(inviteePrincipalId, invitation.getInviteeId());
 			// check pagination
-			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, null, 2, 1);
+			invitations = synapse.getOpenMembershipInvitations(inviteePrincipalId, null, 2, 1);
 			assertEquals(0L, invitations.getResults().size());
 			// query for invitations based on user and team
-			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 1, 0);
+			invitations = synapse.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation2 = invitations.getResults().get(0);
 			assertEquals(invitation, invitation2);
 			// again, check pagination
-			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 2, 1);
+			invitations = synapse.getOpenMembershipInvitations(inviteePrincipalId, createdTeam.getId(), 2, 1);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			assertEquals(0L, invitations.getResults().size());
 		}
@@ -613,27 +597,27 @@ public class IT500SynapseJavaClientTeamTest {
 		// query for invitation SUBMISSIONs based on team
 		{
 			PaginatedResults<MembershipInvitation> invitationSubmissions =
-					synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
+					synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			MembershipInvitation submission = invitationSubmissions.getResults().get(0);
 			assertEquals(created, submission);
 			// check pagination
-			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
+			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
 			assertEquals(0L, invitationSubmissions.getResults().size());
 			// query for SUBMISSIONs based on team and invitee
-			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 1, 0);
+			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(created, invitationSubmissions.getResults().get(0));
 			// again, check pagination
-			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 2, 1);
+			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), inviteePrincipalId, 2, 1);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(0L, invitationSubmissions.getResults().size());
 		}
 		
 		// delete the invitation
-		synapseOne.deleteMembershipInvitation(created.getId());
+		synapse.deleteMembershipInvitation(created.getId());
 		try {
-			synapseOne.getMembershipInvitation(created.getId());
+			synapse.getMembershipInvitation(created.getId());
 			fail("Failed to delete membership invitation.");
 		} catch (SynapseException e) {
 			// as expected
@@ -642,7 +626,7 @@ public class IT500SynapseJavaClientTeamTest {
 		// create an invitation with null inviteeId and non null inviteeEmail
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
-		MembershipInvitation mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		MembershipInvitation mis = synapse.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		InviteeVerificationSignedToken token = synapseTwo.getInviteeVerificationSignedToken(mis.getId());
 		// test if getInviteeVerificationSignedToken succeeded
 		assertNotNull(token);
@@ -657,9 +641,9 @@ public class IT500SynapseJavaClientTeamTest {
 		assertEquals(inviteeId, mis.getInviteeId());
 
 		// delete the second invitation
-		synapseOne.deleteMembershipInvitation(mis.getId());
+		synapse.deleteMembershipInvitation(mis.getId());
 		try {
-			synapseOne.getMembershipInvitation(mis.getId());
+			synapse.getMembershipInvitation(mis.getId());
 			fail("Failed to delete membership invitation.");
 		} catch (SynapseException e) {
 			// as expected
@@ -671,12 +655,12 @@ public class IT500SynapseJavaClientTeamTest {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create a request
@@ -700,12 +684,12 @@ public class IT500SynapseJavaClientTeamTest {
 		assertEquals(created, retrieved);
 
 		// check that request count is 1
-		Count requestCount = synapseOne.getOpenMembershipRequestCount();
+		Count requestCount = synapse.getOpenMembershipRequestCount();
 		assertEquals(1L, requestCount.getCount().longValue());
 
 		// query for requests based on team
 		{
-			PaginatedResults<MembershipRequest> requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
+			PaginatedResults<MembershipRequest> requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			MembershipRequest request = requests.getResults().get(0);
 			assertEquals(expiresOn, request.getExpiresOn());
@@ -713,16 +697,16 @@ public class IT500SynapseJavaClientTeamTest {
 			assertEquals(createdTeam.getId(), request.getTeamId());
 			assertEquals(otherPrincipalId, request.getUserId());
 			// check pagination
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
+			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			assertEquals(0L, requests.getResults().size());
 			// query for requests based on team and member
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
+			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			MembershipRequest request2 = requests.getResults().get(0);
 			assertEquals(request, request2);
 			// again, check pagination
-			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
+			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			assertEquals(0L, requests.getResults().size());
 		}
@@ -763,13 +747,13 @@ public class IT500SynapseJavaClientTeamTest {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		UserProfile synapseOneProfile = synapseOne.getMyProfile();
+		UserProfile synapseOneProfile = synapse.getMyProfile();
 		String myPrincipalId = synapseOneProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create an invitation
@@ -789,7 +773,7 @@ public class IT500SynapseJavaClientTeamTest {
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapse.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		// check that a notification was sent to the invitee
 		assertTrue(EmailValidationUtil.doesFileExist(inviteeNotification, 60000L));
@@ -838,16 +822,16 @@ public class IT500SynapseJavaClientTeamTest {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapseOne.createTeam(team);
+		Team createdTeam = synapse.createTeam(team);
 		teamsToDelete.add(createdTeam.getId());
 		
 		// clear any existing notification
-		UserProfile adminUserProfile = synapseOne.getMyProfile();
+		UserProfile adminUserProfile = synapse.getMyProfile();
 		List<String> adminEmails = adminUserProfile.getEmails();
 		assertEquals(1, adminEmails.size());
 		String adminEmail = adminEmails.get(0);
@@ -888,18 +872,18 @@ public class IT500SynapseJavaClientTeamTest {
 		// delete the message
 		EmailValidationUtil.deleteFile(adminNotification);
 		
-		ResponseMessage m = synapseOne.addTeamMember(joinTeamSignedToken, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		ResponseMessage m = synapse.addTeamMember(joinTeamSignedToken, MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(m.getMessage());
 		
 		// now requester should be in the team
 		TeamMembershipStatus tms = synapseTwo.getTeamMembershipStatus(createdTeam.getId(), requesterPrincipalId);
 		assertTrue(tms.getIsMember());
 		
-		m = synapseOne.updateNotificationSettings(notificationSettingsSignedToken);
+		m = synapse.updateNotificationSettings(notificationSettingsSignedToken);
 		assertNotNull(m.getMessage());
 		
 		// admin settings should now be updated
-		adminUserProfile = synapseOne.getMyProfile();
+		adminUserProfile = synapse.getMyProfile();
 		assertFalse(adminUserProfile.getNotificationSettings().getSendEmailNotifications());
 		
 		// finally, the requester should have been notified that the admin added her to the team

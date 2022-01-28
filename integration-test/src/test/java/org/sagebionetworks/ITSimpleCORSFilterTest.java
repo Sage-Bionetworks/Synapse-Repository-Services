@@ -1,25 +1,17 @@
 package org.sagebionetworks;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 /**
  * Run this integration test to ensure CORS filter is applied
@@ -29,36 +21,15 @@ import static org.junit.Assert.assertNotNull;
  * @author michael
  *
  */
-public class ITSimpleCORSFilterTest {
+public class ITSimpleCORSFilterTest extends BaseITTest {
 
     private static SimpleHttpClient simpleHttpClient;
-    private static SynapseClient synapse;
-    private static SynapseAdminClient adminSynapse;
-    private static Long userToDelete;
     private static int THROTTLED_REQUEST_COUNT = 1000;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         simpleHttpClient = new SimpleHttpClientImpl();
-        adminSynapse = new SynapseAdminClientImpl();
-        SynapseClientHelper.setEndpoints(adminSynapse);
-        adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-        adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-        synapse = new SynapseClientImpl();
-        // Some throttles only occur for authenticated users
-        userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
     }
-
-    @Before
-    public void before() throws SynapseException{
-        adminSynapse.clearAllLocks();
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        adminSynapse.deleteUser(userToDelete);
-    }
-
 
     @Test
     public void testResponseHasCORSOnThrottle() throws Exception {

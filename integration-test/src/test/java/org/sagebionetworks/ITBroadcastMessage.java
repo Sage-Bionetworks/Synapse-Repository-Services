@@ -1,8 +1,9 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,12 +12,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -29,9 +28,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-public class ITBroadcastMessage {
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
+public class ITBroadcastMessage extends BaseITTest {
 	private static SynapseClient synapseTwo;
 	private static List<Long> userToDelete = new ArrayList<Long>();
 	private Project project;
@@ -40,25 +37,16 @@ public class ITBroadcastMessage {
 	private String bucketKeyOne;
 	private String bucketKeyTwo;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
 		synapseTwo = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		userToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapseOne));
+		SynapseClientHelper.setEndpoints(synapseTwo);
 		userToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapseTwo));
-		synapseOne.updateMyProfile(synapseOne.getMyProfile());
-		synapseOne.setUsername("test1");
 		synapseTwo.updateMyProfile(synapseTwo.getMyProfile());
 		synapseTwo.setUsername("test2");
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
 			for (Long user : userToDelete) {
@@ -67,17 +55,17 @@ public class ITBroadcastMessage {
 		} catch (SynapseException e) { }
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
-		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapseOne.getNotificationEmail().getEmail());
+		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapse.getNotificationEmail().getEmail());
 		bucketKeyTwo = EmailValidationUtil.getBucketKeyForEmail(synapseTwo.getNotificationEmail().getEmail());
 		project = new Project();
-		project = synapseOne.createEntity(project);
+		project = synapse.createEntity(project);
 		assertNotNull(project);
 		projectId = project.getId();
-		forumId = synapseOne.getForumByProjectId(projectId).getId();
+		forumId = synapse.getForumByProjectId(projectId).getId();
 
-		grantREADPermission(synapseOne, projectId, synapseTwo);
+		grantREADPermission(synapse, projectId, synapseTwo);
 
 		Topic toSubscribe = new Topic();
 		toSubscribe.setObjectId(forumId);
@@ -85,21 +73,21 @@ public class ITBroadcastMessage {
 		synapseTwo.subscribe(toSubscribe);
 	}
 
-	private void grantREADPermission(SynapseClient synapseOne, String projectId, SynapseClient synapseTwo) throws SynapseException {
-		AccessControlList acl = synapseOne.getACL(projectId);
+	private void grantREADPermission(SynapseClient synapse, String projectId, SynapseClient synapseTwo) throws SynapseException {
+		AccessControlList acl = synapse.getACL(projectId);
 		Set<ResourceAccess> rs = acl.getResourceAccess();
 		ResourceAccess synapseTwoAccess = new ResourceAccess();
 		synapseTwoAccess.setPrincipalId(Long.parseLong(ITBroadcastMessage.synapseTwo.getMyProfile().getOwnerId()));
 		synapseTwoAccess.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
 		rs.add(synapseTwoAccess );
 		acl.setResourceAccess(rs);
-		synapseOne.updateACL(acl);
+		synapse.updateACL(acl);
 	}
 
 	@After
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
 		if (project != null) adminSynapse.deleteEntity(project, true);
-		synapseOne.unsubscribeAll();
+		synapse.unsubscribeAll();
 	}
 
 	@Test
@@ -112,7 +100,7 @@ public class ITBroadcastMessage {
 		toCreate.setTitle(title);
 		String message = "I think my cats ate my files. Please help!";
 		toCreate.setMessageMarkdown(message);
-		synapseOne.createThread(toCreate);
+		synapse.createThread(toCreate);
 		assertFalse(EmailValidationUtil.doesFileExist(bucketKeyOne, 60000L));
 		assertTrue(EmailValidationUtil.doesFileExist(bucketKeyTwo, 60000L));
 		assertNotNull(EmailValidationUtil.readFile(bucketKeyTwo));

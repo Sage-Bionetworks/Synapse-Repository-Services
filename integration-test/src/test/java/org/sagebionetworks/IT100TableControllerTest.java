@@ -90,11 +90,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author jmhill
  *
  */
-public class IT100TableControllerTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userId;
+public class IT100TableControllerTest extends BaseITTest {
 
 	private List<Entity> entitiesToDelete;
 	private List<TableEntity> tablesToDelete;
@@ -102,20 +98,7 @@ public class IT100TableControllerTest {
 	
 	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
 	private static long MAX_APPEND_TIMEOUT = 30*1000;
-	
-	@BeforeAll
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
-
-	}
-	
+		
 	@BeforeEach
 	public void before() throws SynapseException{
 		adminSynapse.clearAllLocks();
@@ -134,14 +117,6 @@ public class IT100TableControllerTest {
 		for (File tempFile : tempFiles) {
 			tempFile.delete();
 		}
-	}
-	
-	@AfterAll
-	public static void afterClass() throws Exception {
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(userId);
-		} catch (Exception e) { }
 	}
 
 	@Test
@@ -319,7 +294,7 @@ public class IT100TableControllerTest {
 
 		// Append some rows
 		RowSet set = new RowSet();
-		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, userId.toString()),
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, userToDelete.toString()),
 				TableModelTestUtils.createRow(null, null, "2"),
 				TableModelTestUtils.createRow(null, null, "3"),
 				TableModelTestUtils.createRow(null, null, "4"));
@@ -332,7 +307,7 @@ public class IT100TableControllerTest {
 		assertQueryResults("select userId from " + table.getId() + " where userId = CURRENT_USER()", null, null, table.getId(), (queryResults) -> {
 			assertEquals(1, queryResults.getRows().size());
 			assertEquals(1, queryResults.getRows().get(0).getValues().size());
-			assertEquals(userId.toString(), queryResults.getRows().get(0).getValues().get(0));
+			assertEquals(userToDelete.toString(), queryResults.getRows().get(0).getValues().get(0));
 		});
 	}
 

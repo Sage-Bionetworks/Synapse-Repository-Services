@@ -88,13 +88,11 @@ import com.google.common.collect.Sets;
  * 
  * @author deflaux
  */
-public class IT500SynapseJavaClient {
+public class IT500SynapseJavaClient extends BaseITTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
-	private static Long user1ToDelete;
+	
 	private static Long user2ToDelete;
 	
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
@@ -122,14 +120,6 @@ public class IT500SynapseJavaClient {
 	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
@@ -150,10 +140,10 @@ public class IT500SynapseJavaClient {
 		accessRequirementsToDelete = new ArrayList<>();
 		handlesToDelete = new ArrayList<>();
 
-		project = synapseOne.createEntity(new Project());
+		project = synapse.createEntity(new Project());
 		dataset = new Folder();
 		dataset.setParentId(project.getId());
-		dataset = synapseOne.createEntity(dataset);
+		dataset = synapse.createEntity(dataset);
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
@@ -162,7 +152,7 @@ public class IT500SynapseJavaClient {
 		// getBootstrapTeamsPlus(num) returns the right count for assertions.
 		long numTeams = 0L;
 		do {
-			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
+			PaginatedResults<Team> teams = synapse.getTeams(null, 10, 0);
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
 				if (!bootstrappedTeams.contains(team.getId())) {
@@ -197,9 +187,6 @@ public class IT500SynapseJavaClient {
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
-			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
-		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
 	}
@@ -211,20 +198,20 @@ public class IT500SynapseJavaClient {
 		// it should not be possible to delete the ACL
 		
 		// Get the Users permission for this entity
-		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(project.getId());
+		UserEntityPermissions uep = synapse.getUsersEntityPermissions(project.getId());
 		// first, we CAN change permissions (i.e. edit the ACL)
 		assertTrue(uep.getCanChangePermissions());
 		// but we CAN'T just delete the ACL
 		assertFalse(uep.getCanEnableInheritance());
 		// and if we try, it won't work
-		assertThrows(SynapseForbiddenException.class, () -> synapseOne.deleteACL(project.getId()));
+		assertThrows(SynapseForbiddenException.class, () -> synapse.deleteACL(project.getId()));
 	}
 	
 	@Test
 	public void testEmptyACLAccessTypeList() throws Exception {
 		// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
-		AccessControlList acl = synapseOne.getACL(project.getId());
-		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
+		AccessControlList acl = synapse.getACL(project.getId());
+		List<UserGroup> ugs = synapse.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
 		for (UserGroup ug: ugs) {
 			if (ug.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())) {
@@ -248,36 +235,36 @@ public class IT500SynapseJavaClient {
 			acl.getResourceAccess().add(ra);
 		}
 		// now push it, should get a SynapseBadRequestException
-		assertThrows(SynapseBadRequestException.class, () -> synapseOne.updateACL(acl));
+		assertThrows(SynapseBadRequestException.class, () -> synapse.updateACL(acl));
 	}
 
 	@Test
 	public void testJavaClientCRUD() throws Exception {
 		byte[] content = "File contents".getBytes("UTF-8");
-		String fileHandleId1 = synapseOne.multipartUpload(new ByteArrayInputStream(content),
+		String fileHandleId1 = synapse.multipartUpload(new ByteArrayInputStream(content),
 				(long) content.length, "content", "text/plain", null, false, false).getId();
-		String fileHandleId2 = synapseOne.multipartUpload(new ByteArrayInputStream(content),
+		String fileHandleId2 = synapse.multipartUpload(new ByteArrayInputStream(content),
 				(long) content.length, "content", "text/plain", null, false, false).getId();
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
 		file.setDataFileHandleId(fileHandleId1);
 
-		file = synapseOne.createEntity(file);
+		file = synapse.createEntity(file);
 		
 		// Get the project using just using its ID. This is useful for cases where you
 		//  do not know what you are getting until it arrives.
-		Project clone = (Project) synapseOne.getEntityById(project.getId());
+		Project clone = (Project) synapse.getEntityById(project.getId());
 		assertNotNull(clone);
 		assertEquals(project.getId(), clone.getId());
 		
 		// Get the entity annotations
-		Annotations annos = synapseOne.getAnnotationsV2(file.getId());
+		Annotations annos = synapse.getAnnotationsV2(file.getId());
 		assertNotNull(annos);
 		assertEquals(file.getId(), annos.getId());
 		assertNotNull(annos.getEtag());
 		// Add some values
 		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "999999", AnnotationsValueType.DOUBLE);
-		Annotations updatedAnnos = synapseOne.updateAnnotationsV2(file.getId(), annos);
+		Annotations updatedAnnos = synapse.updateAnnotationsV2(file.getId(), annos);
 		assertNotNull(updatedAnnos);
 		assertEquals(file.getId(), annos.getId());
 		assertNotNull(updatedAnnos.getEtag());
@@ -285,35 +272,35 @@ public class IT500SynapseJavaClient {
 		assertNotEquals(updatedAnnos.getEtag(), annos.getEtag());
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
-		Entity datasetEntity = synapseOne.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
+		Entity datasetEntity = synapse.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
 		assertNotEquals(NodeConstants.ZERO_E_TAG, datasetEntity.getEtag());
 
 		// Get the Users permission for this entity
-		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(file.getId());
+		UserEntityPermissions uep = synapse.getUsersEntityPermissions(file.getId());
 		assertNotNull(uep);
 		assertTrue(uep.getCanEdit());
 		assertTrue(uep.getCanView());
-		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
-		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.READ));
+		assertTrue(synapse.canAccess(file.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(synapse.canAccess(file.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
 		assertTrue(uep.getCanChangeSettings());
 		assertTrue(uep.getCanEnableInheritance());
 		
-		UserProfile profile = synapseOne.getMyProfile();
+		UserProfile profile = synapse.getMyProfile();
 		assertNotNull(profile);
 		
 		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
 		// should be able to download
-		assertTrue(synapseOne.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapse.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// give read permission to synapseTwo
-		AccessControlList acl = synapseOne.getACL(project.getId());
+		AccessControlList acl = synapse.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
 		readPermission.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		acl.getResourceAccess().add(readPermission);
-		synapseOne.updateACL(acl);
+		synapse.updateACL(acl);
 		
 		// now add a ToU restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
@@ -328,7 +315,7 @@ public class IT500SynapseJavaClient {
 		ar = adminSynapse.createAccessRequirement(ar);
 		accessRequirementsToDelete.add(ar.getId());
 		
-		UserProfile otherProfile = synapseOne.getMyProfile();
+		UserProfile otherProfile = synapse.getMyProfile();
 		assertNotNull(otherProfile);
 		
 		// should not be able to download
@@ -349,7 +336,7 @@ public class IT500SynapseJavaClient {
 		assertEquals("play nicer", ar.getTermsOfUse());
 		
 		// ACL should reflect the first User's permission
-		acl = synapseOne.getACL(project.getId());
+		acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
 		List<Long> foundPrincipals = new ArrayList<>();
@@ -366,7 +353,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(foundit, "didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals);
 		
 		// Get the path
-		EntityPath path = synapseOne.getEntityPath(file.getId());
+		EntityPath path = synapse.getEntityPath(file.getId());
 		assertNotNull(path);
 		assertNotNull(path.getPath());
 		assertEquals(3, path.getPath().size());
@@ -379,7 +366,7 @@ public class IT500SynapseJavaClient {
 		entityIds.add(project.getId());
 		entityIds.add(dataset.getId());
 		entityIds.add(file.getId());
-		PaginatedResults<EntityHeader> entityHeaders = synapseOne.getEntityTypeBatch(entityIds);
+		PaginatedResults<EntityHeader> entityHeaders = synapse.getEntityTypeBatch(entityIds);
 		assertNotNull(entityHeaders);
 		assertEquals(3, entityHeaders.getTotalNumberOfResults());
 		List<String> outputIds = new ArrayList<String>();
@@ -390,13 +377,13 @@ public class IT500SynapseJavaClient {
 		assertTrue(entityIds.containsAll(outputIds));
 
 		// Update and force a new version
-		file = synapseOne.getEntity(file.getId(), FileEntity.class);
+		file = synapse.getEntity(file.getId(), FileEntity.class);
 		String versionComment = "A new version comment";
 		file.setVersionLabel(null); // Null version label will set the label to revision number
 		file.setVersionComment(versionComment);
 		file.setDataFileHandleId(fileHandleId2);
-		synapseOne.putEntity(file, null, true);
-		file = synapseOne.getEntity(file.getId(), FileEntity.class);
+		synapse.putEntity(file, null, true);
+		file = synapse.getEntity(file.getId(), FileEntity.class);
 		assertEquals("2", file.getVersionLabel());  // Revision number should be 2
 		assertEquals(versionComment, file.getVersionComment());
 		assertEquals(fileHandleId2, file.getDataFileHandleId());
@@ -406,30 +393,30 @@ public class IT500SynapseJavaClient {
 	public void testJavaClientCreateEntity() throws Exception {
 		Folder study = new Folder();
 		study.setParentId(project.getId());
-		Folder createdStudy = synapseOne.createEntity(study);
+		Folder createdStudy = synapse.createEntity(study);
 		assertNotNull(createdStudy);
 		assertNotNull(createdStudy.getId());
 
 		String createdProjectId = createdStudy.getId();
-		Folder fromGet = synapseOne.getEntity(createdProjectId, Folder.class);
+		Folder fromGet = synapse.getEntity(createdProjectId, Folder.class);
 		assertEquals(createdStudy, fromGet);
 
-		Folder fromGetById = (Folder) synapseOne.getEntityById(createdProjectId);
+		Folder fromGetById = (Folder) synapse.getEntityById(createdProjectId);
 		assertEquals(createdStudy, fromGetById);
 
 	}
 
 	@Test
 	public void testJavaClientGetEntityBundle() throws SynapseException {
-		Annotations annos = synapseOne.getAnnotationsV2(project.getId());
+		Annotations annos = synapse.getAnnotationsV2(project.getId());
 		AnnotationsV2TestUtils.putAnnotations(annos, "doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(annos, "string", "A string", AnnotationsValueType.STRING);
-		annos = synapseOne.updateAnnotationsV2(project.getId(), annos);
+		annos = synapse.updateAnnotationsV2(project.getId(), annos);
 
-		AccessControlList acl = synapseOne.getACL(project.getId());
+		AccessControlList acl = synapse.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
 		acl.setId(project.getId());
-		synapseOne.updateACL(acl);
+		synapse.updateACL(acl);
 
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
@@ -442,28 +429,28 @@ public class IT500SynapseJavaClient {
 		request.setIncludeRestrictionInformation(true);
 		
 		long startTime = System.nanoTime();
-		EntityBundle entityBundle = synapseOne.getEntityBundleV2(project.getId(), request);
+		EntityBundle entityBundle = synapse.getEntityBundleV2(project.getId(), request);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
 
 		assertNotNull(entityBundle.getRestrictionInformation());
-		assertEquals(synapseOne.getEntityById(project.getId()), entityBundle.getEntity(),"Invalid fetched Entity in the EntityBundle");
-		assertEquals(synapseOne.getAnnotationsV2(project.getId()), entityBundle.getAnnotations(), "Invalid fetched Annotations in the EntityBundle");
-		assertEquals(synapseOne.getEntityPath(project.getId()), entityBundle.getPath(), "Invalid fetched EntityPath in the EntityBundle");
-		assertEquals(synapseOne.getACL(project.getId()), entityBundle.getAccessControlList(), "Invalid fetched ACL in the EntityBundle");
+		assertEquals(synapse.getEntityById(project.getId()), entityBundle.getEntity(),"Invalid fetched Entity in the EntityBundle");
+		assertEquals(synapse.getAnnotationsV2(project.getId()), entityBundle.getAnnotations(), "Invalid fetched Annotations in the EntityBundle");
+		assertEquals(synapse.getEntityPath(project.getId()), entityBundle.getPath(), "Invalid fetched EntityPath in the EntityBundle");
+		assertEquals(synapse.getACL(project.getId()), entityBundle.getAccessControlList(), "Invalid fetched ACL in the EntityBundle");
 		assertNull(entityBundle.getFileName());
 	}
 	
 	@Test
 	public void testSpecialCharacters() throws SynapseException {
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		String location = "Zürich"; // this string is encoded differently in UTF-8 than ISO-8859-1
 		String firstName = "Sławomir"; // this string can't be encoded in ISO-8859-1
 		myProfile.setLocation(location);
 		myProfile.setFirstName(firstName);
-		synapseOne.updateMyProfile(myProfile);
-		myProfile = synapseOne.getMyProfile();
+		synapse.updateMyProfile(myProfile);
+		myProfile = synapse.getMyProfile();
 		assertEquals(location, myProfile.getLocation());
 		assertEquals(firstName, myProfile.getFirstName());
 	}
@@ -471,7 +458,7 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		Set<ACCESS_TYPE> accessTypes = new HashSet<>();
 		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
 		ResourceAccess ra = new ResourceAccess();
@@ -500,7 +487,7 @@ public class IT500SynapseJavaClient {
 		ebc.setAnnotations(a1);
 		ebc.setAccessControlList(acl1);
 				
-		EntityBundle response = synapseOne.createEntityBundleV2(ebc);
+		EntityBundle response = synapse.createEntityBundleV2(ebc);
 		
 		Folder s2 = (Folder) response.getEntity();
 		toDelete.add(s2.getId());
@@ -528,7 +515,7 @@ public class IT500SynapseJavaClient {
 		ebc2.setAnnotations(a2);
 		ebc2.setAccessControlList(acl2);
 				
-		EntityBundle response2 = synapseOne.updateEntityBundleV2(s2.getId(), ebc2);
+		EntityBundle response2 = synapse.updateEntityBundleV2(s2.getId(), ebc2);
 		
 		Folder s3 = (Folder) response2.getEntity();
 		assertNotNull(s3);
@@ -549,12 +536,12 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testGetUsers() throws Exception {
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		assertNotNull(myProfile);
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 
-		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,1000);
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,1000);
 		assertTrue(users.getResults().size()>0);
 		boolean foundSelf = false;
 		List<String> allDisplayNames = new ArrayList<>();
@@ -569,12 +556,12 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testListUserProfiles() throws Exception {
-		UserProfile myProfile = synapseOne.getMyProfile();
+		UserProfile myProfile = synapse.getMyProfile();
 		assertNotNull(myProfile);
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 
-		List<UserProfile> users = synapseOne.listUserProfiles(Collections.singletonList(
+		List<UserProfile> users = synapse.listUserProfiles(Collections.singletonList(
 				Long.parseLong(myPrincipalId)));
 		
 		assertEquals(1, users.size());
@@ -591,7 +578,7 @@ public class IT500SynapseJavaClient {
 		UserGroupHeaderResponsePage page = waitForUserGroupHeadersByPrefix(adminProfile.getUserName());
 		assertTrue(page.getTotalNumberOfResults()>0);
 		TypeFilter type = TypeFilter.USERS_ONLY;
-		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), type, 5L, 0L);
+		page = synapse.getUserGroupHeadersByPrefix(adminProfile.getUserName(), type, 5L, 0L);
 		assertTrue(page.getTotalNumberOfResults()>0);
 	}
 	
@@ -603,7 +590,7 @@ public class IT500SynapseJavaClient {
 
 		// Get the user group header using the user's name
 		List<String> aliases = Lists.newArrayList(adminProfile.getUserName());
-		List<UserGroupHeader> headers = synapseOne.getUserGroupHeadersByAliases(aliases);
+		List<UserGroupHeader> headers = synapse.getUserGroupHeadersByAliases(aliases);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
 		UserGroupHeader header = headers.get(0);
@@ -615,7 +602,7 @@ public class IT500SynapseJavaClient {
 	private UserGroupHeaderResponsePage waitForUserGroupHeadersByPrefix(String prefix) throws SynapseException, InterruptedException, UnsupportedEncodingException{
 		long start = System.currentTimeMillis();
 		while(true){
-			UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(prefix);
+			UserGroupHeaderResponsePage page = synapse.getUserGroupHeadersByPrefix(prefix);
 			if(page.getTotalNumberOfResults() < 1){
 				System.out.println("Waiting for principal prefix worker");
 				Thread.sleep(1000);
@@ -630,7 +617,7 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> groups = synapseOne.getGroups(0,100);
+		PaginatedResults<UserGroup> groups = synapse.getGroups(0,100);
 		assertTrue(groups.getResults().size()>0);
 		for (UserGroup ug : groups.getResults()) {
 			assertNotNull(ug.getId());
@@ -640,13 +627,13 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testGetUserGroupHeadersById() throws Exception {
 		List<String> ids = new ArrayList<>();
-		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,100);
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
 		for (UserProfile up : users.getResults()) {	
 			if (up.getUserName() != null) {
 				ids.add(up.getOwnerId());
 			}
 		}
-		UserGroupHeaderResponsePage response = synapseOne.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
 		Map<String, UserGroupHeader> headers = new HashMap<>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -665,9 +652,9 @@ public class IT500SynapseJavaClient {
 		// create a node
 		Folder layer = new Folder();
 		layer.setParentId(dataset.getId());
-		layer = synapseOne.createEntity(layer);
+		layer = synapse.createEntity(layer);
 
-		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// add an access requirement
 		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
@@ -686,18 +673,18 @@ public class IT500SynapseJavaClient {
 		assertEquals(r, adminSynapse.getAccessRequirement(r.getId()));
 		
 		// check that owner can't download (since it's not a FileEntity)
-		assertFalse(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
-		UserProfile otherProfile = synapseOne.getMyProfile();
+		UserProfile otherProfile = synapse.getMyProfile();
 		assertNotNull(otherProfile);
 		
 		// give read permission to synapseTwo
-		AccessControlList acl = synapseOne.getACL(project.getId());
+		AccessControlList acl = synapse.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
 		readPermission.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		acl.getResourceAccess().add(readPermission);
-		synapseOne.updateACL(acl);
+		synapse.updateACL(acl);
 
 		// check that another can't download
 		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
@@ -734,15 +721,15 @@ public class IT500SynapseJavaClient {
 		File originalFile = new File(url.getFile());
 
 		// Get the profile to update.
-		UserProfile profile = synapseOne.getMyProfile();
-		FileHandle fileHandle = synapseOne.multipartUpload(originalFile, null, true, false);
+		UserProfile profile = synapse.getMyProfile();
+		FileHandle fileHandle = synapse.multipartUpload(originalFile, null, true, false);
 		profile.setProfilePicureFileHandleId(fileHandle.getId());
-		synapseOne.updateMyProfile(profile);
-		profile = synapseOne.getMyProfile();
+		synapse.updateMyProfile(profile);
+		profile = synapse.getMyProfile();
 		// Make sure we can get a pre-signed url the image and its preview.
-		URL profileURL = synapseOne.getUserProfilePictureUrl(profile.getOwnerId());
+		URL profileURL = synapse.getUserProfilePictureUrl(profile.getOwnerId());
 		assertNotNull(profileURL);
-		URL profilePreviewURL = waitForProfilePreview(synapseOne, profile.getOwnerId());
+		URL profilePreviewURL = waitForProfilePreview(synapse, profile.getOwnerId());
 		assertNotNull(profilePreviewURL);
 
 	}
@@ -771,7 +758,7 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testRetrieveApiKey() throws SynapseException {
-		String apiKey = synapseOne.retrieveApiKey();
+		String apiKey = synapse.retrieveApiKey();
 		assertNotNull(apiKey);
 	}
 
@@ -779,21 +766,21 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testCertifiedUserQuiz() throws Exception {
 		// before taking the test there's no passing record
-		String myId = synapseOne.getMyProfile().getOwnerId();
-		assertThrows(SynapseNotFoundException.class, () -> synapseOne.getCertifiedUserPassingRecord(myId));
-		Quiz quiz = synapseOne.getCertifiedUserTest();
+		String myId = synapse.getMyProfile().getOwnerId();
+		assertThrows(SynapseNotFoundException.class, () -> synapse.getCertifiedUserPassingRecord(myId));
+		Quiz quiz = synapse.getCertifiedUserTest();
 		assertNotNull(quiz);
 		assertNotNull(quiz.getId());
 		QuizResponse response = new QuizResponse();
 		response.setQuizId(quiz.getId());
 		response.setQuestionResponses(new ArrayList<>());
 		// this quiz will fail
-		PassingRecord pr = synapseOne.submitCertifiedUserTestResponse(response);
+		PassingRecord pr = synapse.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
 		assertFalse(pr.getPassed());
 		assertEquals(quiz.getId(), pr.getQuizId());
 		assertNotNull(pr.getResponseId());
-		PassingRecord pr2 = synapseOne.getCertifiedUserPassingRecord(myId);
+		PassingRecord pr2 = synapse.getCertifiedUserPassingRecord(myId);
 		assertEquals(pr, pr2);
 		
 		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
@@ -817,9 +804,9 @@ public class IT500SynapseJavaClient {
 		LogEntry logEntry = new LogEntry();
 		logEntry.setLabel(label1);
 		logEntry.setMessage("message 1");
-		synapseOne.logError(logEntry);
+		synapse.logError(logEntry);
 		logEntry.setMessage("message 2");
-		synapseOne.logError(logEntry);
+		synapse.logError(logEntry);
 		logEntry.setLabel(label2);
 		logEntry.setMessage("message 2");
 
@@ -828,7 +815,7 @@ public class IT500SynapseJavaClient {
 		new Exception().printStackTrace(pw );
 		pw.flush();
 		logEntry.setStacktrace(sw.toString());
-		synapseOne.logError(logEntry);
+		synapse.logError(logEntry);
 	}
 	
 	
@@ -836,8 +823,8 @@ public class IT500SynapseJavaClient {
 	public void testGetEntityIdByAlias() throws SynapseException{
 		// Set an alias for the project
 		project.setAlias(UUID.randomUUID().toString().replaceAll("-", "_"));
-		synapseOne.putEntity(project);
-		EntityId lookupId = synapseOne.getEntityIdByAlias(project.getAlias());
+		synapse.putEntity(project);
+		EntityId lookupId = synapse.getEntityIdByAlias(project.getAlias());
 		assertNotNull(lookupId);
 		assertEquals(project.getId(), lookupId.getId());
 	}
@@ -847,7 +834,7 @@ public class IT500SynapseJavaClient {
 		EntityChildrenRequest request = new EntityChildrenRequest();
 		request.setParentId(project.getId());
 		request.setIncludeTypes(Lists.newArrayList(EntityType.folder));
-		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		EntityChildrenResponse response = synapse.getEntityChildren(request);
 		assertNotNull(response);
 		assertNotNull(response.getPage());
 		assertEquals(1, response.getPage().size());
@@ -861,7 +848,7 @@ public class IT500SynapseJavaClient {
 		EntityChildrenRequest request = new EntityChildrenRequest();
 		// null parentId should get projects.
 		request.setParentId(null);
-		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		EntityChildrenResponse response = synapse.getEntityChildren(request);
 		assertNotNull(response);
 		assertNotNull(response.getPage());
 		assertTrue(response.getPage().size() > 0);
@@ -872,6 +859,6 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testLookupEntity() throws SynapseException {
-		assertEquals(dataset.getId(), synapseOne.lookupChild(project.getId(), dataset.getName()));
+		assertEquals(dataset.getId(), synapse.lookupChild(project.getId(), dataset.getName()));
 	}
 }

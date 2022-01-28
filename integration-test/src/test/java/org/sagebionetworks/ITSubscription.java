@@ -1,21 +1,16 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -28,29 +23,14 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-public class ITSubscription {
+public class ITSubscription extends BaseITTest {
 
-	private static SynapseClient synapse;
-	private static SynapseAdminClient adminSynapse;
-	private static Long userToDelete;
 	private Project project;
 	private String projectId;
 	private Forum forum;
 
-	@BeforeClass
-	public static void beforeClass() throws SynapseException, JSONObjectAdapterException {
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-	}
-
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
 		project = new Project();
 		project = synapse.createEntity(project);
@@ -59,16 +39,12 @@ public class ITSubscription {
 		forum = synapse.getForumByProjectId(projectId);
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() throws Exception {
 		if (project != null) adminSynapse.deleteEntity(project, true);
 		synapse.unsubscribeAll();
 	}
 
-	@AfterClass
-	public static void afterClass() throws Exception {
-		if (userToDelete != null) adminSynapse.deleteUser(userToDelete);
-	}
 	@Test
 	public void test() throws SynapseException {
 		String forumId = forum.getId();
