@@ -28,13 +28,13 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -120,6 +120,31 @@ public class SQLQueryTest {
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
 		assertEquals(TableModelUtils.getSelectColumns(expectedSelect), translator.getSelectColumns());
+	}
+	
+	@Test
+	public void testSqlQueryBuildWithNullSqlContext() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", schemaProvider(tableSchema), userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).sqlContext(null).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals(SqlContext.query, translator.getSqlContext());
+	}
+	
+	@Test
+	public void testSqlQueryBuildWithSqlContextQuery() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", schemaProvider(tableSchema), userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).sqlContext(SqlContext.query).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals(SqlContext.query, translator.getSqlContext());
+	}
+	
+	@Test
+	public void testSqlQueryBuildWithSqlContextBuild() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", schemaProvider(tableSchema), userId)
+				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
+				.sqlContext(SqlContext.build).build();
+		assertEquals("SELECT _C111_ FROM T123", translator.getOutputSQL());
+		assertEquals(SqlContext.build, translator.getSqlContext());
 	}
 
 	@Test
@@ -1233,17 +1258,15 @@ public class SQLQueryTest {
 		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
 		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
 		schemaMap.put(materializedViewId, Arrays.asList(columnNameToModelMap.get("doubletype")));
-		
-		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(viewId, EntityType.dataset));
+
+		List<IndexDescription> dependencies = Arrays.asList(new ViewIndexDescription(viewId, EntityType.dataset));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
-		
+
 		// this query is used to build the materialized view.
 		sql = "select doubletype from syn1";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_BENEFACTOR FROM T1",
-				query.getOutputSQL());
+		assertEquals("SELECT _C777_, ROW_BENEFACTOR FROM T1", query.getOutputSQL());
 	}
 	
 	@Test
@@ -1264,11 +1287,6 @@ public class SQLQueryTest {
 				.sqlContext(SqlContext.query).indexDescription(indexDescription).build();
 		assertEquals("SELECT CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END, ROW_ID, ROW_VERSION FROM T123",
 				query.getOutputSQL());
-	}
-	
-	@Test
-	public void testTranslateWithMaterializedViewWithDoubleQuery() {
-		
 	}
 	
 	@Test

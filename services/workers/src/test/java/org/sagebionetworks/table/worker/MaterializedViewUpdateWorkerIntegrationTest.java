@@ -133,7 +133,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		assertEquals(3, fileIdsUserCanSee.size());
 
 		// Currently do not support doubles so the double key is excluded.
-		String definingSql = "select id, stringKey, longKey, dateKey, booleanKey from " + view.getId();
+		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
 
 		MaterializedView materializedView = entityManager.getEntity(
 				adminUserInfo, entityManager.createEntity(adminUserInfo, new MaterializedView()
@@ -144,9 +144,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		String finalSql = "select * from "+materializedView.getId()+" order by id asc";
 		
 		List<Row> expectedRows = Arrays.asList(
-				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "1004", "false")),
-				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "1006", "false")),
-				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "1008", "false"))
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "6.140000000000001","1004", "false")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "8.14", "1006", "false")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "10.14", "1008", "false"))
 		);
 		
 		// Wait for the query against the materialized view to have the expected results.

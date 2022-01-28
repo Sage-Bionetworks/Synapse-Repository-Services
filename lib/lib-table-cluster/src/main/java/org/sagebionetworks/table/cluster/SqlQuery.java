@@ -17,12 +17,12 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -137,12 +137,12 @@ public class SqlQuery {
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.model = parsedModel;
 		this.schemaProvider = schemaProvider;
-		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
 		if(sqlContextIn == null) {
 			this.sqlContext = SqlContext.query;
 		}else {
 			this.sqlContext = sqlContextIn;
 		}
+		this.tableAndColumnMapper = new TableAndColumnMapper(model, schemaProvider);
 		if(this.tableAndColumnMapper.getTableIds().size() > 1 && !SqlContext.build.equals(this.sqlContext)) {
 			throw new IllegalArgumentException(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 		}
@@ -212,6 +212,7 @@ public class SqlQuery {
 		// Create a copy of the paginated model.
 		try {
 			transformedModel = new TableQueryParser(paginatedModel.toSql()).querySpecification();
+			transformedModel.setSqlContext(this.sqlContext);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -224,7 +225,7 @@ public class SqlQuery {
 		}
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
-		this.outputSQL = transformedModel.toSql();
+		this.outputSQL = transformedModel.toSql();		
 	}
 	
 	/**
@@ -409,6 +410,10 @@ public class SqlQuery {
 	
 	public IndexDescription getIndexDescription() {
 		return this.indexDescription;
+	}
+	
+	public SqlContext getSqlContext() {
+		return this.sqlContext;
 	}
 	
 }

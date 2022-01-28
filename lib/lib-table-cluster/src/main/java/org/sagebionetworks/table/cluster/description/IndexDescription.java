@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 /**
  * Provides information about the index of a table/view.

@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster.description;
+package org.sagebionetworks.table.query.model;
 
 /**
  * An enumeration to indicates the context of SQL that is being processed.

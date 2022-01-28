@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class TableIndexDescription implements IndexDescription {
 	

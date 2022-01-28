@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class ViewIndexDescription implements IndexDescription {
 

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class MaterializedViewIndexDescriptionTest {
 

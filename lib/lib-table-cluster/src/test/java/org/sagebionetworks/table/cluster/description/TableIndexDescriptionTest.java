@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class TableIndexDescriptionTest {
 

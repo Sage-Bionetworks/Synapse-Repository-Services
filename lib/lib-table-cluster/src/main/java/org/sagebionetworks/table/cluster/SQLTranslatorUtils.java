@@ -32,7 +32,6 @@ import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationRefe
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlContext;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -61,6 +60,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.HasSqlContext;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
@@ -78,6 +78,7 @@ import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
@@ -395,14 +396,21 @@ public class SQLTranslatorUtils {
 		if (ColumnType.DOUBLE.equals(match.getColumnTranslationReference().getColumnType())) {
 			if (columnReference.isInContext(SelectList.class)) {
 				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
-					return Optional
-							.of(createDoubleExpanstion(mapper.getNumberOfTables(), match.getTableInfo().getTranslatedTableAlias(),
-									match.getColumnTranslationReference().getTranslatedColumnName()));
+					SqlContext context = columnReference.getContext(HasSqlContext.class).get().getSqlContext();
+					if(SqlContext.query.equals(context)) {
+						return Optional.of(createDoubleExpanstion(mapper.getNumberOfTables(),
+								match.getTableInfo().getTranslatedTableAlias(),
+								match.getColumnTranslationReference().getTranslatedColumnName()));
+					}
 				}
 			}
 		}
-
 		// All other cases
+		return simpleTranslateColumn(mapper, match);
+	}
+
+
+	static Optional<ColumnReference> simpleTranslateColumn(TableAndColumnMapper mapper, ColumnReferenceMatch match) {
 		StringBuilder builder = new StringBuilder();
 		if (mapper.getNumberOfTables() > 1) {
 			builder.append(match.getTableInfo().getTranslatedTableAlias());
@@ -415,6 +423,7 @@ public class SQLTranslatorUtils {
 			throw new IllegalStateException(e);
 		}
 	}
+	
 
 	/**
 	 * Create the translated double expansion for the given table and column alias
@@ -431,7 +440,6 @@ public class SQLTranslatorUtils {
 		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
 				null);
 	}
-
 
 
 	private static void replaceTextMatchesPredicate(BooleanPrimary booleanPrimary) {

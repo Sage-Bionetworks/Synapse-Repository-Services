@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MaterializedViewIndexDescription implements IndexDescription {
