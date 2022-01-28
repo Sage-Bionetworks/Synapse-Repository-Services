@@ -49,6 +49,7 @@ public class TableIndexDescriptionTest {
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
+	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
@@ -58,4 +59,11 @@ public class TableIndexDescriptionTest {
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
+	
+	@Test
+	public void testGetDependencies() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		assertEquals(Collections.emptyList(), tid.getDependencies());
+	}
+	
 }

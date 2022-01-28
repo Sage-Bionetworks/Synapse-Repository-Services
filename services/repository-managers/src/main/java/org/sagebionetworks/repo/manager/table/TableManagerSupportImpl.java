@@ -416,6 +416,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 					.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
 					.checkAuthorizationOrElseThrow();
 		}
+		// must also have access to each dependency
+		for(IndexDescription dependency: indexDescription.getDependencies()) {
+			validateTableReadAccess(userInfo, dependency);
+		}
 	}
 
 	@Override

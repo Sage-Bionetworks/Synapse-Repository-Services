@@ -45,5 +45,11 @@ public interface IndexDescription {
 	 */
 	List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag);
 	
+	/**
+	 * Get the dependencies of this Index.
+	 * @return
+	 */
+	List<IndexDescription> getDependencies();
+	
 
 }

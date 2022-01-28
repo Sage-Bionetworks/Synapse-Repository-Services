@@ -58,6 +58,11 @@ public class TableIndexDescription implements IndexDescription {
 		}
 		return Arrays.asList(ROW_ID, ROW_VERSION);
 	}
+	
+	@Override
+	public List<IndexDescription> getDependencies() {
+		return Collections.emptyList();
+	}
 
 	@Override
 	public int hashCode() {

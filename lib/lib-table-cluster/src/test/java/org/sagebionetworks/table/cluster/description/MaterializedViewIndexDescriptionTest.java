@@ -121,4 +121,14 @@ public class MaterializedViewIndexDescriptionTest {
 			mid.getColumnNamesToAddToSelect(null, true);
 		});
 	}
+	
+	@Test
+	public void testGetDependencies() {
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		assertEquals(dependencies, mid.getDependencies());
+	}
 }

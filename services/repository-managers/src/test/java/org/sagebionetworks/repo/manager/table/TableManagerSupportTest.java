@@ -687,6 +687,29 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testValidateTableReadAccessWithMaterializedView(){
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion viewId = IdAndVersion.parse("syn2");
+		IdAndVersion materializedId = IdAndVersion.parse("syn3");
+		IndexDescription tableDescription = new TableIndexDescription(tableId);
+		IndexDescription viewDescription = new ViewIndexDescription(viewId, EntityType.entityview);
+		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
+				Arrays.asList(tableDescription, viewDescription));		
+		
+		when(mockAuthorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		//  call under test
+		manager.validateTableReadAccess(userInfo, materializedDescription);
+		
+		// check for the table
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthorizationManager).canAccess(userInfo, viewId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager).canAccess(userInfo, materializedId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthorizationManager, times(4)).canAccess(any(), any(), any(), any());
+	}
+	
+	@Test
 	public void testValidateTableWriteAccessTableEntity(){
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		//  call under test

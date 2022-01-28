@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -30,23 +33,35 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -201,6 +216,87 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			return new Pair<>(sourceTableSynced && materializedViewSynced, null);
 		});
 		
+	}
+	
+	@Test
+	public void testMaterializedViewWithTableSource() throws Exception {
+		String projectId = createProject();
+		aclDaoHelper.update(projectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+		
+		IdAndVersion tableId = createTable(projectId);
+		
+		String definingSql = "select * from "+tableId.toString();
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0", "103000", "682003.12", "false")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1", "103001", "682006.53", "true"))
+		);
+		
+		String finalSql = "select * from "+materializedViewId.toString()+" order by ROW_ID asc";
+		
+		// The user does not have download on the dependent table.
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+				assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			}, MAX_WAIT_MS);
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		
+		// grant the user download on the table.
+		aclDaoHelper.update(projectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+		
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+	}
+	
+	public IdAndVersion createTable(String projectId) throws AssertionError, AsynchJobFailedException {
+
+		List<ColumnModel> schema = Arrays.asList(
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.STRING).setName("aString")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInteger")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.DOUBLE).setName("aDouble")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.BOOLEAN).setName("aBoolen")));
+
+		List<String> columnIds = TableModelUtils.getIds(schema);
+
+		IdAndVersion tableId = createTable(projectId, columnIds);
+		String tableIdString = tableId.toString();
+		
+		int rowCount = 2;
+
+		RowSet set = new RowSet().setRows(TableModelTestUtils.createRows(schema, rowCount)).setTableId(tableIdString)
+				.setHeaders(TableModelUtils.getSelectColumns(schema));
+		AppendableRowSetRequest request = new AppendableRowSetRequest().setEntityId(tableId.toString())
+				.setEntityId(tableId.toString()).setToAppend(set);
+
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(request);
+
+		// Wait for the job to complete.
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response,
+					RowReferenceSetResults.class);
+			assertNotNull(results.getRowReferenceSet());
+			RowReferenceSet refSet = results.getRowReferenceSet();
+			assertNotNull(refSet.getRows());
+			assertEquals(rowCount, refSet.getRows().size());
+		}, MAX_WAIT_MS);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from "+tableIdString, (response) -> {
+			assertEquals(rowCount, response.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		return tableId;
 	}
 
 	/**

@@ -90,4 +90,10 @@ public class ViewIndexDescriptionTest {
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
 	}
+	
+	@Test
+	public void testGetDependencies() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		assertEquals(Collections.emptyList(), vid.getDependencies());
+	}
 }
