@@ -46,20 +46,6 @@ public class ITMigrationTest {
 		// Additionally admin services should work as well
 		assertNotNull(adminSynapse.getFeatureStatus(Feature.DATA_ACCESS_AUTO_REVOCATION));
 		
-		// Clear basic auth
-		adminSynapse.removeAuthorizationHeader();
-	
-		// Should still work with user/api key auth
-		
-		String migrationUser = stackConfig.getMigrationAdminUsername();
-		String migrationKey = stackConfig.getMigrationAdminAPIKey();
-		
-		adminSynapse.setUsername(migrationUser);
-		adminSynapse.setApiKey(migrationKey);
-		
-		// Both the migration and admin services should still work with the API key
-		assertNotNull(adminSynapse.getMigrationTypes());
-		assertNotNull(adminSynapse.getFeatureStatus(Feature.DATA_ACCESS_AUTO_REVOCATION));
 	}
 	
 

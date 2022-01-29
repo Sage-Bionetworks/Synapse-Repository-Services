@@ -47,7 +47,7 @@ public class IT990AuthenticationController extends BaseITTest {
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		// Don't use the SynapseClientHelper here, since we need something different
+		// Don't use the base class test user here, since we need something different
 		email = UUID.randomUUID().toString() + "@sagebase.org";
 		emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
 		username = UUID.randomUUID().toString();

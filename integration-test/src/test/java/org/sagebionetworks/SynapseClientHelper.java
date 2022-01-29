@@ -17,15 +17,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * Holds helpers for setting up integration tests
  */
 public class SynapseClientHelper {
-	
-	public static SynapseAdminClient getAuthenticatedAdminClient() {
-		SynapseAdminClient adminSynapse = new SynapseAdminClientImpl();
-        SynapseClientHelper.setEndpoints(adminSynapse);
-        adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-        adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-        return adminSynapse;
-	}
-	
+		
 	public static void setEndpoints(SynapseClient client) {
 		client.setAuthEndpoint(StackConfigurationSingleton.singleton().getAuthenticationServicePrivateEndpoint());
 		client.setRepositoryEndpoint(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
