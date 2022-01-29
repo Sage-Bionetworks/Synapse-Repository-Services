@@ -11,8 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,9 +95,11 @@ public class ITBroadcastMessage {
 		synapse.updateACL(acl);
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() throws SynapseException, JSONObjectAdapterException {
-		if (project != null) adminSynapse.deleteEntity(project, true);
+		if (project != null) {
+			adminSynapse.deleteEntity(project, true);
+		}
 		synapse.unsubscribeAll();
 	}
 
