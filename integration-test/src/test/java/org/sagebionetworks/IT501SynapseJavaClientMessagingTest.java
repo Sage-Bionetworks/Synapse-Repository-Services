@@ -1,7 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -274,10 +274,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		}
 		long end = System.currentTimeMillis();
 		
-		assertTrue(
+		assertTrue(gotNerfed, 
 				"Assuming that a service calls takes less than 6 seconds to complete, we should have hit the rate limit.  A total of "
-						+ i + " messages were sent in " + (end - start) + " ms.  Average: " + ((end - start) / i) + " ms",
-				gotNerfed);
+						+ i + " messages were sent in " + (end - start) + " ms.  Average: " + ((end - start) / i) + " ms");
 	}
 	
 	@Test
@@ -302,7 +301,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	public void testDownloadMessage() throws Exception {
 		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
-		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+		assertTrue(MESSAGE_BODY.equals(message), "Downloaded: " + message);
 	}
 	
 	@Test
@@ -324,7 +323,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		// this inspects the content-type to determine the character encoding
 		String message = synapseTwo.downloadMessage(mtu.getId());
 		
-		assertTrue("Downloaded: " + message, MESSAGE_BODY_WITH_EXTENDED_CHARS.equals(message));
+		assertTrue(MESSAGE_BODY_WITH_EXTENDED_CHARS.equals(message), "Downloaded: " + message);
 	}
 	
 	@Test
