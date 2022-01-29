@@ -15,7 +15,10 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -48,12 +51,21 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ViewType;
 
-public class ITDownloadListControllerTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDownloadListControllerTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
 	public static final int MAX_RETIES = 10;
 
 	private Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDownloadListControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void beforeEach() throws SynapseException {

@@ -15,6 +15,9 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -29,7 +32,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
-public class IT055WikiPageTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT055WikiPageTest {
 	
 	private  static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -40,6 +44,14 @@ public class IT055WikiPageTest extends BaseITTest {
 	private String imageFileMD5;
 	private CloudProviderFileHandleInterface fileHandle;
 	private Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT055WikiPageTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 	
 	@BeforeEach
 	public void before() throws SynapseException, IOException {

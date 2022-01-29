@@ -12,6 +12,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
@@ -26,14 +29,22 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 
-public class IT065SynapseJavaClientDoiV2Test extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT065SynapseJavaClientDoiV2Test {
 
 	private static final long RETRY_TIME = 1000L;
 
 	private static Entity entity;
+	
+	private static StackConfiguration config;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient configuredAdmin, SynapseClient configuredClient, StackConfiguration configuredConfig) throws Exception {
+		adminSynapse = configuredAdmin;
+		synapse = configuredClient;
+		config = configuredConfig;
 		assumeTrue(config.getDoiDataciteEnabled());
 		entity = new Project();
 		entity.setName("IT065SynapseJavaClientDoiV2Test" + UUID.randomUUID());
@@ -129,8 +140,9 @@ public class IT065SynapseJavaClientDoiV2Test extends BaseITTest {
 		assertEquals(doiRetrieved.getCreators(), doiToMint.getCreators());
 		assertEquals(doiRetrieved.getResourceType(), doiToMint.getResourceType());
 		assertEquals(doiRetrieved.getPublicationYear(), doiToMint.getPublicationYear());
-		assertEquals(doiRetrieved.getAssociatedBy(), userToDelete.toString());
-		assertEquals(doiRetrieved.getUpdatedBy(), userToDelete.toString());
+		String expectedUser = synapse.getMyProfile().getOwnerId();
+		assertEquals(doiRetrieved.getAssociatedBy(), expectedUser);
+		assertEquals(doiRetrieved.getUpdatedBy(), expectedUser);
 		assertNotNull(doiRetrieved.getEtag());
 		assertEquals(entity.getId(), doiRetrieved.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiRetrieved.getObjectType());

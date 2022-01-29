@@ -8,6 +8,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -21,10 +23,17 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
  * @author michael
  *
  */
-public class ITSimpleCORSFilterTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITSimpleCORSFilterTest {
 
     private static SimpleHttpClient simpleHttpClient;
     private static int THROTTLED_REQUEST_COUNT = 1000;
+    
+    private SynapseClient synapse;
+    
+    public ITSimpleCORSFilterTest(SynapseClient synapse) {
+    	this.synapse = synapse;
+	}
 
     @BeforeAll
     public static void beforeClass() throws Exception {

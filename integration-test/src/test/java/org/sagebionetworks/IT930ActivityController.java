@@ -10,16 +10,28 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.provenance.Activity;
 
-public class IT930ActivityController extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT930ActivityController {
 
 	private List<String> entitiesToDelete;
 	private List<String> activitiesToDelete;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT930ActivityController(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 	
 	@BeforeEach
 	public void before() throws SynapseException {

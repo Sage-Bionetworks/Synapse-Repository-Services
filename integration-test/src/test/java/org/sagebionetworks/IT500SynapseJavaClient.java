@@ -30,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -42,12 +43,8 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -68,11 +65,13 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -88,7 +87,8 @@ import com.google.common.collect.Sets;
  * 
  * @author deflaux
  */
-public class IT500SynapseJavaClient extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT500SynapseJavaClient {
 
 	private static SynapseClient synapseTwo;
 	private static SynapseAdminClient synapseAnonymous;
@@ -116,9 +116,17 @@ public class IT500SynapseJavaClient extends BaseITTest {
 	private long getBootstrapCountPlus(long number) {
 		return bootstrappedTeams.size() + number;
 	}
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT500SynapseJavaClient(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		// Create 2 users
 		
 		synapseTwo = new SynapseClientImpl();
@@ -185,7 +193,7 @@ public class IT500SynapseJavaClient extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }

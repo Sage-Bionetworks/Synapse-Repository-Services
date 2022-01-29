@@ -21,8 +21,10 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -60,12 +62,23 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
-public class ITOpenIDConnectTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITOpenIDConnectTest {
 
 	private static SynapseAdminClient synapseAnonymous;
 	private static SimpleHttpClient simpleClient;
 
 	private String clientToDelete;
+	
+	private StackConfiguration config;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITOpenIDConnectTest(StackConfiguration config, SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.config = config;
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {

@@ -19,7 +19,10 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -51,7 +54,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.google.common.collect.Lists;
 
-public class IT054FileEntityTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT054FileEntityTest {
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -63,6 +67,14 @@ public class IT054FileEntityTest extends BaseITTest {
 	private FileEntity file;
 	private FileHandleAssociation association;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT054FileEntityTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 	
 	@BeforeEach
 	public void before() throws SynapseException, FileNotFoundException, IOException {
@@ -222,7 +234,7 @@ public class IT054FileEntityTest extends BaseITTest {
 		FileHandle newFileHandle = first.getNewFileHandle();
 		assertNotNull(newFileHandle);
 		assertFalse(newFileHandle.getId().equals(fileHandle.getId()));
-		assertEquals(userToDelete.toString(), newFileHandle.getCreatedBy());
+		assertEquals(synapse.getMyProfile().getOwnerId(), newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertFalse(newFileHandle.getEtag().equals(fileHandle.getEtag()));
 		assertFalse(newFileHandle.getCreatedOn().equals(fileHandle.getCreatedOn()));

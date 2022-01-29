@@ -34,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -106,7 +108,8 @@ import com.google.common.collect.ImmutableList;
  * 
  * @author bkng
  */
-public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT520SynapseJavaClientEvaluationTest {
 
 	private static SynapseClient synapseTwo;
 	private static Long user2ToDelete;
@@ -139,8 +142,16 @@ public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 	private static final String MOCK_CHALLENGE_ENDPOINT = "https://synapse.org/#ENTITY:";
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT520SynapseJavaClientEvaluationTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		synapseTwo = new SynapseClientImpl();
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	}
@@ -255,7 +266,7 @@ public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
@@ -761,7 +772,8 @@ public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
 		
 		// let's register for the challenge!
 		Team myTeam = createParticipantTeam();
-				
+			
+		String expectedUserId = synapse.getMyProfile().getOwnerId();
 		// am I eligible to submit?
 		TeamSubmissionEligibility tse = synapse.getTeamSubmissionEligibility(eval1.getId(), myTeam.getId());
 		assertEquals(eval1.getId(), tse.getEvaluationId());
@@ -777,7 +789,7 @@ public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
 		assertTrue(mse.getIsEligible());
 		assertFalse(mse.getIsQuotaFilled());
 		assertTrue(mse.getIsRegistered());
-		assertEquals(userToDelete, mse.getPrincipalId());
+		assertEquals(expectedUserId, mse.getPrincipalId());
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -795,7 +807,7 @@ public class IT520SynapseJavaClientEvaluationTest extends BaseITTest {
 		assertEquals(myTeam.getId(), clone.getTeamId());
 		assertEquals(1, clone.getContributors().size());
 		SubmissionContributor sb = clone.getContributors().iterator().next();
-		assertEquals(""+userToDelete, sb.getPrincipalId());
+		assertEquals(""+expectedUserId, sb.getPrincipalId());
 		assertNotNull(sb.getCreatedOn());
 
 		// an admin can add my colleague as a contributor

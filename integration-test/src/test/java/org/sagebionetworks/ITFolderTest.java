@@ -9,6 +9,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -21,14 +23,23 @@ import org.sagebionetworks.repo.model.util.ModelConstants;
 
 import com.google.common.collect.ImmutableSet;
 
-public class ITFolderTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITFolderTest {
 	private static Long user2;
 	private static SynapseClient synapse2;
 
 	private Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITFolderTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		synapse2 = new SynapseClientImpl();
 		user2 = SynapseClientHelper.createUser(adminSynapse, synapse2);
 	}
@@ -50,7 +61,7 @@ public class ITFolderTest extends BaseITTest {
 	}
 
 	@AfterAll
-	public static void afterClass() {
+	public static void afterClass(SynapseAdminClient adminSynapse) {
 		try {
 			adminSynapse.deleteUser(user2);
 		} catch (SynapseException e) {
@@ -79,7 +90,7 @@ public class ITFolderTest extends BaseITTest {
 
 	private void grantUser2Access() throws Exception {
 		ResourceAccess user1Access = new ResourceAccess();
-		user1Access.setPrincipalId(userToDelete);
+		user1Access.setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId()));
 		user1Access.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
 
 		ResourceAccess user2Access = new ResourceAccess();

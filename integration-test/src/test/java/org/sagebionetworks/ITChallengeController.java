@@ -17,6 +17,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -28,11 +31,13 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 
-public class ITChallengeController extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITChallengeController {
 
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 
+	private static String synapseUserId;
 	private static String adminUserId;
 
 	private List<String> entitiesToDelete;
@@ -43,9 +48,18 @@ public class ITChallengeController extends BaseITTest {
 	private Team registeredTeam;
 	private ChallengeTeam challengeTeam;
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITChallengeController(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse, SynapseClient synapse) throws Exception {
 		adminUserId = adminSynapse.getMyProfile().getOwnerId();
+		synapseUserId = synapse.getMyProfile().getOwnerId();
 	}
 	
 	private Team createTeam(String name) throws SynapseException {
@@ -154,17 +168,17 @@ public class ITChallengeController extends BaseITTest {
 		assertEquals(challenge, retrieved);
 		
 		List<Challenge> challenges = 
-				synapse.listChallengesForParticipant(""+userToDelete, 10L, 0L).getResults();
+				synapse.listChallengesForParticipant(""+synapseUserId, 10L, 0L).getResults();
 		assertTrue(challenges.isEmpty());
 		
 		// Now join the challenge and see it appear in the query results
-		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapse.addTeamMember(participantTeam.getId(), synapseUserId.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(Collections.singletonList(challenge),
-				synapse.listChallengesForParticipant(""+userToDelete, null, null).getResults()
+				synapse.listChallengesForParticipant(""+synapseUserId, null, null).getResults()
 				);
 		
 		// now there are two unaffiliated participants and no affiliated ones
-		unaffiliatedParticipants.add(userToDelete.toString());
+		unaffiliatedParticipants.add(synapseUserId.toString());
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
 
@@ -176,10 +190,10 @@ public class ITChallengeController extends BaseITTest {
 				getResults().isEmpty());
 		
 		// make the user a Team admin so they have permission to register with the challenge
-		synapse.addTeamMember(registeredTeam.getId(), userToDelete.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		adminSynapse.setTeamMemberPermissions(registeredTeam.getId(), userToDelete.toString(), true);
+		synapse.addTeamMember(registeredTeam.getId(), synapseUserId.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		adminSynapse.setTeamMemberPermissions(registeredTeam.getId(), synapseUserId.toString(), true);
 		// double check that the user is now a team administrator
-		TeamMember tm = synapse.getTeamMember(registeredTeam.getId(), userToDelete.toString());
+		TeamMember tm = synapse.getTeamMember(registeredTeam.getId(), synapseUserId.toString());
 		assertTrue(tm.getIsAdmin());
 		
 		PaginatedIds registratableTeams = synapse.listRegistratableTeams(challengeId, 10L, 0L);
@@ -205,25 +219,25 @@ public class ITChallengeController extends BaseITTest {
 		// having registered the Team, both users are now affiliated
 		// now everyone is affiliated with a Team
 		affiliatedParticipants.add(adminUserId);
-		affiliatedParticipants.add(userToDelete.toString());
+		affiliatedParticipants.add(synapseUserId.toString());
 		unaffiliatedParticipants.clear();
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
 		
 		// PLFM-3244: what if they're both in the 'registeredTeam' but only one is in the challenge?
 		// 'userToDelete' leaves the challenge
-		synapse.removeTeamMember(participantTeam.getId(), userToDelete.toString());
+		synapse.removeTeamMember(participantTeam.getId(), synapseUserId.toString());
 		affiliatedParticipants.clear();
 		unaffiliatedParticipants.clear();
 		affiliatedParticipants.add(adminUserId);
 		checkChallengeParticipants(challengeId, 
 				affiliatedParticipants, unaffiliatedParticipants);
 		// rejoin the challenge to finish things up
-		synapse.addTeamMember(participantTeam.getId(), userToDelete.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		synapse.addTeamMember(participantTeam.getId(), synapseUserId.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		
 		
 		
-		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, ""+userToDelete, null, null);
+		PaginatedIds submissionTeams = synapse.listSubmissionTeams(challengeId, ""+synapseUserId, null, null);
 		assertEquals(new Long(1L), submissionTeams.getTotalNumberOfResults());
 		assertEquals(Collections.singletonList(registeredTeam.getId()), submissionTeams.getResults());
 		

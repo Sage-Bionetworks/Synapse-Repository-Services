@@ -26,6 +26,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -63,7 +65,8 @@ import com.google.common.collect.Sets;
  * Integration tests for team services
  * 
  */
-public class IT500SynapseJavaClientTeamTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT500SynapseJavaClientTeamTest {
 
 	private static SynapseClient synapseTwo;
 	private static Long user2ToDelete;
@@ -105,8 +108,16 @@ public class IT500SynapseJavaClientTeamTest extends BaseITTest {
 		return null;
 	}
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT500SynapseJavaClientTeamTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		// Create a second test user
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
@@ -172,7 +183,7 @@ public class IT500SynapseJavaClientTeamTest extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }

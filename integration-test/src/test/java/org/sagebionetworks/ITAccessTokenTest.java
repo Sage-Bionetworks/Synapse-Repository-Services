@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -20,7 +22,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 /*
  * This is a simple test to make sure that the OAuth access token authorization is connected properly.
  */
-public class ITAccessTokenTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITAccessTokenTest {
 
 	private static SynapseClient synapseClientLackingCredentials;
 
@@ -28,6 +31,14 @@ public class ITAccessTokenTest extends BaseITTest {
 	private String oauthClientSecret;
 
 	private Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITAccessTokenTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -20,11 +22,18 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
  * @author John
  *
  */
-public class IT300JSONPServices extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT300JSONPServices {
 
 	private static SimpleHttpClient simpleHttpClient;
 	
 	private Team teamToDelete = null;
+	
+	private SynapseClient synapse;
+	
+	public IT300JSONPServices(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {

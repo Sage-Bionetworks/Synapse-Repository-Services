@@ -12,6 +12,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -31,9 +33,18 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * This test will push data from a backup into Synapse
  * and make sure other methods in the admin client work 
  */
-public class IT101Administration extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT101Administration {
 
 	private List<Entity> toDelete = null;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT101Administration(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -170,8 +181,10 @@ public class IT101Administration extends BaseITTest {
 			userClient.createEntity(new Project());
 		});
 		
+		String userId = synapse.getMyProfile().getOwnerId();
+		
 		// Obtain the token of the test user
-		String userToken = adminSynapse.getUserAccessToken(userToDelete).getAccessToken();
+		String userToken = adminSynapse.getUserAccessToken(Long.valueOf(userId)).getAccessToken();
 		userClient.setBearerAuthorizationToken(userToken);
 		
 		// The userClient now impersonates the test user

@@ -16,7 +16,9 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
@@ -39,12 +41,21 @@ import com.google.common.collect.Lists;
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
-public class IT099AsynchronousJobTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT099AsynchronousJobTest {
 
 	private List<Entity> entitiesToDelete;
 	private List<FileHandle> filesToDelete;
 	
 	private static long MAX_WAIT_MS = 1000*60*5;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT099AsynchronousJobTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 		
 	@BeforeEach
 	public void before() throws SynapseException{

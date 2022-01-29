@@ -12,6 +12,9 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,7 +27,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.google.common.collect.Lists;
 
-public class ITDownloadUsingFileHandleAssociationTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDownloadUsingFileHandleAssociationTest {
 
 	private static final String FILE_NAME = "SmallTextFiles/TinyFile.txt";
 	private static String MARKDOWN_NAME = "SmallTextFiles/markdown.txt";
@@ -34,6 +38,14 @@ public class ITDownloadUsingFileHandleAssociationTest extends BaseITTest {
 	private FileHandle markdownHandle;
 	private File markdownFile;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDownloadUsingFileHandleAssociationTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void before() throws SynapseException, FileNotFoundException, IOException {

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -32,7 +34,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
 import org.sagebionetworks.util.SerializationUtils;
 
-public class IT990AuthenticationController extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT990AuthenticationController {
 	
 	private static SynapseClient synapseClient;
 	private static Long clientUserToDelete;
@@ -46,7 +49,7 @@ public class IT990AuthenticationController extends BaseITTest {
 	private static String emailS3Key, emailAliasS3Key;
 	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		// Don't use the base class test user here, since we need something different
 		email = UUID.randomUUID().toString() + "@sagebase.org";
 		emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
@@ -105,7 +108,7 @@ public class IT990AuthenticationController extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteUser(clientUserToDelete);
 	}
 	

@@ -14,9 +14,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.commons.util.StringUtils;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
@@ -28,10 +30,17 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
-public class ITPersonalAccessTokenTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITPersonalAccessTokenTest {
 
 	private static SynapseAdminClient synapseAnonymous;
 
+	private SynapseClient synapse;
+	
+	public ITPersonalAccessTokenTest(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
 	public static void beforeClass() throws Exception {	
 		synapseAnonymous = new SynapseAdminClientImpl();

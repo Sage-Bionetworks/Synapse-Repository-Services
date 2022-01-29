@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -20,12 +21,19 @@ import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 
-public class ITStatistics extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITStatistics {
 
 	private static final int MONTHS_COUNT = 12;
 	
 	private Project project;
 
+	private SynapseClient synapse;
+    
+    public ITStatistics(SynapseClient synapse) {
+    	this.synapse = synapse;
+	}
+	
 	@BeforeEach
 	public void before() throws SynapseException {
 		project = synapse.createEntity(new Project());

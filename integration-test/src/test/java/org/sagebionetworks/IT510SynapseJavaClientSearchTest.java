@@ -10,6 +10,9 @@ import java.util.LinkedList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -23,7 +26,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @author deflaux
  */
-public class IT510SynapseJavaClientSearchTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT510SynapseJavaClientSearchTest {
 	
 	private static final long MAX_WAIT_TIME_MS = 2*60*1000; // 2 min
 	
@@ -32,8 +36,14 @@ public class IT510SynapseJavaClientSearchTest extends BaseITTest {
 	 */
 	private static Project project;
 	
+	private SynapseClient synapse;
+	
+	public IT510SynapseJavaClientSearchTest(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(StackConfiguration config, SynapseClient synapse) throws Exception {
 		// Only run this test if search is enabled.
 		assumeTrue(config.getSearchEnabled());
 		
@@ -45,7 +55,7 @@ public class IT510SynapseJavaClientSearchTest extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(StackConfiguration config, SynapseClient synapse) throws Exception {
 		// There's nothing to do if search is disabled
 		if (!config.getSearchEnabled()) {
 			return;
@@ -71,7 +81,7 @@ public class IT510SynapseJavaClientSearchTest extends BaseITTest {
 	 * @throws JSONObjectAdapterException
 	 * @throws InterruptedException
 	 */
-	private static void waitForId(String id) throws UnsupportedEncodingException, SynapseException, JSONObjectAdapterException, InterruptedException{
+	private void waitForId(String id) throws UnsupportedEncodingException, SynapseException, JSONObjectAdapterException, InterruptedException{
 		SearchQuery searchQuery = new SearchQuery();
 		searchQuery.setBooleanQuery(new LinkedList<KeyValue>());
 		KeyValue kv = new KeyValue();

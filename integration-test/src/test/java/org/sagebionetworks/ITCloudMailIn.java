@@ -16,6 +16,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
@@ -29,25 +32,34 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 import com.amazonaws.util.IOUtils;
 
-public class ITCloudMailIn extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITCloudMailIn {
 	
 	private static SimpleHttpClient simpleHttpClient;
 	private static String repoEndpoint;
 	private static String username;
 	private static String password;
+	private static String synapseUserId;
 	private static final String[] SAMPLE_MESSAGES = { "SimpleMessage.json", "MessageWithAttachment.json" };
 
 	private static final String MESSAGE_URI = "/cloudMailInMessage";
 	private static final String AUTHORIZATION_URI = "/cloudMailInAuthorization";
 
 	Map<String, String> requestHeaders;
+	
+	private SynapseClient synapse;
+	
+	public ITCloudMailIn(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(StackConfiguration config, SynapseClient synapse) throws Exception {
 		repoEndpoint = config.getRepositoryServiceEndpoint();
 		username = config.getCloudMailInUser();
 		password = config.getCloudMailInPassword();
 		simpleHttpClient = new SimpleHttpClientImpl();
+		synapseUserId = synapse.getMyProfile().getOwnerId();
 	}
 
 	@BeforeEach
@@ -72,7 +84,7 @@ public class ITCloudMailIn extends BaseITTest {
 		InputStream is = ITCloudMailIn.class.getClassLoader()
 				.getResourceAsStream(jsonFileName);
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		UserProfile userProfile = synapse.getUserProfile(userToDelete
+		UserProfile userProfile = synapse.getUserProfile(synapseUserId
 				.toString());
 		String myusername = userProfile.getUserName();
 		try {
@@ -116,7 +128,7 @@ public class ITCloudMailIn extends BaseITTest {
 	@Test
 	public void testCloudMailInMessage() throws Exception {
 		for (String sampleFileName : SAMPLE_MESSAGES) {
-			UserProfile userProfile = synapse.getUserProfile(userToDelete
+			UserProfile userProfile = synapse.getUserProfile(synapseUserId
 					.toString());
 			String fromemail = userProfile.getEmails().get(0);
 			SimpleHttpResponse response = sendMessage("CloudMailInMessages/"
@@ -137,7 +149,7 @@ public class ITCloudMailIn extends BaseITTest {
 						.getBytes()))));
 
 		String sampleFileName = SAMPLE_MESSAGES[0];
-		UserProfile userProfile = synapse.getUserProfile(userToDelete
+		UserProfile userProfile = synapse.getUserProfile(synapseUserId
 				.toString());
 		String fromemail = userProfile.getEmails().get(0);
 		SimpleHttpResponse response = sendMessage("CloudMailInMessages/"
@@ -147,11 +159,11 @@ public class ITCloudMailIn extends BaseITTest {
 
 	@Test
 	public void testCloudMailAuthorizationOK() throws Exception {
-		UserProfile fromUserProfile = synapse.getUserProfile(userToDelete
+		UserProfile fromUserProfile = synapse.getUserProfile(synapseUserId
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
 
-		UserProfile toUserProfile = synapse.getUserProfile(userToDelete
+		UserProfile toUserProfile = synapse.getUserProfile(synapseUserId
 				.toString());
 		String toUsername = toUserProfile.getUserName();
 
@@ -172,7 +184,7 @@ public class ITCloudMailIn extends BaseITTest {
 
 	@Test
 	public void testCloudMailAuthorizationBadTo() throws Exception {
-		UserProfile fromUserProfile = synapse.getUserProfile(userToDelete
+		UserProfile fromUserProfile = synapse.getUserProfile(synapseUserId
 				.toString());
 		String fromemail = fromUserProfile.getEmails().get(0);
 

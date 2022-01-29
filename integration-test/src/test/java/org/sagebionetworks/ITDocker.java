@@ -20,7 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.ClientUtils;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -49,7 +51,8 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 import com.google.common.collect.Lists;
 
-public class ITDocker extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDocker {
 	private static final String SCOPE_PARAM = "scope";
 	private static final String SERVICE_PARAM = "service";
 	private static final String DOCKER_AUTHORIZATION = "/bearerToken";
@@ -71,9 +74,19 @@ public class ITDocker extends BaseITTest {
 	private String synapseDockerAuthorizationUrl;
 	private OAuthClient oauthClient;
 	private String oauthClientSecret;
+	
+	private StackConfiguration config;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDocker(StackConfiguration config, SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.config = config;
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse, SynapseClient synapse) throws Exception {
 		anonymousSynapseClient = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(anonymousSynapseClient);
 		
@@ -114,7 +127,7 @@ public class ITDocker extends BaseITTest {
 	}
 
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
 		} catch (SynapseException e) {

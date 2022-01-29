@@ -11,6 +11,9 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedIds;
@@ -33,11 +36,20 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 
-public class ITDiscussion extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDiscussion {
 
 	private static final long TIMEOUT = 30 * 1000;
 	private Project project;
 	private String projectId;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDiscussion(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void before() throws SynapseException {
@@ -67,7 +79,7 @@ public class ITDiscussion extends BaseITTest {
 		// get forum moderators
 		PaginatedIds moderators = synapse.getModeratorsForForum(forum.getId(), 10L, 0L);
 		assertNotNull(moderators);
-		assertTrue(moderators.getResults().contains(userToDelete.toString()));
+		assertTrue(moderators.getResults().contains(synapse.getMyProfile().getOwnerId()));
 		assertEquals((Long)1L, moderators.getTotalNumberOfResults());
 
 		// get all threads in the forum

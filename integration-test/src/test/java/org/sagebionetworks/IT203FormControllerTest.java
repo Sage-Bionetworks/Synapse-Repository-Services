@@ -13,6 +13,8 @@ import java.util.Iterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -29,27 +31,32 @@ import org.sagebionetworks.repo.model.form.StateEnum;
 
 import com.google.common.collect.Sets;
 
-public class IT203FormControllerTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT203FormControllerTest {
 
 	private static SynapseClient groupAdminClient;
 	private static Long groupAdminUser;
 	
 	FormData form;
 	
+	private SynapseClient synapse;
+	
+	public IT203FormControllerTest(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		groupAdminClient = new SynapseClientImpl();
 		groupAdminUser = SynapseClientHelper.createUser(adminSynapse, groupAdminClient);
 	}
 	
 	@AfterAll
-	public static void afterClass() {
-		if (groupAdminUser != null) {
-			try {
-				adminSynapse.deleteUser(userToDelete);
-			} catch (SynapseException e) { 
-				
-			}
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
+		try {
+			adminSynapse.deleteUser(groupAdminUser);
+		} catch (SynapseException e) {
+			
 		}
 	}
 
@@ -139,10 +146,11 @@ public class IT203FormControllerTest extends BaseITTest {
 			if (!ra.getPrincipalId().equals(Long.parseLong(group.getCreatedBy()))) {
 				aclIt.remove();
 			}
-		}
+		}		
+		
 		// Grant the other user submit permission
 		ResourceAccess submitPermission = new ResourceAccess();
-		submitPermission.setPrincipalId(userToDelete);
+		submitPermission.setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId()));
 		submitPermission.setAccessType(Sets.newHashSet(ACCESS_TYPE.SUBMIT));
 		acl.getResourceAccess().add(submitPermission);
 		return groupAdminClient.updateFormGroupAcl(acl);

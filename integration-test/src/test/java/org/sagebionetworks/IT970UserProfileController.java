@@ -13,6 +13,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
@@ -28,7 +31,8 @@ import org.sagebionetworks.repo.model.favorite.SortDirection;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
-public class IT970UserProfileController extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT970UserProfileController {
 
 	private static final int MAX_WAIT_MS = 40000;
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
@@ -39,8 +43,14 @@ public class IT970UserProfileController extends BaseITTest {
 
 	private List<String> entitiesToDelete;
 	
+	private SynapseClient synapse;
+	
+	public IT970UserProfileController(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseClient synapse) throws Exception {
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
 		team = synapse.createTeam(team);
@@ -67,7 +77,7 @@ public class IT970UserProfileController extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteTeam(teamToDelete);
 	}
 	
@@ -115,17 +125,18 @@ public class IT970UserProfileController extends BaseITTest {
 	public void testMyProjects() throws Exception {
 		// here we are not testing business logic, just making sure evewrything is "wired up" right:
 		
+		Long expectedUserId = Long.valueOf(synapse.getMyProfile().getOwnerId());
 		// retrieve my projects
 		ProjectHeaderList projects = synapse.getMyProjects(ProjectListType.ALL, null, null, null);
 		// retrieve my next page of projects
 		projects = synapse.getMyProjects(ProjectListType.ALL, null, null, projects.getNextPageToken());
 		// retrieve someone else's projects
-		projects = synapse.getProjectsFromUser(userToDelete, null, null, null);
+		projects = synapse.getProjectsFromUser(expectedUserId, null, null, null);
 				
 		// make sure deprecated services still work
 		synapse.getMyProjectsDeprecated(ProjectListType.ALL, null, null, null, null);
 		synapse.getProjectsForTeamDeprecated(Long.parseLong(teamToDelete), null, null, null, null);
-		synapse.getProjectsFromUserDeprecated(userToDelete, null, null, null, null);
+		synapse.getProjectsFromUserDeprecated(expectedUserId, null, null, null, null);
 	}
 
 	private List<ProjectHeader> nullOutLastActivity(List<ProjectHeader> alphabetical) {

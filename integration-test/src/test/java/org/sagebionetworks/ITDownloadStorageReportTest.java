@@ -3,13 +3,22 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 
-public class ITDownloadStorageReportTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDownloadStorageReportTest {
 
 	private static final long RETRY_TIME = 1000L;
+	
+	private SynapseClient synapse;
+	
+	public ITDownloadStorageReportTest(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
 	
 	@Test
 	public void generateReportUnauthorized() throws SynapseException, InterruptedException {

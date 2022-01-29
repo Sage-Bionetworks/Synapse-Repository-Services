@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -20,7 +21,8 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 
-public class ITUserInfoRemoval extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITUserInfoRemoval {
 
 	private static SynapseClient client;
 
@@ -29,8 +31,14 @@ public class ITUserInfoRemoval extends BaseITTest {
 	private static String username = UUID.randomUUID().toString();
 	private static String password = "password" + UUID.randomUUID().toString();
 
+	private SynapseAdminClient adminSynapse;
+	
+	public ITUserInfoRemoval(SynapseAdminClient adminSynapse) {
+		this.adminSynapse = adminSynapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		client = new SynapseClientImpl();
 
 		SynapseClientHelper.setEndpoints(client);
@@ -39,7 +47,7 @@ public class ITUserInfoRemoval extends BaseITTest {
 	}
 
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(userId);
 		} catch (SynapseException e) {

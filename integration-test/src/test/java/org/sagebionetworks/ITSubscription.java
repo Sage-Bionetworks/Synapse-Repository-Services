@@ -11,6 +11,9 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -24,11 +27,20 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 
-public class ITSubscription extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITSubscription {
 
 	private Project project;
 	private String projectId;
 	private Forum forum;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITSubscription(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void before() throws SynapseException {
@@ -55,7 +67,7 @@ public class ITSubscription extends BaseITTest {
 		assertNotNull(sub);
 		assertEquals(forumId, sub.getObjectId());
 		assertEquals(SubscriptionObjectType.FORUM, sub.getObjectType());
-		assertEquals(userToDelete.toString(), sub.getSubscriberId());
+		assertEquals(synapse.getMyProfile().getOwnerId(), sub.getSubscriberId());
 
 		assertEquals(sub, synapse.getSubscription(sub.getSubscriptionId()));
 		SortByType sortType = SortByType.CREATED_ON;

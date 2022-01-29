@@ -11,6 +11,9 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -47,11 +50,20 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
-public class ITDataAccessTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITDataAccessTest {
 
 	private Project project;
 	private ACTAccessRequirement actAR;
 	private ManagedACTAccessRequirement managedAR;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void before() throws SynapseException {
@@ -204,7 +216,7 @@ public class ITDataAccessTest extends BaseITTest {
 		AccessApprovalNotificationRequest request = new AccessApprovalNotificationRequest();
 		
 		request.setRequirementId(actAR.getId());
-		request.setRecipientIds(Arrays.asList(userToDelete));
+		request.setRecipientIds(Arrays.asList(Long.valueOf(synapse.getMyProfile().getOwnerId())));
 		
 		AccessApprovalNotificationResponse result = adminSynapse.getAccessApprovalNotifications(request);
 		

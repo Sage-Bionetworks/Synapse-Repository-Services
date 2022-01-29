@@ -19,8 +19,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -39,7 +39,8 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 /**
  * Related to IT500SynapseJavaClient
  */
-public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT501SynapseJavaClientMessagingTest {
 
 	private static SynapseClient synapseTwo;
 	private static Long user2ToDelete;
@@ -54,6 +55,8 @@ public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 
 	private static FileHandle oneToRuleThemAll;
 	
+	private static String synapseUserId;
+	
 	private String fileHandleIdWithExtendedChars;
 
 	private MessageToUser oneToTwo;
@@ -62,8 +65,17 @@ public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 	private List<String> cleanup;
 	private static Project project;
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT501SynapseJavaClientMessagingTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse, SynapseClient synapse) throws Exception {
+		synapseUserId = synapse.getMyProfile().getOwnerId();
 		// Create second user
 		synapseTwo = new SynapseClientImpl();
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
@@ -88,7 +100,6 @@ public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 		oneToRuleThemAll = synapse.multipartUpload(file, null, false, false);
 	}
 	
-	@SuppressWarnings("serial")
 	@BeforeEach
 	public void before() throws Exception {
 		adminSynapse.clearAllLocks();
@@ -104,7 +115,7 @@ public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 
 		twoToOne = new MessageToUser();
 		twoToOne.setFileHandleId(oneToRuleThemAll.getId());
-		twoToOne.setRecipients(Collections.singleton(userToDelete.toString()));
+		twoToOne.setRecipients(Collections.singleton(synapseUserId));
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 		cleanup.add(twoToOne.getId());
@@ -158,7 +169,7 @@ public class IT501SynapseJavaClientMessagingTest extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());

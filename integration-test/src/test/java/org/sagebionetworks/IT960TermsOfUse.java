@@ -10,6 +10,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -22,15 +24,24 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 
-public class IT960TermsOfUse extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT960TermsOfUse {
 	private static SynapseClient rejectTOUsynapse;
 	private static Long rejectTOUuserToDelete;
 	
 	private static Project project;
 	private static FileEntity dataset;
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT960TermsOfUse(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		rejectTOUsynapse = new SynapseClientImpl();
 		rejectTOUuserToDelete = SynapseClientHelper.createUser(adminSynapse, rejectTOUsynapse, false);
 		
@@ -71,7 +82,7 @@ public class IT960TermsOfUse extends BaseITTest {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(rejectTOUuserToDelete);
 		

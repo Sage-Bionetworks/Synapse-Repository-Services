@@ -16,6 +16,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -28,7 +30,8 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-public class ITBroadcastMessage extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITBroadcastMessage {
 	private static SynapseClient synapseTwo;
 	private static List<Long> userToDelete = new ArrayList<Long>();
 	private Project project;
@@ -36,9 +39,17 @@ public class ITBroadcastMessage extends BaseITTest {
 	private String forumId;
 	private String bucketKeyOne;
 	private String bucketKeyTwo;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITBroadcastMessage(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
 		userToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapseTwo));
@@ -47,7 +58,7 @@ public class ITBroadcastMessage extends BaseITTest {
 	}
 
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			for (Long user : userToDelete) {
 				adminSynapse.deleteUser(user);

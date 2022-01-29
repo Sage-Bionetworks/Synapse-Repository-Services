@@ -12,7 +12,10 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -53,7 +56,8 @@ import org.sagebionetworks.util.TimeUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class ITJsonSchemaControllerTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITJsonSchemaControllerTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
 
@@ -63,6 +67,14 @@ public class ITJsonSchemaControllerTest extends BaseITTest {
 
 	Organization organization;
 	Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITJsonSchemaControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeEach
 	public void beforeEach() throws SynapseException {
@@ -110,7 +122,7 @@ public class ITJsonSchemaControllerTest extends BaseITTest {
 		assertNotNull(organization);
 		assertEquals(organizationName, organization.getName());
 		assertNotNull(organization.getId());
-		assertEquals("" + userToDelete, organization.getCreatedBy());
+		assertEquals(synapse.getMyProfile().getOwnerId(), organization.getCreatedBy());
 	}
 
 	@Test

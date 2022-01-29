@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
  * 
  * @author Marco Marasca
  */
+@ExtendWith(ITTestExtension.class)
 public class ITContentNegotiationTest {
 
 	private static final String repoEndpoint = StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint();

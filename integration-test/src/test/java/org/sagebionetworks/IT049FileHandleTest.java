@@ -25,9 +25,11 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -80,7 +82,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.cloud.storage.StorageException;
 import com.google.common.collect.Lists;
 
-public class IT049FileHandleTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT049FileHandleTest {
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -97,9 +100,17 @@ public class IT049FileHandleTest extends BaseITTest {
 	private static SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
 	private static SynapseS3Client synapseS3Client;
+	
+	private StackConfiguration config;
+	private SynapseClient synapse;
+	
+	public IT049FileHandleTest(StackConfiguration config, SynapseClient synapse) throws SynapseException {
+		this.config = config;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(StackConfiguration config) throws Exception {
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 		if (config.getGoogleCloudEnabled()) {
 			googleCloudStorageClient = SynapseGoogleCloudClientFactory.createGoogleCloudStorageClient();
@@ -547,7 +558,7 @@ public class IT049FileHandleTest extends BaseITTest {
 
 		// Upload the owner.txt to S3 so we can create the external storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalS3FileHandleFromExistingFile/" + UUID.randomUUID().toString();
-		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getMyProfile().getUserName());
 		String key = baseKey + "/" + FILE_NAME;
 
 		// upload the little image to S3, but not through Synapse
@@ -583,7 +594,7 @@ public class IT049FileHandleTest extends BaseITTest {
 		// Upload the owner.txt to S3 so we can create the external storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testMultipartUploadToExternalS3/" + UUID.randomUUID().toString();
 
-		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getMyProfile().getUserName());
 
 		// upload the little image using multi-part upload
 		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
@@ -613,7 +624,7 @@ public class IT049FileHandleTest extends BaseITTest {
 		// Upload the owner.txt to Google Cloud so we can create the storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testMultipartUploadV2ToGoogleCloud/" + UUID.randomUUID().toString();
 
-		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getMyProfile().getUserName());
 
 		// upload the little image using multi-part upload
 		ExternalGoogleCloudStorageLocationSetting storageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
@@ -665,7 +676,7 @@ public class IT049FileHandleTest extends BaseITTest {
 
 		// Upload the owner.txt to Google Cloud so we can create the external storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalGoogleCloudFileHandleFromExistingFile/" + UUID.randomUUID().toString();
-		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getMyProfile().getUserName());
 
 		String key = baseKey + "/" + FILE_NAME;
 		// upload the little image to Google Cloud, but not through Synapse

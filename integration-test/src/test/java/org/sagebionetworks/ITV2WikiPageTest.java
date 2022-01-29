@@ -21,6 +21,9 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -42,7 +45,8 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
-public class ITV2WikiPageTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITV2WikiPageTest {
 
 	private static String FILE_NAME = "LittleImage.png";
 	private static String FILE_NAME2 = "profile_pic.png";
@@ -60,7 +64,14 @@ public class ITV2WikiPageTest extends BaseITTest {
 	private File markdownFile;
 	private Project project;
 	private TermsOfUseAccessRequirement accessRequirement;
-		
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITV2WikiPageTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeEach
 	public void before() throws SynapseException, IOException {
 		adminSynapse.clearAllLocks();

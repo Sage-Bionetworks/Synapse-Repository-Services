@@ -1,18 +1,34 @@
 package org.sagebionetworks;
 
 
-import com.google.common.collect.Lists;
-import org.junit.jupiter.api.AfterAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Writer;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsyncJobHelper.AsyncJobResponse;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -64,25 +80,7 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.Writer;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.google.common.collect.Lists;
 
 /**
  * Tests for TableEntity and ColumnModel services.
@@ -90,7 +88,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author jmhill
  *
  */
-public class IT100TableControllerTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT100TableControllerTest {
 
 	private List<Entity> entitiesToDelete;
 	private List<TableEntity> tablesToDelete;
@@ -98,6 +97,14 @@ public class IT100TableControllerTest extends BaseITTest {
 	
 	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
 	private static long MAX_APPEND_TIMEOUT = 30*1000;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT100TableControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 		
 	@BeforeEach
 	public void before() throws SynapseException{
@@ -292,9 +299,11 @@ public class IT100TableControllerTest extends BaseITTest {
 
 		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
 
+		String expectedUser = synapse.getMyProfile().getOwnerId();
+		
 		// Append some rows
 		RowSet set = new RowSet();
-		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, userToDelete.toString()),
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, expectedUser),
 				TableModelTestUtils.createRow(null, null, "2"),
 				TableModelTestUtils.createRow(null, null, "3"),
 				TableModelTestUtils.createRow(null, null, "4"));
@@ -307,7 +316,7 @@ public class IT100TableControllerTest extends BaseITTest {
 		assertQueryResults("select userId from " + table.getId() + " where userId = CURRENT_USER()", null, null, table.getId(), (queryResults) -> {
 			assertEquals(1, queryResults.getRows().size());
 			assertEquals(1, queryResults.getRows().get(0).getValues().size());
-			assertEquals(userToDelete.toString(), queryResults.getRows().get(0).getValues().get(0));
+			assertEquals(expectedUser, queryResults.getRows().get(0).getValues().get(0));
 		});
 	}
 
@@ -937,7 +946,7 @@ public class IT100TableControllerTest extends BaseITTest {
 		return table;
 	}
 	
-	private static void assertColumnModelPage(ViewScope scope, String nextPageToken, Consumer<ViewColumnModelResponse> responseConsumer) throws Exception {
+	private void assertColumnModelPage(ViewScope scope, String nextPageToken, Consumer<ViewColumnModelResponse> responseConsumer) throws Exception {
 		ViewColumnModelRequest request = new ViewColumnModelRequest();
 		request.setViewScope(scope);
 		request.setNextPageToken(nextPageToken);

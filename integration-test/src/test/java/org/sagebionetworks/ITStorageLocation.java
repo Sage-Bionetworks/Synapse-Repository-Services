@@ -18,8 +18,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -50,7 +53,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
-public class ITStorageLocation extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITStorageLocation {
 	
 	private static String externalS3Bucket;
 	private static SynapseS3Client synapseS3Client;
@@ -59,6 +63,14 @@ public class ITStorageLocation extends BaseITTest {
 	private Folder folder;
 	private Project project;
 	private List<File> filesToDelete;
+	
+	private SynapseClient synapse;
+	private String synapseUserId;
+	
+	public ITStorageLocation(SynapseClient synapse) throws SynapseException {
+		this.synapse = synapse;
+		this.synapseUserId = synapse.getMyProfile().getOwnerId();
+	}
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
@@ -345,7 +357,7 @@ public class ITStorageLocation extends BaseITTest {
 		
 		List<String> ownerIdentifiers = ImmutableList.of(
 				"someotherusername",
-				userToDelete.toString(),
+				synapseUserId.toString(),
 				"1234"
 		);
 		
@@ -359,7 +371,7 @@ public class ITStorageLocation extends BaseITTest {
 	public void testBucketOwnerWithMultipleUsersOnSameLine() throws SynapseException {
 		
 		List<String> ownerIdentifiers = ImmutableList.of(
-				String.join(",", "someotherusername", userToDelete.toString())
+				String.join(",", "someotherusername", synapseUserId.toString())
 		);
 		
 		// Create and verify storage location.
@@ -401,7 +413,7 @@ public class ITStorageLocation extends BaseITTest {
 	}
 
 	// This test method assumes responses fit in a single page. Response is a map from entity name to entity header.
-	private static Map<String, EntityHeader> getChildren(String parentId, EntityType type) throws SynapseException {
+	private Map<String, EntityHeader> getChildren(String parentId, EntityType type) throws SynapseException {
 		EntityChildrenRequest request = new EntityChildrenRequest();
 		request.setIncludeTypes(ImmutableList.of(type));
 		request.setParentId(parentId);
@@ -431,8 +443,8 @@ public class ITStorageLocation extends BaseITTest {
 		assertEquals(expectedBaseKey, stsUploadDestination.getBaseKey());
 	}
 
-	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {
-		String username = synapse.getUserProfile(userToDelete.toString()).getUserName();
+	private ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {
+		String username = synapse.getUserProfile(synapseUserId.toString()).getUserName();
 		
 		return createExternalS3StorageLocation(ImmutableList.of(username));
 	}
@@ -450,7 +462,7 @@ public class ITStorageLocation extends BaseITTest {
 		return externalS3StorageLocationSetting;
 	}
 
-	private static Folder createFolder(String parentId, String name) throws SynapseException {
+	private Folder createFolder(String parentId, String name) throws SynapseException {
 		Folder folder = new Folder();
 		folder.setName(name);
 		folder.setParentId(parentId);

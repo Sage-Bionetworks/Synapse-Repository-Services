@@ -12,8 +12,11 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseStsCredentialsProvider;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Folder;
@@ -34,18 +37,30 @@ import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
 
-public class ITStsTest extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class ITStsTest {
 	private static String externalS3Bucket;
 	private static SynapseS3Client synapseS3Client;
 	private static String username;
 
 	private Folder folder;
 	private Project project;
+	
+	private StackConfiguration config;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITStsTest(StackConfiguration config, SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.config = config;
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(StackConfiguration config, SynapseClient synapse) throws Exception {
 		externalS3Bucket = config.getExternalS3TestBucketName();
-		username = synapse.getUserProfile(userToDelete.toString()).getUserName();
+		username = synapse.getMyProfile().getUserName();
 
 		// Set up S3 client.
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();

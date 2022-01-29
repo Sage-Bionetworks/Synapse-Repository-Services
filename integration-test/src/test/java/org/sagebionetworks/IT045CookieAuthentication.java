@@ -10,6 +10,8 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 /**
@@ -17,12 +19,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
  * @author jmhill
  *
  */
-public class IT045CookieAuthentication extends BaseITTest {
+@ExtendWith(ITTestExtension.class)
+public class IT045CookieAuthentication {
 	
 	private static Cookie cookie;
 	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
+	public static void beforeClass(SynapseClient synapse) throws Exception {
 		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getAccessToken());
 	}
 	
