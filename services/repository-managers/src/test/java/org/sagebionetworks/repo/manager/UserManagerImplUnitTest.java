@@ -7,15 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -24,8 +21,10 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -33,28 +32,26 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class UserManagerImplUnitTest {
-	
-	private UserManager userManager;
-	
+
 	@Mock
 	private UserGroupDAO mockUserGroupDAO;
 	@Mock
-	private UserProfileManager mockUserProfileManger;
+	private UserProfileDAO userProfileDAO;
 	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
 	@Mock
@@ -66,40 +63,21 @@ public class UserManagerImplUnitTest {
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
 	
+	@InjectMocks
+	private UserManagerImpl userManager;
+	
+	
 	private UserInfo admin;
 	private UserInfo notAdmin;
 	
 	private static final String MOCK_GROUP_ID = "-1";
+	@Mock
 	private UserGroup mockUserGroup;
 	private String alias;
 	private PrincipalAlias principalAlias;
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		mockUserGroupDAO = mock(UserGroupDAO.class);
-		mockUserProfileManger = mock(UserProfileManager.class);
-		mockGroupMembersDAO = mock(GroupMembersDAO.class);
-		mockAuthDAO = mock(AuthenticationDAO.class);
-		basicDAO = mock(DBOBasicDao.class);
-		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
-
-		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(MOCK_GROUP_ID));
-		mockUserGroup = new UserGroup();
-		mockUserGroup.setId(MOCK_GROUP_ID);
-		mockUserGroup.setIsIndividual(true);
-		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
-				
-		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
-		
-		userManager = new UserManagerImpl();
-		ReflectionTestUtils.setField(userManager, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(userManager, "userGroupDAO", mockUserGroupDAO);
-		ReflectionTestUtils.setField(userManager, "authDAO", mockAuthDAO);
-		ReflectionTestUtils.setField(userManager, "userProfileManger", mockUserProfileManger);
-		ReflectionTestUtils.setField(userManager, "notificationEmailDao", notificationEmailDao);
-		ReflectionTestUtils.setField(userManager, "basicDAO", basicDAO);
-		ReflectionTestUtils.setField(userManager, "groupMembersDAO", mockGroupMembersDAO);
-		
 		admin = new UserInfo(true);
 		notAdmin = new UserInfo(false);
 		
@@ -108,7 +86,6 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any())).thenReturn(principalAlias);
 	}
 	
 	@Test
@@ -169,13 +146,6 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testCreateUserAdmin() throws Exception {
-		// Call with an admin
-		NewUser nu = new NewUser();
-		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
-		nu.setUserName(UUID.randomUUID().toString());
-		userManager.createOrGetTestUser(admin, nu, null, null);
-		verify(notificationEmailDao).create((PrincipalAlias)any());
-		
 		// Call with a non admin
 		try {
 			userManager.createOrGetTestUser(notAdmin, null, null, null);
@@ -187,6 +157,9 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testGetUserAdmin() throws Exception {
 		long principalId=1111L;
+		when(mockUserGroup.getId()).thenReturn(""+principalId);
+		when(mockUserGroup.getIsIndividual()).thenReturn(true);
+		when(mockUserGroupDAO.get(any(Long.class))).thenReturn(mockUserGroup);
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setPrincipalId(principalId);
 		// Call with an admin
@@ -276,6 +249,7 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testLookupUserByUsernameOrEmail() {
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any())).thenReturn(principalAlias);
 		// call under test
 		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(alias);
 		assertEquals(principalAlias, pa);

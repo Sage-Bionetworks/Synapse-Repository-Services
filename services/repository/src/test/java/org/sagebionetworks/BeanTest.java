@@ -104,4 +104,5 @@ public class BeanTest implements ApplicationContextAware {
 		}
 		System.out.println("method prefixes for modifying methods: " + prefixes);
 	}
+
 }

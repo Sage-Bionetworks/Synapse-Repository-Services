@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -36,37 +37,34 @@ import com.google.common.collect.Lists;
 
 public class UserManagerImpl implements UserManager {
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
-	@Autowired
-	private UserProfileManager userProfileManger;
-	
-	@Autowired
-	private GroupMembersDAO groupMembersDAO;
-	
-	@Autowired
-	private AuthenticationDAO authDAO;
-	
-	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
-	private NotificationEmailDAO notificationEmailDao;
+	private final UserGroupDAO userGroupDAO;
+	private final UserProfileDAO userProfileDAO;
+	private final GroupMembersDAO groupMembersDAO;
+	private final AuthenticationDAO authDAO;
+	private final PrincipalAliasDAO principalAliasDAO;
+	private final NotificationEmailDAO notificationEmailDao;
 	
 	/**
 	 * Testing purposes only
 	 * Do NOT use in non-test code
 	 * i.e. {@link #createOrGetTestUser(UserInfo, String, UserProfile, DBOCredential)}
 	 */
+	private final DBOBasicDao basicDAO;
+	
 	@Autowired
-	private DBOBasicDao basicDAO;
-
-	
-	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
+	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO,
+			AuthenticationDAO authDAO, PrincipalAliasDAO principalAliasDAO, NotificationEmailDAO notificationEmailDao,
+			DBOBasicDao basicDAO) {
+		super();
 		this.userGroupDAO = userGroupDAO;
+		this.userProfileDAO = userProfileDAO;
+		this.groupMembersDAO = groupMembersDAO;
+		this.authDAO = authDAO;
+		this.principalAliasDAO = principalAliasDAO;
+		this.notificationEmailDao = notificationEmailDao;
+		this.basicDAO = basicDAO;
 	}
-	
+
 	@Override
 	@WriteTransaction
 	public long createUser(NewUser user) {
@@ -103,7 +101,7 @@ public class UserManagerImpl implements UserManager {
 		userProfile.setFirstName(user.getFirstName());
 		userProfile.setLastName(user.getLastName());
 		userProfile.setUserName(user.getUserName());
-		userProfileManger.createUserProfile(userProfile);
+		userProfileDAO.create(userProfile);
 		
 		bindAllAliases(user, principalId);
 		

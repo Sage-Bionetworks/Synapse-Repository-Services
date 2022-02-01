@@ -938,41 +938,6 @@ public class NodeManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetFileHandleIdsAssociatedWithFileEntityNullFileHandleIds(){
-		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// Call under test
-			nodeManager.getFileHandleIdsAssociatedWithFileEntity(null, "syn123");
-		});
-		
-		assertEquals("fileHandleIds is required.", ex.getMessage());
-	}
-
-	@Test
-	public void testGetFileHandleIdsAssociatedWithFileEntityNullEntityId(){
-		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// Call under test
-			nodeManager.getFileHandleIdsAssociatedWithFileEntity(new ArrayList<String>(), null);
-		});
-		
-		assertEquals("entityId is required.", ex.getMessage());
-	}
-
-	@Test
-	public void testGetFileHandleIdsAssociatedWithFileEntity(){
-		List<String> input = Arrays.asList("1", "2", "3");
-		List<Long> inputLong = new ArrayList<Long>();
-		CollectionUtils.convertStringToLong(input, inputLong);
-		String entityId = "syn123";
-		Set<Long> output = new HashSet<Long>();
-		output.add(2L);
-		when(mockNodeDao.getFileHandleIdsAssociatedWithFileEntity(inputLong, 123L)).thenReturn(output);
-		Set<String> outputString = nodeManager.getFileHandleIdsAssociatedWithFileEntity(input, entityId);
-		assertNotNull(outputString);
-		assertEquals(1L, outputString.size());
-		assertTrue(outputString.contains("2"));
-	}
-
-	@Test
 	public void doesNodeHaveChildren_False() {
 		// Mock dao.
 		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
