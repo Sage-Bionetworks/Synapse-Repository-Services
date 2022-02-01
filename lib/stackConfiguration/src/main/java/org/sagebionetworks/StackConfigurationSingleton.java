@@ -7,7 +7,7 @@ import com.google.inject.Injector;
  * Provides static access to the dependency injected StackConfiguration
  *
  */
-public class StackConfigurationSingleton {
+public class StackConfigurationSingleton  {
 
 	private static final StackConfiguration singleton;
 	static {
