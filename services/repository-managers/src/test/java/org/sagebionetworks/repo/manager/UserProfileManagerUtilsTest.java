@@ -12,8 +12,8 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;

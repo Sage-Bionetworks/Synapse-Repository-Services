@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class UserInfoHelper {

@@ -4,23 +4,33 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,29 +46,32 @@ import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityManagerImplTest {
 	
+	@Mock
 	IdGenerator mockIdGenerator;
+	@Mock
 	ActivityDAO mockActivityDAO;
-	AuthorizationManager mockAuthorizationManager;	
-	ActivityManager activityManager;
+	@Mock
+	EntityAuthorizationManager mockAuthorizationManager;
+	
+	@Spy
+	@InjectMocks
+	ActivityManagerImpl activityManager;
+	
 	UserInfo normalUserInfo;
 	UserInfo adminUserInfo;
 	
 	AdapterFactory adapterFactory = new AdapterFactoryImpl();
 	
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
-		mockIdGenerator = mock(IdGenerator.class);
-		mockActivityDAO = mock(ActivityDAO.class);
-		mockAuthorizationManager = mock(AuthorizationManager.class);
 		normalUserInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
 		configureUser(adminUserInfo, "1");
 		configureUser(normalUserInfo, "2");
-		 
-		activityManager = new ActivityManagerImpl(mockIdGenerator, mockActivityDAO, mockAuthorizationManager);
 	}
 
 	@Test
@@ -164,7 +177,6 @@ public class ActivityManagerImplTest {
 	@Test
 	public void testUpdateActivityFakePeople() throws Exception {
 		String id = "123";
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(new Long(id));
 		
 		// from database Activity
 		Activity act = newTestActivity(id);
@@ -270,7 +282,7 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationStatus.authorized());
+		doReturn(AuthorizationStatus.authorized()).when(activityManager).canAccessActivity(any(), any());
 
 		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 		
@@ -286,6 +298,19 @@ public class ActivityManagerImplTest {
 			activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 		});
 	}
+	
+	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
+		PaginatedResults<Reference> results = new PaginatedResults<Reference>();
+		List<Reference> resultList = new ArrayList<Reference>();		
+		for(int i=0; i<numResults; i++) {
+			Reference ref = new Reference();
+			ref.setTargetId("nodeId");
+			resultList.add(ref);
+		}
+		results.setResults(resultList);
+		results.setTotalNumberOfResults(total);
+		return results;
+	}
 
 	@Test
 	public void testGetEntitiesGeneratedByUnauthorized() throws Exception {
@@ -296,15 +321,56 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationStatus.accessDenied(""));
+		doReturn(AuthorizationStatus.accessDenied("")).when(activityManager).canAccessActivity(any(), any());
 
 		assertThrows(UnauthorizedException.class, () -> {
 			activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 		});
 	}
+	
+	@Test
+	public void testCanAccessActivityPagination() throws Exception {		 
+		Activity act = new Activity();
+		String actId = "1";
+		int limit = 1000;
+		int total = 2001;
+		int offset = 0;
+		// create as admin, try to access as user so fails access and tests pagination
+		act.setId(actId);
+		act.setCreatedBy(adminUserInfo.getId().toString());
+		when(mockActivityDAO.get(actId)).thenReturn(act);
+		PaginatedResults<Reference> results1 = generateQueryResults(limit, total);
+		PaginatedResults<Reference> results2 = generateQueryResults(total-limit, total);		
+		PaginatedResults<Reference> results3 = generateQueryResults(total-(2*limit), total);
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+limit)).thenReturn(results2);		
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+(2*limit))).thenReturn(results3);
 
-	
-	
+		boolean canAccess = activityManager.canAccessActivity(normalUserInfo, actId).isAuthorized();
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+limit);
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+(2*limit));
+		assertFalse(canAccess);
+	}
+
+	@Test
+	public void testCanAccessActivityPaginationSmallResultSet() throws Exception {		 
+		Activity act = new Activity();
+		String actId = "1";
+		int limit = 1000;
+		int offset = 0;
+		// create as admin, try to access as user so fails access and tests pagination
+		act.setId(actId);
+		act.setCreatedBy(adminUserInfo.getId().toString());
+		when(mockActivityDAO.get(actId)).thenReturn(act);
+		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
+
+		boolean canAccess = activityManager.canAccessActivity(normalUserInfo, actId).isAuthorized();
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
+		assertFalse(canAccess);
+	}
+
 	/*
 	 * Private Methods
 	 */

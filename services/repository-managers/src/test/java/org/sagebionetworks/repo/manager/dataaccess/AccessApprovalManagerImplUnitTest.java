@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,23 +29,28 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -52,6 +58,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -67,19 +74,31 @@ public class AccessApprovalManagerImplUnitTest {
 	@Mock
 	private AccessApprovalDAO mockAccessApprovalDAO;
 	@Mock
-	private AuthorizationManager mockAuthorizationManager;
-	@Mock
 	private TransactionalMessenger mockTransactionMessenger;
+	@Mock
+	private VerificationDAO mockVerificationDao;
+	@Mock
+	private GroupMembersDAO mockgroupMembersDao;
+	@Mock
+	private NodeDAO nodeDao;
 	
+	@Mock
+	private Set<String> accessors;
+	
+	@Spy
 	@InjectMocks
 	private AccessApprovalManagerImpl manager;
 	
 	private UserInfo userInfo;
+	private UserInfo atcUser;
 
 	@BeforeEach
 	public void before() {
 		userInfo = new UserInfo(false);
 		userInfo.setId(4L);
+		boolean isAdmin = false;
+		atcUser = new UserInfo(isAdmin, 5L);
+		atcUser.setGroups(Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
 	}
 
 	@Test
@@ -107,8 +126,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeAccessApprovalsWithNonACTNorAdminUser() {
 		String accessRequirementId = "1";
-		String accessorId = "3";
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		String accessorId = ""+userInfo.getId()+1L;
 		assertThrows(UnauthorizedException.class, () -> {
 			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 		});
@@ -117,8 +135,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeAccessApprovalsWithNonExistingAccessRequirement() {
 		String accessRequirementId = "1";
-		String accessorId = "3";
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		String accessorId = ""+userInfo.getId();
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenThrow(new NotFoundException());
 		assertThrows(NotFoundException.class, () -> {
 			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
@@ -128,9 +145,8 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeAccessApprovalsWithToUAccessRequirement() {
 		String accessRequirementId = "1";
-		String accessorId = "3";
+		String accessorId = ""+userInfo.getId();
 		AccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
@@ -140,10 +156,9 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeAccessApprovalsWithACTAccessRequirement() {
 		String accessRequirementId = "2";
-		String accessorId = "3";
+		String accessorId = ""+userInfo.getId();
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
 		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
@@ -214,7 +229,6 @@ public class AccessApprovalManagerImplUnitTest {
 
 	@Test
 	public void testListAccessorGroupUnauthorized() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		AccessorGroupRequest request = new AccessorGroupRequest();
 		assertThrows(UnauthorizedException.class, () -> {
 			manager.listAccessorGroup(userInfo, request);
@@ -225,9 +239,8 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testListAccessorGroupAuthorized() {
 		AccessorGroupRequest request = new AccessorGroupRequest();
 		List<AccessorGroup> result = new LinkedList<AccessorGroup>();
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
-		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
+		AccessorGroupResponse response = manager.listAccessorGroup(atcUser, request);
 		assertEquals(result, response.getResults());
 	}
 	
@@ -244,12 +257,10 @@ public class AccessApprovalManagerImplUnitTest {
 		List<AccessorGroup> expected = Collections.emptyList();
 		NextPageToken expectedToken = new NextPageToken(request.getNextPageToken());
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listAccessorGroup(any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(expected);
 		
-		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
+		AccessorGroupResponse response = manager.listAccessorGroup(atcUser, request);
 		
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockAccessApprovalDAO).listAccessorGroup(request.getAccessRequirementId(), request.getSubmitterId(), request.getAccessorId(), request.getExpireBefore(), expectedToken.getLimitForQuery(), expectedToken.getOffset());
 		
 		assertEquals(expected, response.getResults());
@@ -292,7 +303,6 @@ public class AccessApprovalManagerImplUnitTest {
 
 	@Test
 	public void testRevokeGroupUnauthorized() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
 		request.setAccessRequirementId("1");
 		request.setSubmitterId("2");
@@ -305,7 +315,6 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testRevokeGroupAuthorized() {
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
 		
@@ -313,15 +322,15 @@ public class AccessApprovalManagerImplUnitTest {
 		request.setAccessRequirementId("1");
 		request.setSubmitterId("2");
 		
-		manager.revokeGroup(userInfo, request);
+		manager.revokeGroup(atcUser, request);
 		
 		verify(mockAccessApprovalDAO).listApprovalsBySubmitter("1", "2");
-		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		verify(mockAccessApprovalDAO).revokeBatch(atcUser.getId(), approvals);
 		
 		for (Long id : approvals) {
 			
 			MessageToSend expectedMessage = new MessageToSend()
-					.withUserId(userInfo.getId())
+					.withUserId(atcUser.getId())
 					.withObjectType(ObjectType.ACCESS_APPROVAL)
 					.withObjectId(id.toString())
 					.withChangeType(ChangeType.UPDATE);
@@ -360,7 +369,6 @@ public class AccessApprovalManagerImplUnitTest {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		assertThrows(UnauthorizedException.class, () -> {
 			manager.createAccessApproval(userInfo, accessApproval);
 		});
@@ -371,9 +379,8 @@ public class AccessApprovalManagerImplUnitTest {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.createAccessApproval(userInfo, accessApproval);
+			manager.createAccessApproval(atcUser, accessApproval);
 		});
 	}
 
@@ -406,7 +413,7 @@ public class AccessApprovalManagerImplUnitTest {
 		accessApproval.setAccessorId("2");
 		SelfSignAccessRequirement req = new SelfSignAccessRequirement();
 		when(mockAccessRequirementDAO.get("1")).thenReturn(req);
-		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager)
+		doThrow(new IllegalArgumentException()).when(manager)
 				.validateHasAccessorRequirement(any(HasAccessorRequirement.class), anySet());
 		
 		assertThrows(IllegalArgumentException.class, () -> {
@@ -420,10 +427,9 @@ public class AccessApprovalManagerImplUnitTest {
 		accessApproval.setRequirementId(1L);
 		accessApproval.setAccessorId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.createAccessApproval(userInfo, accessApproval);
+			manager.createAccessApproval(atcUser, accessApproval);
 		});
 	}
 
@@ -431,8 +437,9 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testCreateAccessApproval() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
-		SelfSignAccessRequirement req = new SelfSignAccessRequirement();
-		when(mockAccessRequirementDAO.get("1")).thenReturn(req);
+		SelfSignAccessRequirement req = new SelfSignAccessRequirement().setIsCertifiedUserRequired(false).setIsValidatedProfileRequired(false);
+		when(mockAccessRequirementDAO.get(any())).thenReturn(req);
+		// call under test
 		manager.createAccessApproval(userInfo, accessApproval);
 		ArgumentCaptor<AccessApproval> captor = ArgumentCaptor.forClass(AccessApproval.class);
 		verify(mockAccessApprovalDAO).create(captor.capture());
@@ -592,11 +599,10 @@ public class AccessApprovalManagerImplUnitTest {
 		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
 		List<Long> revokedApprovals = Arrays.asList(2L);
 
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
 		
-		UserInfo user = userInfo;
+		UserInfo user = atcUser;
 		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
 		int maxBatchSize = 10;
 		
@@ -604,7 +610,6 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(1, result);
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
 		
@@ -632,8 +637,6 @@ public class AccessApprovalManagerImplUnitTest {
 		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
 		int maxBatchSize = 10;
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
-		
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
 			manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
@@ -647,10 +650,9 @@ public class AccessApprovalManagerImplUnitTest {
 
 		List<Long> expiredApprovals = Collections.emptyList();
 
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		
-		UserInfo user = userInfo;
+		UserInfo user = atcUser;
 		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
 		int maxBatchSize = 10;
 		
@@ -658,7 +660,6 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(0, result);
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
 		verifyZeroInteractions(mockTransactionMessenger);
@@ -671,11 +672,10 @@ public class AccessApprovalManagerImplUnitTest {
 		List<Long> expiredApprovals = Arrays.asList(1L, 2L);
 		List<Long> revokedApprovals = Collections.emptyList();
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listExpiredApprovals(any(), anyInt())).thenReturn(expiredApprovals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(revokedApprovals);
 		
-		UserInfo user = userInfo;
+		UserInfo user = atcUser;
 		Instant expiredAfter = Instant.now().minus(1, ChronoUnit.DAYS);
 		int maxBatchSize = 10;
 		
@@ -683,7 +683,6 @@ public class AccessApprovalManagerImplUnitTest {
 		int result = manager.revokeExpiredApprovals(user, expiredAfter, maxBatchSize);
 		
 		assertEquals(0, result);
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(user);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
@@ -695,7 +694,6 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testRevokeGroupAccessorsAuthorized() {
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
 		when(mockAccessApprovalDAO.listApprovalsBySubmitter(any(), any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
 		
@@ -704,16 +702,15 @@ public class AccessApprovalManagerImplUnitTest {
 		List<String> accessorIds = Arrays.asList("1", "2");
 		
 		// Call under test
-		manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
+		manager.revokeGroup(atcUser, accessRequirementId, submitterId, accessorIds);
 		
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockAccessApprovalDAO).listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
-		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		verify(mockAccessApprovalDAO).revokeBatch(atcUser.getId(), approvals);
 		
 		for (Long id : approvals) {
 			
 			MessageToSend expectedMessage = new MessageToSend()
-					.withUserId(userInfo.getId())
+					.withUserId(atcUser.getId())
 					.withObjectType(ObjectType.ACCESS_APPROVAL)
 					.withObjectId(id.toString())
 					.withChangeType(ChangeType.UPDATE);
@@ -726,8 +723,6 @@ public class AccessApprovalManagerImplUnitTest {
 	@Test
 	public void testRevokeGroupAccessorsUnauthorized() {
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
-		
 		String accessRequirementId = "2";
 		String submitterId = "1";
 		List<String> accessorIds = Arrays.asList("1", "2");
@@ -737,7 +732,6 @@ public class AccessApprovalManagerImplUnitTest {
 			manager.revokeGroup(userInfo, accessRequirementId, submitterId, accessorIds);
 		});
 		
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
 		verifyZeroInteractions(mockAccessApprovalDAO);
 		verifyZeroInteractions(mockTransactionMessenger);
 		
@@ -801,6 +795,60 @@ public class AccessApprovalManagerImplUnitTest {
 		}).getMessage();
 		
 		assertEquals("The list of accessor ids is required.", message);
+	}
+	
+	@Test
+	public void testValidateWithCertifiedUserRequiredNotSatisfied() {
+		HasAccessorRequirement req = new SelfSignAccessRequirement();
+		req.setIsCertifiedUserRequired(true);
+		req.setIsValidatedProfileRequired(false);
+		when(mockgroupMembersDao.areMemberOf(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+				accessors))
+				.thenReturn(false);
+		assertThrows(UserCertificationRequiredException.class, ()-> {
+			// call under test
+			manager.validateHasAccessorRequirement(req, accessors);
+		});
+		verifyZeroInteractions(mockVerificationDao);
+	}
+
+	@Test
+	public void testValidateWithValidatedProfileRequiredNotSatisfied() {
+		HasAccessorRequirement req = new SelfSignAccessRequirement();
+		req.setIsCertifiedUserRequired(false);
+		req.setIsValidatedProfileRequired(true);
+		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(false);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			// call under test
+			manager.validateHasAccessorRequirement(req, accessors);
+		});
+		verifyZeroInteractions(mockgroupMembersDao);
+	}
+
+	@Test
+	public void testValidateWithCertifiedUserRequiredAndValidatedProfileSatisfied() {
+		HasAccessorRequirement req = new SelfSignAccessRequirement();
+		req.setIsCertifiedUserRequired(true);
+		req.setIsValidatedProfileRequired(true);
+		when(mockgroupMembersDao.areMemberOf(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+				accessors))
+				.thenReturn(true);
+		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(true);
+		// call under test
+		manager.validateHasAccessorRequirement(req, accessors);
+	}
+
+	@Test
+	public void testValidateWithoutRequirements() {
+		HasAccessorRequirement req = new SelfSignAccessRequirement();
+		req.setIsCertifiedUserRequired(false);
+		req.setIsValidatedProfileRequired(false);
+		// call under test
+		manager.validateHasAccessorRequirement(req, accessors);
+		verifyZeroInteractions(mockgroupMembersDao);
+		verifyZeroInteractions(mockVerificationDao);
 	}
 	
 }

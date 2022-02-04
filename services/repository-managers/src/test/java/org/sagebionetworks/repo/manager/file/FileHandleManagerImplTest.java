@@ -153,8 +153,6 @@ public class FileHandleManagerImplTest {
 	@Mock
 	StorageLocationDAO mockStorageLocationDao;
 	@Mock
-	FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
-	@Mock
 	ObjectRecordQueue mockObjectRecordQueue;
 	@Mock
 	IdGenerator mockIdGenerator;
@@ -563,7 +561,6 @@ public class FileHandleManagerImplTest {
 		external.setStatus(FileHandleStatus.AVAILABLE);
 		
 		when(mockFileHandleDao.get(external.getId())).thenReturn(external);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, external.getCreatedBy())).thenReturn(true);
 		// fire!
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, external.getId());
 		assertNotNull(redirect);
@@ -580,7 +577,6 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setStatus(FileHandleStatus.AVAILABLE);
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
 		String expectedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
 			thenReturn(new URL(expectedURL));
@@ -600,7 +596,6 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setStatus(FileHandleStatus.AVAILABLE);
 		
 		when(mockFileHandleDao.get(googleCloudFileHandle.getId())).thenReturn(googleCloudFileHandle);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, googleCloudFileHandle.getCreatedBy())).thenReturn(true);
 		String expectedURL = "https://google.com";
 		when(mockGoogleCloudStorageClient.createSignedUrl(anyString(), anyString(), anyLong(), any(HttpMethod.class))).
 				thenReturn(new URL(expectedURL));
@@ -766,14 +761,12 @@ public class FileHandleManagerImplTest {
 		
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expectedURL));
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId());
 		
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
 		
-		verify(mockAuthorizationManager, times(1)).isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy());
-		verify(mockFileHandleAuthorizationManager, never()).canDownLoadFile(any(UserInfo.class), any(List.class));
+		verify(mockAuthorizationManager, never()).canDownLoadFile(any(UserInfo.class), any(List.class));
 		// Verifies that download stats are not sent
 		verify(mockStatisticsCollector, never()).collectEvent(any());
 		
@@ -807,7 +800,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus authorizationResult = 
 				new FileHandleAssociationAuthorizationStatus(association, AuthorizationStatus.authorized());
 
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
 		
 		FileHandleUrlRequest request = new FileHandleUrlRequest(mockUser, s3FileHandle.getId())
@@ -815,8 +808,7 @@ public class FileHandleManagerImplTest {
 		
 		String redirectURL = manager.getRedirectURLForFileHandle(request);
 		
-		verify(mockAuthorizationManager, never()).isUserCreatorOrAdmin(any(UserInfo.class), any(String.class));
-		verify(mockFileHandleAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
+		verify(mockAuthorizationManager, times(1)).canDownLoadFile(mockUser, associations);
 		// Verifies that download stats are sent
 		verify(mockStatisticsCollector, times(1)).collectEvent(any());
 		
@@ -835,7 +827,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
+		mockUser = new UserInfo(false, 456L);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
 	}
@@ -848,7 +840,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
+		mockUser = new UserInfo(false, 896L);
 		assertThrows(UnauthorizedException.class, () -> manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId()));
 	}
 	
@@ -875,7 +867,7 @@ public class FileHandleManagerImplTest {
 				new FileHandleAssociationAuthorizationStatus(
 				association, AuthorizationStatus.authorized());
 
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).
 		thenReturn(Collections.singletonList(authorizationResult));
 		
 		// method under test
@@ -1660,7 +1652,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -1733,7 +1725,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -1774,7 +1766,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -1815,7 +1807,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
 
@@ -1858,7 +1850,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -1897,7 +1889,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -1933,7 +1925,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		FileHandle fh2 = new S3FileHandle();
 		fh2.setId(fha2.getFileHandleId());
@@ -2018,8 +2010,8 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.accessDenied(""));
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.accessDenied(""));
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		reset(mockFileHandleAuthorizationManager);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		reset(mockAuthorizationManager);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -2058,7 +2050,7 @@ public class FileHandleManagerImplTest {
 		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
 		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
 		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
 
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
@@ -2176,7 +2168,7 @@ public class FileHandleManagerImplTest {
 		authResults.add(new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied("")));
 		authResults.add(new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized()));
 		authResults.add(new FileHandleAssociationAuthorizationStatus(fha3, AuthorizationStatus.authorized()));
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, FileHandleCopyUtils.getOriginalFiles(batch))).thenReturn(authResults);
+		when(mockAuthorizationManager.canDownLoadFile(mockUser, FileHandleCopyUtils.getOriginalFiles(batch))).thenReturn(authResults);
 		Map<String, FileHandle> fileHandles = new HashMap<String, FileHandle>();
 
 		S3FileHandle fileHandle = new S3FileHandle();

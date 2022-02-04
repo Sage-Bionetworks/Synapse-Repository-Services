@@ -13,7 +13,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Snapshotable;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -54,8 +54,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Autowired
 	AsynchronousJobStatusDAO asynchJobStatusDao;
 	@Autowired
-	AuthorizationManager authorizationManager;
-	@Autowired
 	StackStatusDao stackStatusDao;
 	@Autowired
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
@@ -94,7 +92,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Get the status
 		AsynchronousJobStatus status = lookupJobStatus(jobId);
 		// Only the user that started a job can read it
-		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
+		if(!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
 		}
 		return status;
@@ -107,7 +105,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Get the status
 		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
 		// Only the user that started a job can read it
-		if (!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())) {
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())) {
 			throw new UnauthorizedException("Only the user that created a job can stop the job.");
 		}
 		asynchJobStatusDao.setJobCanceling(jobId);

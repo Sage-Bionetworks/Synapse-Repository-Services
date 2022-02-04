@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -81,8 +82,6 @@ import com.google.common.collect.Sets;
 @ExtendWith(MockitoExtension.class)
 public class SubmissionManagerImplTest {
 
-	@Mock
-	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private ResearchProjectDAO mockResearchProjectDao;
 	@Mock
@@ -129,6 +128,8 @@ public class SubmissionManagerImplTest {
 	private Submission submission;
 	private CreateSubmissionRequest csRequest;
 	private String subjectId;
+	
+	private UserInfo atcUser;
 
 	@BeforeEach
 	public void before() {
@@ -151,6 +152,10 @@ public class SubmissionManagerImplTest {
 		accessors = Arrays.asList(accesorChange);
 
 		accessorIds = Sets.newHashSet(userId);
+		
+		boolean isAdmin = false;
+		atcUser = new UserInfo(isAdmin, 5L);
+		atcUser.setGroups(Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
 
 		request = new Renewal();
 		request.setId(requestId);
@@ -360,7 +365,7 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCreateWithAccessorRequirementNotSatisfied() {
-		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
+		doThrow(new IllegalArgumentException()).when(mockAccessAprovalManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.create(mockUser, csRequest);
 		});
@@ -429,7 +434,7 @@ public class SubmissionManagerImplTest {
 		
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 		
-		verify(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
+		verify(mockAccessAprovalManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
 	}
 
 	@Test
@@ -552,17 +557,15 @@ public class SubmissionManagerImplTest {
 	
 	@Test
 	public void testDeleteSumbission() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		
 		// method under test
-		manager.deleteSubmission(mockUser, submissionId);
+		manager.deleteSubmission(atcUser, submissionId);
 		
 		verify(mockSubmissionDao).delete((submissionId));
 	}
 
 	@Test
 	public void testDeleteSumbissionUnauthorized() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
 		
 		// method under test
 		assertThrows(UnauthorizedException.class, () -> {
@@ -630,7 +633,6 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
 		assertThrows(UnauthorizedException.class, ()->{
 			manager.updateStatus(mockUser, request);
 		});
@@ -641,10 +643,9 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenThrow(new NotFoundException());
 		assertThrows(NotFoundException.class, ()->{
-			manager.updateStatus(mockUser, request);
+			manager.updateStatus(atcUser, request);
 		});
 	}
 
@@ -653,13 +654,12 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		Submission submission = new Submission();
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.CANCELLED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.updateStatus(mockUser, request);
+			manager.updateStatus(atcUser, request);
 		});
 	}
 
@@ -668,13 +668,12 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		Submission submission = new Submission();
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.REJECTED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.updateStatus(mockUser, request);
+			manager.updateStatus(atcUser, request);
 		});
 	}
 
@@ -683,13 +682,12 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		Submission submission = new Submission();
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.APPROVED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		assertThrows(IllegalArgumentException.class, ()->{
-			manager.updateStatus(mockUser, request);
+			manager.updateStatus(atcUser, request);
 		});
 	}
 
@@ -700,7 +698,6 @@ public class SubmissionManagerImplTest {
 		request.setNewState(SubmissionState.REJECTED);
 		String reason = "rejectedReason";
 		request.setRejectedReason(reason);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		Submission submission = new Submission();
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.SUBMITTED);
@@ -710,13 +707,13 @@ public class SubmissionManagerImplTest {
 		submission.setId(submissionId);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
-				eq(SubmissionState.REJECTED), eq(reason), eq(userId),
+				eq(SubmissionState.REJECTED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
 		// call under test
-		assertEquals(submission, manager.updateStatus(mockUser, request));
+		assertEquals(submission, manager.updateStatus(atcUser, request));
 		
 		MessageToSend expectedMessage = new MessageToSend()
-				.withUserId(userIdLong)
+				.withUserId(atcUser.getId())
 				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
 				.withObjectId(submissionId)
 				.withChangeType(ChangeType.UPDATE);
@@ -743,17 +740,16 @@ public class SubmissionManagerImplTest {
 		accessorIds = Sets.newHashSet(userId);
 		String reason = "rejectedReason";
 		request.setRejectedReason(reason);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		submission.setAccessorChanges(accessors);
 
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
-				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
+				eq(SubmissionState.APPROVED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
 		
 		// call under test
-		assertEquals(submission, manager.updateStatus(mockUser, request));
+		assertEquals(submission, manager.updateStatus(atcUser, request));
 		
-		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
+		verify(mockAccessAprovalManager).revokeGroup(atcUser, accessRequirementId, userId, Arrays.asList(userId, "2"));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 		
@@ -762,25 +758,25 @@ public class SubmissionManagerImplTest {
 		assertEquals(2, approvals.size());
 		AccessApproval approval1 = approvals.get(0);
 		assertEquals(userId, approval1.getAccessorId());
-		assertEquals(userId, approval1.getCreatedBy());
+		assertEquals(atcUser.getId().toString(), approval1.getCreatedBy());
 		assertNotNull(approval1.getCreatedOn());
-		assertEquals(userId, approval1.getModifiedBy());
+		assertEquals(atcUser.getId().toString(), approval1.getModifiedBy());
 		assertNotNull(approval1.getModifiedOn());
 		assertNull(approval1.getExpiredOn());
 		assertEquals(approval1.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval1.getRequirementId().toString());
 		AccessApproval approval3 = approvals.get(1);
 		assertEquals("3", approval3.getAccessorId());
-		assertEquals(userId, approval3.getCreatedBy());
+		assertEquals(atcUser.getId().toString(), approval3.getCreatedBy());
 		assertNotNull(approval3.getCreatedOn());
-		assertEquals(userId, approval3.getModifiedBy());
+		assertEquals(atcUser.getId().toString(), approval3.getModifiedBy());
 		assertNotNull(approval3.getModifiedOn());
 		assertNull(approval3.getExpiredOn());
 		assertEquals(approval3.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval3.getRequirementId().toString());
 		
 		MessageToSend expectedMessage = new MessageToSend()
-				.withUserId(userIdLong)
+				.withUserId(atcUser.getId())
 				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
 				.withObjectId(submissionId)
 				.withChangeType(ChangeType.UPDATE);
@@ -797,18 +793,17 @@ public class SubmissionManagerImplTest {
 		request.setNewState(SubmissionState.APPROVED);
 		String reason = "rejectedReason";
 		request.setRejectedReason(reason);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		submission.setAccessorChanges(accessors);
 		
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
-				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
+				eq(SubmissionState.APPROVED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
 		
 		// call under test
-		assertEquals(submission, manager.updateStatus(mockUser, request));
+		assertEquals(submission, manager.updateStatus(atcUser, request));
 
-		verify(mockAccessAprovalManager).revokeGroup(mockUser, accessRequirementId, userId, Arrays.asList(userId));
+		verify(mockAccessAprovalManager).revokeGroup(atcUser, accessRequirementId, userId, Arrays.asList(userId));
 		
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
 
@@ -817,16 +812,16 @@ public class SubmissionManagerImplTest {
 		assertEquals(1, approvals.size());
 		AccessApproval approval = approvals.get(0);
 		assertEquals(userId, approval.getAccessorId());
-		assertEquals(userId, approval.getCreatedBy());
+		assertEquals(atcUser.getId().toString(), approval.getCreatedBy());
 		assertNotNull(approval.getCreatedOn());
-		assertEquals(userId, approval.getModifiedBy());
+		assertEquals(atcUser.getId().toString(), approval.getModifiedBy());
 		assertNotNull(approval.getModifiedOn());
 		assertNotNull(approval.getExpiredOn());
 		assertEquals(approval.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval.getRequirementId().toString());
 		
 		MessageToSend expectedMessage = new MessageToSend()
-				.withUserId(userIdLong)
+				.withUserId(atcUser.getId())
 				.withObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS)
 				.withObjectId(submissionId)
 				.withChangeType(ChangeType.UPDATE);
@@ -860,7 +855,6 @@ public class SubmissionManagerImplTest {
 	public void testListSubmissionsUnauthorized() {
 		SubmissionPageRequest request = new SubmissionPageRequest();
 		request.setAccessRequirementId(accessRequirementId);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
 		assertThrows(UnauthorizedException.class, ()->{
 			manager.listSubmission(mockUser, request);
 		});
@@ -874,11 +868,10 @@ public class SubmissionManagerImplTest {
 		request.setOrderBy(SubmissionOrder.CREATED_ON);
 		request.setIsAscending(true);
 		request.setAccessorId("123");
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<Submission> list = new LinkedList<Submission>();
 		when(mockSubmissionDao.getSubmissions(any(), any(), any(), any(), anyBoolean(), anyLong(), anyLong())).thenReturn(list);
 		// call under test
-		SubmissionPage page = manager.listSubmission(mockUser, request);
+		SubmissionPage page = manager.listSubmission(atcUser, request);
 		assertNotNull(page);
 		assertEquals(page.getResults(), list);
 
@@ -940,8 +933,6 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.listInfoForApprovedSubmissions(accessRequirementId, 
 				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, false)).thenReturn(expected);
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
-		
 		// call under test
 		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(mockUser, request);
 		
@@ -964,13 +955,12 @@ public class SubmissionManagerImplTest {
 		List<SubmissionInfo> expected = new ArrayList<SubmissionInfo>();
 		expected.add(new SubmissionInfo());
 		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		
 		when(mockSubmissionDao.listInfoForApprovedSubmissions(accessRequirementId, 
 				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET, true)).thenReturn(expected);
 		
 		// call under test
-		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(mockUser, request);
+		SubmissionInfoPage page = manager.listInfoForApprovedSubmissions(atcUser, request);
 		
 		assertNotNull(page);
 		
@@ -1132,10 +1122,9 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testGetOpenSubmissionsAuthorized() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<OpenSubmission> list = new LinkedList<OpenSubmission>();
 		when(mockSubmissionDao.getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list );
-		OpenSubmissionPage result = manager.getOpenSubmissions(mockUser, null);
+		OpenSubmissionPage result = manager.getOpenSubmissions(atcUser, null);
 		assertNotNull(result);
 		assertEquals(list, result.getOpenSubmissionList());
 		verify(mockSubmissionDao).getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);

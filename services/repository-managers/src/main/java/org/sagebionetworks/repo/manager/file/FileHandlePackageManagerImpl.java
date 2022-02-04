@@ -17,6 +17,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
@@ -52,13 +53,13 @@ public class FileHandlePackageManagerImpl implements FileHandlePackageManager {
 
 	private FileHandleDao fileHandleDao;
 	private SynapseS3Client s3client;
-	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	private AuthorizationManager fileHandleAuthorizationManager;
 	private FileHandleManager fileHandleManager;
 	private EventsCollector statisticsCollector;
 
 	@Autowired
 	public FileHandlePackageManagerImpl(FileHandleDao fileHandleDao, SynapseS3Client s3client,
-			FileHandleAuthorizationManager fileHandleAuthorizationManager, FileHandleManager fileHandleManager,
+			AuthorizationManager fileHandleAuthorizationManager, FileHandleManager fileHandleManager,
 			EventsCollector statisticsCollector) {
 		super();
 		this.fileHandleDao = fileHandleDao;

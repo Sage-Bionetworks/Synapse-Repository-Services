@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface FileHandleAuthorizationManager {
 
+	
 	/**
-	 * Given a mixed list of FileHandleAssociation determine if the user is authorized to download each file.
-	 * @see #canDownloadFile(UserInfo, List, String, FileHandleAssociateType)
-	 * @param user
-	 * @param associations
-	 * @return
+	 * Is the user the creator of the given FileHnadle?
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return whether access is granted and, if not, a String giving the reason why
+	 * @throws NotFoundException 
 	 */
-	public List<FileHandleAssociationAuthorizationStatus> canDownLoadFile(UserInfo user, List<FileHandleAssociation> associations);
+	AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 }

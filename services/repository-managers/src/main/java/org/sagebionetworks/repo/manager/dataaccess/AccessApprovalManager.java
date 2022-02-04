@@ -2,14 +2,17 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -87,4 +90,18 @@ public interface AccessApprovalManager {
 	 * @return The number of expired approvals
 	 */
 	int revokeExpiredApprovals(UserInfo user, Instant expiredAfter, int maxBatchSize);
+
+	void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
+
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and, if so, whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param sourceParentId
+	 * @param destParentId
+	 * @return
+	 */
+	AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId)
+			throws NotFoundException;
 }
