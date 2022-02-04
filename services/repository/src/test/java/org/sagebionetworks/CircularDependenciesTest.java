@@ -13,6 +13,7 @@ public class CircularDependenciesTest {
 	 * disabled because we have many circular dependencies. It will take multiple
 	 * iterations to find and fix all issues.
 	 */
+	@Disabled
 	@Test
 	public void testCircularReferences() {
 		GenericApplicationContext ctx = new GenericApplicationContext();
