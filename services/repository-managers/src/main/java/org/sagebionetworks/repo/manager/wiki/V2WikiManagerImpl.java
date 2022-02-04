@@ -16,6 +16,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -119,7 +120,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Validate that the user can assign all file handles
 		for(FileHandle handle: fileHandlesToCheck){
 			// the user must have access to the raw FileHandle to assign it to an object.
-			authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
+			AuthorizationUtils.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
 		}
 		// pass to the DAO
 		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);

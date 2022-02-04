@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -37,8 +38,6 @@ public interface AuthorizationManager {
 	 */
 	AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
-
-
 	/**
      * Checks whether the given user can create the given node.
 	 * 
@@ -52,13 +51,6 @@ public interface AuthorizationManager {
 	 */
 	AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
 
-	/**
-	 * 
-	 * @param userInfo UserInfo of the user in question
-	 * @param activityId activity that generated the entities
-	 * @return Returns true if the specified user can read at least one entity with the specified activity Id.  Returns whether access is granted and, if not, a String giving the reason why
-	 */
-	AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
 	
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
@@ -68,14 +60,6 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
 	AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
-	
-	/**
-	 * Is the user the creator or are they an admin
-	 * @param userInfo
-	 * @param creator
-	 * @return
-	 */
-	boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator);
 	
 	/**
 	 * 
@@ -210,14 +194,6 @@ public interface AuthorizationManager {
 	public Set<String> getPermittedDockerActions(UserInfo userInfo, List<OAuthScope> oauthScopes, String service, String type, String name, String actionTypes);
 
 	/**
-	 * Validate and throw exception for HasAccessorRequirement
-	 * 
-	 * @param req
-	 * @param accessors
-	 */
-	void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
-
-	/**
 	 * Check whether a user has access to a MembershipInvitation
 	 *
 	 * @param userInfo
@@ -255,4 +231,13 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType);
+	
+	/**
+	 * Given a mixed list of FileHandleAssociation determine if the user is authorized to download each file.
+	 * @see #canDownloadFile(UserInfo, List, String, FileHandleAssociateType)
+	 * @param user
+	 * @param associations
+	 * @return
+	 */
+	public List<FileHandleAssociationAuthorizationStatus> canDownLoadFile(UserInfo user, List<FileHandleAssociation> associations);
 }

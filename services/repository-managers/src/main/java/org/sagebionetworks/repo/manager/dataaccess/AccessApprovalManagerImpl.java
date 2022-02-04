@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -14,29 +14,35 @@ import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Sets;
@@ -47,24 +53,23 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
 	
-	private AccessRequirementDAO accessRequirementDAO;
+	private final AccessRequirementDAO accessRequirementDAO;
+	private final AccessApprovalDAO accessApprovalDAO;
+	private final VerificationDAO verificationDao;
+	private final GroupMembersDAO groupMembersDao;
+	private final TransactionalMessenger transactionalMessenger;
+	private final NodeDAO nodeDao;
 	
-	private AccessApprovalDAO accessApprovalDAO;
-	
-	private AuthorizationManager authorizationManager;
-	
-	private TransactionalMessenger transactionalMessenger;
-	
-	@Autowired
-	public AccessApprovalManagerImpl(
-			final AccessRequirementDAO accessRequirementDAO, 
-			final AccessApprovalDAO accessApprovalDAO,
-			final AuthorizationManager authorizationManager, 
-			final TransactionalMessenger transactionalMessenger) {
+	public AccessApprovalManagerImpl(AccessRequirementDAO accessRequirementDAO, AccessApprovalDAO accessApprovalDAO,
+			VerificationDAO verificationDao, GroupMembersDAO groupMembersDao,
+			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao) {
+		super();
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.accessApprovalDAO = accessApprovalDAO;
-		this.authorizationManager = authorizationManager;
+		this.verificationDao = verificationDao;
+		this.groupMembersDao = groupMembersDao;
 		this.transactionalMessenger = transactionalMessenger;
+		this.nodeDao = nodeDao;
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
@@ -100,7 +105,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
 		if (ar instanceof SelfSignAccessRequirementInterface) {
 			accessApproval.setAccessorId(userInfo.getId().toString());
-		} else if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		} else if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("User is not an ACT Member.");
 		}
 
@@ -109,7 +114,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 				!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(accessApproval.getAccessorId()),
 				"Cannot create an AccessApproval for anonymous user.");
 		if (ar instanceof HasAccessorRequirement) {
-			authorizationManager.validateHasAccessorRequirement((HasAccessorRequirement) ar,
+			validateHasAccessorRequirement((HasAccessorRequirement) ar,
 					Sets.newHashSet(accessApproval.getAccessorId()));
 		}
 		if (accessApproval.getRequirementVersion() == null) {
@@ -129,7 +134,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		ValidateArgument.required(accessorId, "accessorId");
-		if (!userInfo.getId().toString().equals(accessorId) && !authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!userInfo.getId().toString().equals(accessorId) && !AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member may delete access approvals of other users.");
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
@@ -152,7 +157,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public AccessorGroupResponse listAccessorGroup(UserInfo userInfo, AccessorGroupRequest request){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
@@ -174,7 +179,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(request.getAccessRequirementId(), "requirementId");
 		ValidateArgument.required(request.getSubmitterId(), "submitterId");
 		
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		
@@ -221,7 +226,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(submitterId, "The submitter id");
 		ValidateArgument.required(accessorIds, "The list of accessor ids");
 		
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		
@@ -248,7 +253,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(maxBatchSize > 0, "The maxBatchSize must be greater than 0.");
 		ValidateArgument.requirement(expiredAfter.isBefore(Instant.now()), "The expiredAfter must be a value in the past.");
 		
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 	
@@ -267,6 +272,49 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		return revokedApprovals.size();
 		
+	}
+	
+	@Override
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
+		if (req.getIsCertifiedUserRequired()) {
+			if(!groupMembersDao.areMemberOf(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+					accessors)){
+				throw new UserCertificationRequiredException("Accessors must be Synapse Certified Users.");
+			}
+		}
+		if (req.getIsValidatedProfileRequired()) {
+			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
+					"Accessors must have validated profiles.");
+		}
+	}
+	
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and, if so, whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param sourceParentId
+	 * @param destParentId
+	 * @return
+	 */
+	@Override
+	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
+		if (AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			return AuthorizationStatus.authorized();
+		}
+		if (sourceParentId.equals(destParentId)) {
+			return AuthorizationStatus.authorized();
+		}
+		List<Long> sourceParentAncestorIds = nodeDao.getEntityPathIds(sourceParentId);
+		List<Long> destParentAncestorIds = nodeDao.getEntityPathIds(destParentId);
+
+		List<String> missingRequirements = accessRequirementDAO.getAccessRequirementDiff(sourceParentAncestorIds, destParentAncestorIds, RestrictableObjectType.ENTITY);
+		if (missingRequirements.isEmpty()) { // only OK if destParent has all the requirements that source parent has
+			return AuthorizationStatus.authorized();
+		} else {
+			return AuthorizationStatus.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
+		}
 	}
 	
 	private void sendUpdateChange(UserInfo user, List<Long> accessApprovalIds) {

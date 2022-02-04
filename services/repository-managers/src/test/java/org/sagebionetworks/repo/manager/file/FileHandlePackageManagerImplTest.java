@@ -44,6 +44,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -74,7 +75,7 @@ public class FileHandlePackageManagerImplTest {
 	@Mock
 	private SynapseS3Client mockS3client;
 	@Mock
-	private FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	private AuthorizationManager mockFileHandleAuthorizationManager;
 	@Mock
 	private FileHandleManager mockFileHandleManager;
 	@Mock

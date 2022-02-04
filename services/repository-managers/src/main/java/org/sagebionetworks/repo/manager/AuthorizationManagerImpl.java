@@ -7,36 +7,32 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.file.FileAssociateObject;
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.form.FormManager;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -50,9 +46,9 @@ import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -60,7 +56,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
 
@@ -70,7 +67,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
 			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
 
-	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
 	public static final String ANONYMOUS_ACCESS_DENIED_REASON = "Anonymous cannot perform this action. Please login and try again.";
 	private static final String FILE_HANDLE_ID_IS_NOT_ASSOCIATED_TEMPLATE = "FileHandleId: %1s is not associated with objectId: %2s of type: %3s";
 
@@ -80,15 +76,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
-	private ActivityDAO activityDAO;
-	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	private AccessControlListManager aclManager;
 	@Autowired
 	private VerificationDAO verificationDao;
 	@Autowired
@@ -108,11 +102,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
 	@Autowired
-	private GroupMembersDAO groupMembersDao;
-	@Autowired
 	private TokenGenerator tokenGenerator;
 	@Autowired
 	private FormManager formManager;
+	@Autowired
+	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -145,7 +139,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				
 				// just check the acl
-				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
+				boolean teamAccessPermission = aclManager.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
 				if (teamAccessPermission) {
 					return AuthorizationStatus.authorized();
 				} else {
@@ -230,95 +224,26 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		return entityAuthorizationManager.canCreate(parentId, nodeType, userInfo);
 	}
-
-	@Override
-	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
-		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
-		
-		// check if owner
-		Activity act = activityDAO.get(activityId);
-		if(act.getCreatedBy().equals(userInfo.getId().toString()))
-				return AuthorizationStatus.authorized();
-		
-		// check if user has read access to any in result set (could be empty)
-		int limit = 1000;
-		int offset = 0;
-		long remaining = 1; // just to get things started
-		while(remaining > 0) {			
-			PaginatedResults<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
-			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
-			for(Reference ref : generatedBy.getResults()) {
-				String nodeId = ref.getTargetId();
-				try {
-					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
-						return AuthorizationStatus.authorized();
-					}
-				} catch (Exception e) {
-					// do nothing, same as false
-				}
-			}
-			offset += limit; 
-		}
-		// no access found to generated entities, no access
-		return AuthorizationStatus.accessDenied("User lacks permission to access Activity "+activityId);
-	}
 	
-	@Override
-	public boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator) {
-		// Admins can see anything.
-		if (userInfo.isAdmin()) return true;
-		// Only the creator can see the raw file handle
-		return userInfo.getId().toString().equals(creator);
-	}
-
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
-		if( isUserCreatorOrAdmin(userInfo, creator)) {
-			return AuthorizationStatus.authorized();
-		} else {
-			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
-		}
+		return AuthorizationUtils.canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
 	}
-	
-	/**
-	 * Create an unauthorized message for file handles.
-	 * 
-	 * @param fileHandleId
-	 * @param userInfo
-	 * @return
-	 */
-	private String createFileHandleUnauthorizedMessage(String fileHandleId,	UserInfo userInfo) {
-		return String.format(FILE_HANDLE_UNAUTHORIZED_TEMPLATE, fileHandleId, userInfo.getId().toString());
-	}
-	
 
 
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
-		// Admins can do anything
-		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
-		// Lookup the creator by
-		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
-		// Call the other methods
-		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
+		return fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId);
 	}
 
 	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
-		if (userInfo.isAdmin()) return true;
-		if(userInfo.getGroups() != null) {
-			if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;
-		}
-		return false;
+		return AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo);
 	}
 
 	@Override
 	public boolean isReportTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
-		if (userInfo.isAdmin()) return true;
-		if(userInfo.getGroups() != null) {
-			if(userInfo.getGroups().contains(TeamConstants.SYNAPSE_REPORT_TEAM_ID)) return true;
-		}
-		return false;
+		return AuthorizationUtils.isReportTeamMemberOrAdmin(userInfo);
 	}
 
 	/**
@@ -445,19 +370,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors) {
-		Set<Long> results = null;
-		if (userInfo.isAdmin()){
-			// admin same as input
-			results = Sets.newHashSet(benefactors);
-		}else{
-			// non-adim run a query
-			results = this.aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactors, objectType, ACCESS_TYPE.READ);
-		}
-		if (ObjectType.ENTITY.equals(objectType)) {
-			// The trash folder should not be in the results
-			results.remove(TRASH_FOLDER_ID);
-		}
-		return results;
+		return aclManager.getAccessibleBenefactors(userInfo, objectType, benefactors);
 	}
 
 	@Override
@@ -492,11 +405,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
-		ValidateArgument.required(principalIds, "principalIds");
-		if(principalIds.isEmpty()){
-			return new HashSet<>(0);
-		}
-		return this.aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
+		return this.aclManager.getAccessibleProjectIds(principalIds);
 	}
 	
 	/*
@@ -634,21 +543,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
-		if (req.getIsCertifiedUserRequired()) {
-			if(!groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors)){
-				throw new UserCertificationRequiredException("Accessors must be Synapse Certified Users.");
-			}
-		}
-		if (req.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
-					"Accessors must have validated profiles.");
-		}
-	}
-
-	@Override
 	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mi, ACCESS_TYPE accessType) {
 		if (mi.getInviteeId() != null) {
 			// The invitee should be able to read or delete the invitation
@@ -658,7 +552,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 		}
 		// An admin of the team should be able to create, read or delete the invitation
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsTeamAdmin = aclManager.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
 			return AuthorizationStatus.authorized();
 		}
@@ -704,11 +598,85 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		// An admin of the team should be able to read or delete the request
 		// The requester should also be able to read or delete the request
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsTeamAdmin = aclManager.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		boolean userIsRequester = Long.parseLong(mr.getUserId()) == userInfo.getId();
 		if ((userIsTeamAdmin || userIsRequester) && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
 			return AuthorizationStatus.authorized();
 		}
 		return AuthorizationStatus.accessDenied("Unauthorized to " + accessType + " membership request " + mr.getId());
+	}
+
+	@Override
+	public List<FileHandleAssociationAuthorizationStatus> canDownLoadFile(UserInfo user,
+			List<FileHandleAssociation> associations) {
+		if(user == null){
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		// validate the input
+		validate(associations);
+		/* A separate authorization check must be made for each associated object so the
+		 * first step is to group by the associated object.
+		 */
+		Map<FileAssociateObject, List<String>> objectGroups =  Maps.newHashMap();
+		for(FileHandleAssociation fha: associations){
+			FileAssociateObject key = new FileAssociateObject(fha.getAssociateObjectId(), fha.getAssociateObjectType());
+			List<String> fileHandleIds = objectGroups.get(key);
+			if(fileHandleIds == null){
+				fileHandleIds = Lists.newLinkedList();
+				objectGroups.put(key, fileHandleIds);
+			}
+			fileHandleIds.add(fha.getFileHandleId());
+		}
+		// used to track the results.
+		Map<FileHandleAssociation, FileHandleAssociationAuthorizationStatus> resultMap = Maps.newHashMap();
+		// execute a canDownloadFile() check for each object group.
+		for(FileAssociateObject object: objectGroups.keySet()){
+			List<String> fileHandleIds = objectGroups.get(object);
+			// The authorization check for this group.
+			List<FileHandleAuthorizationStatus> groupResults = canDownloadFile(user, fileHandleIds, object.getObjectId(), object.getObjectType());
+			// Build the results for this group
+			for(FileHandleAuthorizationStatus fileStatus: groupResults){
+				FileHandleAssociation fileAssociation = new FileHandleAssociation();
+				fileAssociation.setFileHandleId(fileStatus.getFileHandleId());
+				fileAssociation.setAssociateObjectId(object.getObjectId());
+				fileAssociation.setAssociateObjectType(object.getObjectType());
+				FileHandleAssociationAuthorizationStatus result = new FileHandleAssociationAuthorizationStatus(fileAssociation, fileStatus.getStatus());
+				resultMap.put(fileAssociation, result);
+			}
+		}
+		
+		// put the results in the same order as the request
+		List<FileHandleAssociationAuthorizationStatus> results = Lists.newLinkedList();
+		for(FileHandleAssociation association: associations){
+			results.add(resultMap.get(association));
+		}
+		return results;
+	}
+	
+	public void validate(List<FileHandleAssociation> associations){
+		if(associations == null){
+			throw new IllegalArgumentException("FileHandleAssociations cannot be null");
+		}
+		if(associations.isEmpty()){
+			throw new IllegalArgumentException("FileHandleAssociations is empty.  Must include at least one FileHandleAssociation");
+		}
+		for(FileHandleAssociation fha: associations){
+			validate(fha);
+		}
+	}
+	
+	public void validate(FileHandleAssociation fha){
+		if(fha == null){
+			throw new IllegalArgumentException("FileHandleAssociation cannot be null");
+		}
+		if(fha.getFileHandleId() == null){
+			throw new IllegalArgumentException("FileHandleAssociation.fileHandleId cannot be null");
+		}
+		if(fha.getAssociateObjectId() == null){
+			throw new IllegalArgumentException("FileHandleAssociation.associateObjectId cannot be null");
+		}
+		if(fha.getAssociateObjectType() == null){
+			throw new IllegalArgumentException("FileHandleAssociation.associateObjectType cannot be null");
+		}
 	}
 }

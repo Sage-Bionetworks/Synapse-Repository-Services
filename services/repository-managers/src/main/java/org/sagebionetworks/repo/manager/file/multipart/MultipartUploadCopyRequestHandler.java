@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.file.multipart;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
@@ -32,14 +32,14 @@ public class MultipartUploadCopyRequestHandler implements MultipartRequestHandle
 
 	private CloudServiceMultipartUploadDAOProvider cloudServiceDaoProvider;
 
-	private FileHandleAuthorizationManager authManager;
+	private AuthorizationManager authManager;
 	
 	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	public MultipartUploadCopyRequestHandler(
 			CloudServiceMultipartUploadDAOProvider cloudServiceDaoProvider, 
-			FileHandleAuthorizationManager authManager,
+			AuthorizationManager authManager,
 			FileHandleDao fileHandleDao) {
 		this.cloudServiceDaoProvider = cloudServiceDaoProvider;
 		this.authManager = authManager;

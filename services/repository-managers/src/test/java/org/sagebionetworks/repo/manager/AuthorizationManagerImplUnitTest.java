@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
@@ -33,25 +33,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
@@ -61,10 +60,10 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -78,12 +77,13 @@ import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -101,9 +101,11 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private FileHandleDao mockFileHandleDao;
 	@Mock
+	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	@Mock
 	private EntityAuthorizationManager mockEntityAuthorizationManager;
 	@Mock
-	private AccessControlListDAO mockAclDAO;
+	private AccessControlListManager mockAclManager;
 	@Mock
 	private FileHandleAssociationManager mockFileHandleAssociationManager;
 	@Mock
@@ -137,6 +139,10 @@ public class AuthorizationManagerImplUnitTest {
 
 	@InjectMocks
 	private AuthorizationManagerImpl authorizationManager;
+	
+	@Spy
+	@InjectMocks
+	private AuthorizationManagerImpl authorizationManagerSpy;
 
 
 	private static String USER_PRINCIPAL_ID = "123";
@@ -180,6 +186,9 @@ public class AuthorizationManagerImplUnitTest {
 
 	HasAccessorRequirement req;
 
+	private FileHandleAssociation fha1;
+	private FileHandleAssociation fha2;
+	private FileHandleAssociation fha3;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -236,62 +245,21 @@ public class AuthorizationManagerImplUnitTest {
 				thenReturn(false);
 
 		req = new SelfSignAccessRequirement();
-	}
+		
+		fha1 = new FileHandleAssociation();
+		fha1.setFileHandleId("1");
+		fha1.setAssociateObjectId("123");
+		fha1.setAssociateObjectType(FileHandleAssociateType.TableEntity);
 
-	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
-		PaginatedResults<Reference> results = new PaginatedResults<Reference>();
-		List<Reference> resultList = new ArrayList<Reference>();		
-		for(int i=0; i<numResults; i++) {
-			Reference ref = new Reference();
-			ref.setTargetId("nodeId");
-			resultList.add(ref);
-		}
-		results.setResults(resultList);
-		results.setTotalNumberOfResults(total);
-		return results;
-	}
+		fha2 = new FileHandleAssociation();
+		fha2.setFileHandleId("1");
+		fha2.setAssociateObjectId("123");
+		fha2.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 
-	@Test
-	public void testCanAccessActivityPagination() throws Exception {		 
-		Activity act = new Activity();
-		String actId = "1";
-		int limit = 1000;
-		int total = 2001;
-		int offset = 0;
-		// create as admin, try to access as user so fails access and tests pagination
-		act.setId(actId);
-		act.setCreatedBy(adminUser.getId().toString());
-		when(mockActivityDAO.get(actId)).thenReturn(act);
-		PaginatedResults<Reference> results1 = generateQueryResults(limit, total);
-		PaginatedResults<Reference> results2 = generateQueryResults(total-limit, total);		
-		PaginatedResults<Reference> results3 = generateQueryResults(total-(2*limit), total);
-		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);
-		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+limit)).thenReturn(results2);		
-		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+(2*limit))).thenReturn(results3);
-
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
-		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
-		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+limit);
-		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+(2*limit));
-		assertFalse(canAccess);
-	}
-
-	@Test
-	public void testCanAccessActivityPaginationSmallResultSet() throws Exception {		 
-		Activity act = new Activity();
-		String actId = "1";
-		int limit = 1000;
-		int offset = 0;
-		// create as admin, try to access as user so fails access and tests pagination
-		act.setId(actId);
-		act.setCreatedBy(adminUser.getId().toString());
-		when(mockActivityDAO.get(actId)).thenReturn(act);
-		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
-		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
-
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
-		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
-		assertFalse(canAccess);
+		fha3 = new FileHandleAssociation();
+		fha3.setFileHandleId("2");
+		fha3.setAssociateObjectId("123");
+		fha3.setAssociateObjectType(FileHandleAssociateType.FileEntity);
 	}
 
 	@Test
@@ -303,20 +271,6 @@ public class AuthorizationManagerImplUnitTest {
 		// Set the creator to be the admin this time.
 		creator = adminUser.getId().toString();
 		assertFalse(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
-	}
-
-	@Test
-	public void testCanAccessRawFileHandleById() throws NotFoundException{
-		// The admin can access anything
-		String creator = userInfo.getId().toString();
-		String fileHandlId = "3333";
-		when(mockFileHandleDao.getHandleCreator(fileHandlId)).thenReturn(creator);
-		assertTrue(authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId).isAuthorized(), "Admin should have access to all FileHandles");
-		assertTrue(authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId).isAuthorized(), "Creator should have access to their own FileHandles");
-		// change the users id
-		UserInfo notTheCreatoro = new UserInfo(false, "999999");
-		assertFalse(authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
-		verify(mockFileHandleDao, times(2)).getHandleCreator(fileHandlId);
 	}
 
 	@Test
@@ -469,10 +423,10 @@ public class AuthorizationManagerImplUnitTest {
 		// admin can always access
 		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType).isAuthorized());
 		// non admin can access if acl says so
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
+		when(mockAclManager.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
 		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).isAuthorized());
 		// otherwise not
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
+		when(mockAclManager.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).isAuthorized());
 	}
 
@@ -805,42 +759,6 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanReadBenefactorsAdmin(){
-		Set<Long> benefactors = Sets.newHashSet(1L,2L);
-		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, ObjectType.ENTITY, benefactors);
-		assertEquals(benefactors, results);
-		verify(mockAclDAO, never()).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
-	}
-	
-	@Test
-	public void testCanReadBenefactorsNonAdmin(){
-		Set<Long> benefactors = Sets.newHashSet(1L,2L);
-		// call under test
-		authorizationManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
-		verify(mockAclDAO, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
-	}
-	
-	@Test
-	public void testCanReadBenefactorsTrashAdmin(){
-		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
-		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(adminUser, ObjectType.ENTITY, benefactors);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-	
-	@Test
-	public void testCanReadBenefactorsTrashNonAdmin(){
-		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
-		when(mockAclDAO.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
-		// call under test
-		Set<Long> results = authorizationManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-	}
-
-	@Test
 	public void testCanSubscribeForumUnauthorized() {
 		when(mockEntityAuthorizationManager.hasAccess(userInfo, projectId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
@@ -902,32 +820,6 @@ public class AuthorizationManagerImplUnitTest {
 				.thenReturn(true);
 		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
-	}
-
-	@Test
-	public void testGetAccessibleProjectIds(){
-		Set<Long> expectedProjectIds = Sets.newHashSet(555L);
-		Set<Long> principalIds = Sets.newHashSet(123L);
-		when(mockAclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ)).thenReturn(expectedProjectIds);
-		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
-		assertEquals(expectedProjectIds,results);
-	}
-	
-	@Test
-	public void testGetAccessibleProjectIdsEmpty(){
-		Set<Long> principalIds = new HashSet<>();
-		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-		verify(mockAclDAO, never()).getAccessibleProjectIds(any(Set.class), any(ACCESS_TYPE.class));
-	}
-	
-	@Test
-	public void testGetAccessibleProjectIdsNullPrincipals(){
-		Set<Long> principalIds = null;
-		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.getAccessibleProjectIds(principalIds);
-		});
 	}
 
 	@Test
@@ -1181,48 +1073,97 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testValidateWithCertifiedUserRequiredNotSatisfied() {
-		req.setIsCertifiedUserRequired(true);
-		req.setIsValidatedProfileRequired(false);
-		when(mockGroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				accessors))
-				.thenReturn(false);
-		assertThrows(UserCertificationRequiredException.class, ()-> {
-			authorizationManager.validateHasAccessorRequirement(req, accessors);
+	public void testCanDownloadSameFileDifferntAssociateObject() {
+		List<String> fileHandleIds = Arrays.asList(fha1.getFileHandleId());
+		// can download 1
+		doReturn(Arrays
+				.asList(new FileHandleAuthorizationStatus(fha1.getFileHandleId(), AuthorizationStatus.authorized())))
+						.when(authorizationManagerSpy).canDownloadFile(userInfo, fileHandleIds,
+								fha1.getAssociateObjectId(), fha1.getAssociateObjectType());
+		// cannot download 2
+		doReturn(Arrays.asList(
+				new FileHandleAuthorizationStatus(fha2.getFileHandleId(), AuthorizationStatus.accessDenied(""))))
+						.when(authorizationManagerSpy).canDownloadFile(userInfo, fileHandleIds,
+								fha2.getAssociateObjectId(), fha2.getAssociateObjectType());
+		// call under test.
+		List<FileHandleAssociationAuthorizationStatus> resutls = authorizationManagerSpy.canDownLoadFile(userInfo,
+				Arrays.asList(fha1, fha2));
+		// 1 authorized and 2 denied.
+		List<FileHandleAssociationAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.authorized()),
+				new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.accessDenied("")));
+		assertEquals(expected, resutls);
+		// auth manager should be called once for each object.
+		verify(authorizationManagerSpy, times(2)).canDownloadFile(any(UserInfo.class), anyList(), anyString(),
+				any(FileHandleAssociateType.class));
+	}
+	
+	@Test
+	public void testCanDownloadDifferentFilesSameObject() {
+		List<String> fileHandleIds = Arrays.asList(fha2.getFileHandleId(), fha3.getFileHandleId());
+		// 2 and 3 have the same associate object. Allow 3 and deny 2.
+		doReturn(Arrays.asList(
+				new FileHandleAuthorizationStatus(fha2.getFileHandleId(), AuthorizationStatus.accessDenied("")),
+				new FileHandleAuthorizationStatus(fha3.getFileHandleId(), AuthorizationStatus.authorized())))
+						.when(authorizationManagerSpy).canDownloadFile(userInfo, fileHandleIds,
+								fha2.getAssociateObjectId(), fha2.getAssociateObjectType());
+
+		// call under test.
+		List<FileHandleAssociationAuthorizationStatus> resutls = authorizationManagerSpy.canDownLoadFile(userInfo,
+				Arrays.asList(fha2, fha3));
+		// 3 authorized and 2 denied.
+		List<FileHandleAssociationAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.accessDenied("")),
+				new FileHandleAssociationAuthorizationStatus(fha3, AuthorizationStatus.authorized()));
+		assertEquals(expected, resutls);
+		// auth manager should be called once for this case.
+		verify(authorizationManagerSpy, times(1)).canDownloadFile(any(UserInfo.class), anyList(), anyString(),
+				any(FileHandleAssociateType.class));
+	}
+	
+	@Test
+	public void testValidateNullList(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authorizationManager.canDownLoadFile(userInfo, null);
 		});
-		verifyZeroInteractions(mockVerificationDao);
 	}
-
+	
 	@Test
-	public void testValidateWithValidatedProfileRequiredNotSatisfied() {
-		req.setIsCertifiedUserRequired(false);
-		req.setIsValidatedProfileRequired(true);
-		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(false);
-		assertThrows(IllegalArgumentException.class, ()-> {
-			authorizationManager.validateHasAccessorRequirement(req, accessors);
+	public void testValidateNulItem(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authorizationManager.canDownLoadFile(userInfo, Arrays.asList(fha2, null));
 		});
-		verifyZeroInteractions(mockGroupMembersDao);
 	}
-
+	
 	@Test
-	public void testValidateWithCertifiedUserRequiredAndValidatedProfileSatisfied() {
-		req.setIsCertifiedUserRequired(true);
-		req.setIsValidatedProfileRequired(true);
-		when(mockGroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				accessors))
-				.thenReturn(true);
-		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(true);
-		authorizationManager.validateHasAccessorRequirement(req, accessors);
+	public void testValidateObjectIdNull(){
+		fha1.setAssociateObjectId(null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authorizationManager.canDownLoadFile(userInfo, Arrays.asList(fha1));
+		});
 	}
-
+	
 	@Test
-	public void testValidateWithoutRequirements() {
-		req.setIsCertifiedUserRequired(false);
-		req.setIsValidatedProfileRequired(false);
-		authorizationManager.validateHasAccessorRequirement(req, accessors);
-		verifyZeroInteractions(mockGroupMembersDao);
-		verifyZeroInteractions(mockVerificationDao);
+	public void testValidateObjectTypeNull(){
+		fha1.setAssociateObjectType(null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authorizationManager.canDownLoadFile(userInfo, Arrays.asList(fha1));
+		});
+	}
+	
+	@Test
+	public void testValidateFileHandleIdNull(){
+		fha1.setFileHandleId(null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authorizationManager.canDownLoadFile(userInfo, Arrays.asList(fha1));
+		});
 	}
 }
