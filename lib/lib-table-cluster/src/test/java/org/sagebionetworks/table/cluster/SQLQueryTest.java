@@ -1123,7 +1123,6 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview),
 				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
@@ -1131,7 +1130,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_,"
-				+ " _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR"
+				+ " _A0.ROW_BENEFACTOR"
 				+ " FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
@@ -1306,6 +1305,58 @@ public class SQLQueryTest {
 				new ColumnModel().setName("a.doubletype").setColumnType(ColumnType.DOUBLE).setId(null)
 		);
 		assertEquals(expected, schema);
+	}
+	
+	@Test
+	public void testJoinViewAndTableWithDepenenciesOutOfOrder() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on a.inttype = b.inttype";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C888_, _A1._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testJoinSameViewMultipleTimes() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype) join syn1 c on (b.inttype = c.inttype)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
+				query.getOutputSQL());
 	}
 
 	/**

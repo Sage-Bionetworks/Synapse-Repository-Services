@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -3004,7 +3003,7 @@ public class SQLTranslatorUtilsTest {
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String result = SQLTranslatorUtils.createMaterializedViewInsertSql(schemaOfSelect, outputSQL, indexDescription);
-		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR_A0) select _C111_,_C333_, ROW_BENEFACTOR from T111", result);
+		assertEquals("INSERT INTO T123 (_C111_,_C333_,ROW_BENEFACTOR_T111) select _C111_,_C333_, ROW_BENEFACTOR from T111", result);
 	}
 	
 	@Test

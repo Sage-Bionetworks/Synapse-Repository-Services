@@ -4,6 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.Test;
 
 public class IdAndVersionTest {
@@ -51,6 +55,31 @@ public class IdAndVersionTest {
 	public void testToStringNoVersion() {
 		IdAndVersion one = new IdAndVersionBuilder().setId(123L).build();
 		assertEquals("syn123", one.toString());
+	}
+	
+	@Test
+	public void testCompareOrdered() {
+		List<IdAndVersion> unordered = Arrays.asList(
+				IdAndVersion.parse("syn2.1"),
+				IdAndVersion.parse("syn2"),
+				IdAndVersion.parse("syn2.2"),
+				IdAndVersion.parse("syn1.3"),
+				IdAndVersion.parse("syn1"),
+				IdAndVersion.parse("syn2.1"),
+				IdAndVersion.parse("syn1")
+		);
+		// call under test
+		List<IdAndVersion> ordered = unordered.stream().sorted().collect(Collectors.toList());
+		List<IdAndVersion> expected = Arrays.asList(
+				IdAndVersion.parse("syn1"),
+				IdAndVersion.parse("syn1"),
+				IdAndVersion.parse("syn1.3"),
+				IdAndVersion.parse("syn2"),
+				IdAndVersion.parse("syn2.1"),
+				IdAndVersion.parse("syn2.1"),
+				IdAndVersion.parse("syn2.2")
+		);
+		assertEquals(expected, ordered);
 	}
 
 }

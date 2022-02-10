@@ -116,7 +116,7 @@ public class TableInfo implements ColumnLookup {
 			String unquotedLHS = lhsOptional.get().toSqlWithoutQuotes();
 			// if we have a LHS it must match either the table name or table alias.
 			if (!unquotedLHS.equals(originalTableName) && !unquotedLHS.equals(tableAlias)
-					&& !unquotedLHS.equals(translatedTableAlias)) {
+					&& !unquotedLHS.equals(translatedTableAlias) && !unquotedLHS.equals(translatedTableName)) {
 				return Optional.empty();
 			}
 		}
