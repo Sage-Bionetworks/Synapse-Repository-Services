@@ -279,6 +279,42 @@ public class TableAndColumnMapperTest {
 	}
 	
 	@Test
+	public void testLookupColumnReferenceMatchWithBenefactor() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("T123.ROW_BENEFACTOR").columnReference();
+		// call under test
+		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
+		assertTrue(optionalMatch.isPresent());
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), optionalMatch.get().getColumnTranslationReference());
+		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
+		assertEquals("syn123", tableInfo.getOriginalTableName());
+		assertEquals(0, tableInfo.getTableIndex());
+	}
+	
+	@Test
+	public void testLookupColumnReferenceMatchWithBenefactorAndVersion() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456.3").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnMap.get("foo"), columnMap.get("has space")));
+		map.put(IdAndVersion.parse("syn456.3"), Arrays.asList(columnMap.get("bar"), columnMap.get("foo_bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+
+		ColumnReference columnReference = new TableQueryParser("T456_3.ROW_BENEFACTOR").columnReference();
+		// call under test
+		Optional<ColumnReferenceMatch> optionalMatch = mapper.lookupColumnReferenceMatch(columnReference);
+		assertTrue(optionalMatch.isPresent());
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), optionalMatch.get().getColumnTranslationReference());
+		TableInfo tableInfo  = optionalMatch.get().getTableInfo();
+		assertEquals("syn456.3", tableInfo.getOriginalTableName());
+		assertEquals(1, tableInfo.getTableIndex());
+	}
+	
+	@Test
 	public void testLookupColumnReferenceMatchWithMultipleTablesFirstTable() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select * from syn123 t join syn456").querySpecification();
 		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();

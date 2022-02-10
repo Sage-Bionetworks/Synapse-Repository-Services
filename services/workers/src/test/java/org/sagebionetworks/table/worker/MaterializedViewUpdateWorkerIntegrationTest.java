@@ -276,7 +276,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		
 		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
 		
-		String materializedQuery = "select * from "+materializedViewId.toString()+" order by v.id asc";
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
 		
 		List<Row> expectedRows = Arrays.asList(
 				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
@@ -422,6 +422,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
 				AnnotationsV2TestUtils.putAnnotations(annos, "patientId", patientData.get(index%2).getPatientId().toString(),
 						AnnotationsValueType.LONG);
+				index++;
 				entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
 				file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
 				// each file needs to be replicated.

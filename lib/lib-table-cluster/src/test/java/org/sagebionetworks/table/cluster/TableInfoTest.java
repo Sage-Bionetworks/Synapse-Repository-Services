@@ -255,6 +255,28 @@ public class TableInfoTest {
 		assertNotNull(transRef);
 		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), transRef.orElse(null));
 	}
+	
+	@Test
+	public void testLookupColumnReferenceWithReservedColumnWithTranslatedTableName() throws ParseException {
+		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1 as q").tableNameCorrelation();
+		ColumnReference reference = new TableQueryParser("T1.row_benefactor").columnReference();
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
+		// call under test
+		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
+		assertNotNull(transRef);
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), transRef.orElse(null));
+	}
+	
+	@Test
+	public void testLookupColumnReferenceWithReservedColumnWithTranslatedTableNameWithVersion() throws ParseException {
+		TableNameCorrelation tableNameCorrelation = new TableQueryParser("syn1.5 as q").tableNameCorrelation();
+		ColumnReference reference = new TableQueryParser("T1_5.row_benefactor").columnReference();
+		TableInfo info = new TableInfo(tableNameCorrelation, tableIndex, schema);
+		// call under test
+		Optional<ColumnTranslationReference> transRef = info.lookupColumnReference(reference);
+		assertNotNull(transRef);
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR.getColumnTranslationReference(), transRef.orElse(null));
+	}
 
 	@Test
 	public void testIsMatchWithBothAlias() throws ParseException {

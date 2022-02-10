@@ -1123,7 +1123,6 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 
 		List<IndexDescription> dependencies = Arrays.asList(
-				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview),
 				new ViewIndexDescription(IdAndVersion.parse("syn1"), EntityType.entityview));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
@@ -1131,7 +1130,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_,"
-				+ " _A0.ROW_BENEFACTOR, _A1.ROW_BENEFACTOR"
+				+ " _A0.ROW_BENEFACTOR"
 				+ " FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
@@ -1330,7 +1329,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, T1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
+				"SELECT _A0._C888_, _A1._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
 				query.getOutputSQL());
 	}
 	
@@ -1356,7 +1355,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, T1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
+				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
 				query.getOutputSQL());
 	}
 
