@@ -103,4 +103,5 @@ public class ViewIndexDescription implements IndexDescription {
 		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
 				+ description + "]";
 	}
+
 }

@@ -35,6 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
@@ -78,6 +79,7 @@ import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeoutUtils;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -86,37 +88,39 @@ import com.google.common.collect.Sets;
 public class TableManagerSupportTest {
 
 	@Mock
-	TableStatusDAO mockTableStatusDAO;
+	private TableStatusDAO mockTableStatusDAO;
 	@Mock
-	ConnectionFactory mockTableConnectionFactory;
+	private ConnectionFactory mockTableConnectionFactory;
 	@Mock
-	TableIndexDAO mockTableIndexDAO;
+	private TableIndexDAO mockTableIndexDAO;
 	@Mock
-	TimeoutUtils mockTimeoutUtils;
+	private TimeoutUtils mockTimeoutUtils;
 	@Mock
-	TransactionalMessenger mockTransactionalMessenger;
+	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
-	ColumnModelManager mockColumnModelManager;
+	private ColumnModelManager mockColumnModelManager;
 	@Mock
-	NodeDAO mockNodeDao;
+	private NodeDAO mockNodeDao;
 	@Mock
-	TableRowTruthDAO mockTableTruthDao;
+	private TableRowTruthDAO mockTableTruthDao;
 	@Mock
-	ViewScopeDao mockViewScopeDao;
+	private ViewScopeDao mockViewScopeDao;
 	@Mock
-	AuthorizationManager mockAuthorizationManager;
+	private AuthorizationManager mockAuthorizationManager;
 	@Mock
-	ProgressCallback mockCallback;
+	private ProgressCallback mockCallback;
 	@Mock
-	ViewSnapshotDao mockViewSnapshotDao;
+	private ViewSnapshotDao mockViewSnapshotDao;
 	@Mock
-	MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
+	private MetadataIndexProviderFactory mockMetadataIndexProviderFactory;
 	@Mock
-	MetadataIndexProvider mockMetadataIndexProvider;
+	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
-	DefaultColumnModelMapper mockDefaultColumnModelMapper;
+	private DefaultColumnModelMapper mockDefaultColumnModelMapper;
 	@Mock
-	MaterializedViewDao mockMaterializedViewDao;
+	private MaterializedViewDao mockMaterializedViewDao;
+	@Mock
+	private WriteReadSemaphoreRunner mockWriteReadSemaphoreRunner;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
@@ -127,6 +131,9 @@ public class TableManagerSupportTest {
 	
 	@Mock
 	DefaultColumnModel mockDefaultModel;
+	
+	@Mock
+	ProgressingCallable<String> mockCallable;
 	
 	String schemaMD5Hex;
 	String tableId;
@@ -1035,5 +1042,15 @@ public class TableManagerSupportTest {
 			manager.getIndexDescription(idAndVersion);
 		}).getMessage();
 		assertEquals("Unknown type: folder", message);
+	}
+	
+	@Test
+	public void testTryRunWithTableNonexclusiveLock() throws Exception {
+		IdAndVersion one = IdAndVersion.parse("syn123.4");
+		IdAndVersion two = IdAndVersion.parse("syn456");
+		// call under test
+		manager.tryRunWithTableNonexclusiveLock(mockCallback, mockCallable, one, two);
+		verify(mockWriteReadSemaphoreRunner).tryRunWithReadLock(mockCallback, mockCallable, "TABLE-LOCK-123-4",
+				"TABLE-LOCK-456");
 	}
 }

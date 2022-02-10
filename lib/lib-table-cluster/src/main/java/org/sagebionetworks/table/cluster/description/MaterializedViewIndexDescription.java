@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -21,7 +22,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<String> buildColumnsToAddToSelect;
-	private final List<IndexDescription> dependencies;
+	private final List<IndexDescription> orderedDependencies;
 
 	/**
 	 * 
@@ -32,15 +33,22 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
-		this.dependencies = dependencies;
+		this.orderedDependencies = dependencies.stream().sorted().collect(Collectors.toList());
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
-		for (int i = 0; i < dependencies.size(); i++) {
-			IndexDescription dependency = dependencies.get(i);
+		initializeBenefactors();
+	}
+
+	/**
+	 * Initialize the benefactors for the select list and dependencies.
+	 */
+	void initializeBenefactors() {
+		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
-				String tableAlias = SQLUtils.getTableAliasForIndex(i);
-				buildColumnsToAddToSelect.add(tableAlias + "." + desc.getBenefactorColumnName());
-				String newBenefactorColumnName = desc.getBenefactorColumnName() + tableAlias;
+				String dependencyTable = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
+				String selectColumnReference = dependencyTable + "." + desc.getBenefactorColumnName();
+				buildColumnsToAddToSelect.add(selectColumnReference);
+				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTable;
 				benefactorDescriptions
 						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
 			}
@@ -93,15 +101,15 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 			throw new IllegalArgumentException("Unknown context: " + context);
 		}
 	}
-	
+
 	@Override
 	public List<IndexDescription> getDependencies() {
-		return dependencies;
+		return orderedDependencies;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorDescriptions, buildColumnsToAddToSelect, dependencies, idAndVersion);
+		return Objects.hash(benefactorDescriptions, buildColumnsToAddToSelect, idAndVersion, orderedDependencies);
 	}
 
 	@Override
@@ -115,14 +123,15 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		MaterializedViewIndexDescription other = (MaterializedViewIndexDescription) obj;
 		return Objects.equals(benefactorDescriptions, other.benefactorDescriptions)
 				&& Objects.equals(buildColumnsToAddToSelect, other.buildColumnsToAddToSelect)
-				&& Objects.equals(dependencies, other.dependencies) && Objects.equals(idAndVersion, other.idAndVersion);
+				&& Objects.equals(idAndVersion, other.idAndVersion)
+				&& Objects.equals(orderedDependencies, other.orderedDependencies);
 	}
 
 	@Override
 	public String toString() {
 		return "MaterializedViewIndexDescription [idAndVersion=" + idAndVersion + ", benefactorDescriptions="
 				+ benefactorDescriptions + ", buildColumnsToAddToSelect=" + buildColumnsToAddToSelect
-				+ ", dependencies=" + dependencies + "]";
+				+ ", orderedDependencies=" + orderedDependencies + "]";
 	}
 
 }

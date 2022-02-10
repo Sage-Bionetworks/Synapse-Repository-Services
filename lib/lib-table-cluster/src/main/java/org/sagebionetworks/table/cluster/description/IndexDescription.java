@@ -10,7 +10,7 @@ import org.sagebionetworks.table.query.model.SqlContext;
  * Provides information about the index of a table/view.
  *
  */
-public interface IndexDescription {
+public interface IndexDescription extends Comparable<IndexDescription> {
 	
 	/**
 	 * The IdAndVersion of this table/view
@@ -50,6 +50,14 @@ public interface IndexDescription {
 	 * @return
 	 */
 	List<IndexDescription> getDependencies();
-	
+
+
+	/**
+	 * Default @Comparable based on IdAndVersion.
+	 */
+	@Override
+	public default int compareTo(IndexDescription o) {
+		return this.getIdAndVersion().compareTo(o.getIdAndVersion());
+	}
 
 }

@@ -1307,6 +1307,58 @@ public class SQLQueryTest {
 		);
 		assertEquals(expected, schema);
 	}
+	
+	@Test
+	public void testJoinViewAndTableWithDepenenciesOutOfOrder() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on a.inttype = b.inttype";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C888_, _A1._C888_, T1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
+				query.getOutputSQL());
+	}
+	
+	@Test
+	public void testJoinSameViewMultipleTimes() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype) join syn1 c on (b.inttype = c.inttype)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, T1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
+				query.getOutputSQL());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.
