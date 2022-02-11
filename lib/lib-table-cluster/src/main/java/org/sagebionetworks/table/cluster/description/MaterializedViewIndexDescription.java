@@ -33,6 +33,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
+		// The order of the provided dependencies is nondeterministic.  By ordering the generated DDL is stable.
 		this.orderedDependencies = dependencies.stream().sorted().collect(Collectors.toList());
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
@@ -45,10 +46,10 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	void initializeBenefactors() {
 		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
-				String dependencyTable = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
-				String selectColumnReference = dependencyTable + "." + desc.getBenefactorColumnName();
+				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
+				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
 				buildColumnsToAddToSelect.add(selectColumnReference);
-				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTable;
+				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
 						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
 			}

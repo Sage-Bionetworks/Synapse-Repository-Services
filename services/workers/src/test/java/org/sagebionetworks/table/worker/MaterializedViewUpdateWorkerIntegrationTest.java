@@ -420,6 +420,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			if (entity instanceof FileEntity) {
 				FileEntity file = (FileEntity) entity;
 				Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+				// Odd files get the first patient, while even files get the second patient.
 				AnnotationsV2TestUtils.putAnnotations(annos, "patientId", patientData.get(index%2).getPatientId().toString(),
 						AnnotationsValueType.LONG);
 				index++;
