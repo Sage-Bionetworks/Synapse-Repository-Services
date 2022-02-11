@@ -1015,15 +1015,16 @@ public class SQLTranslatorUtils {
 	 * @param tableAndColumnMapper
 	 * @return
 	 */
-	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper) {
+	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
+			TableAndColumnMapper tableAndColumnMapper) {
 		Long maximumSize = null;
 		Long maxListLength = null;
 		ColumnType columnType = null;
 		String defaultValue = null;
 		FacetType facetType = null;
-		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
+		for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
 			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-			if(ctr != null) {
+			if (ctr != null) {
 				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
 				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 				columnType = ctr.getColumnType();
@@ -1036,7 +1037,9 @@ public class SQLTranslatorUtils {
 		result.setColumnType(columnType);
 		result.setMaximumSize(maximumSize);
 		result.setMaximumListLength(maxListLength);
-		result.setName(derivedColumn.toSqlWithoutQuotes());
+		String columnName = derivedColumn.getAsClause() != null ? derivedColumn.getAsClause().getColumnName().toSqlWithoutQuotes()
+				: derivedColumn.toSqlWithoutQuotes();
+		result.setName(columnName);
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
 		result.setId(null);

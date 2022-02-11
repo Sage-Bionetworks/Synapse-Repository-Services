@@ -46,6 +46,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	void initializeBenefactors() {
 		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
+				// The SQL translator will be able to translate from this table name to the appropriate table alias.
 				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
 				buildColumnsToAddToSelect.add(selectColumnReference);

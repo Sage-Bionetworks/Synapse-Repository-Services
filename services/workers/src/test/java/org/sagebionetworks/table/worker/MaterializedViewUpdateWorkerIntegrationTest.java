@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
+import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -291,6 +293,67 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 
+	}
+	
+	@Test
+	public void testJoinViewAndTableSnapshots() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion viewSnapshotId = createSnapshot(viewId);
+		IdAndVersion tableId = createTableWithPatientIds(project.getId(), patientData);
+		IdAndVersion tableSnapshotId = createSnapshot(tableId);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patient, p.code as code from %s v join %s p on (v.patientId = p.patientId)",
+				viewSnapshotId.toString(), tableSnapshotId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
+	/**
+	 * Create a snapshot of the passed table/view.
+	 * @param viewId
+	 * @return The IdAndVersion of the resulting snapshot.
+	 * @throws AssertionError
+	 * @throws AsynchJobFailedException
+	 */
+	private IdAndVersion createSnapshot(IdAndVersion id) throws AssertionError, AsynchJobFailedException {
+
+		TableUpdateTransactionRequest txRequest = new TableUpdateTransactionRequest().setEntityId(id.toString())
+				.setSnapshotOptions(
+						new SnapshotRequest().setSnapshotComment("snapshotting...").setSnapshotLabel("version two"))
+				.setCreateSnapshot(true);
+
+		AsyncJobResponse<TableUpdateTransactionResponse> wrapped = asyncHelper.assertJobResponse(adminUserInfo,
+				txRequest, (TableUpdateTransactionResponse response) -> {
+					assertNotNull(response.getSnapshotVersionNumber());
+				}, MAX_WAIT_MS);
+		return IdAndVersion.newBuilder().setId(id.getId())
+				.setVersion(wrapped.getResponse().getSnapshotVersionNumber()).build();
 	}
 	
 	public IdAndVersion createTable(String projectId) throws AssertionError, AsynchJobFailedException {

@@ -2920,6 +2920,23 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testGetSchemaOfDerivedColumnWithStringAlais() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo as bar from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("has space")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("bar");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
 	public void testGetSchemaOfDerivedColumnWithFacetsAndDefault() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
 		ColumnModel cm = new ColumnModel();
