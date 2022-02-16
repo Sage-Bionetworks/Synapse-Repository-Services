@@ -17,7 +17,7 @@ public abstract class AbstractSynapseAWSCredentialsProvider implements AWSCreden
 	public static final String AWS_CREDENTIALS_WERE_NOT_FOUND = "AWS credentials were not found.";
 	public static final String ORG_SAGEBIONETWORKS_STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
 	public static final String ORG_SAGEBIONETWORKS_STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
-
+	
 	/**
 	 * Search the provided Properties for the credentials.
 	 */

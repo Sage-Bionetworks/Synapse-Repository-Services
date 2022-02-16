@@ -665,24 +665,22 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// with no benefactors nothing is needed.
 			return query;
 		}
-		if(indexDescription.getBenefactors().size() > 1) {
-			throw new UnsupportedOperationException("Need to add support for more than one benefactor column");
-		}
-		BenefactorDescription firstBenefactorDescription = indexDescription.getBenefactors().get(0);
-		String benefactorColumnName = firstBenefactorDescription.getBenefactorColumnName();
-		// Get a connection to the table.
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		// lookup the distinct benefactor IDs applied to the table.
-		Set<Long> tableBenefactors = null;
-		try {
-			tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, benefactorColumnName);
-		} catch (BadSqlGrammarException e) { // table has not been created yet
-			tableBenefactors = Collections.emptySet();
+		QuerySpecification resultQuery = query;
+		for(BenefactorDescription dependencyDesc: indexDescription.getBenefactors()) {
+			// lookup the distinct benefactor IDs applied to the table.
+			Set<Long> tableBenefactors = null;
+			try {
+				tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, dependencyDesc.getBenefactorColumnName());
+			} catch (BadSqlGrammarException e) { // table has not been created yet
+				tableBenefactors = Collections.emptySet();
+			}
+			// Get the sub-set of benefactors visible to the user.
+			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
+			resultQuery = buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}
-		// Get the sub-set of benefactors visible to the user.
-		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, firstBenefactorDescription.getBenefactorType(), tableBenefactors);
-		return buildBenefactorFilter(query, accessibleBenefactors, benefactorColumnName);
+		return resultQuery;
 	}
 
 	/**
