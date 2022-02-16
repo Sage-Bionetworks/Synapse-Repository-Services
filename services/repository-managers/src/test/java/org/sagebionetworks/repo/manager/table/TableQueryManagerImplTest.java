@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +94,7 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -1809,6 +1811,36 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444 )", result.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
+	}
+	
+	@Test
+	public void testAddRowLevelFilterWithMaterializedViewWithMultipleViews() throws Exception {
+		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
+		Set<Long> oneBenefactors = Sets.newHashSet(333L, 444L);
+		Set<Long> twoBenefactors = Sets.newHashSet(111L, 222L);
+		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(oneBenefactors, twoBenefactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(
+				Sets.newHashSet(444L),
+				Sets.newHashSet(111L));
+		IdAndVersion viewOneId = IdAndVersion.parse("syn1");
+		IdAndVersion viewTwoId = IdAndVersion.parse("syn2");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
+				Arrays.asList(
+						new ViewIndexDescription(viewOneId, EntityType.entityview),
+						new ViewIndexDescription(viewTwoId, EntityType.entityview)));
+
+		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
+		// call under test
+		QuerySpecification result = manager.addRowLevelFilter(user, query, indexDescription);
+		assertNotNull(result);
+		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR_T1 IN ( 444 ) ) AND ROW_BENEFACTOR_T2 IN ( 111 )", result.toSql());
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T1");
+		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR_T2");
+		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
+		
+		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);
+		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, twoBenefactors);
+		verify(mockTableManagerSupport, times(2)).getAccessibleBenefactors(any(), any(), any());
 	}
 	
 	@Test

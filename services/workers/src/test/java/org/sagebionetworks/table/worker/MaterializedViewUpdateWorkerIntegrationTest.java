@@ -334,6 +334,55 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 	}
 	
+	@Test
+	public void testMaterializedViewWithJoinMultipleViews() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion folderview = createFolderViewWithPatientData(entites, patientData);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patientId, p.code as code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), folderview.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// run the query again as non-admin, this user cannot see one of the folders and two of the files.
+		List<Row> expectedRowsNonAdmin = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRowsNonAdmin, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
 	/**
 	 * Create a snapshot of the passed table/view.
 	 * @param viewId
@@ -560,6 +609,62 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			assertEquals(rows.size(), response.getQueryResult().getQueryResults().getRows().size());
 		}, MAX_WAIT_MS);
 		return tableId;
+	}
+	
+	/**
+	 * Builds a folder view where each folder is annotated with the provided patientData.
+	 * @param entites
+	 * @param patientData
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InterruptedException
+	 */
+	public IdAndVersion createFolderViewWithPatientData(List<Entity> entites, List<PatientData> patientData) throws DatastoreException, InterruptedException {
+
+		Long viewTypeMask = ViewTypeMask.Folder.getMask();
+
+		List<ColumnModel> schema = Arrays.asList(
+				new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+
+		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
+
+		int index = 0;
+		for (Entity entity: entites) {
+			if (entity instanceof Folder) {
+				Folder folder = (Folder) entity;
+				Annotations annos = entityManager.getAnnotations(adminUserInfo, folder.getId());
+				PatientData data = patientData.get(index);
+				// Odd files get the first patient, while even files get the second patient.
+				AnnotationsV2TestUtils.putAnnotations(annos, "patientId", data.getPatientId().toString(),
+						AnnotationsValueType.LONG);
+				AnnotationsV2TestUtils.putAnnotations(annos, "code", data.getCode(),
+						AnnotationsValueType.STRING);
+				index++;
+				entityManager.updateAnnotations(adminUserInfo, folder.getId(), annos);
+				folder = entityManager.getEntity(adminUserInfo, folder.getId(), Folder.class);
+				// each file needs to be replicated.
+				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(folder.getId()), folder.getEtag(), MAX_WAIT_MS);
+			}
+		}
+
+		String projectId = entites.get(0).getId();
+		List<String> scope = Arrays.asList(projectId);
+		EntityView view = new EntityView();
+		view.setName("with patient data");
+		view.setParentId(projectId);
+		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
+		view.setScopeIds(scope);
+		view.setViewTypeMask(viewTypeMask);
+		String viewId = entityManager.createEntity(adminUserInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(ViewEntityType.entityview);
+		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewTypeMask(viewTypeMask);
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
+
+		return KeyFactory.idAndVersion(viewId, null);
 	}
 
 	/**
