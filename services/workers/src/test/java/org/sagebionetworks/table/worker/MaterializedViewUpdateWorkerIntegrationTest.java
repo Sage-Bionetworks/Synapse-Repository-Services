@@ -489,11 +489,20 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 	
+		return createView(entites.get(0).getId(), viewTypeMask, schema);
+	}
 
-		String projectId = entites.get(0).getId();
+	/**
+	 * Helper to create a view.
+	 * @param projectId
+	 * @param viewTypeMask
+	 * @param schema
+	 * @return
+	 */
+	EntityView createView(String projectId, Long viewTypeMask, List<ColumnModel> schema) {
 		List<String> scope = Arrays.asList(projectId);
 		EntityView view = new EntityView();
-		view.setName("aFileView");
+		view.setName(UUID.randomUUID().toString());
 		view.setParentId(projectId);
 		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
 		view.setScopeIds(scope);
@@ -505,7 +514,6 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
 		return view;
 	}
 	
@@ -543,23 +551,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 
-		String projectId = entites.get(0).getId();
-		List<String> scope = Arrays.asList(projectId);
-		EntityView view = new EntityView();
-		view.setName("with patient ids");
-		view.setParentId(projectId);
-		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
-		return KeyFactory.idAndVersion(viewId, null);
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 	
 	/**
@@ -648,23 +641,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 
-		String projectId = entites.get(0).getId();
-		List<String> scope = Arrays.asList(projectId);
-		EntityView view = new EntityView();
-		view.setName("with patient data");
-		view.setParentId(projectId);
-		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
-		return KeyFactory.idAndVersion(viewId, null);
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 
 	/**
