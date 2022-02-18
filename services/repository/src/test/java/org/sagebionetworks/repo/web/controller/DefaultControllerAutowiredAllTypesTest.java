@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -262,7 +263,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					dockerRepository.setRepositoryName("foo/bar");
 				}
 				if (object instanceof MaterializedView) {
-					((MaterializedView) object).setDefiningSQL("SELECT * FROM syn123");
+					TableEntity table = new TableEntity();
+					table.setName(UUID.randomUUID().toString());
+					table.setParentId(project.getId());
+					table.setColumnIds(Arrays.asList(columnModelOne.getId()));
+					table = servletTestHelper.createEntity(dispatchServlet, table, userId);
+					((MaterializedView) object).setDefiningSQL("SELECT * FROM "+table.getId());
 				}
 				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
