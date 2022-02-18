@@ -6,12 +6,14 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 public class MaterializedViewIndexDescriptionTest {
@@ -98,27 +100,74 @@ public class MaterializedViewIndexDescriptionTest {
 	}
 
 	@Test
-	public void testGetColumnNamesToAddToSelectWithQuery() {
+	public void testGetColumnNamesToAddToSelectWithQueryAndNonaggregate() {
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
 				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Arrays.asList(ROW_ID, ROW_VERSION), result);
 	}
 	
 	@Test
-	public void testGetColumnNamesToAddToSelectWithBuild() {
+	public void testGetColumnNamesToAddToSelectWithQueryAndAggregate() {
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = true;
+		// call under test
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Collections.emptyList(), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithBuildAndNonAggregate() {
 		List<IndexDescription> dependencies = Arrays.asList(
 				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
 				new ViewIndexDescription(IdAndVersion.parse("syn888.3"), EntityType.entityview));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		// call under test
-		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, true);
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		assertEquals(Arrays.asList("T888_3.ROW_BENEFACTOR", "T999.ROW_BENEFACTOR"), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithViewDependency() {
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview),
+				new ViewIndexDescription(IdAndVersion.parse("syn888.3"), EntityType.entityview));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = true;
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
+		}).getMessage();
+		assertEquals(message, TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithBuildAndAggregateWithTableDependency() {
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn999")));
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
+		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = true;
+		// call under test
+		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
+		assertEquals(Collections.emptyList(), result);
 	}
 	
 	@Test
@@ -128,8 +177,10 @@ public class MaterializedViewIndexDescriptionTest {
 				new ViewIndexDescription(IdAndVersion.parse("syn888"), EntityType.entityview));
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		assertThrows(IllegalArgumentException.class, ()->{
-			mid.getColumnNamesToAddToSelect(null, true);
+			mid.getColumnNamesToAddToSelect(null, includeEtag, isAggregate);
 		});
 	}
 	

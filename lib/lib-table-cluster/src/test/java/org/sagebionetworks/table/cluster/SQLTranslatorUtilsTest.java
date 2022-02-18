@@ -3008,8 +3008,58 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
 	}
 	
-
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithCount() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select count(*) AS \"count\" from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("count");
+		expected.setColumnType(ColumnType.INTEGER);
+		expected.setMaximumSize(null);
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
 	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithAverge() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select avg(id) from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("id")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("AVG(id)");
+		expected.setColumnType(ColumnType.INTEGER);
+		expected.setMaximumSize(null);
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+	@Test
+	public void testGetSchemaOfDerivedColumnWithDerivedWithConcat() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select concat(foo,\"-\", bar) AS \"concat\" from syn123").querySpecification();
+		Map<IdAndVersion, List<ColumnModel>> map = new LinkedHashMap<>();
+		map.put(IdAndVersion.parse("syn123"), Arrays.asList(columnNameMap.get("foo"), columnNameMap.get("bar")));
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, new TestSchemaProvider(map));
+		
+		DerivedColumn dc = model.getFirstElementOfType(DerivedColumn.class);
+		ColumnModel expected = new ColumnModel();
+		expected.setName("concat");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(columnNameMap.get("foo").getMaximumSize() + columnNameMap.get("bar").getMaximumSize());
+		expected.setId(null);
+		// call under test
+		assertEquals(expected, SQLTranslatorUtils.getSchemaOfDerivedColumn(dc, mapper));
+	}
+	
+
 	@Test
 	public void testCreateMaterializedViewInsertSqlWithDependentView() {
 		IdAndVersion materializedViewId = IdAndVersion.parse("syn123");

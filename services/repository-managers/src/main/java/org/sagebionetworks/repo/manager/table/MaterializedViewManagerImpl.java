@@ -118,10 +118,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param definingQuery
 	 */
 	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
-		// in this context, nothing is known about the materialized view's dependencies so an empty list is used.
-		List<IndexDescription> dependencies = Collections.emptyList();
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
-				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, dependencies))
+				.indexDescription(indexDescription)
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}

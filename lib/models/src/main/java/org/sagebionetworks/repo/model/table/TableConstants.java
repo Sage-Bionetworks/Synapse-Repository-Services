@@ -338,4 +338,6 @@ public class TableConstants {
 	public static final Supplier<IllegalArgumentException> JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT = () -> new IllegalArgumentException(
 			JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE);
 	
+	public static final String DEFINING_SQL_WITH_GROUP_BY_ERROR = "The defining SQL of a materialized view with a view dependency cannot include a group by clause";
+	
 }

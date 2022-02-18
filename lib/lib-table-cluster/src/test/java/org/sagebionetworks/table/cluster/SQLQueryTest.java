@@ -1358,6 +1358,28 @@ public class SQLQueryTest {
 				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
 				query.getOutputSQL());
 	}
+	
+	@Test
+	public void testBuildMaterializedViewWithViewDependencyAndGroupByInDefiningSql() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("foo"),columnNameToModelMap.get("bar")));
+
+		List<IndexDescription> dependencies = Arrays.asList(
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select foo, sum(bar) from syn1 group by foo";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _C111_, SUM(_C333_) FROM T1 GROUP BY _C111_",
+				query.getOutputSQL());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.
