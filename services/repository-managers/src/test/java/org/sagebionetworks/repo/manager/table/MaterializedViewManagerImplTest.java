@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -577,6 +578,8 @@ public class MaterializedViewManagerImplTest {
 				TableModelTestUtils.createColumn(444L, "bar", ColumnType.STRING));
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		QuerySpecification query = MaterializedViewManagerImpl.getQuerySpecification("SELECT * FROM syn123");
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new MaterializedViewIndexDescription(
+				idAndVersion, Arrays.asList(new TableIndexDescription(IdAndVersion.parse("syn1")))));
 		// call under test
 		manager.bindSchemaToView(idAndVersion, query);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
@@ -585,6 +588,7 @@ public class MaterializedViewManagerImplTest {
 		verify(mockColumnModelManager).createColumnModel(
 				new ColumnModel().setName("bar").setColumnType(ColumnType.STRING).setMaximumSize(50L).setId(null));
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(Arrays.asList("333", "444"), idAndVersion);
+		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test

@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -92,12 +94,18 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate) {
 		ValidateArgument.required(context, "SqlContext");
 		switch (context) {
 		case build:
+			if(isAggregate && !buildColumnsToAddToSelect.isEmpty()) {
+				throw new IllegalArgumentException(TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
+			}
 			return buildColumnsToAddToSelect;
 		case query:
+			if(isAggregate) {
+				return Collections.emptyList();
+			}
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		default:
 			throw new IllegalArgumentException("Unknown context: " + context);

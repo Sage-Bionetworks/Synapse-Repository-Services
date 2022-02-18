@@ -1017,9 +1017,11 @@ public class SQLTranslatorUtils {
 	 */
 	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
 			TableAndColumnMapper tableAndColumnMapper) {
+		// the SelectColumn provides a starting name and type.
+		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		Long maximumSize = null;
 		Long maxListLength = null;
-		ColumnType columnType = null;
+		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
 		for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
@@ -1037,9 +1039,7 @@ public class SQLTranslatorUtils {
 		result.setColumnType(columnType);
 		result.setMaximumSize(maximumSize);
 		result.setMaximumListLength(maxListLength);
-		String columnName = derivedColumn.getAsClause() != null ? derivedColumn.getAsClause().getColumnName().toSqlWithoutQuotes()
-				: derivedColumn.toSqlWithoutQuotes();
-		result.setName(columnName);
+		result.setName(selectColumn.getName());
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
 		result.setId(null);

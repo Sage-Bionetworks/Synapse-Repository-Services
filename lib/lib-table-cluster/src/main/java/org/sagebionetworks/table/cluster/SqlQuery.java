@@ -197,6 +197,7 @@ public class SqlQuery {
 
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
+		this.includesRowIdAndVersion = !this.isAggregatedResult;
 		// Build headers that describe how the client should read the results of this query.
 		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), tableAndColumnMapper, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
@@ -216,13 +217,8 @@ public class SqlQuery {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
-		if (this.isAggregatedResult ) {
-			this.includesRowIdAndVersion = false;
-		} else {
-			SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
-					indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag));
-			this.includesRowIdAndVersion = true;
-		}
+		SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(),
+				indexDescription.getColumnNamesToAddToSelect(sqlContext, this.includeEntityEtag, this.isAggregatedResult));
 
 		SQLTranslatorUtils.translateModel(transformedModel, parameters, userId, tableAndColumnMapper);
 		this.outputSQL = transformedModel.toSql();		

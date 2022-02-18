@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -257,11 +258,15 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	}
 	
+	/**
+	 * This is a test for joining a view with a table.
+	 * @throws Exception
+	 */
 	@Test
 	public void testMaterializedViewWithJoins() throws Exception {
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
-		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		String projectId = entites.get(0).getId();
 		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
 				.collect(Collectors.toList());
 		assertEquals(numberOfFiles, fileIds.size());
@@ -270,13 +275,13 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				new PatientData().withCode("def").withPatientId(222L)
 		);
 		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
-		IdAndVersion tableId = createTableWithPatientIds(project.getId(), patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
 		
 		String definingSql = String.format(
 				"select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)",
 				viewId.toString(), tableId.toString());
 		
-		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
 		
 		String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
 		
@@ -299,7 +304,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	public void testJoinViewAndTableSnapshots() throws Exception {
 		int numberOfFiles = 5;
 		List<Entity> entites = createProjectHierachy(numberOfFiles);
-		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		String projectId = entites.get(0).getId();
 		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
 				.collect(Collectors.toList());
 		assertEquals(numberOfFiles, fileIds.size());
@@ -309,14 +314,14 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		);
 		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
 		IdAndVersion viewSnapshotId = createSnapshot(viewId);
-		IdAndVersion tableId = createTableWithPatientIds(project.getId(), patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
 		IdAndVersion tableSnapshotId = createSnapshot(tableId);
 		
 		String definingSql = String.format(
 				"select v.id as id, p.patientId as patient, p.code as code from %s v join %s p on (v.patientId = p.patientId)",
 				viewSnapshotId.toString(), tableSnapshotId.toString());
 		
-		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
 		
 		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
 		
@@ -381,6 +386,31 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
 			assertEquals(expectedRowsNonAdmin, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewWithViewDependencyAndGroupBy() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		
+		String definingSql = String.format(
+				"select patientId, count(*) from %s group by patientId",
+				viewId.toString());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			createMaterializedView(projectId, definingSql);
+		}).getMessage();
+			
+		assertEquals(message, TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
 	}
 	
 	/**
@@ -489,11 +519,20 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 	
+		return createView(entites.get(0).getId(), viewTypeMask, schema);
+	}
 
-		String projectId = entites.get(0).getId();
+	/**
+	 * Helper to create a view.
+	 * @param projectId
+	 * @param viewTypeMask
+	 * @param schema
+	 * @return
+	 */
+	EntityView createView(String projectId, Long viewTypeMask, List<ColumnModel> schema) {
 		List<String> scope = Arrays.asList(projectId);
 		EntityView view = new EntityView();
-		view.setName("aFileView");
+		view.setName(UUID.randomUUID().toString());
 		view.setParentId(projectId);
 		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
 		view.setScopeIds(scope);
@@ -505,7 +544,6 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
 		return view;
 	}
 	
@@ -543,23 +581,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 
-		String projectId = entites.get(0).getId();
-		List<String> scope = Arrays.asList(projectId);
-		EntityView view = new EntityView();
-		view.setName("with patient ids");
-		view.setParentId(projectId);
-		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
-		return KeyFactory.idAndVersion(viewId, null);
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 	
 	/**
@@ -648,23 +671,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 
-		String projectId = entites.get(0).getId();
-		List<String> scope = Arrays.asList(projectId);
-		EntityView view = new EntityView();
-		view.setName("with patient data");
-		view.setParentId(projectId);
-		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
-		return KeyFactory.idAndVersion(viewId, null);
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 
 	/**

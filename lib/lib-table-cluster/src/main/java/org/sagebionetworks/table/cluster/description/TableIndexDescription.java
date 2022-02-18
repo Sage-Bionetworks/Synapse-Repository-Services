@@ -52,9 +52,12 @@ public class TableIndexDescription implements IndexDescription {
 	}
 	
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtags) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtags, boolean isAggregate) {
 		if(!SqlContext.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for tables");
+		}
+		if(isAggregate) {
+			return Collections.emptyList();
 		}
 		return Arrays.asList(ROW_ID, ROW_VERSION);
 	}

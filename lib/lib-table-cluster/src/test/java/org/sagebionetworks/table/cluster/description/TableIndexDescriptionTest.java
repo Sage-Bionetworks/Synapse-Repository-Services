@@ -33,19 +33,33 @@ public class TableIndexDescriptionTest {
 	}
 	
 	@Test
-	public void testGetColumnNamesToAddToSelectWithQuery() {
+	public void testGetColumnNamesToAddToSelectWithQueryWithNonAggregate() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		// call under test
-		List<String> result = tid.getColumnNamesToAddToSelect(SqlContext.query, true);
+		List<String> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithQueryWithAggregate() {
+		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		boolean includeEtag = true;
+		boolean isAggregate = true;
+		// call under test
+		List<String> result = tid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Collections.emptyList(), result);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuild() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tid.getColumnNamesToAddToSelect(SqlContext.build, true);
+			tid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
@@ -53,9 +67,11 @@ public class TableIndexDescriptionTest {
 	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
 		TableIndexDescription tid = new TableIndexDescription(IdAndVersion.parse("syn999"));
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tid.getColumnNamesToAddToSelect(null, true);
+			tid.getColumnNamesToAddToSelect(null, includeEtag, isAggregate);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for tables", message);
 	}
