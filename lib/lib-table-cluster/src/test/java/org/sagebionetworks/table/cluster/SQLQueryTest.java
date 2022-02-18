@@ -1143,10 +1143,15 @@ public class SQLQueryTest {
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
 		schemaMap.put(IdAndVersion.parse("syn2"),
 				Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("has space")));
+		
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(IdAndVersion.parse("syn1")),
+				new TableIndexDescription(IdAndVersion.parse("syn2")));
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion, dependencies);
 
 		sql = "select b.`has space`, sum(a.foo) from syn1 a left join syn2 b on (a.foo = b.foo) group by b.`has space`";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.sqlContext(SqlContext.build).indexDescription(new TableIndexDescription(idAndVersion)).build();
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
 				"SELECT _A1._C222_, SUM(_A0._C111_) FROM T1 _A0 LEFT JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) GROUP BY _A1._C222_",
 				query.getOutputSQL());
@@ -1374,11 +1379,12 @@ public class SQLQueryTest {
 
 		// this query is used to build the materialized view.
 		sql = "select foo, sum(bar) from syn1 group by foo";
-		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
-				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals(
-				"SELECT _C111_, SUM(_C333_) FROM T1 GROUP BY _C111_",
-				query.getOutputSQL());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+			.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		}).getMessage();
+		assertEquals(TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR, message);
 	}
 
 	/**
