@@ -63,9 +63,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public void validate(MaterializedView materializedView) {
 		ValidateArgument.required(materializedView, "The materialized view");		
-
-		getQuerySpecification(materializedView.getDefiningSQL()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		
+		getQuerySpecification(materializedView.getDefiningSQL());
 	}
 	
 	@Override
