@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -871,6 +872,32 @@ public class IT100TableControllerTest {
 		TableEntity tableVersion = (TableEntity) version;
 		assertEquals(request.getSnapshotLabel(), tableVersion.getVersionLabel());
 		assertEquals(request.getSnapshotComment(), tableVersion.getVersionComment());
+	}
+	
+	@Test
+	public void testCreateMaterializedViewWithJoin() throws Exception {
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
+
+		// Join the table on itself
+		String definingSql = String.format("select * from %s a join %s b on a.aString = b.aString", table.getId(), table.getId());
+		MaterializedView materialized = new MaterializedView()
+				.setDefiningSQL(definingSql)
+				.setName(UUID.randomUUID().toString())
+				.setParentId(table.getParentId());
+		
+		materialized = synapse.createEntity(materialized);
+		
+		assertQueryResults("select count(*) from " + materialized.getId(), null, null, table.getId(), (newQueryResults) -> {
+			assertEquals(1, newQueryResults.getRows().size());
+			assertEquals("0", newQueryResults.getRows().get(0).getValues().get(0));
+		});
 	}
 	
 	

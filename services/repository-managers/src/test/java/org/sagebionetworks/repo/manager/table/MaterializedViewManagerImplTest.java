@@ -189,21 +189,6 @@ public class MaterializedViewManagerImplTest {
 	}
 
 	@Test
-	public void testValidateWithWithUnsupportedJoin() {
-		String sql = "SELECT * FROM table1 JOIN table2";
-
-		when(mockView.getDefiningSQL()).thenReturn(sql);
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			manager.validate(mockView);
-		}).getMessage();
-
-		assertEquals("The JOIN keyword is not supported in this context", message);
-		verify(mockView, atLeastOnce()).getDefiningSQL();
-	}
-
-	@Test
 	public void testRegisterSourceTables() {
 
 		Set<IdAndVersion> currentSourceTables = Collections.emptySet();
