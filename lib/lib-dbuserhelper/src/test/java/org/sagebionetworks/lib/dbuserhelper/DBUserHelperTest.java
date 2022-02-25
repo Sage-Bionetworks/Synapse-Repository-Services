@@ -36,7 +36,6 @@ class DBUserHelperTest {
 
 		verify(mockTemplate).update("CREATE USER IF NOT EXISTS 'userName'@'%' IDENTIFIED BY 'userPassword'");
 		verify(mockTemplate).update("GRANT SELECT ON *.* TO 'userName'@'%'");
-		verify(mockTemplate).update("GRANT EXECUTE ON FUNCTION dev101.getEntityProjectId TO 'userName'@'%'");
-		verify(mockTemplate).update("GRANT EXECUTE ON FUNCTION dev101.getEntityBenefactorId TO 'userName'@'%'");
+		verify(mockTemplate).update("GRANT EXECUTE ON dev101.* TO 'userName'@'%'");
 	}
 }
