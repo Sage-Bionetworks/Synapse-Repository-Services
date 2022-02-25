@@ -341,4 +341,6 @@ public class TableConstants {
 	
 	public static final String DEFINING_SQL_WITH_GROUP_BY_ERROR = "The defining SQL of a materialized view with a view dependency cannot include a group by clause";
 	
+	public static final String MAXIMUM_OF_ITEMS_IN_A_DATASET_EXCEEDED = "Maximum of %,d items in a dataset exceeded.";
+	
 }
