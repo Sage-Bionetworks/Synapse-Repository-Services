@@ -31,6 +31,9 @@
 	
 	<bean id="stackConfiguration.oAuth2ORCIDClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.oAuth2ORCIDClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
+	<bean id="stackConfiguration.oAuth2NIHClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2NIHClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.repositoryDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

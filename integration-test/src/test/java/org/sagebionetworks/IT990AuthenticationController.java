@@ -246,10 +246,21 @@ public class IT990AuthenticationController {
 
 	@Test
 	public void testGetOAuth2AuthenticationUrl() throws SynapseException{
-		String rediect = "https://domain.com";
+		String redirect = "https://domain.com";
 		OAuthUrlRequest request = new OAuthUrlRequest();
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
-		request.setRedirectUrl(rediect);
+		request.setRedirectUrl(redirect);
+		OAuthUrlResponse response = synapse.getOAuth2AuthenticationUrl(request);
+		assertNotNull(response);
+		assertNotNull(response.getAuthorizationUrl());
+	}
+
+	@Test
+	public void testGetNIHOAuth2AuthenticationUrl() throws SynapseException{
+		String redirect = "https://domain.com";
+		OAuthUrlRequest request = new OAuthUrlRequest();
+		request.setProvider(OAuthProvider.NIH_OAUTH_2_0);
+		request.setRedirectUrl(redirect);
 		OAuthUrlResponse response = synapse.getOAuth2AuthenticationUrl(request);
 		assertNotNull(response);
 		assertNotNull(response.getAuthorizationUrl());
