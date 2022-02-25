@@ -65,8 +65,9 @@ public class TableConstants {
 	
 	/**
 	 * Note: We raised this limit from 10K to 20K for PLFM-6287.  We raised it again for PLFM-7019 from 20 K to 30K.
+	 * We raised it again for PLFM-7186 from 30K to 35K.
 	 */
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 30; // 30K;
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000 * 35; // 30K;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and
