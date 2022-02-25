@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 public class DBUserHelper {
 	private static final String CREATE_USER = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'";
 	private static final String GRANT_SELECT_USER = "GRANT SELECT ON *.* TO '%s'@'%%'";
+	public static final String GRANT_EXECUTE_USER = "GRANT EXECUTE ON %s.* TO '%s'@'%%'";
 
 	private final StackConfiguration stackConfiguration;
 
@@ -28,5 +29,10 @@ public class DBUserHelper {
 		template.update(sqlCreateUSer);
 		String sqlGrantUser = String.format(GRANT_SELECT_USER, userName);
 		template.update(sqlGrantUser);
+		String stack = stackConfiguration.getStack();
+		String stackInstance = stackConfiguration.getStackInstance();
+		String dbName = String.format("%s%s", stack, stackInstance);
+		String sqlGrantExecute = String.format(GRANT_EXECUTE_USER, dbName, userName);
+		template.update(sqlGrantExecute);
 	}
 }
