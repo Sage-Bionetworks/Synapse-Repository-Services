@@ -1,12 +1,15 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -15,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
+import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -23,6 +27,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -30,23 +35,34 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -133,7 +149,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		assertEquals(3, fileIdsUserCanSee.size());
 
 		// Currently do not support doubles so the double key is excluded.
-		String definingSql = "select id, stringKey, longKey, dateKey, booleanKey from " + view.getId();
+		String definingSql = "select id, stringKey, longKey, doubleKey, dateKey, booleanKey from " + view.getId();
 
 		MaterializedView materializedView = entityManager.getEntity(
 				adminUserInfo, entityManager.createEntity(adminUserInfo, new MaterializedView()
@@ -144,9 +160,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		String finalSql = "select * from "+materializedView.getId()+" order by id asc";
 		
 		List<Row> expectedRows = Arrays.asList(
-				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "1004", "false")),
-				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "1006", "false")),
-				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "1008", "false"))
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(0), "a string: 3", "8", "6.140000000000001","1004", "false")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(1), "a string: 5", "10", "8.14", "1006", "false")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIdsUserCanSee.get(2), "a string: 7", "12", "10.14", "1008", "false"))
 		);
 		
 		// Wait for the query against the materialized view to have the expected results.
@@ -202,6 +218,264 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		});
 		
 	}
+	
+	@Test
+	public void testMaterializedViewWithTableSource() throws Exception {
+		String projectId = createProject();
+		aclDaoHelper.update(projectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+		
+		IdAndVersion tableId = createTable(projectId);
+		
+		String definingSql = "select * from "+tableId.toString();
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList("string0", "103000", "682003.12", "false")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList("string1", "103001", "682006.53", "true"))
+		);
+		
+		String finalSql = "select * from "+materializedViewId.toString()+" order by ROW_ID asc";
+		
+		// The user does not have download on the dependent table.
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+				assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+			}, MAX_WAIT_MS);
+		}).getMessage();
+		assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		
+		// grant the user download on the table.
+		aclDaoHelper.update(projectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+		
+		asyncHelper.assertQueryResult(userInfo, finalSql, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+	}
+	
+	/**
+	 * This is a test for joining a view with a table.
+	 * @throws Exception
+	 */
+	@Test
+	public void testMaterializedViewWithJoins() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		
+		String definingSql = String.format(
+				"select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+	}
+	
+	@Test
+	public void testJoinViewAndTableSnapshots() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion viewSnapshotId = createSnapshot(viewId);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		IdAndVersion tableSnapshotId = createSnapshot(tableId);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patient, p.code as code from %s v join %s p on (v.patientId = p.patientId)",
+				viewSnapshotId.toString(), tableSnapshotId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewWithJoinMultipleViews() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		Project project = entites.stream().filter(e -> e instanceof Project).map(e -> (Project) e).findFirst().get();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion folderview = createFolderViewWithPatientData(entites, patientData);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patientId, p.code as code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), folderview.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(project.getId(), definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by id asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "def")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// run the query again as non-admin, this user cannot see one of the folders and two of the files.
+		List<Row> expectedRowsNonAdmin = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", "abc")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", "abc"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRowsNonAdmin, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+	
+	@Test
+	public void testMaterializedViewWithViewDependencyAndGroupBy() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		
+		String definingSql = String.format(
+				"select patientId, count(*) from %s group by patientId",
+				viewId.toString());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			createMaterializedView(projectId, definingSql);
+		}).getMessage();
+			
+		assertEquals(message, TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
+	}
+	
+	/**
+	 * Create a snapshot of the passed table/view.
+	 * @param viewId
+	 * @return The IdAndVersion of the resulting snapshot.
+	 * @throws AssertionError
+	 * @throws AsynchJobFailedException
+	 */
+	private IdAndVersion createSnapshot(IdAndVersion id) throws AssertionError, AsynchJobFailedException {
+
+		TableUpdateTransactionRequest txRequest = new TableUpdateTransactionRequest().setEntityId(id.toString())
+				.setSnapshotOptions(
+						new SnapshotRequest().setSnapshotComment("snapshotting...").setSnapshotLabel("version two"))
+				.setCreateSnapshot(true);
+
+		AsyncJobResponse<TableUpdateTransactionResponse> wrapped = asyncHelper.assertJobResponse(adminUserInfo,
+				txRequest, (TableUpdateTransactionResponse response) -> {
+					assertNotNull(response.getSnapshotVersionNumber());
+				}, MAX_WAIT_MS);
+		return IdAndVersion.newBuilder().setId(id.getId())
+				.setVersion(wrapped.getResponse().getSnapshotVersionNumber()).build();
+	}
+	
+	public IdAndVersion createTable(String projectId) throws AssertionError, AsynchJobFailedException {
+
+		List<ColumnModel> schema = Arrays.asList(
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.STRING).setName("aString")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInteger")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.DOUBLE).setName("aDouble")),
+				columnModelManager.createColumnModel(adminUserInfo,
+						new ColumnModel().setColumnType(ColumnType.BOOLEAN).setName("aBoolen")));
+
+		List<String> columnIds = TableModelUtils.getIds(schema);
+
+		IdAndVersion tableId = createTable(projectId, columnIds);
+		String tableIdString = tableId.toString();
+		
+		int rowCount = 2;
+
+		RowSet set = new RowSet().setRows(TableModelTestUtils.createRows(schema, rowCount)).setTableId(tableIdString)
+				.setHeaders(TableModelUtils.getSelectColumns(schema));
+		AppendableRowSetRequest request = new AppendableRowSetRequest().setEntityId(tableId.toString())
+				.setEntityId(tableId.toString()).setToAppend(set);
+
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(request);
+
+		// Wait for the job to complete.
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response,
+					RowReferenceSetResults.class);
+			assertNotNull(results.getRowReferenceSet());
+			RowReferenceSet refSet = results.getRowReferenceSet();
+			assertNotNull(refSet.getRows());
+			assertEquals(rowCount, refSet.getRows().size());
+		}, MAX_WAIT_MS);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from "+tableIdString, (response) -> {
+			assertEquals(rowCount, response.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		return tableId;
+	}
 
 	/**
 	 * Helper to create an EntityView
@@ -245,11 +519,20 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			}
 		}
 	
+		return createView(entites.get(0).getId(), viewTypeMask, schema);
+	}
 
-		String projectId = entites.get(0).getId();
+	/**
+	 * Helper to create a view.
+	 * @param projectId
+	 * @param viewTypeMask
+	 * @param schema
+	 * @return
+	 */
+	EntityView createView(String projectId, Long viewTypeMask, List<ColumnModel> schema) {
 		List<String> scope = Arrays.asList(projectId);
 		EntityView view = new EntityView();
-		view.setName("aFileView");
+		view.setName(UUID.randomUUID().toString());
 		view.setParentId(projectId);
 		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
 		view.setScopeIds(scope);
@@ -261,8 +544,135 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-
 		return view;
+	}
+	
+	/**
+	 * Helper to set the given patientIds on FileEntities in the passed list.  This will also wait for each entity to be replicated.
+	 * @param entites
+	 * @param patientIds
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InterruptedException
+	 */
+	public IdAndVersion createFileViewWithPatientIds(List<Entity> entites, List<PatientData> patientData) throws DatastoreException, InterruptedException {
+
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+
+		List<ColumnModel> schema = Arrays.asList(
+				new ColumnModel().setName(ObjectField.id.name()).setColumnType(ColumnType.ENTITYID),
+				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+
+		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
+
+		int index = 0;
+		for (Entity entity: entites) {
+			if (entity instanceof FileEntity) {
+				FileEntity file = (FileEntity) entity;
+				Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+				// Odd files get the first patient, while even files get the second patient.
+				AnnotationsV2TestUtils.putAnnotations(annos, "patientId", patientData.get(index%2).getPatientId().toString(),
+						AnnotationsValueType.LONG);
+				index++;
+				entityManager.updateAnnotations(adminUserInfo, file.getId(), annos);
+				file = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
+				// each file needs to be replicated.
+				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(file.getId()), file.getEtag(), MAX_WAIT_MS);
+			}
+		}
+
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
+	}
+	
+	/**
+	 * Helper to create a table of PatientData.
+	 * @param projectId
+	 * @param patientData
+	 * @return
+	 * @throws AssertionError
+	 * @throws AsynchJobFailedException
+	 */
+	public IdAndVersion createTableWithPatientIds(String projectId, List<PatientData> patientData) throws AssertionError, AsynchJobFailedException {
+
+		List<ColumnModel> schema = Arrays.asList(
+				new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+
+		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
+
+		List<String> columnIds = TableModelUtils.getIds(schema);
+
+		IdAndVersion tableId = createTable(projectId, columnIds);
+		String tableIdString = tableId.toString();
+		
+		List<Row> rows = patientData.stream().map(d->(new Row().setValues(Arrays.asList(
+				d.getCode(),
+				d.getPatientId().toString()
+		)))).collect(Collectors.toList());
+		
+		RowSet set = new RowSet().setRows(rows).setTableId(tableIdString)
+				.setHeaders(TableModelUtils.getSelectColumns(schema));
+		AppendableRowSetRequest request = new AppendableRowSetRequest().setEntityId(tableId.toString())
+				.setEntityId(tableId.toString()).setToAppend(set);
+
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(request);
+
+		// Wait for the job to complete.
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response,
+					RowReferenceSetResults.class);
+			assertNotNull(results.getRowReferenceSet());
+			RowReferenceSet refSet = results.getRowReferenceSet();
+			assertNotNull(refSet.getRows());
+			assertEquals(rows.size(), refSet.getRows().size());
+		}, MAX_WAIT_MS);
+		
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from "+tableIdString, (response) -> {
+			assertEquals(rows.size(), response.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		return tableId;
+	}
+	
+	/**
+	 * Builds a folder view where each folder is annotated with the provided patientData.
+	 * @param entites
+	 * @param patientData
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InterruptedException
+	 */
+	public IdAndVersion createFolderViewWithPatientData(List<Entity> entites, List<PatientData> patientData) throws DatastoreException, InterruptedException {
+
+		Long viewTypeMask = ViewTypeMask.Folder.getMask();
+
+		List<ColumnModel> schema = Arrays.asList(
+				new ColumnModel().setName("code").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+				new ColumnModel().setName("patientId").setColumnType(ColumnType.INTEGER));
+
+		schema = columnModelManager.createColumnModels(adminUserInfo, schema);
+
+		int index = 0;
+		for (Entity entity: entites) {
+			if (entity instanceof Folder) {
+				Folder folder = (Folder) entity;
+				Annotations annos = entityManager.getAnnotations(adminUserInfo, folder.getId());
+				PatientData data = patientData.get(index);
+				// Odd files get the first patient, while even files get the second patient.
+				AnnotationsV2TestUtils.putAnnotations(annos, "patientId", data.getPatientId().toString(),
+						AnnotationsValueType.LONG);
+				AnnotationsV2TestUtils.putAnnotations(annos, "code", data.getCode(),
+						AnnotationsValueType.STRING);
+				index++;
+				entityManager.updateAnnotations(adminUserInfo, folder.getId(), annos);
+				folder = entityManager.getEntity(adminUserInfo, folder.getId(), Folder.class);
+				// each file needs to be replicated.
+				asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(folder.getId()), folder.getEtag(), MAX_WAIT_MS);
+			}
+		}
+
+		EntityView view = createView(entites.get(0).getId(), viewTypeMask, schema);
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
 
 	/**
@@ -347,6 +757,46 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		materializedViewManager.registerSourceTables(idAndVersion, sql);
 		
 		return idAndVersion;
+	}
+
+	static class PatientData {
+		Long patientId;
+		String code;
+
+		public PatientData withPatientId(Long patientId) {
+			this.patientId = patientId;
+			return this;
+		}
+
+		public PatientData withCode(String code) {
+			this.code = code;
+			return this;
+		}
+
+		public Long getPatientId() {
+			return patientId;
+		}
+
+		public String getCode() {
+			return code;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(code, patientId);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof PatientData)) {
+				return false;
+			}
+			PatientData other = (PatientData) obj;
+			return Objects.equals(code, other.code) && patientId == other.patientId;
+		}
 	}
 
 }

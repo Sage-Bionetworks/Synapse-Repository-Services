@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -28,6 +27,7 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TableNameCorrelation;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
@@ -63,9 +63,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	@Override
 	public void validate(MaterializedView materializedView) {
 		ValidateArgument.required(materializedView, "The materialized view");		
-
-		getQuerySpecification(materializedView.getDefiningSQL()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		
+		getQuerySpecification(materializedView.getDefiningSQL());
 	}
 	
 	@Override
@@ -118,8 +116,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	 * @param definingQuery
 	 */
 	void bindSchemaToView(IdAndVersion idAndVersion, QuerySpecification definingQuery) {
-		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).allowJoins(true)
-				.indexDescription(new MaterializedViewIndexDescription(idAndVersion, Collections.emptyList()))
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+		SqlQuery sqlQuery = new SqlQueryBuilder(definingQuery).schemaProvider(columModelManager).sqlContext(SqlContext.build)
+				.indexDescription(indexDescription)
 				.build();
 		bindSchemaToView(idAndVersion, sqlQuery);
 	}
@@ -177,7 +176,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		String definingSql = materializedViewDao.getMaterializedViewDefiningSql(idAndVersion)
 				.orElseThrow(() -> new IllegalArgumentException("No defining SQL for: " + idAndVersion.toString()));
 		QuerySpecification querySpecification = getQuerySpecification(definingSql);
-		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).allowJoins(true)
+		SqlQuery sqlQuery = new SqlQueryBuilder(querySpecification).schemaProvider(columModelManager).sqlContext(SqlContext.build)
 				.indexDescription(indexDescription).build();
 
 		// schema of the current version is dynamic, while the schema of a snapshot is

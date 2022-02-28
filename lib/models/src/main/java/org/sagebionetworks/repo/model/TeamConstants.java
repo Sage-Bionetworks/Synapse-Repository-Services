@@ -1,6 +1,4 @@
-package org.sagebionetworks.repo.manager.team;
-
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+package org.sagebionetworks.repo.model;
 
 public class TeamConstants {
 	public static final Long ADMINISTRATORS_TEAM_ID = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP

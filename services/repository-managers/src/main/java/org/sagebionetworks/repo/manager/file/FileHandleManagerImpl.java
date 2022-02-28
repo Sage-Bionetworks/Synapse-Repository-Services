@@ -188,9 +188,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private NodeManager nodeManager;
 	
 	@Autowired
-	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
-	
-	@Autowired
 	private ObjectRecordQueue objectRecordQueue;
 
 	@Autowired
@@ -311,7 +308,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		FileHandle handle = fileHandleDao.get(fileHandleId);
 		// Only the user that created the FileHandle can get the URL directly.
-		if (!authorizationManager.isUserCreatorOrAdmin(userInfo,
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo,
 				handle.getCreatedBy())) {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
@@ -327,7 +324,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandleAssociation.setAssociateObjectType(fileAssociateType);
 		fileHandleAssociation.setAssociateObjectId(fileAssociateId);
 		List<FileHandleAssociation> associations = Collections.singletonList(fileHandleAssociation);
-		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, associations);
+		List<FileHandleAssociationAuthorizationStatus> authResults = authorizationManager.canDownLoadFile(userInfo, associations);
 		if (authResults.size()!=1) throw new IllegalStateException("Expected one result but found "+authResults.size());
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
 		authStatus.checkAuthorizationOrElseThrow();
@@ -1220,7 +1217,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		
 		// Determine which files the user can download
-		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
+		List<FileHandleAssociationAuthorizationStatus> authResults = authorizationManager.canDownLoadFile(userInfo, request.getRequestedFiles());
 		List<FileResult> requestedFiles = new LinkedList<FileResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
@@ -1337,7 +1334,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.requirement(!FileHandleCopyUtils.hasDuplicates(requestedFiles), DUPLICATED_REQUEST_MESSAGE);
 
 		// Determine which files the user can download
-		List<FileHandleAssociationAuthorizationStatus> authResults = fileHandleAuthorizationManager.canDownLoadFile(userInfo, requestedFiles);
+		List<FileHandleAssociationAuthorizationStatus> authResults = authorizationManager.canDownLoadFile(userInfo, requestedFiles);
 		List<FileHandleCopyResult> copyResults = new LinkedList<FileHandleCopyResult>();
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){

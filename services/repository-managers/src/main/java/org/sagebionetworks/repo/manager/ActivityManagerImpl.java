@@ -7,6 +7,8 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -25,29 +28,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ActivityManagerImpl implements ActivityManager {
 	static private Log log = LogFactory.getLog(ActivityManagerImpl.class);
 
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	private ActivityDAO activityDAO;	
-	@Autowired
-	AuthorizationManager authorizationManager;	
+	private final IdGenerator idGenerator;
+	private final ActivityDAO activityDAO;	
+	private final EntityAuthorizationManager authorizationManager;	
 
-	/**
-	 * For testing
-	 * @param idGenerator
-	 * @param activityDAO
-	 * @param authorizationManager
-	 */
-	public ActivityManagerImpl(IdGenerator idGenerator,
-			ActivityDAO activityDAO, AuthorizationManager authorizationManager) {
+	@Autowired
+	public ActivityManagerImpl(IdGenerator idGenerator, ActivityDAO activityDAO,
+			EntityAuthorizationManager authorizationManager) {
 		super();
 		this.idGenerator = idGenerator;
 		this.activityDAO = activityDAO;
 		this.authorizationManager = authorizationManager;
 	}
 
-	public ActivityManagerImpl() { }
-	
 	@WriteTransaction
 	@Override
 	public String createActivity(UserInfo userInfo, Activity activity)
@@ -116,7 +109,7 @@ public class ActivityManagerImpl implements ActivityManager {
 	public Activity getActivity(UserInfo userInfo, String activityId) 
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
 		Activity act = activityDAO.get(activityId);
-		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
+		canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 		return act;
 	}
 
@@ -133,10 +126,41 @@ public class ActivityManagerImpl implements ActivityManager {
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);
-		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
+		canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 	}
 
+	@Override
+	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
+		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
+		
+		// check if owner
+		Activity act = activityDAO.get(activityId);
+		if(act.getCreatedBy().equals(userInfo.getId().toString()))
+				return AuthorizationStatus.authorized();
+		
+		// check if user has read access to any in result set (could be empty)
+		int limit = 1000;
+		int offset = 0;
+		long remaining = 1; // just to get things started
+		while(remaining > 0) {			
+			PaginatedResults<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
+			for(Reference ref : generatedBy.getResults()) {
+				String nodeId = ref.getTargetId();
+				try {
+					if(authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).isAuthorized()) {
+						return AuthorizationStatus.authorized();
+					}
+				} catch (Exception e) {
+					// do nothing, same as false
+				}
+			}
+			offset += limit; 
+		}
+		// no access found to generated entities, no access
+		return AuthorizationStatus.accessDenied("User lacks permission to access Activity "+activityId);
+	}
 	
 	/*
 	 * Private Methods

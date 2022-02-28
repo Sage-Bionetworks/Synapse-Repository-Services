@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class TableIndexDescription implements IndexDescription {
 	
@@ -49,18 +50,21 @@ public class TableIndexDescription implements IndexDescription {
 	public EntityType getTableType() {
 		return EntityType.table;
 	}
-
+	
 	@Override
-	public boolean isEtagColumnIncluded() {
-		return false;
+	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtags, boolean isAggregate) {
+		if(!SqlContext.query.equals(type)) {
+			throw new IllegalArgumentException("Only 'query' is supported for tables");
+		}
+		if(isAggregate) {
+			return Collections.emptyList();
+		}
+		return Arrays.asList(ROW_ID, ROW_VERSION);
 	}
 	
 	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtags) {
-		if(!SqlType.query.equals(type)) {
-			throw new IllegalArgumentException("Only 'query' is supported for tables");
-		}
-		return Arrays.asList(ROW_ID, ROW_VERSION);
+	public List<IndexDescription> getDependencies() {
+		return Collections.emptyList();
 	}
 
 	@Override

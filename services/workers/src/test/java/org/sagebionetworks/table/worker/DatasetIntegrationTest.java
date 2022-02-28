@@ -2,6 +2,8 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +50,7 @@ import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -441,6 +444,62 @@ public class DatasetIntegrationTest {
 				},
 				MAX_WAIT
 		);
+	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7076
+	@Test
+	public void testQueryDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
+		
+		List<DatasetItem> items = null;
+		
+		Dataset dataset = asyncHelper.createDataset(userInfo, 
+			new Dataset().setParentId(project.getId())
+				.setName("aDataset")
+				.setColumnIds(Arrays.asList(stringColumn.getId()))
+				.setItems(items)
+		);
+		
+		// Query the dataset
+		Query query = new Query();
+		query.setSql("select * from " + dataset.getId());
+		query.setIncludeEntityEtag(true);
+		
+		List<Row> expectedRows = Collections.emptyList();
+		
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(expectedRows, result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-7053
+	@Test
+	public void testDatasetSnapshotWithNoItems() throws AssertionError, AsynchJobFailedException {
+		
+		List<DatasetItem> items = null;
+		
+		Dataset dataset = asyncHelper.createDataset(userInfo, 
+			new Dataset().setParentId(project.getId())
+				.setName("aDataset")
+				.setColumnIds(Arrays.asList(stringColumn.getId()))
+				.setItems(items)
+		);
+				
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("Dataset snapshot");
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(dataset.getId());
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+		
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+			asyncHelper.assertJobResponse(userInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {
+				fail("Creating a snapshot for a dataset with no items should throw an exception");
+			}, MAX_WAIT);
+		}).getMessage();
+		
+		assertEquals("Scope has not been defined for this view.", errorMessage);
 	}
 
 }

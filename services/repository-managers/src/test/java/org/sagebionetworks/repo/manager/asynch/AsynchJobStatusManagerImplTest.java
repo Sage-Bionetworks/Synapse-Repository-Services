@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,16 +17,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
-import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
@@ -55,11 +55,9 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 /**
  * Unit test for AsynchJobStatusManagerImpl
- * 
- * @author John
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AsynchJobStatusManagerImplTest {
 	
 	@Mock
@@ -85,14 +83,30 @@ public class AsynchJobStatusManagerImplTest {
 	AsynchJobStatusManagerImpl manager;
 	
 	UserInfo user = null;
-
+	AsynchronousJobStatus status;
 	String startedJobId;
 	String instance;
 	long runtimeMS;
 	
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException{
 		startedJobId = "99999";
+	
+		user = new UserInfo(false);
+		user.setId(007L);
+		
+		status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		status.setRequestBody(new BulkFileDownloadRequest());
+		
+		instance = "test1";
+
+		
+		runtimeMS = 567L;
+	}
+
+	void setupStartJob() {
 		when(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
@@ -109,37 +123,25 @@ public class AsynchJobStatusManagerImplTest {
 				return results;
 			}
 		});
-	
-		user = new UserInfo(false);
-		user.setId(007L);
-		
-		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setStartedByUserId(user.getId());
-		status.setJobId("8888");
-		status.setRequestBody(new BulkFileDownloadRequest());
-		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
-		
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		
-		instance = "test1";
-		when(mockStackConfig.getStackInstance()).thenReturn(instance);
-		
-		runtimeMS = 567L;
-		when(mockAsynchJobStatusDao.setComplete(any(String.class), any(AsynchronousResponseBody.class),  any(String.class))).thenReturn(runtimeMS);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testStartJobNulls() throws DatastoreException, NotFoundException{
-		manager.startJob(null, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.startJob(null, null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testStartJobBodyNull() throws DatastoreException, NotFoundException{
-		manager.startJob(user, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.startJob(user, null);
+		});
 	}
 	
 	@Test
 	public void testStartJobBodyUploadHappy() throws DatastoreException, NotFoundException{
+		setupStartJob();
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
@@ -149,27 +151,34 @@ public class AsynchJobStatusManagerImplTest {
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testGetJobStatusUnauthorizedException() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(false);
-		manager.getJobStatus(user,"999");
+		status.setStartedByUserId(user.getId()+1L);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		assertThrows(UnauthorizedException.class, ()->{
+			manager.getJobStatus(user,"999");
+		});
 	}
 	
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testCancelJobStatusUnauthorizedException() throws DatastoreException, NotFoundException {
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(false);
-		manager.cancelJob(user, "999");
+		status.setStartedByUserId(user.getId()+1L);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		assertThrows(UnauthorizedException.class, ()->{
+			manager.cancelJob(user, "999");
+		});
 	}
 
 	@Test
 	public void testGetJobStatusHappy() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.getJobStatus(user,"999");
 		assertNotNull(status);
 	}
 	
 	@Test
 	public void testLookupStatus(){
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus status = manager.lookupJobStatus("999");
 		assertNotNull(status);
 	}
@@ -183,15 +192,13 @@ public class AsynchJobStatusManagerImplTest {
 		status.setJobState(AsynchJobState.PROCESSING);
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		
 		// call under test
 		manager.lookupJobStatus("8888");
 		// Status should not be looked up for RO jobs
 		verify(mockStackStatusDao, never()).getCurrentStatus();
 	}
 	
-	@Test(expected=IllegalStateException.class)
+	@Test
 	public void testLookupStatusWriteJobProcessing() {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
@@ -202,8 +209,10 @@ public class AsynchJobStatusManagerImplTest {
 		
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		
-		// call under test
-		manager.lookupJobStatus("8888");
+		assertThrows(IllegalStateException.class, ()->{
+			// call under test
+			manager.lookupJobStatus("8888");
+		});
 	}
 	
 	@Test
@@ -214,8 +223,6 @@ public class AsynchJobStatusManagerImplTest {
 		status.setRequestBody(Mockito.mock(AsynchronousRequestBody.class));
 		status.setJobState(AsynchJobState.COMPLETE);
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
-		
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		
 		// call under test
 		manager.lookupJobStatus("8888");
@@ -229,15 +236,15 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test
 	public void testGetJobStatusReadOnlyComplete() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("999");
 		status.setJobState(AsynchJobState.COMPLETE);
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		// call under test
 		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
 		assertNotNull(result);
+		verify(mockStackStatusDao, never()).getCurrentStatus();
 	}
 	
 	/**
@@ -247,8 +254,6 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test
 	public void testGetJobStatusReadOnlyFailed() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("999");
@@ -256,6 +261,7 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
 		assertNotNull(result);
+		verify(mockStackStatusDao, never()).getCurrentStatus();
 	}
 	
 	/**
@@ -264,17 +270,18 @@ public class AsynchJobStatusManagerImplTest {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test (expected=IllegalStateException.class)
+	@Test
 	public void testGetJobStatusReadOnlyProcessing() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("999");
 		status.setJobState(AsynchJobState.PROCESSING);
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
-		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
-		assertNotNull(result);
+		assertThrows(IllegalStateException.class, ()->{
+			manager.getJobStatus(user,"999");
+		});
+		verify(mockStackStatusDao).getCurrentStatus();
 	}
 	
 	/**
@@ -283,35 +290,40 @@ public class AsynchJobStatusManagerImplTest {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test (expected=IllegalStateException.class)
+	@Test
 	public void testGetJobStatusDownProcessing() throws DatastoreException, NotFoundException{
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("999");
 		status.setJobState(AsynchJobState.PROCESSING);
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
-		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
-		assertNotNull(result);
+		assertThrows(IllegalStateException.class, ()->{
+			manager.getJobStatus(user,"999");
+		});
+		verify(mockStackStatusDao).getCurrentStatus();
 	}
 	
 	/**
 	 * Cannot update the progress of a job in read-only or down
 	 */
-	@Test (expected=IllegalStateException.class)
+	@Test
 	public void testUpdateProgressReadOnlyMode(){
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
-		manager.updateJobProgress("123", 0L, 100L, "testing");
+		assertThrows(IllegalStateException.class, ()->{
+			manager.updateJobProgress("123", 0L, 100L, "testing");
+		});
 	}
 	
 	/**
 	 * Cannot update the progress of a job in read-only or down
 	 */
-	@Test (expected=IllegalStateException.class)
+	@Test
 	public void testUpdateProgressDownMode(){
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
-		manager.updateJobProgress("123", 0L, 100L, "testing");
+		assertThrows(IllegalStateException.class, ()->{
+			manager.updateJobProgress("123", 0L, 100L, "testing");
+		});
 	}
 	
 	@Test
@@ -321,26 +333,54 @@ public class AsynchJobStatusManagerImplTest {
 		manager.updateJobProgress(jobId, 0L, 100L, "testing");
 	}
 
-	/**
-	 * Can set complete when in read-only or down
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 */
 	@Test 
-	public void testSetCompleteAnyMode() throws Exception{
-		for(StatusEnum mode: StatusEnum.values()){
-			when(mockStackStatusDao.getCurrentStatus()).thenReturn(mode);
-			UploadToTableResult body = new UploadToTableResult();
-			body.setRowsProcessed(101L);
-			body.setEtag("etag");
+	public void testSetCompleteWithReadWrite() throws Exception{
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockStackConfig.getStackInstance()).thenReturn(instance);
+		
+		UploadToTableResult body = new UploadToTableResult();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
+		manager.setComplete("456", body);
+		verify(mockStackStatusDao).getCurrentStatus();
+	}
+	
+	@Test 
+	public void testSetCompleteWithReadOnly() throws Exception{
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		
+		UploadToTableResult body = new UploadToTableResult();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
+		assertThrows(IllegalStateException.class, ()->{
 			manager.setComplete("456", body);
-		}
-
+		});
+		verify(mockStackStatusDao).getCurrentStatus();
+	}
+	
+	@Test 
+	public void testSetCompleteWithDown() throws Exception{
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
+		
+		UploadToTableResult body = new UploadToTableResult();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
+		assertThrows(IllegalStateException.class, ()->{
+			manager.setComplete("456", body);
+		});
+		verify(mockStackStatusDao).getCurrentStatus();
 	}
 	
 	@Test
 	public void testGetMetricNamespace() {
+		when(mockStackConfig.getStackInstance()).thenReturn(instance);
+		//when(mockAsynchJobStatusDao.setComplete(any(String.class), any(AsynchronousResponseBody.class),  any(String.class))).thenReturn(runtimeMS);
 		// call under test
 		String metricNamespace = manager.getMetricNamespace();
 		assertEquals("Asynchronous-Jobs-test1", metricNamespace);
@@ -365,7 +405,8 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Test
 	public void testSetCompleteHappy() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		when(mockStackConfig.getStackInstance()).thenReturn(instance);
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
 		body.setEtag("etag");
@@ -384,8 +425,6 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Test
 	public void testSetCompleteCacheable() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
@@ -408,12 +447,13 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test
 	public void testSetFailedAnyMode(){
-		for(StatusEnum mode: StatusEnum.values()){
-			when(mockStackStatusDao.getCurrentStatus()).thenReturn(mode);
-			when(mockAsynchJobStatusDao.setJobFailed(anyString(), any(Throwable.class))).thenReturn("etag");
-			String result = manager.setJobFailed("123", new Throwable("Failed"));
-			assertEquals("etag", result);
-		}
+		Throwable exception = new Throwable("Failed");
+		when(mockAsynchJobStatusDao.setJobFailed(anyString(), any(Throwable.class))).thenReturn("etag");
+		// call under tests
+		String result = manager.setJobFailed("123", exception);
+		assertEquals("etag", result);
+		verify(mockStackStatusDao, never()).getCurrentStatus();
+		verify(mockAsynchJobStatusDao).setJobFailed("123", exception);
 	}
 	
 	@Test
@@ -482,6 +522,7 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Test
 	public void testStartJobCacheMiss(){
+		setupStartJob();
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -506,6 +547,7 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test
 	public void testStartJobCacheHitNotEquals(){
+		setupStartJob();
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
@@ -538,6 +580,7 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test
 	public void testStartJobNullHash(){
+		setupStartJob();
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");

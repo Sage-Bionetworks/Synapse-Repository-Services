@@ -5,14 +5,18 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MaterializedViewIndexDescription implements IndexDescription {
@@ -20,6 +24,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final List<BenefactorDescription> benefactorDescriptions;
 	private final List<String> buildColumnsToAddToSelect;
+	private final List<IndexDescription> orderedDependencies;
 
 	/**
 	 * 
@@ -30,14 +35,24 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	public MaterializedViewIndexDescription(IdAndVersion idAndVersion, List<IndexDescription> dependencies) {
 		super();
 		this.idAndVersion = idAndVersion;
+		// The order of the provided dependencies is nondeterministic.  By ordering the generated DDL is stable.
+		this.orderedDependencies = dependencies.stream().sorted().collect(Collectors.toList());
 		this.buildColumnsToAddToSelect = new ArrayList<>();
 		this.benefactorDescriptions = new ArrayList<>();
-		for (int i = 0; i < dependencies.size(); i++) {
-			IndexDescription dependency = dependencies.get(i);
+		initializeBenefactors();
+	}
+
+	/**
+	 * Initialize the benefactors for the select list and dependencies.
+	 */
+	void initializeBenefactors() {
+		for (IndexDescription dependency : this.orderedDependencies) {
 			for (BenefactorDescription desc : dependency.getBenefactors()) {
-				String tableAlias = SQLUtils.getTableAliasForIndex(i);
-				buildColumnsToAddToSelect.add(tableAlias + "." + desc.getBenefactorColumnName());
-				String newBenefactorColumnName = desc.getBenefactorColumnName() + tableAlias;
+				// The SQL translator will be able to translate from this table name to the appropriate table alias.
+				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
+				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
+				buildColumnsToAddToSelect.add(selectColumnReference);
+				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
 						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
 			}
@@ -79,26 +94,32 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public boolean isEtagColumnIncluded() {
-		return false;
-	}
-
-	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
-		ValidateArgument.required(type, "SqlType");
-		switch (type) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate) {
+		ValidateArgument.required(context, "SqlContext");
+		switch (context) {
 		case build:
+			if(isAggregate && !buildColumnsToAddToSelect.isEmpty()) {
+				throw new IllegalArgumentException(TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR);
+			}
 			return buildColumnsToAddToSelect;
 		case query:
+			if(isAggregate) {
+				return Collections.emptyList();
+			}
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		default:
-			throw new IllegalArgumentException("Unknown type: " + type);
+			throw new IllegalArgumentException("Unknown context: " + context);
 		}
 	}
 
 	@Override
+	public List<IndexDescription> getDependencies() {
+		return orderedDependencies;
+	}
+
+	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorDescriptions, idAndVersion);
+		return Objects.hash(benefactorDescriptions, buildColumnsToAddToSelect, idAndVersion, orderedDependencies);
 	}
 
 	@Override
@@ -111,13 +132,16 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		}
 		MaterializedViewIndexDescription other = (MaterializedViewIndexDescription) obj;
 		return Objects.equals(benefactorDescriptions, other.benefactorDescriptions)
-				&& Objects.equals(idAndVersion, other.idAndVersion);
+				&& Objects.equals(buildColumnsToAddToSelect, other.buildColumnsToAddToSelect)
+				&& Objects.equals(idAndVersion, other.idAndVersion)
+				&& Objects.equals(orderedDependencies, other.orderedDependencies);
 	}
 
 	@Override
 	public String toString() {
 		return "MaterializedViewIndexDescription [idAndVersion=" + idAndVersion + ", benefactorDescriptions="
-				+ benefactorDescriptions + "]";
+				+ benefactorDescriptions + ", buildColumnsToAddToSelect=" + buildColumnsToAddToSelect
+				+ ", orderedDependencies=" + orderedDependencies + "]";
 	}
 
 }

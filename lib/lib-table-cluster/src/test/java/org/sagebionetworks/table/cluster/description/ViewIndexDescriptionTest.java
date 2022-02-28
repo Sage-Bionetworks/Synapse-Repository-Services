@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class ViewIndexDescriptionTest {
 
@@ -54,39 +55,71 @@ public class ViewIndexDescriptionTest {
 	}
 	
 	@Test
-	public void testGetColumnNamesToAddToSelectWithQueryWithEtag() {
+	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithNonAggregate() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		boolean includeEtag = true;
+		boolean isAggregate = false;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_ETAG), result);
 	}
 	
 	@Test
-	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtag() {
+	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithNonAggregate() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
 		boolean includeEtag = false;
+		boolean isAggregate = false;
 		// call under test
-		List<String> result = vid.getColumnNamesToAddToSelect(SqlType.query, includeEtag);
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithQueryWithEtagWithAggregate() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = true;
+		boolean isAggregate = true;
+		// call under test
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Collections.emptyList(), result);
+	}
+	
+	@Test
+	public void testGetColumnNamesToAddToSelectWithQueryWithoutEtagWithAggregate() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = false;
+		boolean isAggregate = true;
+		// call under test
+		List<String> result = vid.getColumnNamesToAddToSelect(SqlContext.query, includeEtag, isAggregate);
+		assertEquals(Collections.emptyList(), result);
 	}
 	
 	@Test
 	public void testGetColumnNamesToAddToSelectWithBuild() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			vid.getColumnNamesToAddToSelect(SqlType.build, true);
+			vid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
 	}
 	@Test
 	public void testGetColumnNamesToAddToSelectWithNull() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		boolean includeEtag = true;
+		boolean isAggregate = false;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			vid.getColumnNamesToAddToSelect(null, true);
+			vid.getColumnNamesToAddToSelect(null, includeEtag, isAggregate);
 		}).getLocalizedMessage();
 		assertEquals("Only 'query' is supported for views", message);
+	}
+	
+	@Test
+	public void testGetDependencies() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		assertEquals(Collections.emptyList(), vid.getDependencies());
 	}
 }

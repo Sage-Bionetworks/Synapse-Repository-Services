@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,9 +73,6 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
-	
-	@Autowired
-	private ActivityManager activityManager;
 
 	@Autowired
 	private TeamManager teamManager;
@@ -103,8 +99,6 @@ public class AuthorizationManagerImplTest {
 	private Random rand = null;
 
 	private String forumId;
-	
-	private List<String> activitiesToDelete;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId, String activityId) {
 		Node node = new Node();
@@ -172,8 +166,7 @@ public class AuthorizationManagerImplTest {
 
 		Long testUserPrincipalId = userInfo.getId();
 		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null, null);
-		
-		activitiesToDelete = new ArrayList<String>();
+
 		
 		nodeList.add(nodeCreatedByTestUser);
 
@@ -184,12 +177,6 @@ public class AuthorizationManagerImplTest {
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
 		this.node=null;
-		
-		if(activitiesToDelete != null && activityManager != null) {
-			for(String activityId : activitiesToDelete) {
-				activityManager.deleteActivity(adminUser, activityId);
-			}
-		}
 
 		teamManager.delete(teamAdmin, team.getId());
 		userManager.deletePrincipal(adminUser, teamAdmin.getId());
@@ -644,34 +631,6 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDownload());
 		assertEquals(true, uep.getCanUpload()); // can't read but CAN upload, which is controlled separately
 		assertEquals(false, uep.getCanEnableInheritance());
-	}
-	
-	@Test
-	public void testCanAccessActivity() throws Exception {
-		// create an activity 
-		String activityId = activityManager.createActivity(userInfo, new Activity());
-		assertNotNull(activityId);
-		activitiesToDelete.add(activityId);
-		nodeCreatedByTestUser.setActivityId(activityId);
-		nodeManager.update(userInfo, nodeCreatedByTestUser, null, false);
-		
-		// test access
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
-		assertTrue(canAccess);
-	}
-	
-	@Test
-	public void testCanAccessActivityFail() throws Exception {
-		// create an activity		
-		String activityId = activityManager.createActivity(adminUser, new Activity());
-		assertNotNull(activityId);
-		activitiesToDelete.add(activityId);
-		node.setActivityId(activityId);
-		nodeManager.update(adminUser, node, null, false);
-		
-		// test access
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId).isAuthorized();
-		assertFalse(canAccess);
 	}
 	
 	@Test

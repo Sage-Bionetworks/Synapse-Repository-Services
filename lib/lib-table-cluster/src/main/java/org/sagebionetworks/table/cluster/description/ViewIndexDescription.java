@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 public class ViewIndexDescription implements IndexDescription {
 
@@ -63,21 +64,23 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
-	public boolean isEtagColumnIncluded() {
-		return true;
-	}
-
-	@Override
-	public List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag) {
-		if(!SqlType.query.equals(type)) {
+	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtag, boolean isAggregate) {
+		if(!SqlContext.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for views");
+		}
+		if(isAggregate) {
+			return Collections.emptyList();
 		}
 		if(includeEtag) {
 			return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
 		}else {
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		}
+	}
 	
+	@Override
+	public List<IndexDescription> getDependencies() {
+		return Collections.emptyList();
 	}
 	
 	@Override
@@ -103,4 +106,5 @@ public class ViewIndexDescription implements IndexDescription {
 		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
 				+ description + "]";
 	}
+
 }

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
   
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -12,11 +11,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -75,9 +75,13 @@ public class NodeManagerImpl implements NodeManager {
 	@Autowired
 	private FileHandleDao fileHandleDao;
 	@Autowired
-	private AuthorizationManager authorizationManager;	
+	private EntityAuthorizationManager authorizationManager;	
 	@Autowired
-	private AccessControlListDAO aclDAO;	
+	private FileHandleAuthorizationManager filehandleAuthorizationManager;
+	@Autowired
+	private AccessApprovalManager accessApprovalManager;
+	@Autowired
+	private AccessControlListManager aclManager;	
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;
 	@Autowired 
@@ -140,7 +144,7 @@ public class NodeManagerImpl implements NodeManager {
 		}
 		
 		// check whether the user is allowed to create this type of node
-		authorizationManager.canCreate(userInfo, newNode.getParentId(), newNode.getNodeType()).checkAuthorizationOrElseThrow();
+		authorizationManager.canCreate(newNode.getParentId(), newNode.getNodeType(),userInfo).checkAuthorizationOrElseThrow();
 		
 		// can this entity be added to the parent?
 		validateChildCount(newNode.getParentId(), newNode.getNodeType());
@@ -149,7 +153,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
-			authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId()).checkAuthorizationOrElseThrow();
+			filehandleAuthorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId()).checkAuthorizationOrElseThrow();
 		}
 
 		// check whether the user is allowed to connect to the specified activity
@@ -162,7 +166,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
-			aclDAO.create(rootAcl, ObjectType.ENTITY);
+			aclManager.create(rootAcl, ObjectType.ENTITY);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -289,7 +293,7 @@ public class NodeManagerImpl implements NodeManager {
 		// First validate the username
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getId().toString();
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 		
 		nodeDao.delete(nodeId);
 				
@@ -297,7 +301,7 @@ public class NodeManagerImpl implements NodeManager {
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
 		
-		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		aclManager.delete(nodeId, ObjectType.ENTITY);
 	}
 	
 	@WriteTransaction
@@ -305,7 +309,7 @@ public class NodeManagerImpl implements NodeManager {
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// First validate the username
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, id, ObjectType. ENTITY, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 		// Lock before we delete
 		nodeDao.lockNode(id);
 		// Delete while holding the lock.
@@ -317,7 +321,7 @@ public class NodeManagerImpl implements NodeManager {
 	public Node getNode(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getNode(nodeId);
 	}
 	
@@ -329,7 +333,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		Node result = nodeDao.getNodeForVersion(nodeId, versionNumber);
 		return result;
 	}
@@ -347,17 +351,17 @@ public class NodeManagerImpl implements NodeManager {
 		ValidateArgument.required(updatedNode.getParentId(), "The parent id of the node");
 		
 		// Validate that the user can update the node.
-		authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
 		Node oldNode = nodeDao.getNode(updatedNode.getId());
 
 		// note, this is duplicated in 'updateNode', below
 		final String parentInDatabase = oldNode.getParentId();
 		final String parentInUpdate = updatedNode.getParentId();
-		authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate).checkAuthorizationOrElseThrow();
+		accessApprovalManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate).checkAuthorizationOrElseThrow();
 
 		if (!StringUtils.equals(oldNode.getAlias(), updatedNode.getAlias())) {
-			authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.CHANGE_SETTINGS).checkAuthorizationOrElseThrow();
+			authorizationManager.hasAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.CHANGE_SETTINGS).checkAuthorizationOrElseThrow();
 		}
 
 		// Validate that the user can assign the file handle if they have it.
@@ -366,7 +370,7 @@ public class NodeManagerImpl implements NodeManager {
 			String currentHandleId = nodeDao.getFileHandleIdForVersion(updatedNode.getId(), null);
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
-				authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();			
+				filehandleAuthorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()).checkAuthorizationOrElseThrow();			
 			}
 		}
 		
@@ -405,7 +409,7 @@ public class NodeManagerImpl implements NodeManager {
 		// is this a parentId change?
 		if (!KeyFactory.equals(parentInDatabase, parentInUpdate)) {
 			AuthorizationStatus moveAuthorization = authorizationManager.
-					canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+					hasAccess(userInfo, parentInUpdate, ACCESS_TYPE.CREATE);
 			if (!moveAuthorization.isAuthorized()) {
 				throw new UnauthorizedException("You cannot move content into the new location, "+
 						parentInUpdate+". "+moveAuthorization.getMessage());
@@ -457,11 +461,11 @@ public class NodeManagerImpl implements NodeManager {
 		}
 		
 		// Authorization checks
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
 		final String newFileHandleId = updateRequest.getNewFileHandleId();
 		
-		authorizationManager.canAccessRawFileHandleById(userInfo, newFileHandleId).checkAuthorizationOrElseThrow();
+		filehandleAuthorizationManager.canAccessRawFileHandleById(userInfo, newFileHandleId).checkAuthorizationOrElseThrow();
 		
 		if (!currentFileHandleId.equals(updateRequest.getOldFileHandleId())) {
 			throw new ConflictingUpdateException("The id of the provided file handle id (request.oldFileHandleId: " + updateRequest.getOldFileHandleId() + ") does not match the current file handle id.");
@@ -507,7 +511,7 @@ public class NodeManagerImpl implements NodeManager {
 	public Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(nodeId, "nodeId");
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getUserAnnotations(nodeId);
 	}
 	
@@ -520,7 +524,7 @@ public class NodeManagerImpl implements NodeManager {
 	public Annotations getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getUserAnnotationsForVersion(nodeId, versionNumber);
 	}
 
@@ -528,7 +532,7 @@ public class NodeManagerImpl implements NodeManager {
 	public org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getEntityPropertyAnnotations(nodeId);
 	}
 	
@@ -542,7 +546,7 @@ public class NodeManagerImpl implements NodeManager {
 	public org.sagebionetworks.repo.model.Annotations getEntityPropertyForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getEntityPropertyAnnotationsForVersion(nodeId, versionNumber);
 	}
 
@@ -555,7 +559,7 @@ public class NodeManagerImpl implements NodeManager {
 
 		UserInfo.validateUserInfo(userInfo);
 		// This is no longer called from a create PLFM-325
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Validate that the annotations
 		AnnotationsV2Utils.validateAnnotations(updated);
 		// Lock the node and check the etag.
@@ -572,7 +576,7 @@ public class NodeManagerImpl implements NodeManager {
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(nodeId, "nodeId");
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getNodeType(nodeId);
 	}
 	
@@ -592,7 +596,7 @@ public class NodeManagerImpl implements NodeManager {
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 	}
 
@@ -620,7 +624,7 @@ public class NodeManagerImpl implements NodeManager {
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getEntityHeader(entityId);
 	}
 	
@@ -663,7 +667,7 @@ public class NodeManagerImpl implements NodeManager {
 			originalBenefactors.add(header.getBenefactorId());
 		}
 		// find the intersection.
-		Set<Long> benefactorIntersection = authorizationManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, originalBenefactors);
+		Set<Long> benefactorIntersection = aclManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, originalBenefactors);
 		List<EntityHeader> filtered = new LinkedList<EntityHeader>();
 		for(EntityHeader header: toFilter){
 			if(benefactorIntersection.contains(header.getBenefactorId())){
@@ -698,7 +702,7 @@ public class NodeManagerImpl implements NodeManager {
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
-		authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
@@ -743,14 +747,14 @@ public class NodeManagerImpl implements NodeManager {
 		if(!activityManager.doesActivityExist(activityId)) {
 			throw new NotFoundException("Activity id " + activityId + " not found.");
 		}
-		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
+		activityManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
 		// Validate that the user has download permission.
-		authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 		// Get the value from the dao
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
 		checkFileHandleId(id, fileHandleId);
@@ -784,18 +788,6 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithFileEntity(List<String> fileHandleIds, String entityId) {
-		ValidateArgument.required(fileHandleIds, "fileHandleIds");
-		ValidateArgument.required(entityId, "entityId");
-		List<Long> fileHandleIdsLong = new ArrayList<Long>();
-		CollectionUtils.convertStringToLong(fileHandleIds, fileHandleIdsLong);
-		Set<Long> returnedFileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(fileHandleIdsLong, KeyFactory.stringToKey(entityId));
-		Set<String> results = new HashSet<String>();
-		CollectionUtils.convertLongToString(returnedFileHandleIds, results);
-		return results;
-	}
-
-	@Override
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset) {
@@ -824,7 +816,7 @@ public class NodeManagerImpl implements NodeManager {
 			request = new SnapshotRequest();
 		}
 		// User must have the update permission.
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Must be authorized to use a provided activity.
 		canConnectToActivity(request.getSnapshotActivityId(), userInfo);
 		/*
@@ -853,7 +845,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public String getNodeName(UserInfo userInfo, String nodeId) {
 		// Validate that the user has download permission.
-		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		authorizationManager.hasAccess(userInfo, nodeId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getNodeName(nodeId);
 	}
 

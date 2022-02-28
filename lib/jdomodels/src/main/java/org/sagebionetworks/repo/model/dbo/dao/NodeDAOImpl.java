@@ -2108,11 +2108,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String sql = "SELECT R." + COL_REVISION_ITEMS + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION
 				+ " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV
 				+ " = R." + COL_REVISION_NUMBER + ") WHERE N."+COL_NODE_ID+" = ?";
+		
+		List<DatasetItem> items;
+		
 		try {
-			return NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
+			 items = NodeUtils.readJsonToItems(this.jdbcTemplate.queryForObject(sql, String.class, datasetId));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format("View '%s' not found", datasetId), e);
 		}
+		
+		return items == null ? Collections.emptyList() : items;
 	}
 
 	@Override

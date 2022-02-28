@@ -4,12 +4,13 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.SqlContext;
 
 /**
  * Provides information about the index of a table/view.
  *
  */
-public interface IndexDescription {
+public interface IndexDescription extends Comparable<IndexDescription> {
 	
 	/**
 	 * The IdAndVersion of this table/view
@@ -35,18 +36,29 @@ public interface IndexDescription {
 	 */
 	List<BenefactorDescription> getBenefactors();
 	
+
+	/**
+	 * Provide the column names that should be added to the select statement for the given context.
+	 * @param context
+	 * @param includeEtag
+	 * @param isAggregate true if this query includes a group by clause with aggregate functions..
+	 * @return Return an empty list if nothing should be added.
+	 */
+	List<String> getColumnNamesToAddToSelect(SqlContext context, boolean includeEtag, boolean isAggregate);
 	
 	/**
-	 * Does this table/view include an etag column.
+	 * Get the dependencies of this Index.
 	 * @return
 	 */
-	boolean isEtagColumnIncluded();
-	
+	List<IndexDescription> getDependencies();
+
+
 	/**
-	 * The list of column names to add to the select statement.
-	 * @return
+	 * Default @Comparable based on IdAndVersion.
 	 */
-	List<String> getColumnNamesToAddToSelect(SqlType type, boolean includeEtag);
-	
+	@Override
+	public default int compareTo(IndexDescription o) {
+		return this.getIdAndVersion().compareTo(o.getIdAndVersion());
+	}
 
 }

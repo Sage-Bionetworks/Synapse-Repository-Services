@@ -575,8 +575,12 @@ public class EntityServiceImplAutowiredTest  {
 		foo.setColumnType(ColumnType.INTEGER);
 		foo.setName("foo");
 		foo = columnModelManager.createColumnModel(adminUserInfo, foo);
-		List<String> schema = Arrays.asList(foo.getId());
-		columnModelManager.bindColumnsToVersionOfObject(schema, IdAndVersion.parse("syn123"));
+		
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Arrays.asList(foo.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
 		
 		boolean newVersion = false;
 		String activityId = null;
@@ -585,7 +589,7 @@ public class EntityServiceImplAutowiredTest  {
 		
 		materializedView.setName("materializedView");
 		materializedView.setParentId(project.getId());
-		materializedView.setDefiningSQL("SELECT * FROM syn123");
+		materializedView.setDefiningSQL("SELECT * FROM "+table.getId());
 		
 		// call under test (create and get)
 		materializedView = entityService.createEntity(adminUserId, materializedView, activityId);

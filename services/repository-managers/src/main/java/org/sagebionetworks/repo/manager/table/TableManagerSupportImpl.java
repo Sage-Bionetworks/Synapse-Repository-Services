@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -392,14 +393,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public <R> R tryRunWithTableNonexclusiveLock(ProgressCallback callback, ProgressingCallable<R> callable,
 			IdAndVersion... tableIds) throws Exception {
 		ValidateArgument.required(tableIds, "TableIds");
-		// TODO: Add support for more than one key
-		if(tableIds.length > 1) {
-			throw new UnsupportedOperationException("We need to add support for locking on more than one table.");
-		}
-
-		String key = TableModelUtils.getTableSemaphoreKey(tableIds[0]);
+		List<String> keys = Arrays.stream(tableIds).map(i -> TableModelUtils.getTableSemaphoreKey(i))
+				.collect(Collectors.toList());
 		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, callable);
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, callable, keys.toArray(new String[keys.size()]));
 	}
 	
 
@@ -415,6 +412,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			authorizationManager
 					.canAccess(userInfo, indexDescription.getIdAndVersion().getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
 					.checkAuthorizationOrElseThrow();
+		}
+		// must also have access to each dependency
+		for(IndexDescription dependency: indexDescription.getDependencies()) {
+			validateTableReadAccess(userInfo, dependency);
 		}
 	}
 

@@ -7,7 +7,7 @@ import java.util.Optional;
  * number. Use {@linkplain IdAndVersionBuilder} to create new instances of this
  * class. To parse an EntityId from a string use {@linkplain IdAndVersionParser}
  */
-public class IdAndVersion {
+public class IdAndVersion implements Comparable<IdAndVersion> {
 
 	final Long id;
 	final Long version;
@@ -43,6 +43,25 @@ public class IdAndVersion {
 	 */
 	public Optional<Long> getVersion() {
 		return Optional.ofNullable(version);
+	}
+	
+	@Override
+	public int compareTo(IdAndVersion o) {
+		int idCompare = this.id.compareTo(o.id);
+		if(idCompare != 0) {
+			return idCompare;
+		}
+		if(this.version == null) {
+			if(o.version == null) {
+				return 0;
+			}else {
+				return -1;
+			}
+		}
+		if(o.version == null) {
+			return 1;
+		}
+		return this.version.compareTo(o.version);
 	}
 
 	@Override
@@ -103,4 +122,5 @@ public class IdAndVersion {
 	public static IdAndVersionBuilder newBuilder() {
 		return new IdAndVersionBuilder();
 	}
+
 }

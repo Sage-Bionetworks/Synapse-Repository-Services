@@ -32,7 +32,6 @@ import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationRefe
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.SqlType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -61,6 +60,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.HasSqlContext;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
@@ -78,6 +78,7 @@ import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableName;
@@ -395,14 +396,21 @@ public class SQLTranslatorUtils {
 		if (ColumnType.DOUBLE.equals(match.getColumnTranslationReference().getColumnType())) {
 			if (columnReference.isInContext(SelectList.class)) {
 				if (!columnReference.isInContext(HasFunctionReturnType.class)) {
-					return Optional
-							.of(createDoubleExpanstion(mapper.getNumberOfTables(), match.getTableInfo().getTranslatedTableAlias(),
-									match.getColumnTranslationReference().getTranslatedColumnName()));
+					SqlContext context = columnReference.getContext(HasSqlContext.class).get().getSqlContext();
+					if(SqlContext.query.equals(context)) {
+						return Optional.of(createDoubleExpanstion(mapper.getNumberOfTables(),
+								match.getTableInfo().getTranslatedTableAlias(),
+								match.getColumnTranslationReference().getTranslatedColumnName()));
+					}
 				}
 			}
 		}
-
 		// All other cases
+		return simpleTranslateColumn(mapper, match);
+	}
+
+
+	static Optional<ColumnReference> simpleTranslateColumn(TableAndColumnMapper mapper, ColumnReferenceMatch match) {
 		StringBuilder builder = new StringBuilder();
 		if (mapper.getNumberOfTables() > 1) {
 			builder.append(match.getTableInfo().getTranslatedTableAlias());
@@ -415,6 +423,7 @@ public class SQLTranslatorUtils {
 			throw new IllegalStateException(e);
 		}
 	}
+	
 
 	/**
 	 * Create the translated double expansion for the given table and column alias
@@ -431,7 +440,6 @@ public class SQLTranslatorUtils {
 		return new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(new RegularIdentifier(sql)))),
 				null);
 	}
-
 
 
 	private static void replaceTextMatchesPredicate(BooleanPrimary booleanPrimary) {
@@ -1007,15 +1015,18 @@ public class SQLTranslatorUtils {
 	 * @param tableAndColumnMapper
 	 * @return
 	 */
-	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn, TableAndColumnMapper tableAndColumnMapper) {
+	public static ColumnModel getSchemaOfDerivedColumn(DerivedColumn derivedColumn,
+			TableAndColumnMapper tableAndColumnMapper) {
+		// the SelectColumn provides a starting name and type.
+		SelectColumn selectColumn = getSelectColumns(derivedColumn, tableAndColumnMapper);
 		Long maximumSize = null;
 		Long maxListLength = null;
-		ColumnType columnType = null;
+		ColumnType columnType = selectColumn.getColumnType();
 		String defaultValue = null;
 		FacetType facetType = null;
-		for(ColumnReference cr: derivedColumn.createIterable(ColumnReference.class)) {
+		for (ColumnReference cr : derivedColumn.createIterable(ColumnReference.class)) {
 			ColumnTranslationReference ctr = tableAndColumnMapper.lookupColumnReference(cr).orElse(null);
-			if(ctr != null) {
+			if (ctr != null) {
 				maximumSize = addLongsWithNull(maximumSize, ctr.getMaximumSize());
 				maxListLength = addLongsWithNull(maxListLength, ctr.getMaximumListLength());
 				columnType = ctr.getColumnType();
@@ -1028,27 +1039,13 @@ public class SQLTranslatorUtils {
 		result.setColumnType(columnType);
 		result.setMaximumSize(maximumSize);
 		result.setMaximumListLength(maxListLength);
-		result.setName(derivedColumn.toSqlWithoutQuotes());
+		result.setName(selectColumn.getName());
 		result.setFacetType(facetType);
 		result.setDefaultValue(defaultValue);
 		result.setId(null);
 		return result;
 	}
 	
-	/**
-	 * Determine the SqlType that should be used for this case.
-	 * @param IdAndVersion the IdAndVersion of the table/view 
-	 * @param fromClauseIds this list of IdAndVersions in the from clause.
-	 * @return
-	 */
-	public static SqlType getSqlType(IdAndVersion tableId, List<IdAndVersion> fromClauseIds) {
-		if (fromClauseIds.size() < 2
-				&& tableId.equals(fromClauseIds.get(0))) {
-			return SqlType.query;
-		} else {
-			return SqlType.build;
-		}
-	}
 	
 	/**
 	 * Addition for Longs that can be null.

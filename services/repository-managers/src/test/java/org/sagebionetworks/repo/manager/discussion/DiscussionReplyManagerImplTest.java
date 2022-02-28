@@ -254,8 +254,9 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testUpdateReplyMessageUnauthorized() throws IOException {
+		bundle.setCreatedBy(""+userInfo.getId()+1L);
 		when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, bundle.getCreatedBy())).thenReturn(false);
+
 		UpdateReplyMessage newMessage = new UpdateReplyMessage();
 		newMessage.setMessageMarkdown("messageMarkdown");
 		
@@ -278,7 +279,6 @@ public class DiscussionReplyManagerImplTest {
 	@Test
 	public void testUpdateReplyMessageAuthorized() throws IOException {
 		when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, bundle.getCreatedBy())).thenReturn(true);
 		when(mockUploadDao.uploadReplyMessage("messageMarkdown", forumId, threadId, replyId.toString()))
 				.thenReturn(messageKey);
 		when(mockReplyDao.updateMessageKey(replyId, messageKey)).thenReturn(bundle);

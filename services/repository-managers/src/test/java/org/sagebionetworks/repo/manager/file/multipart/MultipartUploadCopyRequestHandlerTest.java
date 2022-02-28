@@ -18,8 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
-import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -52,7 +52,7 @@ public class MultipartUploadCopyRequestHandlerTest {
 	private CloudServiceMultipartUploadDAOProvider mockCloudDaoProvider;
 	
 	@Mock
-	private FileHandleAuthorizationManager mockAuthManager;
+	private AuthorizationManager mockAuthManager;
 	
 	@Mock
 	private FileHandleDao mockFileHandleDao;

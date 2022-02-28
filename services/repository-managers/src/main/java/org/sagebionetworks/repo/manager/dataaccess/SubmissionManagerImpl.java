@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -50,8 +50,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class SubmissionManagerImpl implements SubmissionManager{
 
-	@Autowired
-	private AuthorizationManager authorizationManager;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
@@ -166,7 +164,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 
-		authorizationManager.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess);
+		accessAprovalManager.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess);
 
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
@@ -226,7 +224,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				|| request.getNewState().equals(SubmissionState.REJECTED),
 				"Do not support changing to state: "+request.getNewState());
 		
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		
@@ -317,7 +315,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getAccessRequirementId(), "accessRequirementId");
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
@@ -336,7 +334,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		submissionDao.delete(submissionId);
@@ -354,7 +352,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			throw new IllegalArgumentException("Cannot list research projects for an access requirement whose IDUs are not public.");
 		}
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
-		boolean isACTorAdmin = authorizationManager.isACTTeamMemberOrAdmin(userInfo);
+		boolean isACTorAdmin = AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo);
 		List<SubmissionInfo> submissionInfoList = submissionDao.listInfoForApprovedSubmissions(
 				request.getAccessRequirementId(), token.getLimitForQuery(), token.getOffset(), isACTorAdmin);
 		
@@ -425,7 +423,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Override
 	public OpenSubmissionPage getOpenSubmissions(UserInfo userInfo, String nextPageToken) {
 		ValidateArgument.required(userInfo, "userInfo");
-		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		NextPageToken token = new NextPageToken(nextPageToken);

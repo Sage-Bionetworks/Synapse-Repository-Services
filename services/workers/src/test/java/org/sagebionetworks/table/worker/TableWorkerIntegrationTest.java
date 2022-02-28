@@ -3423,6 +3423,9 @@ public class TableWorkerIntegrationTest {
 			rowSet.setTableId(tableId);
 			
 			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+			// Wait for the table to be available to avoid a race condition when we update the table below (that might throw a temporary unavailable)
+			assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 			
 			// Now check that an error is thrown as the search is disabled
 			String errorMessage = assertThrows(IllegalArgumentException.class, () -> {				

@@ -379,7 +379,9 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 		ViewScope viewScope = new ViewScope();
 		viewScope.setViewEntityType(entityType);
-		viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+		if (dataset.getItems() != null) {
+			viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+		}
 		viewScope.setViewTypeMask(typeMask);
 
 		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);

@@ -340,8 +340,6 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUpdateTitleUnauthorized() {
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(eq(userInfo), any()))
-				.thenReturn(false);
 		assertThrows(UnauthorizedException.class, () -> {
 			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
 		});
@@ -357,9 +355,8 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUpdateTitleAuthorized() {
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), any()))
-				.thenReturn(true);
 		when(mockThreadDao.updateTitle(anyLong(), any())).thenReturn(dto);
+		when(mockThreadDao.getAuthorForUpdate(any())).thenReturn(userInfo.getId().toString());
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		
@@ -384,7 +381,6 @@ public class DiscussionThreadManagerImplTest {
 	@Test
 	public void testUpdateMessageUnauthorized() throws Exception {
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(dto);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(eq(userInfo), any())).thenReturn(false);
 		assertThrows(UnauthorizedException.class, () -> {
 			threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
 		});
@@ -401,11 +397,11 @@ public class DiscussionThreadManagerImplTest {
 	@Test
 	public void testUpdateMessageAuthorized() throws Exception {
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(dto);
-		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo),any()))
-				.thenReturn(true);
 		when(mockUploadDao.uploadThreadMessage(any(), any(), any()))
 				.thenReturn("newMessage");
+		dto.setCreatedBy(userInfo.getId().toString());
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
+		// call under test
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockThreadDao).insertEntityReference(any(List.class));
 		MessageToSend expectedMessage = new MessageToSend()
