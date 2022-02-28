@@ -789,7 +789,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(mse.getIsEligible());
 		assertFalse(mse.getIsQuotaFilled());
 		assertTrue(mse.getIsRegistered());
-		assertEquals(expectedUserId, mse.getPrincipalId());
+		assertEquals(expectedUserId, mse.getPrincipalId().toString());
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -807,7 +807,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(myTeam.getId(), clone.getTeamId());
 		assertEquals(1, clone.getContributors().size());
 		SubmissionContributor sb = clone.getContributors().iterator().next();
-		assertEquals(""+expectedUserId, sb.getPrincipalId());
+		assertEquals(expectedUserId, sb.getPrincipalId());
 		assertNotNull(sb.getCreatedOn());
 
 		// an admin can add my colleague as a contributor
