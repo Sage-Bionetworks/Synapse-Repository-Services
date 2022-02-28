@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -18,6 +17,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
@@ -107,7 +107,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
 		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
 			throw new IllegalArgumentException(
-					String.format("Maximum of %,d items in a dataset exceeded.", maxContainersPerView));
+					String.format(TableConstants.MAXIMUM_OF_ITEMS_IN_A_DATASET_EXCEEDED, maxContainersPerView));
 		}
 	}
 
