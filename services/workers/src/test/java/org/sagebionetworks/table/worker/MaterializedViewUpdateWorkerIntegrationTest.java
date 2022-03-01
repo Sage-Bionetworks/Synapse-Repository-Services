@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -53,11 +54,14 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -296,6 +300,80 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		// Wait for the query against the materialized view to have the expected results.
 		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+	}
+	
+	// Reproduce updates not propagating from source changes (See https://sagebionetworks.jira.com/browse/PLFM-6977)
+	@Test
+	public void testMaterializedViewWithJoinsAndPropagatedUpdate() throws Exception {
+		int numberOfFiles = 2;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		
+		String definingSql = String.format(
+				"select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", "abc")),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "def"))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+		
+		// Now updates the dependent table
+		RowSet tableRowSet = asyncHelper.assertQueryResult(adminUserInfo, "select * from "+tableId.toString(), (response) -> {
+			assertEquals(patientData.size(), response.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS).getQueryResult().getQueryResults();
+		
+		// Get the column model for the code
+		SelectColumn codeColumn = tableRowSet.getHeaders().get(0);
+		
+		List<PartialRow> updatedRows = tableRowSet.getRows().stream().map( row -> 
+			new PartialRow()
+					.setRowId(row.getRowId())
+					.setValues(Collections.singletonMap(codeColumn.getId(), row.getValues().get(0) + "_updated"))
+		).collect(Collectors.toList());
+		
+		AppendableRowSetRequest request = new AppendableRowSetRequest()
+				.setEntityId(tableId.toString())
+				.setToAppend(new PartialRowSet()
+						.setTableId(tableId.toString())
+						.setRows(updatedRows));
+
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(request);
+
+		// Wait for the table update to complete
+		asyncHelper.assertJobResponse(adminUserInfo, txRequest, (TableUpdateTransactionResponse response) -> {
+			RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(response, RowReferenceSetResults.class);
+			assertEquals(updatedRows.size(), results.getRowReferenceSet().getRows().size());
+		}, MAX_WAIT_MS);
+		
+		// Now verify that the dependent materialized view eventually gets updated
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			results.getQueryResult().getQueryResults().getRows().forEach( row -> {
+				String codeValue = row.getValues().get(row.getValues().size() - 1);
+				assertTrue(codeValue.endsWith("_updated"));
+			});
 		}, MAX_WAIT_MS);
 
 	}
