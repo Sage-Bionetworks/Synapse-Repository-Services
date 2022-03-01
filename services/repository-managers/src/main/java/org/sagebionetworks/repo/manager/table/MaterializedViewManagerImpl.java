@@ -1,29 +1,22 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.MaterializedView;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -44,18 +37,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
-	final private TransactionalMessenger messagePublisher;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private MaterializedViewDao materializedViewDao;
 
 	@Autowired
-	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport,
-			TransactionalMessenger messagePublisher, TableIndexConnectionFactory connectionFactory,
+	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, 
+			TableManagerSupport tableManagerSupport, 
+			TableIndexConnectionFactory connectionFactory,
 			MaterializedViewDao materializedViewDao) {
-		super();
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
-		this.messagePublisher = messagePublisher;
 		this.connectionFactory = connectionFactory;
 		this.materializedViewDao = materializedViewDao;
 	}
@@ -97,15 +88,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			(long limit, long offset) -> materializedViewDao.getMaterializedViewIdsPage(tableId, limit, offset),
 			PAGE_SIZE_LIMIT);
 		
-		idsItereator.forEachRemaining(id -> {
-			ChangeMessage change = new ChangeMessage()
-					.setObjectType(ObjectType.MATERIALIZED_VIEW)
-					.setObjectId(id.getId().toString())
-					.setObjectVersion(id.getVersion().orElse(null))
-					.setChangeType(ChangeType.UPDATE);
-			
-			messagePublisher.sendMessageAfterCommit(change);
-		});
+		idsItereator.forEachRemaining(id -> tableManagerSupport.setTableToProcessingAndTriggerUpdate(id));
 		
 	}
 	
