@@ -833,12 +833,11 @@ public class EntityController {
 	/**
 	 * Get the EntityHeader for a list of references with a POST. If any item in the
 	 * batch fails (e.g., with a 404) it will be EXCLUDED in the result set.
-	 * 
-	 * @param userId       -The user that is doing the get.
-	 * @param batch        - The comma-separated list of IDs of the entity to fetch.
-	 * @param loginRequest
-	 * @return The requested Entity if it exists.
-	 * @throws DatastoreException    - Thrown when an there is a server failure.
+	 * 	
+	 * @param userId
+	 * @param referenceList - List of entity id-version pairs.
+	 * @return
+	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	@RequiredScope({ view })
