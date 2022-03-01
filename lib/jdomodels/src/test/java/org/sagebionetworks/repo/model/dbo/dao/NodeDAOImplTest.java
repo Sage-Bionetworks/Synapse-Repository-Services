@@ -1573,9 +1573,6 @@ public class NodeDAOImplTest {
 		// create a second version
 		child.setVersionLabel("two");
 		nodeDao.createNewVersion(child);
-		// create a third version
-		child.setVersionLabel("three");
-		nodeDao.createNewVersion(child);
 		
 		List<Reference> request = new LinkedList<Reference>();
 		Reference r = new Reference();
