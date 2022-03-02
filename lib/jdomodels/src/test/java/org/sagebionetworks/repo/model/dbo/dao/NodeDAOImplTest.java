@@ -1565,12 +1565,13 @@ public class NodeDAOImplTest {
 		Node child = privateCreateNew("child");
 		child.setNodeType(EntityType.folder);
 		child.setParentId(parentId);
+		child.setVersionLabel("one");
 		String childId = nodeDao.createNew(child);
 		toDelete.add(childId);
 		assertNotNull(childId);
 		child = nodeDao.getNode(childId);
 		// create a second version
-		child.setVersionLabel(""+child.getVersionNumber()+1);
+		child.setVersionLabel("two");
 		nodeDao.createNewVersion(child);
 		
 		List<Reference> request = new LinkedList<Reference>();
@@ -1593,6 +1594,12 @@ public class NodeDAOImplTest {
 		r.setTargetId(child.getId());
 		r.setTargetVersionNumber(1L);
 		request.add(r);
+		
+		// request for a version that does not exist should not return a result.
+		r = new Reference();
+		r.setTargetId(child.getId());
+		r.setTargetVersionNumber(99L);
+		request.add(r);
 
 		// Call under test
 		List<EntityHeader> results = nodeDao.getEntityHeader(request);
@@ -1610,16 +1617,23 @@ public class NodeDAOImplTest {
 		assertEquals(parent.getModifiedOn(), header.getModifiedOn());
 		assertTrue(header.getIsLatestVersion());
 		
+		header = results.get(1);
+		assertEquals(childId, header.getId());
+		assertEquals("two", header.getVersionLabel());
+		assertEquals(new Long(2), header.getVersionNumber());
+		assertEquals(parentBenefactor, header.getBenefactorId());
+		assertTrue(header.getIsLatestVersion());
+		
 		header = results.get(2);
 		assertEquals(childId, header.getId());
-		assertEquals("2", header.getVersionLabel());
+		assertEquals("two", header.getVersionLabel());
 		assertEquals(new Long(2), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
 		assertTrue(header.getIsLatestVersion());
 
 		header = results.get(3);
 		assertEquals(childId, header.getId());
-		assertEquals("1", header.getVersionLabel());
+		assertEquals("one", header.getVersionLabel());
 		assertEquals(new Long(1), header.getVersionNumber());
 		assertEquals(parentBenefactor, header.getBenefactorId());
 		assertFalse(header.getIsLatestVersion());

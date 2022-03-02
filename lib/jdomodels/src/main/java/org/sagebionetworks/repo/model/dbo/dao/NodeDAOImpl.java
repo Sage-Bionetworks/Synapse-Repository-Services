@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
@@ -97,6 +98,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -336,6 +339,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" JOIN "+TABLE_REVISION+" R"+
 			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_NODE_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
 			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
+	
+	private static final String SELECT_ENTITY_HEADERS_FOR_ID_AND_VERSION =
+			ENTITY_HEADER_SELECT +
+			" FROM "+TABLE_NODE +" N" +
+			" JOIN "+TABLE_REVISION+" R"+
+			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+")"+
+			" WHERE (N."+COL_NODE_ID+", R."+COL_REVISION_NUMBER+") IN (:pairs)";
 	
 	private static final String PARAM_NAME_IDS = "ids_param";
 
@@ -1154,11 +1164,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
-		Reference ref = new Reference();
-		ref.setTargetId(nodeId);
-		LinkedList<Reference> list = new LinkedList<Reference>();
-		list.add(ref);
-		List<EntityHeader> header = getEntityHeader(list);
+		List<EntityHeader> header = getEntityHeader(Collections.singletonList(new Reference().setTargetId(nodeId)));
 		if(header.size() != 1){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -1168,35 +1174,50 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityHeader(List<Reference> references) {
 		ValidateArgument.required(references, "references");
-		if(references.isEmpty()){
-			return new LinkedList<EntityHeader>();
+		if (references.isEmpty()) {
+			return Collections.emptyList();
 		}
-		Set<Long> entityIdSet = Sets.newHashSetWithExpectedSize(references.size());
-		for(Reference ref:references){
-			if (ref.getTargetId()==null) continue;
-			Long id = KeyFactory.stringToKey(ref.getTargetId());
-			entityIdSet.add(id);
+		/*
+		 * There are two separate lookups depending on if the caller included a version
+		 * number. When the provided version number is null then lookup the current
+		 * version. When a version number is provided then lookup that specific version.
+		 */
+		Set<Long> currentVersionIds = new HashSet<>(references.size());
+		List<Long[]> specificIdVersionPairs = new ArrayList<>(references.size());
+		for (Reference ref : references) {
+			if (ref.getTargetId() != null) {
+				Long entityId = KeyFactory.stringToKey(ref.getTargetId());
+				if (ref.getTargetVersionNumber() == null) {
+					currentVersionIds.add(entityId);
+				} else {
+					specificIdVersionPairs.add(new Long[] { entityId, ref.getTargetVersionNumber() });
+				}
+			}
 		}
-		List<EntityHeader> unorderedResults = getEntityHeader(entityIdSet);
-		Map<Long, EntityHeader> idToHeader = Maps.newHashMapWithExpectedSize(unorderedResults.size());
-		for(EntityHeader header: unorderedResults){
-			Long id = KeyFactory.stringToKey(header.getId());
-			idToHeader.put(id, header);
+
+		List<EntityHeader> currentVersionHeaders = getEntityHeader(currentVersionIds);
+		List<EntityHeader> specificVersionHeaders = getEntityHeadersWithVersion(specificIdVersionPairs);
+
+		Map<IdAndVersion, EntityHeader> allHeadersMap = new HashMap<>(references.size());
+		for (EntityHeader header : currentVersionHeaders) {
+			allHeadersMap.put(new IdAndVersionBuilder().setId(KeyFactory.stringToKey(header.getId())).build(), header);
 		}
+		for (EntityHeader header : specificVersionHeaders) {
+			allHeadersMap.put(new IdAndVersionBuilder().setId(KeyFactory.stringToKey(header.getId()))
+					.setVersion(header.getVersionNumber()).build(), header);
+		}
+
 		// Create the results driven by the input
 		List<EntityHeader> finalResults = new ArrayList<EntityHeader>(references.size());
-		for(Reference ref: references){
-			if (ref.getTargetId()==null) continue;
-			Long id = KeyFactory.stringToKey(ref.getTargetId());
-			EntityHeader original = idToHeader.get(id);
-			if(original != null){
-				EntityHeader clone = SerializationUtils.cloneJSONEntity(original);
-				if(ref.getTargetVersionNumber() != null){
-					clone.setVersionLabel(ref.getTargetVersionNumber().toString());
-					clone.setVersionNumber(ref.getTargetVersionNumber());
-					clone.setIsLatestVersion(original.getVersionNumber().equals(ref.getTargetVersionNumber()));
-				}
-				finalResults.add(clone);
+		for (Reference ref : references) {
+			if (ref.getTargetId() == null) {
+				continue;
+			}
+			IdAndVersion idAndVersion = new IdAndVersionBuilder().setId(KeyFactory.stringToKey(ref.getTargetId()))
+					.setVersion(ref.getTargetVersionNumber()).build();
+			EntityHeader header = allHeadersMap.get(idAndVersion);
+			if (header != null) {
+				finalResults.add(header);
 			}
 		}
 		return finalResults;
@@ -1204,9 +1225,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Override
 	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
-		if (entityIds.isEmpty()) return Collections.EMPTY_LIST;
+		if (entityIds.isEmpty()) {
+			return Collections.emptyList();
+		}
 		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
 		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,ENTITY_HEADER_ROWMAPPER);
+	}
+	
+	public List<EntityHeader> getEntityHeadersWithVersion(List<Long[]> idAndVersionPairs) {
+		if (idAndVersionPairs.isEmpty()) {
+			return Collections.emptyList();
+		}
+		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", idAndVersionPairs);
+		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ID_AND_VERSION, namedParameters,ENTITY_HEADER_ROWMAPPER);
 	}
 
 
