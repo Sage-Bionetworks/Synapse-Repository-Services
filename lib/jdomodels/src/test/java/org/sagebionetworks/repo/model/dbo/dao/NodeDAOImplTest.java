@@ -1594,6 +1594,12 @@ public class NodeDAOImplTest {
 		r.setTargetId(child.getId());
 		r.setTargetVersionNumber(1L);
 		request.add(r);
+		
+		// request for a version that does not exist should not return a result.
+		r = new Reference();
+		r.setTargetId(child.getId());
+		r.setTargetVersionNumber(99L);
+		request.add(r);
 
 		// Call under test
 		List<EntityHeader> results = nodeDao.getEntityHeader(request);
