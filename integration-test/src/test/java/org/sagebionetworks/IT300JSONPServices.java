@@ -1,19 +1,14 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -27,43 +22,30 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
  * @author John
  *
  */
+@ExtendWith(ITTestExtension.class)
 public class IT300JSONPServices {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	private static SimpleHttpClient simpleHttpClient;
 	
 	private Team teamToDelete = null;
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		simpleHttpClient = new SimpleHttpClientImpl();
-	}
-	@Before
-	public void before() throws SynapseException{
-		adminSynapse.clearAllLocks();
+	private SynapseClient synapse;
+	
+	public IT300JSONPServices(SynapseClient synapse) {
+		this.synapse = synapse;
 	}
 	
-	@After
+	@BeforeAll
+	public static void beforeClass() throws Exception {
+		simpleHttpClient = new SimpleHttpClientImpl();
+	}
+	
+	@AfterEach
 	public void cleanUpTeam() throws Exception {
 		if (teamToDelete != null) {
 			synapse.deleteTeam(teamToDelete.getId());
 			teamToDelete = null;
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
@@ -82,7 +64,7 @@ public class IT300JSONPServices {
 		String responseBody = response.getContent();
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
-		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
+		assertTrue(responseBody.startsWith(expectedPrefix), "expected response starting with '"+expectedPrefix+"' but found "+responseBody);
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results	
@@ -118,7 +100,7 @@ public class IT300JSONPServices {
 		String responseBody = response.getContent();
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
-		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
+		assertTrue(responseBody.startsWith(expectedPrefix), "expected response starting with '"+expectedPrefix+"' but found "+responseBody);
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		

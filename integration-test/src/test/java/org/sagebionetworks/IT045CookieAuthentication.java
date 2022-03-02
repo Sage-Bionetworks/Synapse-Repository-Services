@@ -8,13 +8,10 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 /**
@@ -22,31 +19,14 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
  * @author jmhill
  *
  */
+@ExtendWith(ITTestExtension.class)
 public class IT045CookieAuthentication {
-	
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	
 	private static Cookie cookie;
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		
+	@BeforeAll
+	public static void beforeClass(SynapseClient synapse) throws Exception {
 		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getAccessToken());
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test

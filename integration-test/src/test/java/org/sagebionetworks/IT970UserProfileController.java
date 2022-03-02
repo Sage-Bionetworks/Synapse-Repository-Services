@@ -1,21 +1,21 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.favorite.SortDirection;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+@ExtendWith(ITTestExtension.class)
 public class IT970UserProfileController {
 
 	private static final int MAX_WAIT_MS = 40000;
@@ -38,35 +39,30 @@ public class IT970UserProfileController {
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org#unsub:";
 	private static final int ALL_USER_BUNDLE_FIELDS = 63;
 	
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	private static String teamToDelete;
 
 	private List<String> entitiesToDelete;
 	
-	@BeforeClass 
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	private SynapseClient synapse;
+	
+	public IT970UserProfileController(SynapseClient synapse) {
+		this.synapse = synapse;
+	}
+	
+	@BeforeAll
+	public static void beforeClass(SynapseClient synapse) throws Exception {
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
 		team = synapse.createTeam(team);
 		teamToDelete = team.getId();
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		entitiesToDelete = new ArrayList<String>();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
 			try {
@@ -80,10 +76,9 @@ public class IT970UserProfileController {
 		}
 	}
 	
-	@AfterClass
-	public static void afterClass() throws Exception {
+	@AfterAll
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteTeam(teamToDelete);
-		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
@@ -130,17 +125,18 @@ public class IT970UserProfileController {
 	public void testMyProjects() throws Exception {
 		// here we are not testing business logic, just making sure evewrything is "wired up" right:
 		
+		Long expectedUserId = Long.valueOf(synapse.getMyProfile().getOwnerId());
 		// retrieve my projects
 		ProjectHeaderList projects = synapse.getMyProjects(ProjectListType.ALL, null, null, null);
 		// retrieve my next page of projects
 		projects = synapse.getMyProjects(ProjectListType.ALL, null, null, projects.getNextPageToken());
 		// retrieve someone else's projects
-		projects = synapse.getProjectsFromUser(userToDelete, null, null, null);
+		projects = synapse.getProjectsFromUser(expectedUserId, null, null, null);
 				
 		// make sure deprecated services still work
 		synapse.getMyProjectsDeprecated(ProjectListType.ALL, null, null, null, null);
 		synapse.getProjectsForTeamDeprecated(Long.parseLong(teamToDelete), null, null, null, null);
-		synapse.getProjectsFromUserDeprecated(userToDelete, null, null, null, null);
+		synapse.getProjectsFromUserDeprecated(expectedUserId, null, null, null, null);
 	}
 
 	private List<ProjectHeader> nullOutLastActivity(List<ProjectHeader> alphabetical) {

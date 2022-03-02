@@ -1,9 +1,9 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,15 +12,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -35,11 +32,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
+@ExtendWith(ITTestExtension.class)
 public class IT055WikiPageTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	
 	private  static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -51,19 +45,15 @@ public class IT055WikiPageTest {
 	private CloudProviderFileHandleInterface fileHandle;
 	private Project project;
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT055WikiPageTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException, IOException {
 		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<WikiPageKey>();
@@ -84,27 +74,21 @@ public class IT055WikiPageTest {
 		handlesToDelete.add(fileHandle.getId());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		
-		adminSynapse.deleteEntity(project, true);
 		for (WikiPageKey key : toDelete) {
-			adminSynapse.deleteWikiPage(key);
+			synapse.deleteWikiPage(key);
 		}
+		
+		synapse.deleteEntity(project, true);
 		
 		for (String id : handlesToDelete) {
 			try {
-				adminSynapse.deleteFileHandle(id);
+				synapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
 			} catch (SynapseClientException e) { }
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseClientException e) { }
 	}
 	
 	@Test
@@ -136,12 +120,9 @@ public class IT055WikiPageTest {
 		// Delete the wiki
 		synapse.deleteWikiPage(key);
 		// Now try to get it
-		try{
+		assertThrows(SynapseException.class, () -> {
 			synapse.getWikiPage(key);
-			fail("This should have failed as the wiki was deleted");
-		}catch(SynapseException e){
-			// expected;
-		}
+		});
 		
 		// Make sure cleanup of the file handle can be performed without race conditions
 		waitForPreviewToBeCreated(fileHandle);
@@ -207,7 +188,7 @@ public class IT055WikiPageTest {
 		while(fileHandle.getPreviewId() == null){
 			System.out.println("Waiting for a preview file to be created");
 			Thread.sleep(1000);
-			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) < MAX_WAIT_MS, "Timed out waiting for a preview to be created");
 			fileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		handlesToDelete.add(fileHandle.getPreviewId());

@@ -1,26 +1,26 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -34,15 +34,12 @@ import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
 import org.sagebionetworks.util.SerializationUtils;
 
+@ExtendWith(ITTestExtension.class)
 public class IT990AuthenticationController {
-
-	private static SynapseAdminClient adminSynapse;
-	private static Long userToDelete;
 	
-	/**
-	 * Signs in with username + password, has signed the ToU
-	 */
-	private static SynapseClient synapse;
+	private static SynapseClient synapseClient;
+	private static Long clientUserToDelete;
+	
 	private static String email;
 	private static String emailAlias;
 	private static String username;
@@ -51,15 +48,9 @@ public class IT990AuthenticationController {
 	private static final String SYNAPSE_ENDPOINT = "https://www.synapse.org/";
 	private static String emailS3Key, emailAliasS3Key;
 	
-	@BeforeClass 
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
-		// Don't use the SynapseClientHelper here, since we need something different
+	@BeforeAll
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
+		// Don't use the base class test user here, since we need something different
 		email = UUID.randomUUID().toString() + "@sagebase.org";
 		emailS3Key = EmailValidationUtil.getBucketKeyForEmail(email);
 		username = UUID.randomUUID().toString();
@@ -70,12 +61,12 @@ public class IT990AuthenticationController {
 
 		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
-		userToDelete = Long.parseLong(accessTokenSubject);
+		clientUserToDelete = Long.parseLong(accessTokenSubject);
 		
 		// Construct the client, but do nothing else
-		synapse = new SynapseClientImpl();
+		synapseClient = new SynapseClientImpl();
 		
-		SynapseClientHelper.setEndpoints(synapse);
+		SynapseClientHelper.setEndpoints(synapseClient);
 
 		performLogin();
 		
@@ -84,13 +75,13 @@ public class IT990AuthenticationController {
 		emailAliasS3Key = EmailValidationUtil.getBucketKeyForEmail(emailAlias);
 		assertFalse(EmailValidationUtil.doesFileExist(emailAliasS3Key, 2000L));
 		String endpoint = "https://www.synapse.org?";
-		synapse.additionalEmailValidation(Long.parseLong(synapse.getMyProfile().getOwnerId()), emailAlias, endpoint);
+		synapseClient.additionalEmailValidation(Long.parseLong(synapseClient.getMyProfile().getOwnerId()), emailAlias, endpoint);
 
 		// Complete the email addition
 		String encodedToken = EmailValidationUtil.getTokenFromFile(emailAliasS3Key, "href=\"" + endpoint, "\">");
 		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
 		// we are _not_ setting it to be the notification email
-		synapse.addEmail(token, false);
+		synapseClient.addEmail(token, false);
 		// Let us delete this so we can test later on for new emails
 		EmailValidationUtil.deleteFile(emailAliasS3Key);
 	}
@@ -100,30 +91,30 @@ public class IT990AuthenticationController {
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
 		request.setAuthenticationReceipt(receipt);
-		receipt = synapse.loginForAccessToken(request).getAuthenticationReceipt();
-		synapse.signTermsOfUse(synapse.getAccessToken());
+		receipt = synapseClient.loginForAccessToken(request).getAuthenticationReceipt();
+		synapseClient.signTermsOfUse(synapseClient.getAccessToken());
 	}
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		performLogin();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		// Cleanup to make sure we receive the latest email
 		EmailValidationUtil.deleteFile(emailS3Key);
 		EmailValidationUtil.deleteFile(emailAliasS3Key);
 	}
 	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+	@AfterAll
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
+		adminSynapse.deleteUser(clientUserToDelete);
 	}
 	
 	@Test
 	public void testGetAuthenticatedOn() throws Exception {
-		AuthenticatedOn authenticatedOn = synapse.getAuthenticatedOn();
+		AuthenticatedOn authenticatedOn = synapseClient.getAuthenticatedOn();
 		assertNotNull(authenticatedOn.getAuthenticatedOn());
 	}
 	
@@ -132,7 +123,7 @@ public class IT990AuthenticationController {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
-		LoginResponse response = synapse.loginForAccessToken(request);
+		LoginResponse response = synapseClient.loginForAccessToken(request);
 		assertNotNull(response);
 		assertNotNull(response.getAccessToken());
 		assertNotNull(response.getAuthenticationReceipt());		
@@ -143,28 +134,28 @@ public class IT990AuthenticationController {
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
-		LoginResponse response = synapse.login(request);
+		LoginResponse response = synapseClient.login(request);
 		assertNotNull(response);
 		assertNotNull(response.getAuthenticationReceipt());
 	}
 
 	@Test
 	public void testLoginThenLogout() throws Exception {
-		synapse.deleteSessionTokenHeader();
-		assertNull(synapse.getCurrentSessionToken());
+		synapseClient.deleteSessionTokenHeader();
+		assertNull(synapseClient.getCurrentSessionToken());
 	}
 
 	@Test
 	public void testChangePasswordWithOldPassword() throws Exception {
 		String testNewPassword = "newPassword"+UUID.randomUUID();
-		synapse.changePassword(username, PASSWORD, testNewPassword, null);
+		synapseClient.changePassword(username, PASSWORD, testNewPassword, null);
 		LoginRequest request = new LoginRequest();
 		request.setUsername(username);
 		request.setPassword(testNewPassword);
-		synapse.login(request);
+		synapseClient.login(request);
 
 		//change password back
-		synapse.changePassword(username, testNewPassword, PASSWORD,null);
+		synapseClient.changePassword(username, testNewPassword, PASSWORD,null);
 	}
 
 	@Test
@@ -173,23 +164,23 @@ public class IT990AuthenticationController {
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
 		request.setAuthenticationReceipt(receipt);
-		synapse.login(request);
-		String sessionToken = synapse.getCurrentSessionToken();
+		synapseClient.login(request);
+		String sessionToken = synapseClient.getCurrentSessionToken();
 		// Accept the terms
-		synapse.signTermsOfUse(sessionToken);
+		synapseClient.signTermsOfUse(sessionToken);
 		// Reject the terms
-		synapse.signTermsOfUse(sessionToken);
+		synapseClient.signTermsOfUse(sessionToken);
 	}
 
 	@Test
 	public void testSignTermsViaAccessToken() throws Exception {
-		String accessToken = synapse.getAccessToken();
-		synapse.signTermsOfUse(accessToken);
+		String accessToken = synapseClient.getAccessToken();
+		synapseClient.signTermsOfUse(accessToken);
 	}
 
 	@Test
 	public void testNewSendResetPasswordEmail() throws Exception {
-		synapse.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, email);
+		synapseClient.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, email);
 		
 		assertTrue(EmailValidationUtil.doesFileExist(emailS3Key, 2000L));
 		
@@ -200,7 +191,7 @@ public class IT990AuthenticationController {
 	
 	@Test
 	public void testSendResetPasswordEmailWithEmailAlias() throws Exception {
-		synapse.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, emailAlias);
+		synapseClient.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, emailAlias);
 
 		assertTrue(EmailValidationUtil.doesFileExist(emailAliasS3Key, 2000L));
 
@@ -214,31 +205,31 @@ public class IT990AuthenticationController {
 		String missingAlias = UUID.randomUUID().toString() + "@synapse.org";
 		String missingAliasS3Key = EmailValidationUtil.getBucketKeyForEmail(missingAlias);
 
-		synapse.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, missingAlias);
+		synapseClient.sendNewPasswordResetEmail(SYNAPSE_ENDPOINT, missingAlias);
 
 		assertFalse(EmailValidationUtil.doesFileExist(missingAliasS3Key, 2000L));
 	}
 	
 	@Test
 	public void testGetSecretKey() throws Exception {
-		String apikey = synapse.retrieveApiKey();
+		String apikey = synapseClient.retrieveApiKey();
 		assertNotNull(apikey);
 		System.out.println(apikey);
 		
 		// Use the API key
-		synapse.deleteSessionTokenHeader();
-		synapse.setUsername(username);
-		synapse.setApiKey(apikey);
+		synapseClient.deleteSessionTokenHeader();
+		synapseClient.setUsername(username);
+		synapseClient.setApiKey(apikey);
 		
 		// Should work
-		synapse.getMyProfile();
+		synapseClient.getMyProfile();
 	}
 	
 	@Test
 	public void testInvalidateSecretKey() throws Exception {
-		String apikey = synapse.retrieveApiKey();
-		synapse.invalidateApiKey();
-		String secondKey = synapse.retrieveApiKey();
+		String apikey = synapseClient.retrieveApiKey();
+		synapseClient.invalidateApiKey();
+		String secondKey = synapseClient.retrieveApiKey();
 		
 		// Should be different from the first one
 		assertFalse(apikey.equals(secondKey));
@@ -250,7 +241,7 @@ public class IT990AuthenticationController {
 		OAuthUrlRequest request = new OAuthUrlRequest();
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 		request.setRedirectUrl(rediect);
-		OAuthUrlResponse response = synapse.getOAuth2AuthenticationUrl(request);
+		OAuthUrlResponse response = synapseClient.getOAuth2AuthenticationUrl(request);
 		assertNotNull(response);
 		assertNotNull(response.getAuthorizationUrl());
 	}
@@ -268,7 +259,7 @@ public class IT990AuthenticationController {
 			request.setRedirectUrl("https://www.synapse.org");
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
-			synapse.validateOAuthAuthenticationCodeForAccessToken(request);
+			synapseClient.validateOAuthAuthenticationCodeForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -288,7 +279,7 @@ public class IT990AuthenticationController {
 			request.setRedirectUrl("https://www.synapse.org");
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
-			synapse.validateOAuthAuthenticationCodeForAccessToken(request);
+			synapseClient.validateOAuthAuthenticationCodeForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -309,7 +300,7 @@ public class IT990AuthenticationController {
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			request.setUserName("uname");
-			synapse.createAccountViaOAuth2ForAccessToken(request);
+			synapseClient.createAccountViaOAuth2ForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -330,7 +321,7 @@ public class IT990AuthenticationController {
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
 			request.setUserName("uname");
-			synapse.createAccountViaOAuth2ForAccessToken(request);
+			synapseClient.createAccountViaOAuth2ForAccessToken(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -349,7 +340,7 @@ public class IT990AuthenticationController {
 			request.setProvider(OAuthProvider.ORCID);
 			// this invalid code will trigger a SynapseForbiddenException
 			request.setAuthenticationCode("test auth code");
-			synapse.bindOAuthProvidersUserId(request);
+			synapseClient.bindOAuthProvidersUserId(request);
 			fail();
 		} catch (SynapseForbiddenException e) {
 			// OK
@@ -361,9 +352,11 @@ public class IT990AuthenticationController {
 	 * that everything is wires up correctly.
 	 * @throws SynapseException 
 	 */
-	@Test(expected=SynapseNotFoundException.class)
+	@Test
 	public void testUnbindExternalId() throws SynapseException {
-		synapse.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
+		assertThrows(SynapseNotFoundException.class, () -> {			
+			synapseClient.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
+		});
 	}
 
 }

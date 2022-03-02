@@ -10,10 +10,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -30,35 +31,44 @@ import org.sagebionetworks.repo.model.form.StateEnum;
 
 import com.google.common.collect.Sets;
 
+@ExtendWith(ITTestExtension.class)
 public class IT203FormControllerTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userId;
-
+	private static SynapseClient groupAdminClient;
+	private static Long groupAdminUser;
+	
 	FormData form;
-
-	@BeforeAll
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		synapse = new SynapseClientImpl();
-		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
+	
+	private SynapseClient synapse;
+	
+	public IT203FormControllerTest(SynapseClient synapse) {
+		this.synapse = synapse;
 	}
-
+	
+	@BeforeAll
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
+		groupAdminClient = new SynapseClientImpl();
+		groupAdminUser = SynapseClientHelper.createUser(adminSynapse, groupAdminClient);
+	}
+	
+	@AfterAll
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
+		try {
+			adminSynapse.deleteUser(groupAdminUser);
+		} catch (SynapseException e) {
+			
+		}
+	}
 
 	@Test
 	public void testCreateGroup() throws SynapseException, FileNotFoundException, IOException {
 		// call under test
-		FormGroup group = adminSynapse.createFormGroup("IT203FormControllerTest.Group");
+		FormGroup group = groupAdminClient.createFormGroup("IT203FormControllerTest.Group");
 		assertNotNull(group);
 		AccessControlList acl = grantSubmitForm(group);
 		assertNotNull(acl);
 		
-		FormGroup fetched = adminSynapse.getFormGroup(group.getGroupId());
+		FormGroup fetched = groupAdminClient.getFormGroup(group.getGroupId());
 		assertEquals(group, fetched);
 
 		// Create a file containing the data of the form.
@@ -95,7 +105,7 @@ public class IT203FormControllerTest {
 		listRequest = new ListRequest();
 		listRequest.setFilterByState(Sets.newHashSet(StateEnum.SUBMITTED_WAITING_FOR_REVIEW));
 		listRequest.setGroupId(group.getGroupId());
-		listResponse = adminSynapse.listFormStatusForReviewer(listRequest);
+		listResponse = groupAdminClient.listFormStatusForReviewer(listRequest);
 		assertNotNull(listResponse);
 		assertNotNull(listResponse.getPage());
 		assertTrue(listResponse.getPage().size() >= 1);
@@ -104,7 +114,7 @@ public class IT203FormControllerTest {
 		String reason = "because of one reason or another";
 		FormRejection rejection = new FormRejection();
 		rejection.setReason(reason);
-		form = adminSynapse.reviewerRejectFormData(form.getFormDataId(), rejection);
+		form = groupAdminClient.reviewerRejectFormData(form.getFormDataId(), rejection);
 		assertNotNull(form);
 		assertEquals(StateEnum.REJECTED, form.getSubmissionStatus().getState());
 		assertEquals(reason, form.getSubmissionStatus().getRejectionMessage());
@@ -113,7 +123,7 @@ public class IT203FormControllerTest {
 		form = synapse.submitFormData(form.getFormDataId());
 		
 		// accept the new form
-		form = adminSynapse.reviewerAcceptFormData(form.getFormDataId());
+		form = groupAdminClient.reviewerAcceptFormData(form.getFormDataId());
 		assertNotNull(form);
 		assertEquals(StateEnum.ACCEPTED, form.getSubmissionStatus().getState());
 		
@@ -128,7 +138,7 @@ public class IT203FormControllerTest {
 	 * @throws SynapseException
 	 */
 	public AccessControlList grantSubmitForm(FormGroup group) throws SynapseException {
-		AccessControlList acl = adminSynapse.getFormGroupAcl(group.getGroupId());
+		AccessControlList acl = groupAdminClient.getFormGroupAcl(group.getGroupId());
 		// Clear all other users
 		Iterator<ResourceAccess> aclIt = acl.getResourceAccess().iterator();
 		while (aclIt.hasNext()) {
@@ -136,13 +146,14 @@ public class IT203FormControllerTest {
 			if (!ra.getPrincipalId().equals(Long.parseLong(group.getCreatedBy()))) {
 				aclIt.remove();
 			}
-		}
+		}		
+		
 		// Grant the other user submit permission
 		ResourceAccess submitPermission = new ResourceAccess();
-		submitPermission.setPrincipalId(userId);
+		submitPermission.setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId()));
 		submitPermission.setAccessType(Sets.newHashSet(ACCESS_TYPE.SUBMIT));
 		acl.getResourceAccess().add(submitPermission);
-		return adminSynapse.updateFormGroupAcl(acl);
+		return groupAdminClient.updateFormGroupAcl(acl);
 	}
 
 	/**

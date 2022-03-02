@@ -1,11 +1,12 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,15 +18,12 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -47,16 +45,13 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
+@ExtendWith(ITTestExtension.class)
 public class ITV2WikiPageTest {
 
 	private static String FILE_NAME = "LittleImage.png";
 	private static String FILE_NAME2 = "profile_pic.png";
 	private static String MARKDOWN_NAME = "previewtest.txt.gz";
 	public static final long MAX_WAIT_MS = 1000*20; // 20 sec
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	
 	private List<WikiPageKey> toDelete = null;
 	private List<String> fileHandlesToDelete = null;
@@ -69,19 +64,15 @@ public class ITV2WikiPageTest {
 	private File markdownFile;
 	private Project project;
 	private TermsOfUseAccessRequirement accessRequirement;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	public ITV2WikiPageTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException, IOException {
 		adminSynapse.clearAllLocks();
 		toDelete = new ArrayList<WikiPageKey>();
@@ -125,7 +116,7 @@ public class ITV2WikiPageTest {
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(project != null){
 			synapse.deleteEntity(project);
@@ -159,12 +150,7 @@ public class ITV2WikiPageTest {
 			synapse.deleteFileHandle(id);
 		}
 	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
-	}
-	
+		
 	@Test
 	public void testV2WikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		V2WikiPage wiki = new V2WikiPage();
@@ -504,7 +490,7 @@ public class ITV2WikiPageTest {
 		while(fileHandle.getPreviewId() == null){
 			System.out.println("Waiting for a preview file to be created");
 			Thread.sleep(1000);
-			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) < MAX_WAIT_MS, "Timed out waiting for a preview to be created");
 			fileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getId());
 		}
 	}

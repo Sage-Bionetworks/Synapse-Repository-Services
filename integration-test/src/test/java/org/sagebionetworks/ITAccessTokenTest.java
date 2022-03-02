@@ -5,14 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -23,40 +22,28 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 /*
  * This is a simple test to make sure that the OAuth access token authorization is connected properly.
  */
+@ExtendWith(ITTestExtension.class)
 public class ITAccessTokenTest {
 
-	private static SynapseAdminClient synapseClientForAdmin;
-	private static SynapseClient synapseClientForUser1;
 	private static SynapseClient synapseClientLackingCredentials;
-	
-	private static Long user1ToDelete;
-	
+
 	private OAuthClient oauthClient;
 	private String oauthClientSecret;
 
 	private Project project;
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITAccessTokenTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		// Create 2 users
-		synapseClientForAdmin = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(synapseClientForAdmin);
-		synapseClientForAdmin.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		synapseClientForAdmin.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		synapseClientForAdmin.clearAllLocks();
-		synapseClientForUser1 = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseClientForUser1);
-		user1ToDelete = SynapseClientHelper.createUser(synapseClientForAdmin, synapseClientForUser1);
-
 		synapseClientLackingCredentials = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseClientLackingCredentials);
-	}
-
-	@AfterAll
-	public static void afterClass() throws Exception {
-		try {
-			if (user1ToDelete!=null) synapseClientForAdmin.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
 	}
 
 	@BeforeEach
@@ -65,20 +52,20 @@ public class ITAccessTokenTest {
 		oauthClient = new OAuthClient();
 		oauthClient.setClient_name(UUID.randomUUID().toString());
 		oauthClient.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		oauthClient = synapseClientForUser1.createOAuthClient(oauthClient);
+		oauthClient = synapse.createOAuthClient(oauthClient);
 		// Sets the verified status of the client (only admins and ACT can do this)
-		oauthClient = synapseClientForAdmin.updateOAuthClientVerifiedStatus(oauthClient.getClient_id(), oauthClient.getEtag(), true);
-		oauthClientSecret = synapseClientForUser1.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
+		oauthClient = adminSynapse.updateOAuthClientVerifiedStatus(oauthClient.getClient_id(), oauthClient.getEtag(), true);
+		oauthClientSecret = synapse.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		try {
-			if (project!=null) synapseClientForAdmin.deleteEntity(project);
+			if (project!=null) adminSynapse.deleteEntity(project);
 		} catch (SynapseException e) { }
 		try {
 			if (oauthClient!=null) {
-				synapseClientForUser1.deleteOAuthClient(oauthClient.getClient_id());
+				synapse.deleteOAuthClient(oauthClient.getClient_id());
 			}
 		} catch (SynapseException e) {
 			e.printStackTrace();
@@ -87,7 +74,7 @@ public class ITAccessTokenTest {
 	
 	private String getAccessTokenForUser1(String scope) throws SynapseException {
 		return OAuthHelper.getAccessToken(
-					synapseClientForUser1, 
+					synapse, 
 					synapseClientLackingCredentials, 
 					oauthClient.getClient_id(), 
 					oauthClientSecret, 

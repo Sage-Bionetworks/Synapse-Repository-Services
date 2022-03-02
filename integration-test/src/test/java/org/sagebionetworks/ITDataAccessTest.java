@@ -1,21 +1,19 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -52,30 +50,24 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
+@ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
-	private static Long userToDelete;
 	private Project project;
 	private ACTAccessRequirement actAR;
 	private ManagedACTAccessRequirement managedAR;
-
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
-		project = synapseOne.createEntity(new Project());
+		project = synapse.createEntity(new Project());
 		// add an access requirement
 		actAR = new ACTAccessRequirement();
 		
@@ -87,27 +79,19 @@ public class ITDataAccessTest {
 		actAR = adminSynapse.createAccessRequirement(actAR);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		try {
 			adminSynapse.deleteEntity(project);
 		} catch (SynapseNotFoundException e) {}
 	}
 
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) { }
-	}
-
-
 	@Test
 	public void test() throws SynapseException {
 		RestrictionInformationRequest restrictionInformationRequest = new RestrictionInformationRequest();
 		restrictionInformationRequest.setObjectId(project.getId());
 		restrictionInformationRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
-		RestrictionInformationResponse restrictionInfo = synapseOne.getRestrictionInformation(restrictionInformationRequest);
+		RestrictionInformationResponse restrictionInfo = synapse.getRestrictionInformation(restrictionInformationRequest);
 		assertNotNull(restrictionInfo);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, restrictionInfo.getRestrictionLevel());
 		assertTrue(restrictionInfo.getHasUnmetAccessRequirement());
@@ -121,35 +105,35 @@ public class ITDataAccessTest {
 		managedAR.setIsIDUPublic(true);
 		managedAR = (ManagedACTAccessRequirement) adminSynapse.updateAccessRequirement(managedAR);
 
-		assertNotNull(synapseOne.getSubjects(managedAR.getId().toString(), null));
+		assertNotNull(synapse.getSubjects(managedAR.getId().toString(), null));
 
-		ResearchProject rp = synapseOne.getResearchProjectForUpdate(managedAR.getId().toString());
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
 		assertNotNull(rp);
 		// create
 		rp.setInstitution("Sage");
 		rp.setProjectLead("Bruce");
 		rp.setIntendedDataUseStatement("intendedDataUseStatement");
 		rp.setAccessRequirementId(managedAR.getId().toString());
-		ResearchProject created = synapseOne.createOrUpdateResearchProject(rp);
+		ResearchProject created = synapse.createOrUpdateResearchProject(rp);
 
-		assertEquals(created, synapseOne.getResearchProjectForUpdate(managedAR.getId().toString()));
+		assertEquals(created, synapse.getResearchProjectForUpdate(managedAR.getId().toString()));
 
 		created.setIntendedDataUseStatement("new intendedDataUseStatement");
-		ResearchProject updated = synapseOne.createOrUpdateResearchProject(created);
+		ResearchProject updated = synapse.createOrUpdateResearchProject(created);
 
-		assertEquals(updated, synapseOne.getResearchProjectForUpdate(managedAR.getId().toString()));
+		assertEquals(updated, synapse.getResearchProjectForUpdate(managedAR.getId().toString()));
 
-		Request request = (Request) synapseOne.getRequestForUpdate(managedAR.getId().toString());
+		Request request = (Request) synapse.getRequestForUpdate(managedAR.getId().toString());
 		assertNotNull(request);
 
 		request.setAccessRequirementId(managedAR.getId().toString());
 		request.setResearchProjectId(updated.getId());
-		Request createdRequest = (Request) synapseOne.createOrUpdateRequest(request);
+		Request createdRequest = (Request) synapse.createOrUpdateRequest(request);
 
-		assertEquals(createdRequest, synapseOne.getRequestForUpdate(managedAR.getId().toString()));
+		assertEquals(createdRequest, synapse.getRequestForUpdate(managedAR.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		String userId = synapseOne.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
+		String userId = synapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 
 		AccessorChange adminChange = new AccessorChange();
 		adminChange.setUserId(adminId);
@@ -160,17 +144,17 @@ public class ITDataAccessTest {
 		userChange.setType(AccessType.GAIN_ACCESS);
 
 		createdRequest.setAccessorChanges(Arrays.asList(adminChange, userChange));
-		Request updatedRequest = (Request) synapseOne.createOrUpdateRequest(createdRequest);
+		Request updatedRequest = (Request) synapse.createOrUpdateRequest(createdRequest);
 
 		CreateSubmissionRequest csRequest = new CreateSubmissionRequest();
 		csRequest.setRequestId(updatedRequest.getId());
 		csRequest.setRequestEtag(updatedRequest.getEtag());
 		csRequest.setSubjectId(project.getId());
 		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
-		SubmissionStatus status = synapseOne.submitRequest(csRequest);
+		SubmissionStatus status = synapse.submitRequest(csRequest);
 		assertNotNull(status);
 
-		AccessRequirementStatus arStatus = synapseOne.getAccessRequirementStatus(managedAR.getId().toString());
+		AccessRequirementStatus arStatus = synapse.getAccessRequirementStatus(managedAR.getId().toString());
 		assertNotNull(arStatus);
 		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
 		assertEquals(status, ((ManagedACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
@@ -186,13 +170,13 @@ public class ITDataAccessTest {
 		assertNotNull(submission);
 
 		try {
-			synapseOne.cancelSubmission(status.getSubmissionId());
+			synapse.cancelSubmission(status.getSubmissionId());
 			fail("should not be able to cancel an approved submission");
 		} catch (SynapseBadRequestException e) {
 			// as expected
 		}
 
-		RequestInterface renewal = synapseOne.getRequestForUpdate(managedAR.getId().toString());
+		RequestInterface renewal = synapse.getRequestForUpdate(managedAR.getId().toString());
 		assertNotNull(renewal);
 		assertTrue(renewal instanceof Renewal);
 
@@ -218,7 +202,7 @@ public class ITDataAccessTest {
 		BatchAccessApprovalInfoRequest approvalInfoRequest = new BatchAccessApprovalInfoRequest();
 		approvalInfoRequest.setUserId(userId);
 		approvalInfoRequest.setAccessRequirementIds(Arrays.asList(managedAR.getId().toString()));
-		assertNotNull(synapseOne.getBatchAccessApprovalInfo(approvalInfoRequest ));
+		assertNotNull(synapse.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
 		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
 		
@@ -232,7 +216,7 @@ public class ITDataAccessTest {
 		AccessApprovalNotificationRequest request = new AccessApprovalNotificationRequest();
 		
 		request.setRequirementId(actAR.getId());
-		request.setRecipientIds(Arrays.asList(userToDelete));
+		request.setRecipientIds(Arrays.asList(Long.valueOf(synapse.getMyProfile().getOwnerId())));
 		
 		AccessApprovalNotificationResponse result = adminSynapse.getAccessApprovalNotifications(request);
 		

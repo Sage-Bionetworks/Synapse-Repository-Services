@@ -20,9 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.ClientUtils;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -51,6 +51,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(ITTestExtension.class)
 public class ITDocker {
 	private static final String SCOPE_PARAM = "scope";
 	private static final String SERVICE_PARAM = "service";
@@ -61,60 +62,54 @@ public class ITDocker {
 	private static final String MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
-	private static SynapseClient anonymousSynapseClient;
 	private static Long userToDelete;
+	private static SynapseClient anonymousSynapseClient;
 	private static String username;
 	private static String password;
 
 	private String projectId;
-	
-	private static StackConfiguration config;
 
 	private static SimpleHttpClient simpleClient;
 	
 	private String synapseDockerAuthorizationUrl;
 	private OAuthClient oauthClient;
 	private String oauthClientSecret;
+	
+	private StackConfiguration config;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDocker(StackConfiguration config, SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.config = config;
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
-		config = StackConfigurationSingleton.singleton();
-		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse
-		.setUsername(config.getMigrationAdminUsername());
-		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		
+	public static void beforeClass(SynapseAdminClient adminSynapse, SynapseClient synapse) throws Exception {
 		anonymousSynapseClient = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(anonymousSynapseClient);
 		
 		username = UUID.randomUUID().toString();
 		password = UUID.randomUUID().toString();
-		userToDelete = SynapseClientHelper
-				.createUser(adminSynapse, synapseOne, username, password, true);
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse, username, password, true);
 		simpleClient = new SimpleHttpClientImpl();
 	}
 
 	@BeforeEach
 	public void before() throws Exception {
 		Project project = new Project();
-		project = synapseOne.createEntity(project);
+		project = synapse.createEntity(project);
 		projectId = project.getId();
 		
 		// create the OAuth client
 		oauthClient = new OAuthClient();
 		oauthClient.setClient_name(UUID.randomUUID().toString());
 		oauthClient.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		oauthClient = synapseOne.createOAuthClient(oauthClient);
+		oauthClient = synapse.createOAuthClient(oauthClient);
 		// Sets the verified status of the client (only admins and ACT can do this)
 		oauthClient = adminSynapse.updateOAuthClientVerifiedStatus(oauthClient.getClient_id(), oauthClient.getEtag(), true);
-		oauthClientSecret = synapseOne.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
+		oauthClientSecret = synapse.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
 
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
@@ -127,12 +122,12 @@ public class ITDocker {
 	
 	@AfterEach
 	public void after() throws Exception {
-		if (projectId!=null) synapseOne.deleteEntityById(projectId);
+		if (projectId!=null) synapse.deleteEntityById(projectId);
 		projectId=null;
 	}
 
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
 		} catch (SynapseException e) {
@@ -159,7 +154,7 @@ public class ITDocker {
 	@Test
 	public void testDockerClientAuthorizationWithAccessToken() throws Exception {
 		String accessToken = OAuthHelper.getAccessToken(
-				synapseOne, 
+				synapse, 
 				anonymousSynapseClient, 
 				oauthClient.getClient_id(), 
 				oauthClientSecret, 
@@ -195,15 +190,15 @@ public class ITDocker {
 		DockerRepository dockerRepo = new DockerRepository();
 		dockerRepo.setParentId(projectId);
 		dockerRepo.setRepositoryName("uname/reponame");
-		dockerRepo = synapseOne.createEntity(dockerRepo);
+		dockerRepo = synapse.createEntity(dockerRepo);
 		String tag = "tag";
 		DockerCommit commit1 = createCommit(tag, UUID.randomUUID().toString());
-		synapseOne.addDockerCommit(dockerRepo.getId(), commit1);
+		synapse.addDockerCommit(dockerRepo.getId(), commit1);
 		Thread.sleep(10L);
 		// now reassign the tag to a new commit
 		DockerCommit commit2 = createCommit(tag, UUID.randomUUID().toString());
-		synapseOne.addDockerCommit(dockerRepo.getId(), commit2);
-		PaginatedResults<DockerCommit> result = synapseOne.listDockerTags(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
+		synapse.addDockerCommit(dockerRepo.getId(), commit2);
+		PaginatedResults<DockerCommit> result = synapse.listDockerTags(dockerRepo.getId(), 10L, 0L, DockerCommitSortBy.TAG, true);
 		assertEquals(1L, result.getTotalNumberOfResults());
 		assertEquals(1, result.getResults().size());
 		DockerCommit retrieved = result.getResults().get(0);
@@ -214,7 +209,7 @@ public class ITDocker {
 		// make sure optional params are optional
 		assertEquals(
 				result,
-				synapseOne.listDockerTags(dockerRepo.getId(), null, null, null, null)
+				synapse.listDockerTags(dockerRepo.getId(), null, null, null, null)
 				);
 	}
 	
@@ -272,13 +267,13 @@ public class ITDocker {
 		EntityChildrenRequest childRequest = new EntityChildrenRequest();
 		childRequest.setParentId(projectId);
 		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.dockerrepo));
-		EntityChildrenResponse response = synapseOne.getEntityChildren(childRequest);
+		EntityChildrenResponse response = synapse.getEntityChildren(childRequest);
 		assertNotNull(response);
 		assertNotNull(response.getPage());
 		assertEquals(1, response.getPage().size());
 		
 		// Check the the repository can be found by name
-		EntityId entityId = synapseOne.getEntityIdForDockerRepositoryName(host + "/" + repositoryPath);
+		EntityId entityId = synapse.getEntityIdForDockerRepositoryName(host + "/" + repositoryPath);
 		assertEquals(response.getPage().get(0).getId(), entityId.getId());
 		
 	}
@@ -303,7 +298,7 @@ public class ITDocker {
 		EntityChildrenRequest childRequest = new EntityChildrenRequest();
 		childRequest.setParentId(projectId);
 		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.dockerrepo));
-		EntityChildrenResponse childResponse = synapseOne.getEntityChildren(childRequest);
+		EntityChildrenResponse childResponse = synapse.getEntityChildren(childRequest);
 		assertNotNull(childResponse);
 		assertNotNull(childResponse.getPage());
 		assertEquals(0, childResponse.getPage().size());

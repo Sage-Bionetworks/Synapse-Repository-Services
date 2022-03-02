@@ -1,32 +1,28 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -58,11 +54,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(ITTestExtension.class)
 public class IT054FileEntityTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
@@ -75,19 +68,15 @@ public class IT054FileEntityTest {
 	private FileHandleAssociation association;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT054FileEntityTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException, FileNotFoundException, IOException {
 		adminSynapse.clearAllLocks();
 		// Create a project, this will own the file entity
@@ -123,7 +112,7 @@ public class IT054FileEntityTest {
 		synapse.clearDownloadList();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(project != null){
 			synapse.deleteEntity(project, true);
@@ -133,13 +122,6 @@ public class IT054FileEntityTest {
 				synapse.deleteFileHandle(handle);
 			} catch (Exception e) {}
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) { }
 	}
 	
 	@Test
@@ -164,7 +146,7 @@ public class IT054FileEntityTest {
 		// Make sure we can get the URLs for this file
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(fileHandle.getKey()));
+		assertTrue(tempUrl.toString().contains(fileHandle.getKey()), "The temporary URL did not contain the expected file handle key");
 		// now check that the redirect-based download works correctly
 		File tempfile = File.createTempFile("test", null);
 		tempfile.deleteOnExit();
@@ -174,21 +156,21 @@ public class IT054FileEntityTest {
 		// Get the url using the version number
 		tempUrl = synapse.getFileEntityTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(fileHandle.getKey()));
+		assertTrue(tempUrl.toString().contains(fileHandle.getKey()), "The temporary URL did not contain the expected file handle key");
 		synapse.downloadFromFileEntityForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
 
 		// Now get the preview URLs
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
+		assertTrue(tempUrl.toString().contains(previewFileHandle.getKey()), "The temporary URL did not contain the expected file handle key");
 		synapse.downloadFromFileEntityPreviewCurrentVersion(file.getId(), tempfile);
 		assertTrue(tempfile.length()>0);
 
 		// Get the preview using the version number
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
-		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().contains(previewFileHandle.getKey()));
+		assertTrue(tempUrl.toString().contains(previewFileHandle.getKey()), "The temporary URL did not contain the expected file handle key");
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
 		assertTrue(tempfile.length()>0);
 		
@@ -252,7 +234,7 @@ public class IT054FileEntityTest {
 		FileHandle newFileHandle = first.getNewFileHandle();
 		assertNotNull(newFileHandle);
 		assertFalse(newFileHandle.getId().equals(fileHandle.getId()));
-		assertEquals(userToDelete.toString(), newFileHandle.getCreatedBy());
+		assertEquals(synapse.getMyProfile().getOwnerId(), newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertFalse(newFileHandle.getEtag().equals(fileHandle.getEtag()));
 		assertFalse(newFileHandle.getCreatedOn().equals(fileHandle.getCreatedOn()));
@@ -441,7 +423,7 @@ public class IT054FileEntityTest {
 		while(fileHandle.getPreviewId() == null){
 			System.out.println("Waiting for a preview file to be created");
 			Thread.sleep(1000);
-			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) < MAX_WAIT_MS, "Timed out waiting for a preview to be created");
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		// Fetch the preview file handle

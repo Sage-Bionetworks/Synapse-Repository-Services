@@ -360,5 +360,24 @@ public class AdministrationController {
 			@RequestBody FeatureStatus status) {
 		return serviceProvider.getAdministrationService().setFeatureStatus(userId, feature, status);
 	}
+	
+	/**
+	 * Obtains an access token for the provided target user, if the target user is supplied a token for the administrator is returned
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_USER_TOKEN, method = RequestMethod.GET)
+	public @ResponseBody LoginResponse getUserAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long targetUserId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId);
+	}
 
 }

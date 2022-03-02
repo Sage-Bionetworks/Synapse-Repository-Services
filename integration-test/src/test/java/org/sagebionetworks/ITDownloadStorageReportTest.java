@@ -1,58 +1,40 @@
 package org.sagebionetworks;
 
-import static org.aspectj.bridge.MessageUtil.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.report.StorageReportType;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
+@ExtendWith(ITTestExtension.class)
 public class ITDownloadStorageReportTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	private static final long RETRY_TIME = 1000L;
-
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
-
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(config.getMigrationAdminUsername());
-		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		SynapseClientHelper.setEndpoints(synapse);
+	
+	private SynapseClient synapse;
+	
+	public ITDownloadStorageReportTest(SynapseClient synapse) {
+		this.synapse = synapse;
 	}
-
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try { adminSynapse.deleteUser(userToDelete); } catch (SynapseException e) { }
-	}
-
+	
 	@Test
-	public void generateReportUnauthorized() throws SynapseException, InterruptedException {
+	public void generateReportUnauthorized() throws Exception {
 		String jobToken = synapse.generateStorageReportAsyncStart(StorageReportType.ALL_PROJECTS);
-		boolean jobProcessed = false;
-		while (!jobProcessed) {
-			Thread.sleep(RETRY_TIME);
-			try {
-				synapse.generateStorageReportAsyncGet(jobToken);
-				fail("Expected exception");
-			} catch (SynapseForbiddenException e) {
-				// As expected
-				break;
-			}
-		}
+		
+		// We need to wait until we the job is finished processing to see the thrown exception				
+		TimeUtils.waitFor(10 * RETRY_TIME, RETRY_TIME, () -> {
+			boolean jobDone = AsynchJobState.PROCESSING != synapse.getAsynchronousJobStatus(jobToken).getJobState(); 
+			return Pair.create(jobDone, null);
+		});
+		
+		// Now that the job is done we get try and get the result
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.generateStorageReportAsyncGet(jobToken);
+		});
 	}
 }

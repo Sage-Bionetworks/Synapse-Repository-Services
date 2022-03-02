@@ -10,8 +10,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -24,27 +24,24 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 
+@ExtendWith(ITTestExtension.class)
 public class IT960TermsOfUse {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
 	private static SynapseClient rejectTOUsynapse;
-	private static Long userToDelete;
 	private static Long rejectTOUuserToDelete;
 	
 	private static Project project;
 	private static FileEntity dataset;
 	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public IT960TermsOfUse(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		rejectTOUsynapse = new SynapseClientImpl();
 		rejectTOUuserToDelete = SynapseClientHelper.createUser(adminSynapse, rejectTOUsynapse, false);
 		
@@ -85,9 +82,8 @@ public class IT960TermsOfUse {
 	}
 	
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteEntity(project);
-		adminSynapse.deleteUser(userToDelete);
 		adminSynapse.deleteUser(rejectTOUuserToDelete);
 		
 	}

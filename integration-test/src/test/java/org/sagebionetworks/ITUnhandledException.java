@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -12,21 +14,17 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.springframework.http.HttpStatus;
 
+@ExtendWith(ITTestExtension.class)
 public class ITUnhandledException {
 	
 	private static TempSynapseClient synapseClient;
 	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
-
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		// Set up admin.
 		synapseClient = new TempSynapseClient();
+		synapseClient.setBearerAuthorizationToken(adminSynapse.getAccessToken());
 		
-		synapseClient.setUsername(config.getMigrationAdminUsername());
-		synapseClient.setApiKey(config.getMigrationAdminAPIKey());
-
-
 		SynapseClientHelper.setEndpoints(synapseClient);
 	}
 	

@@ -1,21 +1,20 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Collections;
 import java.util.UUID;
 
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
@@ -30,51 +29,36 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 
+@ExtendWith(ITTestExtension.class)
 public class IT065SynapseJavaClientDoiV2Test {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 	private static final long RETRY_TIME = 1000L;
 
 	private static Entity entity;
+	
+	private static StackConfiguration config;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
 
-	@BeforeClass 
-	public static void beforeClass() throws Exception {
-
-		StackConfiguration config = StackConfigurationSingleton.singleton();
-		Assume.assumeTrue(config.getDoiDataciteEnabled());
-
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(config.getMigrationAdminUsername());
-		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		SynapseClientHelper.setEndpoints(synapse);
-
+	@BeforeAll
+	public static void beforeClass(SynapseAdminClient configuredAdmin, SynapseClient configuredClient, StackConfiguration configuredConfig) throws Exception {
+		adminSynapse = configuredAdmin;
+		synapse = configuredClient;
+		config = configuredConfig;
+		assumeTrue(config.getDoiDataciteEnabled());
 		entity = new Project();
 		entity.setName("IT065SynapseJavaClientDoiV2Test" + UUID.randomUUID());
 		entity = synapse.createEntity(entity);
 		assertNotNull(entity);
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
 		if (config.getDoiDataciteEnabled()) {
 			if (entity != null) {
 				synapse.deleteEntity(entity);
 			}
 			adminSynapse.clearDoi();
-			try {
-				synapse.getDoi(entity.getId(), ObjectType.ENTITY,null);
-			} catch (SynapseNotFoundException e) {
-				assertTrue(true);
-			}
-			adminSynapse.deleteUser(userToDelete);
 		}
 	}
 
@@ -99,9 +83,12 @@ public class IT065SynapseJavaClientDoiV2Test {
 		createOrUpdateDoiRetrieveAndValidate(doiToMint);
 	}
 
-	@Test(expected=SynapseNotFoundException.class)
+	@Test
 	public void testGetNotFoundException() throws SynapseException {
-		synapse.getDoiAssociation("syn8395713", ObjectType.ENTITY, null);
+		
+		assertThrows(SynapseNotFoundException.class, () -> {			
+			synapse.getDoiAssociation("syn8395713", ObjectType.ENTITY, null);
+		});
 	}
 
 	@Test
@@ -153,8 +140,9 @@ public class IT065SynapseJavaClientDoiV2Test {
 		assertEquals(doiRetrieved.getCreators(), doiToMint.getCreators());
 		assertEquals(doiRetrieved.getResourceType(), doiToMint.getResourceType());
 		assertEquals(doiRetrieved.getPublicationYear(), doiToMint.getPublicationYear());
-		assertEquals(doiRetrieved.getAssociatedBy(), userToDelete.toString());
-		assertEquals(doiRetrieved.getUpdatedBy(), userToDelete.toString());
+		String expectedUser = synapse.getMyProfile().getOwnerId();
+		assertEquals(doiRetrieved.getAssociatedBy(), expectedUser);
+		assertEquals(doiRetrieved.getUpdatedBy(), expectedUser);
 		assertNotNull(doiRetrieved.getEtag());
 		assertEquals(entity.getId(), doiRetrieved.getObjectId());
 		assertEquals(ObjectType.ENTITY, doiRetrieved.getObjectType());

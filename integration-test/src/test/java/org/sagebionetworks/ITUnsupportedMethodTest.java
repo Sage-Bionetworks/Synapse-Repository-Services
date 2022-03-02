@@ -1,9 +1,9 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
@@ -21,7 +21,7 @@ public class ITUnsupportedMethodTest {
 	private static SynapseClient synapse;
 	private static SimpleHttpClient simpleHttpClient;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		synapse = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapse);

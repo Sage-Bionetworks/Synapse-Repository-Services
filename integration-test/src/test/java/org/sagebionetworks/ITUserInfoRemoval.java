@@ -11,8 +11,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -20,9 +20,9 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 
+@ExtendWith(ITTestExtension.class)
 public class ITUserInfoRemoval {
 
-	private static SynapseAdminClient adminClient;
 	private static SynapseClient client;
 
 	private static Long userId;
@@ -30,25 +30,25 @@ public class ITUserInfoRemoval {
 	private static String username = UUID.randomUUID().toString();
 	private static String password = "password" + UUID.randomUUID().toString();
 
+	private SynapseAdminClient adminSynapse;
+	
+	public ITUserInfoRemoval(SynapseAdminClient adminSynapse) {
+		this.adminSynapse = adminSynapse;
+	}
+	
 	@BeforeAll
-	public static void beforeClass() throws Exception {
-		adminClient = new SynapseAdminClientImpl();
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		client = new SynapseClientImpl();
-		
-		SynapseClientHelper.setEndpoints(adminClient);
-		SynapseClientHelper.setEndpoints(client);
 
-		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminClient.clearAllLocks();
+		SynapseClientHelper.setEndpoints(client);
 		
-		userId = SynapseClientHelper.createUser(adminClient, client, username, password, true);
+		userId = SynapseClientHelper.createUser(adminSynapse, client, username, password, true);
 	}
 
 	@AfterAll
-	public static void afterClass() throws Exception {
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		try {
-			adminClient.deleteUser(userId);
+			adminSynapse.deleteUser(userId);
 		} catch (SynapseException e) {
 		}
 	}
@@ -70,11 +70,11 @@ public class ITUserInfoRemoval {
 		client.updateMyProfile(profile);
 
 		// Method under test
-		adminClient.redactUserInformation(userId.toString());
+		adminSynapse.redactUserInformation(userId.toString());
 
 		String expectedEmail = "gdpr-synapse+" + userId.toString() + "@sagebase.org";
 
-		UserProfile clearedProfile = adminClient.getUserProfile(userId.toString());
+		UserProfile clearedProfile = adminSynapse.getUserProfile(userId.toString());
 		assertEquals(expectedEmail, clearedProfile.getEmail());
 		assertEquals("", clearedProfile.getFirstName());
 		assertEquals("", clearedProfile.getLastName());

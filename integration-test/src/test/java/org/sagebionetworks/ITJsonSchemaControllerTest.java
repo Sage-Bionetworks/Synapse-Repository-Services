@@ -6,22 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -30,10 +24,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
@@ -64,13 +56,10 @@ import org.sagebionetworks.util.TimeUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@ExtendWith(ITTestExtension.class)
 public class ITJsonSchemaControllerTest {
 
 	public static final long MAX_WAIT_MS = 1000 * 30;
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userId;
 
 	String organizationName;
 	String schemaName;
@@ -78,17 +67,13 @@ public class ITJsonSchemaControllerTest {
 
 	Organization organization;
 	Project project;
-
-	@BeforeAll
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		synapse = new SynapseClientImpl();
-		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
-		SynapseClientHelper.setEndpoints(synapse);
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITJsonSchemaControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 
 	@BeforeEach
@@ -137,7 +122,7 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(organization);
 		assertEquals(organizationName, organization.getName());
 		assertNotNull(organization.getId());
-		assertEquals("" + userId, organization.getCreatedBy());
+		assertEquals(synapse.getMyProfile().getOwnerId(), organization.getCreatedBy());
 	}
 
 	@Test

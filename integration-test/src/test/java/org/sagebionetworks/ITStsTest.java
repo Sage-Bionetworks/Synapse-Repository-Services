@@ -1,25 +1,22 @@
 package org.sagebionetworks;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.google.common.collect.ImmutableList;
-import org.junit.jupiter.api.AfterAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseStsCredentialsProvider;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Folder;
@@ -31,41 +28,39 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.common.collect.ImmutableList;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+@ExtendWith(ITTestExtension.class)
 public class ITStsTest {
-	private static SynapseAdminClient adminSynapse;
-	private static StackConfiguration config;
 	private static String externalS3Bucket;
-	private static SynapseClient synapse;
 	private static SynapseS3Client synapseS3Client;
-	private static Long userId;
 	private static String username;
 
 	private Folder folder;
 	private Project project;
+	
+	private StackConfiguration config;
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITStsTest(StackConfiguration config, SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.config = config;
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+
 
 	@BeforeAll
-	public static void beforeClass() throws Exception {
-		config = StackConfigurationSingleton.singleton();
+	public static void beforeClass(StackConfiguration config, SynapseClient synapse) throws Exception {
 		externalS3Bucket = config.getExternalS3TestBucketName();
-
-		// Set up admin.
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-
-		// Create test user.
-		synapse = new SynapseClientImpl();
-		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
-		username = synapse.getUserProfile(userId.toString()).getUserName();
+		username = synapse.getMyProfile().getUserName();
 
 		// Set up S3 client.
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
@@ -88,15 +83,6 @@ public class ITStsTest {
 	@AfterEach
 	public void after() throws SynapseException {
 		synapse.deleteEntity(project, true);
-	}
-
-	@AfterAll
-	public static void afterClass() {
-		try {
-			adminSynapse.deleteUser(userId);
-		} catch (SynapseException e) {
-			// Ignore possible exceptions
-		}
 	}
 
 	@Test

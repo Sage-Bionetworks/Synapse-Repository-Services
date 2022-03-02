@@ -1,8 +1,8 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.io.FileReader;
@@ -13,18 +13,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -45,42 +41,30 @@ import com.google.common.collect.Lists;
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
+@ExtendWith(ITTestExtension.class)
 public class IT099AsynchronousJobTest {
-
-	
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 
 	private List<Entity> entitiesToDelete;
 	private List<FileHandle> filesToDelete;
 	
 	private static long MAX_WAIT_MS = 1000*60*5;
 	
-	@BeforeClass 
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		try {
-			adminSynapse.clearAllLocks();
-		} catch (SynapseNotFoundException nfe) {
-			// if not found, then just continue
-		}
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-	}
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
 	
-	@Before
+	public IT099AsynchronousJobTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
+	}
+		
+	@BeforeEach
 	public void before() throws SynapseException{
 		adminSynapse.clearAllLocks();
 		entitiesToDelete = new LinkedList<Entity>();
 		filesToDelete = Lists.newArrayList();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (Entity entity : Lists.reverse(entitiesToDelete)) {
 			try {
@@ -92,13 +76,6 @@ public class IT099AsynchronousJobTest {
 				adminSynapse.deleteFileHandle(fh.getId());
 			} catch (Exception e) {}
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (Exception e) { }
 	}
 	
 	@Test

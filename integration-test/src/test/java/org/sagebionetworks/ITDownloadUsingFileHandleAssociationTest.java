@@ -1,6 +1,8 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertNotNull;
+
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,15 +11,12 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -30,11 +29,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(ITTestExtension.class)
 public class ITDownloadUsingFileHandleAssociationTest {
-
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapse;
-	private static Long userToDelete;
 
 	private static final String FILE_NAME = "SmallTextFiles/TinyFile.txt";
 	private static String MARKDOWN_NAME = "SmallTextFiles/markdown.txt";
@@ -44,20 +40,16 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	private FileHandle markdownHandle;
 	private File markdownFile;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
-
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		// Create a user
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapse = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	
+	private SynapseAdminClient adminSynapse;
+	private SynapseClient synapse;
+	
+	public ITDownloadUsingFileHandleAssociationTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
+		this.synapse = synapse;
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException, FileNotFoundException, IOException {
 		adminSynapse.clearAllLocks();
 		// Create a project, this will own the file entity
@@ -75,7 +67,7 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		fileHandlesToDelete.add(markdownHandle.getId());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(project != null){
 			synapse.deleteEntity(project, true);
@@ -85,13 +77,6 @@ public class ITDownloadUsingFileHandleAssociationTest {
 				synapse.deleteFileHandle(handle);
 			} catch (Exception e) {}
 		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) { }
 	}
 
 	@Test

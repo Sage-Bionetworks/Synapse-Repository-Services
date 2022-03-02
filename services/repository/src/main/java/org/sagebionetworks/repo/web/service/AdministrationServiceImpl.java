@@ -231,6 +231,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo user = userManager.getUserInfo(userId);
 		return featureManager.setFeatureStatus(user, feature, status);
 	};
-
+	
+	@Override
+	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
+		ValidateArgument.required(targetUserId, "The targetUserId");
+		adminCheck(userId);
+		return authManager.loginWithNoPasswordCheck(targetUserId, null);
+	}
 
 }
