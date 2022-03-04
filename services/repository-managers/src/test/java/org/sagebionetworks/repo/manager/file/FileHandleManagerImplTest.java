@@ -1514,17 +1514,6 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testUploadLocalFileAnonymous() {
-		LocalFileUploadRequest request = new LocalFileUploadRequest();
-		request.withUserId(anonymousUser.getId().toString());
-		
-		assertThrows(UnauthorizedException.class, () -> {
-			// method under test
-			manager.uploadLocalFile(request);
-		});
-	}
-
-	@Test
 	public void testCreateS3FileHandleCopy() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
 		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, "123", "987"))

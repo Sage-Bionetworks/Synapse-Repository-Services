@@ -632,9 +632,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public S3FileHandle uploadLocalFile(LocalFileUploadRequest request) {
-		if (AuthorizationUtils.isUserAnonymous(Long.parseLong(request.getUserId()))) {
-			throw new UnauthorizedException("Anonymous cannot upload files.");
-		}
 		try {
 			
 			// This will return the default storage location if the input is null
