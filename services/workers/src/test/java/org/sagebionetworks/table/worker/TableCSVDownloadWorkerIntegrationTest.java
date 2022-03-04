@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -16,8 +17,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -28,10 +33,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -39,8 +46,13 @@ import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -66,6 +78,7 @@ import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -75,7 +88,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -112,8 +127,11 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	TableTransactionManager transactionManager;
 	@Autowired
 	DefaultColumnModelMapper columnModelMapper;
+	@Autowired
+	private EntityAclManager entityAclManager;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo anonymousUser;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
 	List<String> headers;
@@ -131,6 +149,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		toDelete = new LinkedList<String>();
 	}
 	
@@ -150,7 +169,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testRoundTrip() throws Exception{
+	public void testRoundTrip() throws Throwable{
 		List<String[]> input = createTable();
 		
 		String sql = "select * from "+tableId;
@@ -162,12 +181,48 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
+		checkResults(results, input, true);
+	}
+	
+	// Test to reproduce PLFM-7050
+	@Test
+	public void testRoundTripWithAnonymousUserAndOpenData() throws Throwable {
+		List<String[]> input = createTable();
+		
+		String sql = "select * from "+tableId;
+		
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			downloadCSV(anonymousUser, request);
+		});
+				
+		// Now set the table as open data
+		entityManager.changeEntityDataType(adminUserInfo, tableId, DataType.OPEN_DATA);		
+		
+		// Grants read access to the public group		
+		AccessControlList acl = entityAclManager.getACL(tableId, adminUserInfo);
+		
+		Set<ResourceAccess> access = new HashSet<ResourceAccess>(acl.getResourceAccess());
+		
+		access.add(new ResourceAccess()
+				.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())
+				.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ)));
+		
+		acl.setResourceAccess(access);
+		
+		entityAclManager.updateACL(acl, adminUserInfo);
+		
+		List<String[]> results = downloadCSV(anonymousUser, request);
 		checkResults(results, input, true);
 	}
 
 	@Test
-	public void testRoundTripSorted() throws Exception{
+	public void testRoundTripSorted() throws Throwable{
 		List<String[]> input = createTable();
 		
 		String sql = "select * from "+tableId;
@@ -183,13 +238,13 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		sortItem.setColumn("c");
 		sortItem.setDirection(SortDirection.DESC);
 		request.setSort(Lists.newArrayList(sortItem));
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
 		input = Lists.newArrayList(input.get(0), input.get(4), input.get(2), input.get(1), input.get(3));
 		checkResults(results, input, true);
 	}
 
 	@Test
-	public void testRoundTripWithZeroResults() throws Exception {
+	public void testRoundTripWithZeroResults() throws Throwable {
 		createTable();
 
 		String sql = "select * from " + tableId + " where a = 'xxxxxx'";
@@ -201,12 +256,12 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
 		checkResults(results, Lists.<String[]> newArrayList(new String[] { "a", "b", "c" }), true);
 	}
 	
 	@Test
-	public void testDownloadWitoutWaitForSql() throws Exception {
+	public void testDownloadWitoutWaitForSql() throws Throwable {
 		List<String[]> input = createTable();
 
 		String sql = "select * from " + tableId;
@@ -215,12 +270,12 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
 		checkResults(results, input, false);
 	}
 	
 	@Test
-	public void testDownloadViewWithoutEtag() throws Exception{
+	public void testDownloadViewWithoutEtag() throws Throwable{
 		// Create a project view to query
 		EntityView projectView =  createProjectView();
 		// CSV download from the view
@@ -230,7 +285,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setIncludeRowIdAndRowVersion(true);
 		// null should default to false
 		request.setIncludeEntityEtag(null);
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
@@ -240,7 +295,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testDownloadViewWithEtag() throws Exception{
+	public void testDownloadViewWithEtag() throws Throwable{
 		// Create a project view to query
 		EntityView projectView =  createProjectView();
 		// CSV download from the view
@@ -249,7 +304,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
 		request.setIncludeEntityEtag(true);
-		List<String[]> results = downloadCSV(request);
+		List<String[]> results = downloadCSV(adminUserInfo, request);
 		assertEquals(4, results.size());
 		String[] headers = results.get(0);
 		String headerString = Arrays.toString(headers);
@@ -351,13 +406,13 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	 * Download a CSV for the given request.
 	 * @param request
 	 * @return
+	 * @throws Throwable 
 	 * @throws InterruptedException 
 	 * @throws NotFoundException 
-	 * @throws Exception 
 	 */
-	List<String[]> downloadCSV(DownloadFromTableRequest request) throws Exception {
+	List<String[]> downloadCSV(UserInfo user, DownloadFromTableRequest request) throws Throwable {
 		// submit the job
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, request);
 		// Wait for the job to complete.
 		status = waitForStatus(status);
 		assertNotNull(status);
@@ -430,10 +485,10 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		}
 	}
 	
-	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
+	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws Throwable{
 		long start = System.currentTimeMillis();
-		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
-			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
+		while(!AsynchJobState.COMPLETE.equals(status.getJobState())) {
+			AsynchJobUtils.throwExceptionIfFailed(status);
 			System.out.println("Waiting for job to complete: Message: "+status.getProgressMessage()+" progress: "+status.getProgressCurrent()+"/"+status.getProgressTotal());
 			assertTrue("Timed out waiting for table status",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			Thread.sleep(1000);

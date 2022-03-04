@@ -165,7 +165,9 @@ public interface FileHandleManager {
 	BucketCrossOriginConfiguration getBucketCrossOriginConfiguration();
 
 	/**
-	 * Upload a local file to the standard Synapse S3 bucket and creates an file handle for the file.  This is used by workers.
+	 * Upload a local file to the standard Synapse S3 bucket and creates an file handle for the file.  This is used by workers. 
+	 * 
+	 * Note that NO permission check is performed on the user of the request.
 	 * 
 	 * @param request
 	 * @return
