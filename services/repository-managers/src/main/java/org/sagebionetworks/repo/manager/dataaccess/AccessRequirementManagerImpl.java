@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -31,7 +32,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
@@ -65,6 +69,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
 		ValidateArgument.required(ar.getAccessType(), "AccessType");
@@ -124,6 +131,20 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 	}
 
+	private void signalSubjectId(RestrictableObjectDescriptor rod) {
+		if (RestrictableObjectType.ENTITY != rod.getType()) {
+			throw new IllegalArgumentException("Only signal ENTITY type!");
+		}
+		// Send a change message to trigger a snapshot
+		EntityType entityType = nodeDao.getNodeTypeById(rod.getId());
+		if (NodeUtils.isProjectOrFolder(entityType)) {
+			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		} else {
+			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY, ChangeType.UPDATE);
+		}
+
+	}
+
 	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -132,10 +153,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
 		populateCreationFields(userInfo, accessRequirement);
-		
 		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
+				signalSubjectId(rod);
 			}
 		}
 		
@@ -178,6 +199,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
 		preventCreateWithinSTSFolder(entityId);
+		signalSubjectId(subjectId);
 		
 		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
 		String jiraKey = JRJCHelper.createRestrictIssue(jiraClient,
@@ -232,6 +254,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		for (RestrictableObjectDescriptor rod : toUpdate.getSubjectIds()) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
+				signalSubjectId(rod);
 			}
 		}
 
@@ -337,6 +360,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 
 		ManagedACTAccessRequirement toUpdate = convert((ACTAccessRequirement) current, userInfo.getId().toString());
+		for (RestrictableObjectDescriptor rod: toUpdate.getSubjectIds()) {
+			signalSubjectId(rod);
+		}
 		return accessRequirementDAO.update(setDefaultValues(toUpdate));
 	}
 

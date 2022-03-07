@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_OFFSET;
@@ -60,6 +61,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
@@ -82,6 +85,8 @@ public class AccessRequirementManagerImplUnitTest {
 	private NodeDAO nodeDao;
 	@Mock
 	private AuthorizationManager authorizationManager;
+	@Mock
+	private TransactionalMessenger mockTransactionalMessenger;
 
 	@InjectMocks
 	private AccessRequirementManagerImpl arm;
@@ -118,6 +123,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -127,6 +133,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, toCreate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	private ManagedACTAccessRequirement createExpectedAR() {
@@ -145,6 +152,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(null, TEST_ENTITY_ID);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -152,6 +160,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, null);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -200,6 +209,8 @@ public class AccessRequirementManagerImplUnitTest {
 		// test that jira client was called to create issue
 		// we don't test the *content* of the issue because that's tested in JRJCHelperTest
 		verify(jiraClient).createIssue(anyObject());
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -209,6 +220,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -219,6 +231,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -235,6 +248,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -254,6 +268,7 @@ public class AccessRequirementManagerImplUnitTest {
 		});
 
 		verify(jiraClient, never()).createIssue(anyObject());
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -263,6 +278,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.createAccessRequirement(userInfo, ar);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -307,6 +323,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(ar.getIsIDURequired());
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -321,6 +339,7 @@ public class AccessRequirementManagerImplUnitTest {
 		});
 		
 		verify(accessRequirementDAO, never()).create(any());
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -331,6 +350,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(null, accessRequirementId, toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -340,6 +360,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, null, toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -347,6 +368,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, "1", null);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -356,6 +378,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, "-1", toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -367,6 +390,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -378,6 +402,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -395,6 +420,7 @@ public class AccessRequirementManagerImplUnitTest {
 			// method under test
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -407,6 +433,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -424,6 +451,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -441,6 +469,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -460,6 +489,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -480,6 +510,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -516,6 +547,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -638,6 +671,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.convert(null, "1");
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -646,6 +680,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			AccessRequirementManagerImpl.convert(ar, null);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -662,6 +697,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(managed.getVersionNumber().equals(ar.getVersionNumber()+1));
 		assertEquals(modifiedBy, managed.getModifiedBy());
 		assertFalse(managed.getEtag().equals(ar.getEtag()));
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	private ACTAccessRequirement createACTAccessRequirement() {
@@ -689,6 +725,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(null, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -696,6 +733,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, null);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -706,6 +744,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -716,6 +755,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -726,6 +766,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -737,6 +778,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -750,6 +792,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -764,6 +807,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -778,6 +822,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -791,6 +836,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.convertAccessRequirement(userInfo, request);
 		});
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -815,6 +861,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(updated.getVersionNumber().equals(current.getVersionNumber()+1));
 		assertEquals(userInfo.getId().toString(), updated.getModifiedBy());
 		assertFalse(updated.getEtag().equals(current.getEtag()));
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
