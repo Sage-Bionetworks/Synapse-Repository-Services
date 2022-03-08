@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,12 +35,15 @@ import org.sagebionetworks.util.FileProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.google.cloud.storage.Blob;
 
 /**
@@ -50,6 +54,8 @@ import com.google.cloud.storage.Blob;
  *
  */
 public class PreviewManagerImpl implements  PreviewManager {
+	
+	static final long MULTIPART_MAX_PART_SIZE = 5 * 1024 * 1024;
 	
 	static private Log log = LogFactory.getLog(PreviewManagerImpl.class);
 	
@@ -213,21 +219,50 @@ public class PreviewManagerImpl implements  PreviewManager {
 			
 			StorageLocationSetting storageLocation = storageLocationDao.get(metadata.getStorageLocationId());
 
-			// Upload this to S3
 			ObjectMetadata previewS3Meta = TransferUtils.prepareObjectMetadata(pfm);
-			
+
 			StorageClass storageClass = MultipartUtils.getS3StorageClass(storageLocation);
+						
+			String bucket = pfm.getBucketName();
+			String key = pfm.getKey();
 			
-			PutObjectRequest putRequest = new PutObjectRequest(pfm.getBucketName(), pfm.getKey(), tempUpload)
-					.withMetadata(previewS3Meta)
-					.withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
+			// Upload the preview to S3as a multipart upload (This is necessary so that a notification is
+			// sent out for the virus scanner, see https://sagebionetworks.jira.com/browse/PLFM-7065 for details)			
+			InitiateMultipartUploadRequest multipartRequest = new InitiateMultipartUploadRequest(bucket, key, previewS3Meta)
+					.withCannedACL(CannedAccessControlList.BucketOwnerFullControl);
 			
 			if (storageClass != null) {
-				putRequest.withStorageClass(storageClass);
+				multipartRequest.withStorageClass(storageClass);
 			}
 			
-			s3Client.putObject(putRequest);
+			String uploadId = s3Client.initiateMultipartUpload(multipartRequest).getUploadId();			
+			long contentLength = pfm.getContentSize();
+			long currentPartSize = MULTIPART_MAX_PART_SIZE;
+			long filePosition = 0;
+			List<PartETag> partETags = new ArrayList<PartETag>();
 			
+            for (int partNumber = 1; filePosition < contentLength; partNumber++) {
+                currentPartSize = Math.min(currentPartSize, (contentLength - filePosition));
+                
+                UploadPartRequest uploadPartRequest = new UploadPartRequest()
+                        .withBucketName(bucket)
+                        .withKey(key)
+                        .withUploadId(uploadId)
+                        .withPartNumber(partNumber)
+                        .withFileOffset(filePosition)
+                        .withFile(tempUpload)
+                        .withPartSize(currentPartSize);
+                
+                partETags.add(s3Client.uploadPart(uploadPartRequest).getPartETag());
+
+                filePosition += currentPartSize;
+            }
+
+            // Complete the multipart upload.
+            CompleteMultipartUploadRequest multipartCompleteRequest = new CompleteMultipartUploadRequest(bucket, key, uploadId, partETags);
+            
+            s3Client.completeMultipartUpload(multipartCompleteRequest);
+            
 			pfm.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			pfm.setEtag(UUID.randomUUID().toString());
 			// Save the metadata

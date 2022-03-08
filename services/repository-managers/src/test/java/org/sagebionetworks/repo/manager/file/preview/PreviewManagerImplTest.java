@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,11 +42,16 @@ import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.FileProvider;
 
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
 
@@ -78,6 +84,10 @@ public class PreviewManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private StorageLocationDAO mockStorageLocationDao;
+	@Mock
+	private InitiateMultipartUploadResult mockMultipartResult;
+	@Mock
+	private UploadPartResult mockUploadPartResult;
 
 	PreviewManagerImpl previewManager;
 
@@ -175,6 +185,8 @@ public class PreviewManagerImplTest {
 		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
+		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
 		
 		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
@@ -222,7 +234,7 @@ public class PreviewManagerImplTest {
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		
 		// Simulate an S3 exception.  The streams must be closed even when there is an error
-		when(mockS3Client.putObject(any(PutObjectRequest.class))).thenThrow(new RuntimeException("Something went wrong!"));
+		when(mockS3Client.initiateMultipartUpload(any())).thenThrow(new RuntimeException("Something went wrong!"));
 		
 		assertThrows(RuntimeException.class, () -> {
 			previewManager.generatePreview(testMetadata);
@@ -246,7 +258,7 @@ public class PreviewManagerImplTest {
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		
 		// Simulate an S3 exception.  The temp files must be deleted.
-		when(mockS3Client.putObject(any(PutObjectRequest.class))).thenThrow(new RuntimeException("Something went wrong!"));
+		when(mockS3Client.initiateMultipartUpload(any())).thenThrow(new RuntimeException("Something went wrong!"));
 		
 		assertThrows(RuntimeException.class, () -> {
 			previewManager.generatePreview(testMetadata);
@@ -258,6 +270,9 @@ public class PreviewManagerImplTest {
 	
 	@Test
 	public void testExpectedS3Preview() throws Exception{
+		
+		String uploadId = "uploadId";
+		
 		when(mockFileProvider.createTempFile(any(String.class), any(String.class))).thenReturn(mockUploadFile);
 		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
 		when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(mockS3Object);
@@ -267,6 +282,9 @@ public class PreviewManagerImplTest {
 		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
+		when(mockMultipartResult.getUploadId()).thenReturn(uploadId);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
+		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
 		
 		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
@@ -276,6 +294,112 @@ public class PreviewManagerImplTest {
 		assertNotNull(pfm.getCreatedOn());
 		assertEquals("preview"+previewContentType.getExtension(), pfm.getFileName());
 		assertEquals(resultPreviewSize, pfm.getContentSize());
+		
+		ArgumentCaptor<InitiateMultipartUploadRequest> initRequestCaptor = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		
+		verify(mockS3Client).initiateMultipartUpload(initRequestCaptor.capture());
+		
+		assertEquals(pfm.getBucketName(), initRequestCaptor.getValue().getBucketName());
+		assertEquals(pfm.getKey(), initRequestCaptor.getValue().getKey());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, initRequestCaptor.getValue().getCannedACL());
+		
+		ArgumentCaptor<UploadPartRequest> partRequestCaptor = ArgumentCaptor.forClass(UploadPartRequest.class);
+		
+		verify(mockS3Client).uploadPart(partRequestCaptor.capture());
+		
+		assertEquals(uploadId, partRequestCaptor.getValue().getUploadId());
+		assertEquals(pfm.getBucketName(), partRequestCaptor.getValue().getBucketName());
+		assertEquals(pfm.getKey(), partRequestCaptor.getValue().getKey());
+		assertEquals(1, partRequestCaptor.getValue().getPartNumber());
+		assertEquals(0, partRequestCaptor.getValue().getFileOffset());
+		assertEquals(resultPreviewSize, partRequestCaptor.getValue().getPartSize());
+		assertEquals(mockUploadFile, partRequestCaptor.getValue().getFile());
+		
+		ArgumentCaptor<CompleteMultipartUploadRequest> compRequestCaptor = ArgumentCaptor.forClass(CompleteMultipartUploadRequest.class);
+		
+		verify(mockS3Client).completeMultipartUpload(compRequestCaptor.capture());
+		
+		assertEquals(uploadId, compRequestCaptor.getValue().getUploadId());
+		assertEquals(pfm.getBucketName(), compRequestCaptor.getValue().getBucketName());
+		assertEquals(pfm.getKey(), compRequestCaptor.getValue().getKey());
+		assertEquals(1, compRequestCaptor.getValue().getPartETags().size());
+		
+		// Make sure the preview is in the dao
+		CloudProviderFileHandleInterface fromDao = (CloudProviderFileHandleInterface) stubFileMetadataDao.get(pfm.getId());
+		assertEquals(pfm, fromDao);
+	}
+	
+	@Test
+	public void testExpectedS3PreviewWithMultipleParts() throws Exception{
+		
+		String uploadId = "uploadId";
+		long contentLength = PreviewManagerImpl.MULTIPART_MAX_PART_SIZE * 2 - 1;
+		
+		when(mockFileProvider.createTempFile(any(String.class), any(String.class))).thenReturn(mockUploadFile);
+		when(mockFileProvider.createFileOutputStream(mockUploadFile)).thenReturn(mockOutputStream);
+		when(mockS3Client.getObject(any(GetObjectRequest.class))).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenReturn(mockS3ObjectInputStream);
+		when(mockPreviewGenerator.supportsContentType(testContentType, "txt")).thenReturn(true);
+		when(mockPreviewGenerator.calculateNeededMemoryBytesForPreview(any(), anyLong())).thenReturn(maxPreviewSize);
+		when(mockPreviewGenerator.generatePreview(mockS3ObjectInputStream, mockOutputStream)).thenReturn(previewContentType);
+		when(mockUploadFile.length()).thenReturn(contentLength);
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
+		when(mockMultipartResult.getUploadId()).thenReturn(uploadId);
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
+		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
+		
+		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
+		assertNotNull(pfm);
+		assertNotNull(pfm.getId());
+		assertEquals(previewContentType.getContentType(), pfm.getContentType());
+		assertEquals(testMetadata.getCreatedBy(), pfm.getCreatedBy());
+		assertNotNull(pfm.getCreatedOn());
+		assertEquals("preview"+previewContentType.getExtension(), pfm.getFileName());
+		assertEquals(contentLength, pfm.getContentSize());
+		
+		ArgumentCaptor<InitiateMultipartUploadRequest> initRequestCaptor = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
+		
+		verify(mockS3Client).initiateMultipartUpload(initRequestCaptor.capture());
+		
+		assertEquals(pfm.getBucketName(), initRequestCaptor.getValue().getBucketName());
+		assertEquals(pfm.getKey(), initRequestCaptor.getValue().getKey());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, initRequestCaptor.getValue().getCannedACL());
+		
+		ArgumentCaptor<UploadPartRequest> partRequestCaptor = ArgumentCaptor.forClass(UploadPartRequest.class);
+		
+		verify(mockS3Client, times(2)).uploadPart(partRequestCaptor.capture());
+		
+		assertEquals(2, partRequestCaptor.getAllValues().size());
+		
+		UploadPartRequest part1 = partRequestCaptor.getAllValues().get(0);
+		
+		assertEquals(uploadId, part1.getUploadId());
+		assertEquals(pfm.getBucketName(), part1.getBucketName());
+		assertEquals(pfm.getKey(), part1.getKey());
+		assertEquals(1, part1.getPartNumber());
+		assertEquals(0, part1.getFileOffset());
+		assertEquals(PreviewManagerImpl.MULTIPART_MAX_PART_SIZE, part1.getPartSize());
+		assertEquals(mockUploadFile, part1.getFile());
+		
+		UploadPartRequest part2 = partRequestCaptor.getAllValues().get(1);
+		
+		assertEquals(uploadId, part2.getUploadId());
+		assertEquals(pfm.getBucketName(), part2.getBucketName());
+		assertEquals(pfm.getKey(), part2.getKey());
+		assertEquals(2, part2.getPartNumber());
+		assertEquals(PreviewManagerImpl.MULTIPART_MAX_PART_SIZE, part2.getFileOffset());
+		assertEquals(PreviewManagerImpl.MULTIPART_MAX_PART_SIZE - 1, part2.getPartSize());
+		assertEquals(mockUploadFile, part2.getFile());
+		
+		ArgumentCaptor<CompleteMultipartUploadRequest> compRequestCaptor = ArgumentCaptor.forClass(CompleteMultipartUploadRequest.class);
+		
+		verify(mockS3Client).completeMultipartUpload(compRequestCaptor.capture());
+		
+		assertEquals(uploadId, compRequestCaptor.getValue().getUploadId());
+		assertEquals(pfm.getBucketName(), compRequestCaptor.getValue().getBucketName());
+		assertEquals(pfm.getKey(), compRequestCaptor.getValue().getKey());
+		assertEquals(2, compRequestCaptor.getValue().getPartETags().size());
+		
 		// Make sure the preview is in the dao
 		CloudProviderFileHandleInterface fromDao = (CloudProviderFileHandleInterface) stubFileMetadataDao.get(pfm.getId());
 		assertEquals(pfm, fromDao);
@@ -296,18 +420,20 @@ public class PreviewManagerImplTest {
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
 		when(mockStorageLocationDao.get(any())).thenReturn(new S3StorageLocationSetting());
+		when(mockS3Client.initiateMultipartUpload(any())).thenReturn(mockMultipartResult);
+		when(mockS3Client.uploadPart(any())).thenReturn(mockUploadPartResult);
 		
 		// Call under test
 		CloudProviderFileHandleInterface pfm = previewManager.generatePreview(testMetadata);
 		
 		assertNotNull(pfm);
 		
-		ArgumentCaptor<PutObjectRequest> putRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		ArgumentCaptor<InitiateMultipartUploadRequest> requestCaptor = ArgumentCaptor.forClass(InitiateMultipartUploadRequest.class);
 		
 		verify(mockStorageLocationDao).get(123L);
-		verify(mockS3Client).putObject(putRequestCaptor.capture());
+		verify(mockS3Client).initiateMultipartUpload(requestCaptor.capture());
 		
-		assertEquals(StorageClass.IntelligentTiering.toString(), putRequestCaptor.getValue().getStorageClass());
+		assertEquals(StorageClass.IntelligentTiering, requestCaptor.getValue().getStorageClass());
 	}
 
 	@Test

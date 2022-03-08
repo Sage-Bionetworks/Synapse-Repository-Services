@@ -16,20 +16,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * This test validates that when a file is created, the message propagates to the 
@@ -39,7 +37,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class PreviewIntegrationTest {
+public class PreviewWorkerIntegrationTest {
 
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
 	private static String LITTLE_CSV_NAME = "previewtest.csv";
@@ -69,7 +67,7 @@ public class PreviewIntegrationTest {
 	}
 	
 	public S3FileHandle uploadFile(String fileName, String mimeType) throws Exception{
-		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
+		InputStream in = PreviewWorkerIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
 		assertNotNull(in, "Failed to find a test file on the classpath: "+fileName);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
