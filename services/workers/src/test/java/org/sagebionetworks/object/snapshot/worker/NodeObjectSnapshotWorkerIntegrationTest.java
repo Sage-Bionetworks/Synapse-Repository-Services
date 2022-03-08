@@ -22,10 +22,8 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -153,7 +151,6 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		ar.setModifiedOn(new Date());
 		ar.setModifiedBy(String.valueOf(creatorUserGroupId));
 		accessRequirementDAO.create(ar);
-		AccessRequirementStats ars = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(toCreate.getId())), RestrictableObjectType.ENTITY);
 
 		// fetch it
 		Node node = nodeDao.getNode(toCreate.getId());
