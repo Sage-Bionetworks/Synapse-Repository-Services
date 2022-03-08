@@ -45,6 +45,8 @@ import com.amazonaws.services.s3.model.RestoreObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 import com.amazonaws.util.StringUtils;
 
 /*
@@ -252,5 +254,10 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	@Override
 	public RestoreObjectResult restoreObject(RestoreObjectRequest request) {
 		return getS3ClientForBucket(request.getBucketName()).restoreObjectV2(request);
+	}
+	
+	@Override
+	public UploadPartResult uploadPart(UploadPartRequest uploadPartRequest) {
+		return getS3ClientForBucket(uploadPartRequest.getBucketName()).uploadPart(uploadPartRequest);
 	}
 }
