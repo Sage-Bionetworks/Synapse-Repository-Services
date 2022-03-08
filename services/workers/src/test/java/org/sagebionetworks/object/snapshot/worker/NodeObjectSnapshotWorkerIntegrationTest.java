@@ -16,13 +16,22 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
@@ -49,6 +58,8 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	private QueueCleaner queueCleaner;
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
+	@Autowired
+	private AccessRequirementDAO accessRequirementDAO;
 
 	private List<String> toDelete = new ArrayList<String>();
 	private Long creatorUserGroupId;
@@ -108,6 +119,49 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
 		record.setIsPublic(false);
 		record.setIsRestricted(false);
+		record.setIsControlled(false);
+		ObjectRecord expectedRecord = new ObjectRecord();
+		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
+		expectedRecord.setJsonString(EntityFactory.createJSONStringForEntity(record));
+
+		assertTrue(ObjectSnapshotWorkerIntegrationTestUtils.waitForObjects(keys, Arrays.asList(expectedRecord), objectRecordDAO, type));
+	}
+
+	@Test
+	public void testAR() throws Exception {
+		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
+
+		Node toCreate = createNew("node name", creatorUserGroupId, altUserGroupId);
+		toCreate = nodeDao.createNewNode(toCreate);
+		toDelete.add(toCreate.getId());
+		assertNotNull(toCreate.getId());
+		// This node should exist
+		assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(toCreate.getId())));
+		// add an acl.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(toCreate.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		// add an AR.
+		AccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(toCreate.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		List<RestrictableObjectDescriptor> rods = Arrays.asList(rod);
+		ar.setSubjectIds(rods);
+		ar.setCreatedOn(new Date());
+		ar.setCreatedBy(String.valueOf(creatorUserGroupId));
+		ar.setModifiedOn(new Date());
+		ar.setModifiedBy(String.valueOf(creatorUserGroupId));
+		accessRequirementDAO.create(ar);
+		AccessRequirementStats ars = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(toCreate.getId())), RestrictableObjectType.ENTITY);
+
+		// fetch it
+		Node node = nodeDao.getNode(toCreate.getId());
+		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
+		String projectId = nodeDao.getProjectId(toCreate.getId());
+		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
+		record.setIsPublic(false);
+		record.setIsRestricted(true);
 		record.setIsControlled(false);
 		ObjectRecord expectedRecord = new ObjectRecord();
 		expectedRecord.setJsonClassName(record.getClass().getSimpleName().toLowerCase());
