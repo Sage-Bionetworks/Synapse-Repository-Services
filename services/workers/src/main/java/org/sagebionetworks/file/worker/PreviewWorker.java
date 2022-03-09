@@ -27,7 +27,8 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
 import com.google.common.collect.Sets;
 
 /**
@@ -112,10 +113,14 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
-		} catch (AmazonS3Exception e) {
+		} catch (AmazonServiceException e) {
 			if (IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES.contains(e.getErrorCode())) {
 				//nothing to do because the file no longer exists
 				log.warn("Unable to process message: " + changeMessage.toString() + " because received " + e.getStatusCode() +  " Error Code: " + e.getErrorCode() + " from Amazon S3");
+			} else if (ErrorType.Service == e.getErrorType()) {
+				log.warn("Failed to process message: " + changeMessage.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
+				throw new RecoverableMessageException(e);
 			} else {
 				handleThrowable(changeMessage, e);
 			}
@@ -130,7 +135,7 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 		} else {
 			// If we do not know what went wrong then we do no re-try
 			log.error("Failed to process message: " + changeMessage.toString(), e);
-			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
+			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
 		}
 	}
 

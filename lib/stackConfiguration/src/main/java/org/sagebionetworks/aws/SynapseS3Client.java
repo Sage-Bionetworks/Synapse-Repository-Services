@@ -33,6 +33,8 @@ import com.amazonaws.services.s3.model.RestoreObjectRequest;
 import com.amazonaws.services.s3.model.RestoreObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 
 /*
  * 
@@ -134,6 +136,8 @@ public interface SynapseS3Client {
 	void setObjectTags(String bucketName, String key, List<Tag> tags);
 
 	RestoreObjectResult restoreObject(RestoreObjectRequest request);
+
+	UploadPartResult uploadPart(UploadPartRequest uploadPartRequest);
 
 
 }

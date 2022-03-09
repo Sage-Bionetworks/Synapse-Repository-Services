@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.worker;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,6 +40,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonServiceException.ErrorType;
 import com.amazonaws.services.s3.internal.AmazonS3ExceptionBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.sqs.model.Message;
@@ -166,18 +169,14 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		TemporarilyUnavailableException expectedException = new TemporarilyUnavailableException();
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
-		try {
-			// Fire!
-			worker.run(mockProgressCallback, change);
-			fail("Should have thrown an exception");
-		} catch (RecoverableMessageException e) {
-			// expected
-		}
+		assertThrows(RecoverableMessageException.class, () -> {
+			worker.run(mockProgressCallback, change);			
+		});
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
 	}
 
 	@Test
-	public void testAmazonS3Exception_ErrorCode_NoSuchKey() throws Exception {
+	public void testAmazonS3ExceptionWithErrorCodeNoSuchKey() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
 		meta.setStatus(FileHandleStatus.AVAILABLE);
@@ -191,7 +190,7 @@ public class PreviewWorkerTest {
 	}
 
 	@Test
-	public void testAmazonS3Exception_ErrorCode_AccessDenied() throws Exception {
+	public void testAmazonS3ExceptionWithErrorCodeAccessDenied() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
 		meta.setStatus(FileHandleStatus.AVAILABLE);
@@ -206,7 +205,7 @@ public class PreviewWorkerTest {
 
 
 	@Test
-	public void testAmazonS3Exception_OtherErrorCodes() throws Exception {
+	public void testAmazonS3ExceptionWithOtherErrorCodes() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setIsPreview(false);
 		meta.setStatus(FileHandleStatus.AVAILABLE);
@@ -219,6 +218,27 @@ public class PreviewWorkerTest {
 		// Fire!
 		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testAmazonServiceExceptionRetriable() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		meta.setIsPreview(false);
+		meta.setStatus(FileHandleStatus.AVAILABLE);
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		AmazonServiceException serviceException = new AmazonServiceException("Something wrong atm");
+		serviceException.setErrorType(ErrorType.Service);
+				
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(serviceException);
+		
+        RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// Fire!
+			worker.run(mockProgressCallback, change);
+		});
+        
+        assertEquals(serviceException, result.getCause());
+        
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, serviceException, true);
 	}
 
 	@Test
@@ -313,7 +333,6 @@ public class PreviewWorkerTest {
 	public void testIgnoreDeleteMessage() throws Exception{
 		// Update messages should be ignored.
 		change.setChangeType(ChangeType.DELETE);
-		S3FileHandle meta = new S3FileHandle();
 		// Fire!
 		worker.run(mockProgressCallback, change);
 		// We should not generate a 

@@ -56,6 +56,8 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.SetObjectTaggingResult;
 import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 
 @ExtendWith(MockitoExtension.class)
 public class SynapseS3ClientImplUnitTest {
@@ -439,6 +441,25 @@ public class SynapseS3ClientImplUnitTest {
 		
 		verify(mockAmazonClient).restoreObjectV2(request);
 		
+	}
+	
+	@Test
+	public void testUploadPart() {
+		
+		UploadPartRequest request = new UploadPartRequest()
+			.withBucketName(BUCKET_NAME)
+			.withKey(OBJECT_KEY);
+		
+		UploadPartResult expected = new UploadPartResult();
+		
+		when(mockAmazonClient.uploadPart(any())).thenReturn(expected);
+		
+		// Call under test
+		UploadPartResult result = client.uploadPart(request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAmazonClient).uploadPart(request);
 	}
 
 }
