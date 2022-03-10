@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Map;
 
-import org.json.simple.JSONObject;
 import org.sagebionetworks.repo.util.jrjc.*;
 
 /**

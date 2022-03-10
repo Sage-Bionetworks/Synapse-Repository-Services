@@ -23,8 +23,7 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.security.SecurityException;
 
 public class JSONWebTokenHelper {
 	public static final String RSA = "RSA";
@@ -36,7 +35,7 @@ public class JSONWebTokenHelper {
 		String unsignedToken = pieces[0]+"."+pieces[1]+".";
 		// Expiration time is checked by the parser
 		try {
-			return Jwts.parser().parseClaimsJwt(unsignedToken);
+			return Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken);
 		} catch (ExpiredJwtException e) {
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The token has expired.");
 		} catch (JwtException e) {
@@ -79,8 +78,11 @@ public class JSONWebTokenHelper {
 		Jwt<JwsHeader,Claims> result = null;
 		try {
 			Key rsaPublicKey = getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)matchingKey);
-			result = Jwts.parser().setSigningKey(rsaPublicKey).parse(token);
-		} catch (SignatureException e) {
+			result = Jwts.parserBuilder()
+						.setSigningKey(rsaPublicKey)
+						.build()
+						.parse(token);
+		} catch (SecurityException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 

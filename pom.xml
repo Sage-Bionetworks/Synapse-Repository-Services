@@ -151,18 +151,26 @@
 				</exclusions>
 			</dependency>
 			<dependency>
-				<groupId>io.jsonwebtoken</groupId>
-				<artifactId>jjwt</artifactId>
-				<version>0.7.0</version>
+			    <groupId>io.jsonwebtoken</groupId>
+			    <artifactId>jjwt-api</artifactId>
+			    <version>${jjwt.version}</version>
 			</dependency>
-
-			<!-- jsonwebtoken seems to need this JSON library -->
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-impl</artifactId>
+				<version>${jjwt.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-jackson</artifactId>
+				<version>${jjwt.version}</version>
+			</dependency>
+			<!-- Because why not import all the possible json libraries? -->
 			<dependency>
 				<groupId>com.googlecode.json-simple</groupId>
 				<artifactId>json-simple</artifactId>
 				<version>1.1</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-jdk15on</artifactId>
@@ -419,14 +427,6 @@
 				<artifactId>httpmime</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
 			</dependency>
-
-			<!--Apache Xerces XML DOM library -->
-			<dependency>
-				<groupId>xerces</groupId>
-				<artifactId>xercesImpl</artifactId>
-				<version>2.12.2</version>
-			</dependency>
-
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
@@ -754,7 +754,12 @@
 				<groupId>javax.annotation</groupId>
 				<artifactId>javax.annotation-api</artifactId>
 				<version>1.3.2</version>
-				<scope>provided</scope>
+			</dependency>
+			
+			<dependency>
+			    <groupId>javax.xml.bind</groupId>
+			    <artifactId>jaxb-api</artifactId>
+			    <version>2.3.1</version>
 			</dependency>
 
 		</dependencies>
@@ -1054,6 +1059,7 @@
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 		<jsoup.version>1.14.2</jsoup.version>
 		<bouncycastle.version>1.67</bouncycastle.version>
+		<jjwt.version>0.11.2</jjwt.version>
 	</properties>
 
 	<distributionManagement>
@@ -1076,16 +1082,4 @@
 		</site>
 	</distributionManagement>
 
-	<dependencies>
-		<dependency>
-			<groupId>xerces</groupId>
-			<artifactId>xercesImpl</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>xml-apis</groupId>
-					<artifactId>xml-apis</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-	</dependencies>
 </project>

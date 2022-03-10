@@ -13,12 +13,12 @@ public class ClaimsWithAuthTime extends DefaultClaims {
 	private ClaimsWithAuthTime() {}
 
 	public ClaimsWithAuthTime setAuthTime(Date authTime) {
-		setDate(OIDCClaimName.auth_time.name(), authTime);
+		setDateAsSeconds(OIDCClaimName.auth_time.name(), authTime);
 		return this;
 	}
 	
 	public Date getAuthTime() {
-		return getDate(OIDCClaimName.auth_time.name());
+		return get(OIDCClaimName.auth_time.name(), Date.class);
 	}
 
 }

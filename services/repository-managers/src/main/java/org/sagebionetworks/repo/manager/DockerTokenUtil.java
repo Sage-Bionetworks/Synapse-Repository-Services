@@ -75,7 +75,7 @@ public class DockerTokenUtil {
 		String s = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 				setHeaderParam("kid", DOCKER_AUTHORIZATION_PUBLIC_KEY_ID).
-				signWith(SignatureAlgorithm.ES256, DOCKER_AUTHORIZATION_PRIVATE_KEY).compact();
+				signWith(DOCKER_AUTHORIZATION_PRIVATE_KEY, SignatureAlgorithm.ES256).compact();
 
 		return s;
 
