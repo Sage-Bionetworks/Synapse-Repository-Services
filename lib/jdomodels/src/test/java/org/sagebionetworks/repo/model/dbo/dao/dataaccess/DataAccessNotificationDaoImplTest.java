@@ -688,7 +688,7 @@ public class DataAccessNotificationDaoImplTest {
 		
 		AccessApproval approval = createApproval(requirement);
 		
-		Instant sentOn = Instant.now();
+		Instant sentOn = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 		
 		DBODataAccessNotification n1 = newNotification(DataAccessNotificationType.REVOCATION, requirement, approval, sentOn, -1L);
 		
@@ -798,7 +798,7 @@ public class DataAccessNotificationDaoImplTest {
 
 	private DBODataAccessNotification newNotification(DataAccessNotificationType type, Long requirement, Long recipient,
 			Long approval, Long messageId) {
-		return newNotification(type, requirement, recipient, Instant.now(), approval, messageId);
+		return newNotification(type, requirement, recipient, Instant.now().truncatedTo(ChronoUnit.MILLIS), approval, messageId);
 	}
 	
 	private DBODataAccessNotification newNotification(DataAccessNotificationType type, Long requirement, Long recipient,
