@@ -142,7 +142,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		} else {
 			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY, ChangeType.UPDATE);
 		}
+	}
 
+	public void signalDeletedSubjectIds(List<RestrictableObjectDescriptor> currentIds, List<RestrictableObjectDescriptor> updatedIds) {
+		List<RestrictableObjectDescriptor> deletedToSignal = new ArrayList<>(currentIds);
+		deletedToSignal.removeAll(updatedIds);
+		for (RestrictableObjectDescriptor rod: deletedToSignal) {
+			signalSubjectId(rod);
+		}
 	}
 
 	@WriteTransaction
@@ -266,6 +273,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(current.getAccessType().equals(toUpdate.getAccessType()), "Cannot modify AccessType");
 		ValidateArgument.requirement(current.getConcreteType().equals(toUpdate.getConcreteType()), "Cannot change "+current.getConcreteType()+" to "+toUpdate.getConcreteType());
 
+		// Also need to signal nodes that are removed from an AR
+		AccessRequirement currentAr = accessRequirementDAO.get(accessRequirementId);
+		List<RestrictableObjectDescriptor> currentArSubjectIds = currentAr.getSubjectIds();
+		signalDeletedSubjectIds(currentArSubjectIds, toUpdate.getSubjectIds());
+
 		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
 		populateModifiedFields(userInfo, toUpdate);
 		return (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
@@ -281,6 +293,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can delete an AccessRequirement.");
 		}
+		AccessRequirement ar = accessRequirementDAO.get(accessRequirementId);
+		signalDeletedSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 

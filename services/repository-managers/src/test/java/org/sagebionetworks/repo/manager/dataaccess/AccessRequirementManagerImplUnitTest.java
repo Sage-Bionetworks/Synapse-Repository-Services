@@ -11,12 +11,14 @@ import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -188,6 +191,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(ars);
 		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
 
+
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 
 		// test that the right AR was created
@@ -325,6 +329,32 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testCreateAccessRequirementForContainer() {
+		AccessRequirement toCreate = createExpectedAR();
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(nodeDao.getNodeTypeById(TEST_ENTITY_ID)).thenReturn(EntityType.project);
+		arm.createAccessRequirement(userInfo, toCreate);
+
+		// test that the right AR was created
+		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
+		verify(accessRequirementDAO).create(argument.capture());
+
+		// verify that all default fields are set
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -528,6 +558,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.get(accessRequirementId)).thenReturn(toUpdate);
 
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
 
@@ -549,6 +580,46 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testUpdateManagedACTAccessRequirementForContainer() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(1L);
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.get(accessRequirementId)).thenReturn(toUpdate);
+		when(nodeDao.getNodeTypeById(TEST_ENTITY_ID)).thenReturn(EntityType.project);
+
+		arm.updateAccessRequirement(userInfo, "1", toUpdate);
+
+		// test that the right AR was created
+		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
+		verify(accessRequirementDAO).update(argument.capture());
+
+		// verify that all default fields are set
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getIsIDURequired());
+		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -661,9 +732,19 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testDeleteAccessRequirementAuthorized() {
+		AccessRequirement expectedAr = new TermsOfUseAccessRequirement();
+		expectedAr.setId(1L);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(TEST_ENTITY_ID);
+		rod.setType(RestrictableObjectType.ENTITY);
+		List<RestrictableObjectDescriptor> subjectIds = Arrays.asList(rod);
+		expectedAr.setSubjectIds(subjectIds);
+
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.get("1")).thenReturn(expectedAr);
 		arm.deleteAccessRequirement(userInfo, "1");
 		verify(accessRequirementDAO).delete("1");
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
@@ -1003,4 +1084,66 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement ar = createExpectedAR();
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 	}
+
+	@Test
+	public void testSignalDeletedSubjectIdsAll() {
+		List<RestrictableObjectDescriptor> currentRods = generateRods(2);
+		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+		// call under test: should all be signaled
+		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+		verify(nodeDao, times(2)).getNodeTypeById(any(String.class));
+		verify(nodeDao).getNodeTypeById("0");
+		verify(nodeDao).getNodeTypeById("1");
+		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(String.class), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
+	}
+
+	@Test
+	public void testSignalDeletedSubjectIdsNone() {
+		List<RestrictableObjectDescriptor> updatedRods = generateRods(2);
+		List<RestrictableObjectDescriptor> currentRods = new ArrayList<>();
+		// call under test: none should be signaled
+		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+		verify(nodeDao, never()).getNodeTypeById(any(String.class));
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
+	}
+
+	@Test
+	public void testSignalDeletedSubjectIdsOne() {
+		List<RestrictableObjectDescriptor> currentRods = generateRods(2);
+		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		updatedRods.add(rod);
+		// call under test: "0" should all be signaled
+		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+		verify(nodeDao).getNodeTypeById("0");
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY, ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testSignalDeletedSubjectIdsDistinct() {
+		List<RestrictableObjectDescriptor> currentRods = generateRods(1); // id == 0
+		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		updatedRods.add(rod);
+		// call under test: "0" should all be signaled
+		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+		verify(nodeDao).getNodeTypeById("0");
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY, ChangeType.UPDATE);
+	}
+
+	private List<RestrictableObjectDescriptor> generateRods(int numRods) {
+		List<RestrictableObjectDescriptor> rods = new ArrayList<>();
+		for (int i = 0; i < numRods; i++) {
+			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+			rod.setId(String.valueOf(i));
+			rod.setType(RestrictableObjectType.ENTITY);
+			rods.add(rod);
+		}
+		return rods;
+	}
+
 }
