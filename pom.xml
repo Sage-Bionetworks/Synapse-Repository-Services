@@ -738,7 +738,7 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-dbcp2</artifactId>
-				<version>2.6.0</version>
+				<version>2.9.0</version>
 			</dependency>
 
 			<!-- Import the BOM for AWS sdk dependencies -->
@@ -1036,8 +1036,7 @@
 		<jackson.version>2.10.3</jackson.version>
 		<jackson.databind.version>2.10.5.1</jackson.databind.version>
 		<xstream.version>1.4.17</xstream.version>
-		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
-		</maven.build.timestamp.format>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
 		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
@@ -1046,8 +1045,7 @@
 		<schema-to-pojo.version>0.6.8</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.15</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.13
-		</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.17.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
