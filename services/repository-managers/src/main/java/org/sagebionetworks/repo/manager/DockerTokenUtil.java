@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
 import java.security.PrivateKey;
-import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.sagebionetworks.StackConfiguration;
@@ -32,9 +30,6 @@ public class DockerTokenUtil {
 	private static final String KEY_GENERATION_ALGORITHM = "EC";
 	
 	static {
-		Security.removeProvider("SunEC");
-		Security.removeProvider("EC");
-		Security.addProvider(new BouncyCastleProvider());
 		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
 		DOCKER_AUTHORIZATION_PRIVATE_KEY = KeyPairUtil.getPrivateKeyFromPEM(stackConfig.getDockerAuthorizationPrivateKey(), KEY_GENERATION_ALGORITHM);
 		X509Certificate certificate = KeyPairUtil.getX509CertificateFromPEM(stackConfig.getDockerAuthorizationCertificate());
