@@ -123,6 +123,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		permissions.setCanCertifiedUserAddChild(permissionsState.hasCreate());
 		permissions.setCanChangePermissions(
 				determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
+		permissions.setCanMove(determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
 		permissions.setCanChangeSettings(
 				determineAccess(entityIdLong, stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
 		permissions.setCanDelete(determineAccess(entityIdLong, stateProvider, DELETE, userInfo).isAuthorized());
