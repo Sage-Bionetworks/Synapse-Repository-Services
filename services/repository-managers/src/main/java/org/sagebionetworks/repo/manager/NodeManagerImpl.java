@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -413,6 +414,9 @@ public class NodeManagerImpl implements NodeManager {
 			if (!moveAuthorization.isAuthorized()) {
 				throw new UnauthorizedException("You cannot move content into the new location, "+
 						parentInUpdate+". "+moveAuthorization.getMessage());
+			}
+			if(!authorizationManager.hasAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized()) {
+				throw new UnauthorizedException(ACCESS_TYPE.CHANGE_PERMISSIONS.name()+" is required to move to a new location");
 			}
 			// Validate the limits of the new parent
 			validateChildCount(parentInUpdate, updatedNode.getNodeType());

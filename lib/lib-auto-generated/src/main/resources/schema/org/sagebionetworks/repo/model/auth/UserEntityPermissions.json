@@ -10,6 +10,10 @@
 			"type": "boolean",
 			"description": "Can the user edit this entity?"
 		},
+		"canMove": {
+			"type": "boolean",
+			"description": "Can the user move this entity by changing its parentId?"
+		},
 		"canAddChild": {
 			"type": "boolean",
 			"description": "Can the user add a child entity to this entity?"

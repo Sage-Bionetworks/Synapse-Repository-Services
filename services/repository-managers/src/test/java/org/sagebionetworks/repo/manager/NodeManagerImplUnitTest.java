@@ -561,56 +561,138 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testUpdateNodeNewParent() throws DatastoreException, NotFoundException {
-		String authorizedParentId = "456";
-		String unauthorizedParentId = "789";
-
-		when(mockNode.getId()).thenReturn(nodeId);
-		when(mockNode.getNodeType()).thenReturn(type);
-		when(mockNode.getETag()).thenReturn(startEtag);
-		when(mockNode.getParentId()).thenReturn(unauthorizedParentId);
-
-		when(mockAuthManager.hasAccess(eq(mockUserInfo), eq(nodeId), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(unauthorizedParentId))).thenReturn(AuthorizationStatus.accessDenied(""));
-
-		Node oldNode = mock(Node.class);
-		when(oldNode.getParentId()).thenReturn(parentId);
-		when(mockNodeDao.getNode(nodeId)).thenReturn(oldNode);
+	public void testUpdateNodeWithNewParentIdAndAuthorized() {
+		boolean newVersion = false;
+		String oldParentId = "syn123";
+		String newParentId = "syn456";
+		Node oldNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(oldParentId);
+		Node newNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(newParentId);
 		
-		// unauthorized
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {
-			nodeManager.update(mockUserInfo, mockNode, null, false);
-		});
-		// expected
-		verify(mockNodeDao, never()).updateNode(any(Node.class));	
-
-		reset(mockNode);
-		when(mockNode.getId()).thenReturn(nodeId);
-		when(mockNode.getParentId()).thenReturn(authorizedParentId);
-		when(mockNode.getNodeType()).thenReturn(EntityType.table);
-		when(mockNode.getName()).thenReturn("some name");
-		when(mockNode.getETag()).thenReturn(startEtag);
-		
+		when(mockNodeDao.getNode(any())).thenReturn(oldNode);
 		when(mockNodeDao.lockNode(any())).thenReturn(startEtag);
-		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(authorizedParentId))).thenReturn(AuthorizationStatus.authorized());
 		
-		// authorized	
-		nodeManager.update(mockUserInfo, mockNode, null, false);
-		verify(mockNodeDao).updateNode(mockNode);
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
-		// governance restriction on move
-		reset(mockNode);
-		when(mockNode.getId()).thenReturn(nodeId);
-		when(mockNode.getParentId()).thenReturn(authorizedParentId);
-		when(mockNode.getNodeType()).thenReturn(EntityType.table);
-		when(mockNode.getETag()).thenReturn(startEtag);
-		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(authorizedParentId))).thenReturn(AuthorizationStatus.accessDenied(""));
+		// call under test
+		nodeManager.update(mockUserInfo, newNode, null, newVersion);
 		
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {
-			nodeManager.update(mockUserInfo, mockNode, null, false);
-		});
+		verify(mockNodeDao, times(2)).getNode(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockAuthManager).hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAccessApprovalManager).canUserMoveRestrictedEntity(mockUserInfo, oldParentId, newParentId);
 	}
 	
+	@Test
+	public void testUpdateNodeWithNoParentChange() {
+		boolean newVersion = false;
+		String oldParentId = "syn123";
+		String newParentId = "syn123";
+		Node oldNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(oldParentId);
+		Node newNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(newParentId);
+		
+		when(mockNodeDao.getNode(any())).thenReturn(oldNode);
+		when(mockNodeDao.lockNode(any())).thenReturn(startEtag);
+		
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		// call under test
+		nodeManager.update(mockUserInfo, newNode, null, newVersion);
+		
+		verify(mockNodeDao, times(2)).getNode(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockAuthManager, never()).hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager, never()).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAccessApprovalManager).canUserMoveRestrictedEntity(mockUserInfo, oldParentId, newParentId);
+	}
+	
+	@Test
+	public void testUpdateNodeWithNewParentIdAndCannotCreate() {
+		boolean newVersion = false;
+		String oldParentId = "syn123";
+		String newParentId = "syn456";
+		Node oldNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(oldParentId);
+		Node newNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(newParentId);
+		
+		when(mockNodeDao.getNode(any())).thenReturn(oldNode);
+		when(mockNodeDao.lockNode(any())).thenReturn(startEtag);
+		
+		when(mockAuthManager.hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAuthManager.hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		// call under test
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			nodeManager.update(mockUserInfo, newNode, null, newVersion);
+		}).getMessage();
+		assertEquals("You cannot move content into the new location, syn456. no", message);
+		
+		verify(mockNodeDao, times(1)).getNode(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockAuthManager).hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager, never()).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAccessApprovalManager).canUserMoveRestrictedEntity(mockUserInfo, oldParentId, newParentId);
+	}
+	
+	@Test
+	public void testUpdateNodeWithNewParentIdAndCannotUpdate() {
+		boolean newVersion = false;
+		String oldParentId = "syn123";
+		String newParentId = "syn456";
+		Node oldNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(oldParentId);
+		Node newNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(newParentId);
+				
+		when(mockAuthManager.hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied("no update"));
+		
+		// call under test
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			nodeManager.update(mockUserInfo, newNode, null, newVersion);
+		}).getMessage();
+		assertEquals("no update", message);
+		
+		verifyNoMoreInteractions(mockNodeDao);
+		verify(mockAuthManager, never()).hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager, never()).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAccessApprovalManager, never()).canUserMoveRestrictedEntity(mockUserInfo, oldParentId, newParentId);
+	}
+	
+	@Test
+	public void testUpdateNodeWithNewParentIdAndNoChangePermission() {
+		boolean newVersion = false;
+		String oldParentId = "syn123";
+		String newParentId = "syn456";
+		Node oldNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(oldParentId);
+		Node newNode = new Node().setId(nodeId).setNodeType(type).setETag(startEtag).setParentId(newParentId);
+		
+		when(mockNodeDao.getNode(any())).thenReturn(oldNode);
+		when(mockNodeDao.lockNode(any())).thenReturn(startEtag);
+		
+		when(mockAuthManager.hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessApprovalManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS)).thenReturn(AuthorizationStatus.accessDenied("no"));
+		
+		// call under test
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			nodeManager.update(mockUserInfo, newNode, null, newVersion);
+		}).getMessage();
+		assertEquals("CHANGE_PERMISSIONS is required to move to a new location", message);
+		
+		verify(mockNodeDao, times(1)).getNode(nodeId);
+		verify(mockNodeDao).lockNode(nodeId);
+		verify(mockAuthManager).hasAccess(mockUserInfo, newParentId, ACCESS_TYPE.CREATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAccessApprovalManager).canUserMoveRestrictedEntity(mockUserInfo, oldParentId, newParentId);
+	}
+	
+
 	@Test
 	public void testUpdateNewParentIdValidateCount(){
 		String currentParentId = "246";
