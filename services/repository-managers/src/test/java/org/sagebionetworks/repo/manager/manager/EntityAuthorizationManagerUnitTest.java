@@ -159,7 +159,6 @@ public class EntityAuthorizationManagerUnitTest {
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		expected.setCanUpload(true);
 		expected.setIsCertifiedUser(true);
-		expected.setCanMove(true);
 		expected.setCanChangePermissions(true);
 		assertEquals(expected, permissions);
 		
@@ -173,6 +172,7 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
 		permissionsState.withtDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(true);
+		permissionsState.withHasUpdate(true);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -181,6 +181,8 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsCertifiedUser(true);
 		expected.setCanMove(true);
 		expected.setCanChangePermissions(true);
+		expected.setCanEdit(true);
+		expected.setCanCertifiedUserEdit(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
@@ -188,11 +190,12 @@ public class EntityAuthorizationManagerUnitTest {
 	}
 	
 	@Test
-	public void testGetUserPermissionsForEntityWithCanMoveFalse() {
+	public void testGetUserPermissionsForEntityWithCanMoveAndNoChangePermissoins() {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
 		permissionsState.withtDoesEntityExist(true);
 		permissionsState.withHasChangePermissions(false);
+		permissionsState.withHasUpdate(true);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -201,6 +204,31 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsCertifiedUser(true);
 		expected.setCanMove(false);
 		expected.setCanChangePermissions(false);
+		expected.setCanEdit(true);
+		expected.setCanCertifiedUserEdit(true);
+		assertEquals(expected, permissions);
+		
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId());
+	}
+	
+	@Test
+	public void testGetUserPermissionsForEntityWithCanMoveAndNoUpdate() {
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any())).thenReturn(mapIdToAccess);
+		permissionsState.withtDoesEntityExist(true);
+		permissionsState.withHasChangePermissions(true);
+		permissionsState.withHasUpdate(false);
+
+		// call under test
+		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
+		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
+		expected.setCanUpload(true);
+		expected.setIsCertifiedUser(true);
+		expected.setCanMove(false);
+		expected.setCanChangePermissions(true);
+		expected.setCanEdit(false);
+		expected.setCanCertifiedUserEdit(false);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
@@ -440,7 +468,6 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsCertifiedUser(true);
 		expected.setCanChangePermissions(true);
 		expected.setCanEnableInheritance(true);
-		expected.setCanMove(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);

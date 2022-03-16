@@ -118,16 +118,17 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(entityIdLong);
+		boolean canUpdate = determineAccess(entityIdLong, stateProvider, UPDATE, userInfo).isAuthorized();
+		boolean canChangePermissions = determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized();
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(determineAccess(entityIdLong, stateProvider, CREATE, userInfo).isAuthorized());
 		permissions.setCanCertifiedUserAddChild(permissionsState.hasCreate());
-		permissions.setCanChangePermissions(
-				determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
-		permissions.setCanMove(determineAccess(entityIdLong, stateProvider, CHANGE_PERMISSIONS, userInfo).isAuthorized());
+		permissions.setCanChangePermissions(canChangePermissions);
+		permissions.setCanMove(canUpdate && canChangePermissions);
 		permissions.setCanChangeSettings(
 				determineAccess(entityIdLong, stateProvider, CHANGE_SETTINGS, userInfo).isAuthorized());
 		permissions.setCanDelete(determineAccess(entityIdLong, stateProvider, DELETE, userInfo).isAuthorized());
-		permissions.setCanEdit(determineAccess(entityIdLong, stateProvider, UPDATE, userInfo).isAuthorized());
+		permissions.setCanEdit(canUpdate);
 		permissions.setCanCertifiedUserEdit(permissionsState.hasUpdate());
 		permissions.setCanView(determineAccess(entityIdLong, stateProvider, READ, userInfo).isAuthorized());
 		permissions.setCanDownload(
