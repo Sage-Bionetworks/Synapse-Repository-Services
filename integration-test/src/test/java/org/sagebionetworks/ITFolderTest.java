@@ -95,7 +95,7 @@ public class ITFolderTest {
 
 		ResourceAccess user2Access = new ResourceAccess();
 		user2Access.setPrincipalId(user2);
-		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
+		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CHANGE_PERMISSIONS));
 
 		AccessControlList acl = synapse.getACL(project.getId());
 		acl.setResourceAccess(ImmutableSet.of(user1Access, user2Access));
