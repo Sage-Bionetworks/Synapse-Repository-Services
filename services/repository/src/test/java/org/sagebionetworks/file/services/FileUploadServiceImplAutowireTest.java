@@ -137,7 +137,7 @@ public class FileUploadServiceImplAutowireTest {
 
 		ResourceAccess user2Access = new ResourceAccess();
 		user2Access.setPrincipalId(user2Id);
-		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
+		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CHANGE_PERMISSIONS));
 
 		AccessControlList acl = entityService.getEntityACL(projectId, userId);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
