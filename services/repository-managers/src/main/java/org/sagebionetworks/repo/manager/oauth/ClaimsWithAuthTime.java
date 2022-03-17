@@ -13,12 +13,18 @@ public class ClaimsWithAuthTime extends DefaultClaims {
 	private ClaimsWithAuthTime() {}
 
 	public ClaimsWithAuthTime setAuthTime(Date authTime) {
-		setDate(OIDCClaimName.auth_time.name(), authTime);
+		setDateAsSeconds(OIDCClaimName.auth_time.name(), authTime);
 		return this;
 	}
 	
 	public Date getAuthTime() {
-		return getDate(OIDCClaimName.auth_time.name());
+		Object value = get(OIDCClaimName.auth_time.name());
+		if (value == null) {
+			return null;
+		}
+		// The default implementation of get(name, Date) will not convert from seconds
+		// for "non-standard" claims so we have to use the "toSpecDate" ourselves
+		return toSpecDate(value, OIDCClaimName.auth_time.name());
 	}
 
 }

@@ -847,7 +847,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		Long requirementId = 1L;
 		Long accessorId = 2L;
 		
-		Instant sentOn = Instant.now();
+		Instant sentOn = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 		// Simulate an approval modified after 7 days
 		Instant modifiedOn = Instant.now().plus(AccessApprovalNotificationManager.RESEND_TIMEOUT_DAYS, ChronoUnit.DAYS);
 		

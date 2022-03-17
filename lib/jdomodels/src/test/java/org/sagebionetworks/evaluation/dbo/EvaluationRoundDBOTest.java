@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Date;
 import java.util.Optional;
 
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -59,7 +63,7 @@ class EvaluationRoundDBOTest {
 		evaluationRoundDBO.setId(id);
 		evaluationRoundDBO.setEvaluationId(evaluationId);
 		evaluationRoundDBO.setLimitsJson(null);
-		Instant now = Instant.now();
+		Instant now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 		evaluationRoundDBO.setRoundStart(Timestamp.from(now));
 		evaluationRoundDBO.setRoundEnd(Timestamp.from(now.plusSeconds(43 )));
 

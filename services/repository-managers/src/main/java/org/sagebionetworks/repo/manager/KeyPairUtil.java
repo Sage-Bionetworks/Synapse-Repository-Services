@@ -6,6 +6,7 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -15,15 +16,14 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
-import java.util.Base64;
 import org.apache.commons.codec.binary.Base32;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
-
-import io.jsonwebtoken.SignatureAlgorithm;
 
 public class KeyPairUtil {
 	
@@ -34,11 +34,13 @@ public class KeyPairUtil {
 	public static final String SHA_256 = "SHA-256";
 	
 	private static final String KEY_USE_SIGNATURE = "sig";
-
+	
+	private static final Provider SECURITY_PROVIDER = new BouncyCastleProvider();
+	
 	public static X509Certificate getX509CertificateFromPEM(String pem) {
 		try {
 			byte[] content = Base64.getDecoder().decode(pem);
-			CertificateFactory certFactory = CertificateFactory.getInstance(X509);
+			CertificateFactory certFactory = CertificateFactory.getInstance(X509, SECURITY_PROVIDER);
 			X509Certificate certificate = (X509Certificate)certFactory.generateCertificate(new ByteArrayInputStream(content));
 			if (certificate.getPublicKey()==null) throw new RuntimeException();
 			return certificate;
@@ -51,7 +53,7 @@ public class KeyPairUtil {
 		try {
 			byte[] content = Base64.getDecoder().decode(pem);
 			PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(content);
-			KeyFactory factory = KeyFactory.getInstance(keyGenerationAlgorithm);
+			KeyFactory factory = KeyFactory.getInstance(keyGenerationAlgorithm, SECURITY_PROVIDER);
 			return factory.generatePrivate(privKeySpec);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -70,7 +72,7 @@ public class KeyPairUtil {
 		try {
 			byte[] content = Base64.getDecoder().decode(pemEncodedPrivateKey);
 			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(content);
-			KeyFactory factory = KeyFactory.getInstance(RSA);
+			KeyFactory factory = KeyFactory.getInstance(RSA, SECURITY_PROVIDER);
 			PrivateKey privateKey = factory.generatePrivate(keySpec);
 
 			RSAPrivateCrtKey privk = (RSAPrivateCrtKey)privateKey;
@@ -89,7 +91,7 @@ public class KeyPairUtil {
 		try {
 			if (publicKey==null) throw new RuntimeException();
 			// http://stackoverflow.com/questions/3103652/hash-string-via-sha-256-in-java
-			MessageDigest md = MessageDigest.getInstance(SHA_256);
+			MessageDigest md = MessageDigest.getInstance(SHA_256, SECURITY_PROVIDER);
 			md.update(publicKey.getEncoded());
 			byte[] digest = md.digest();
 			// use bytes 0->digest.length-2

@@ -106,7 +106,7 @@ public class JSONWebTokenHelperTest {
 		String token = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 				setHeaderParam(JwsHeader.KEY_ID, keyId).
-				signWith(SignatureAlgorithm.RS256, privateKey).compact();
+				signWith(privateKey, SignatureAlgorithm.RS256).compact();
 		return token;
 	}
 

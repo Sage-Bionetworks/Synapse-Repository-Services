@@ -1,7 +1,8 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -10,11 +11,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.reflections.Reflections;
-import org.reflections.scanners.MethodAnnotationsScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.scanners.Scanners;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -22,13 +22,13 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class BeanTest implements ApplicationContextAware {
 
@@ -54,16 +54,13 @@ public class BeanTest implements ApplicationContextAware {
 				foundBeans.add(beanName);
 			}
 		}
-		assertEquals(
-				"Found beans without name/id. Either give the bean a name/id or add to exceptions in the test, otherwise Spring will not guarantee that the bean is a singleton",
-				"",
-				StringUtils.join(foundBeans, ","));
+		assertEquals("", StringUtils.join(foundBeans, ","), "Found beans without name/id. Either give the bean a name/id or add to exceptions in the test, otherwise Spring will not guarantee that the bean is a singleton");
 	}
 
 	@Test
 	public void testTransactionalNotUsed() {
 		// Transactional is not used anymore, use @WriteTransaction, @NewWriteTransaction or @MandatoryWriteTransaction
-		Reflections reflections = new Reflections("org.sagebionetworks", new MethodAnnotationsScanner(), new TypeAnnotationsScanner());
+		Reflections reflections = new Reflections("org.sagebionetworks", Scanners.MethodsAnnotated, Scanners.TypesAnnotated);
 		assertEquals(0, reflections.getTypesAnnotatedWith(Transactional.class).size());
 		assertEquals(0, reflections.getMethodsAnnotatedWith(Transactional.class).size());
 	}
@@ -83,11 +80,18 @@ public class BeanTest implements ApplicationContextAware {
 			"getDoiAssociationForUpdate",
 			"getUnsuccessfulLoginLockoutInfoIfExist",
 			"checkIsLockedOut",
-			"getTableIdWithLock");
+			"getTableIdWithLock",
+			"getFilesAvailableToDownloadFromDownloadList",
+			"getActionsRequiredFromDownloadList",
+			"getListStatistics",
+			"getAvailableFilesFromDownloadList",
+			"getFormDataStatusForUpdate",
+			"getMatchingTokenByHashForUpdate",
+			"getAddedPartRanges");
 
 	@Test
 	public void testNoGetterWriteTransactions() {
-		Reflections reflections = new Reflections("org.sagebionetworks", new MethodAnnotationsScanner());
+		Reflections reflections = new Reflections("org.sagebionetworks", Scanners.MethodsAnnotated);
 		Set<Method> writeMethods = reflections.getMethodsAnnotatedWith(WriteTransaction.class);
 		writeMethods.addAll(reflections.getMethodsAnnotatedWith(NewWriteTransaction.class));
 		writeMethods.addAll(reflections.getMethodsAnnotatedWith(MandatoryWriteTransaction.class));

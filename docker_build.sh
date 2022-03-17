@@ -84,8 +84,8 @@ docker run --user "$(id -u):$(id -g)" -i --rm --name ${build_container_name} \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
 -w /repo \
-maven:3-jdk-8 \
-bash -c "mvn clean ${MVN_GOAL} -U \
+maven:3-amazoncorretto-11 \
+bash -c "mvn clean ${MVN_GOAL} ${EXTRA_ARGS} -U \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \

@@ -71,7 +71,7 @@
 			<artifactId>javax.servlet-api</artifactId>
 			<scope>provided</scope>
 		</dependency>
-
+		
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -155,6 +155,11 @@
 			<version>20040616</version>
 			<type>jar</type>
 			<scope>compile</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
 		</dependency>
 
 	</dependencies>

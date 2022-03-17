@@ -10,13 +10,13 @@ import java.lang.reflect.Modifier;
 import java.sql.BatchUpdateException;
 import java.util.Map;
 import java.util.Set;
+
 import javax.servlet.http.HttpServletRequest;
 
-import com.google.common.collect.Maps;
 import org.junit.Before;
 import org.junit.Test;
 import org.reflections.Reflections;
-import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.Scanners;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
@@ -25,6 +25,8 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import com.google.common.collect.Maps;
 
 /**
  * @author deflaux
@@ -62,7 +64,7 @@ public class BaseControllerExceptionHandlerAdviceTest {
 	public void testAllExceptionHandlersTested() throws Exception {
 		// this test makes sure all exception handlers are represented in the exception handler test which lives in the
 		// integration test package
-		Reflections reflections = new Reflections(BaseControllerExceptionHandlerAdvice.class, new MethodAnnotationsScanner());
+		Reflections reflections = new Reflections(BaseControllerExceptionHandlerAdvice.class, Scanners.MethodsAnnotated);
 		Set<Method> handlers = reflections.getMethodsAnnotatedWith(ExceptionHandler.class);
 		Map<String, Integer> exceptions = Maps.newHashMap();
 		for (Method handler : handlers) {

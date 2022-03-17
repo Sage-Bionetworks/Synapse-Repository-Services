@@ -196,13 +196,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
 		</dependency>
-
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt</artifactId>
-		</dependency>
-
-		<!-- jsonwebtoken seems to need this JSON library -->
+		
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
 			<artifactId>json-simple</artifactId>
