@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.nio.channels.NotYetBoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -293,7 +294,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can delete an AccessRequirement.");
 		}
-		AccessRequirement ar = accessRequirementDAO.get(accessRequirementId);
+		AccessRequirement ar;
+		try {
+			ar = accessRequirementDAO.get(accessRequirementId);
+		} catch (NotYetBoundException e) {
+			return;
+		}
 		signalDeletedSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
 		accessRequirementDAO.delete(accessRequirementId);
 	}
