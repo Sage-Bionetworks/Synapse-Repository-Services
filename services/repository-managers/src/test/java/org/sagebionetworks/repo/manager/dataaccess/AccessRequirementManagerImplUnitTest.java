@@ -1095,6 +1095,8 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(nodeDao).getNodeTypeById("0");
 		verify(nodeDao).getNodeTypeById("1");
 		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(String.class), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq("0"), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq("1"), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
 	}
 
 	@Test
@@ -1110,15 +1112,11 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testSignalDeletedSubjectIdsOne() {
 		List<RestrictableObjectDescriptor> currentRods = generateRods(2);
-		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
-		rod.setType(RestrictableObjectType.ENTITY);
-		updatedRods.add(rod);
-		// call under test: "0" should all be signaled
+		List<RestrictableObjectDescriptor> updatedRods = generateRods(1);
+		// call under test: "0" should be signaled
 		arm.signalDeletedSubjectIds(currentRods, updatedRods);
 		verify(nodeDao).getNodeTypeById("0");
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
 	@Test
