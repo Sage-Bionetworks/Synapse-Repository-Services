@@ -297,7 +297,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AccessRequirement ar;
 		try {
 			ar = accessRequirementDAO.get(accessRequirementId);
-		} catch (NotYetBoundException e) {
+		} catch (NotFoundException e) {
 			return;
 		}
 		signalDeletedSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());

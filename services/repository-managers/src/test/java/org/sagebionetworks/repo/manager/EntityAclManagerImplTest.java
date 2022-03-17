@@ -398,7 +398,7 @@ public class EntityAclManagerImplTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		arId = ""+ar.getId();
+		arId = "" + ar.getId();
 		// again, we can't download
 		assertFalse(entityAuthorizationManager.hasAccess(otherUserInfo, childNode.getId(), ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
