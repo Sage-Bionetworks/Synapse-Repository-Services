@@ -92,7 +92,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return id of user for which password change occurred
 	 */
 	long validateChangePassword(ChangePasswordWithCurrentPassword changePasswordWithCurrentPassword) {
-		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.userName");
+		ValidateArgument.required(changePasswordWithCurrentPassword.getUsername(), "changePasswordWithCurrentPassword.username");
 		ValidateArgument.required(changePasswordWithCurrentPassword.getCurrentPassword(), "changePasswordWithCurrentPassword.currentPassword");
 
 		final long userId = findUserIdForAuthentication(changePasswordWithCurrentPassword.getUsername());
