@@ -72,7 +72,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -384,6 +383,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	}
 	
+	// Reproduce PLFM-7203
 	@Test
 	public void testMaterializedViewWithDeletedSource() throws Exception {
 		int numberOfFiles = 2;
@@ -415,7 +415,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		trashManager.moveToTrash(adminUserInfo, tableId.toString(), false);
 		
 		assertThrows(EntityInTrashCanException.class, () -> {
-			asyncHelper.assertQueryResult(adminUserInfo, "select * from "+materializedViewId.toString(), (results) -> {}, MAX_WAIT_MS);
+			// Make sure to use the same exact query, the test was failing due to caching of job results
+			asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {}, MAX_WAIT_MS);
 		});
 	}
 	

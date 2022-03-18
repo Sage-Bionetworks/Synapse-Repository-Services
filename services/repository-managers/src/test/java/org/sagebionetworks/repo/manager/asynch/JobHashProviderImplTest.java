@@ -1,18 +1,18 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class JobHashProviderImplTest {
 	
 	@Mock
@@ -35,13 +35,32 @@ public class JobHashProviderImplTest {
 
 	TableStatus tableStatus;
 	
-	@Before
+	@BeforeEach
 	public void before() throws NotFoundException, IOException{
 		tableStatus = new TableStatus();
 		tableStatus.setLastTableChangeEtag("someEtag");
 		tableStatus.setResetToken("someResetToken");
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any(IdAndVersion.class))).thenReturn(tableStatus);
-		when(mockTableManagerSupport.getTableType(any(IdAndVersion.class))).thenReturn(ObjectType.TABLE);
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(tableStatus);
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(ObjectType.TABLE);
+	}
+	
+	@Test
+	public void testHashForTablesOnly() {
+		
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
+		body.setEntityId("syn123");
+		body.setSql("select * from syn123");
+		
+		for (ObjectType type : ObjectType.values()) {
+			when(mockTableManagerSupport.getTableType(any())).thenReturn(type);
+			
+			String expected = ObjectType.TABLE.equals(type) ? "104e5a592b453d31a58da6f9e4ec998a" : null;
+			// Call under test
+			String result = provider.getJobHash(body);
+			
+			assertEquals(expected, result);
+		}
+		
 	}
 
 	@Test
