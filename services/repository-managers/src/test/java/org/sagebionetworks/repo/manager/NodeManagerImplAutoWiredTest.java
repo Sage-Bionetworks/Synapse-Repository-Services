@@ -225,7 +225,7 @@ public class NodeManagerImplAutoWiredTest {
 		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
 		// ensure modified on changes
-		Thread.sleep(10);
+		Thread.sleep(2);
 		// update as a different user.
 		Node updated = nodeManager.update(adminUserInfo, fetched, null, false);
 		assertNotNull(updated);
@@ -281,7 +281,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Add some values
 		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "1", AnnotationsValueType.LONG);
 		// sleep to ensure modifiedOn changes.
-		Thread.sleep(10);
+		Thread.sleep(2);
 		// Now update the node
 		Annotations updated = nodeManager.updateUserAnnotations(adminUserInfo, id, annos);
 		assertNotNull(updated);
@@ -432,8 +432,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node updated = nodeManager.getNode(userInfo, node.getId());
 		updated.setName("nameChanged");
 		updated.setVersionLabel("v2");
-		Annotations annos = nodeManager.getUserAnnotations(adminUserInfo, node.getId());
-		Thread.sleep(10);
+		Thread.sleep(2);
 		boolean newVersion = true;
 		// create new version
 		updated = nodeManager.update(adminUserInfo, updated, null, newVersion);

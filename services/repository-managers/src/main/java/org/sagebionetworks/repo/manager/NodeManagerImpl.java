@@ -119,8 +119,6 @@ public class NodeManagerImpl implements NodeManager {
 		Long userIndividualGroupId = userInfo.getId();
 		// Validate the creations data
 		NodeManagerImpl.validateNodeCreationData(userIndividualGroupId, newNode);
-		// Validate the modified data.
-		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, newNode);
 		
 		// What is the object type of this node
 		EntityType type = newNode.getNodeType();
@@ -254,7 +252,9 @@ public class NodeManagerImpl implements NodeManager {
 			throw new IllegalArgumentException("New node cannot be null");
 		}
 		newNode.setCreatedByPrincipalId(userIndividualGroupId);
+		newNode.setModifiedByPrincipalId(userIndividualGroupId);
 		newNode.setCreatedOn(new Date(System.currentTimeMillis()));
+		newNode.setModifiedOn(newNode.getCreatedOn());
 	}
 	
 	/**
@@ -269,23 +269,6 @@ public class NodeManagerImpl implements NodeManager {
 		}
 		existingNode.setCreatedByPrincipalId(null);
 		existingNode.setCreatedOn(null);
-	}
-	
-	/**
-	 * Make sure the creation data is set, and if not then set it.
-	 * @param userName
-	 * @param newNode
-	 * @return
-	 */
-	static void validateNodeModifiedData(Long userIndividualGroupId, Node newNode){
-		if(userIndividualGroupId == null) {
-			throw new IllegalArgumentException("Username cannot be null");
-		}
-		if(newNode == null) {
-			throw new IllegalArgumentException("New node cannot be null");
-		}
-		newNode.setModifiedByPrincipalId(userIndividualGroupId);
-		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
 
 	@WriteTransaction
