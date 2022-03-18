@@ -1111,11 +1111,12 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testSignalDeletedSubjectIdsOne() {
-		List<RestrictableObjectDescriptor> currentRods = generateRods(2);
-		List<RestrictableObjectDescriptor> updatedRods = generateRods(1);
-		// call under test: "0" should be signaled
+		List<RestrictableObjectDescriptor> currentRods = generateRods(2); 	// 0,1
+		List<RestrictableObjectDescriptor> updatedRods = generateRods(1);	//	0
+		when(nodeDao.getNodeTypeById("1")).thenReturn(EntityType.file);
+		// call under test: "1" should be signaled
 		arm.signalDeletedSubjectIds(currentRods, updatedRods);
-		verify(nodeDao).getNodeTypeById("0");
+		verify(nodeDao).getNodeTypeById("1");
 		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
