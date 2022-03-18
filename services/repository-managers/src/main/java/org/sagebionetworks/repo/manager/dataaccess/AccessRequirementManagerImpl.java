@@ -134,7 +134,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	private void signalSubjectId(RestrictableObjectDescriptor rod) {
 		if (RestrictableObjectType.ENTITY != rod.getType()) {
-			throw new IllegalArgumentException("Only signal ENTITY type!");
+			return;
 		}
 		// Send a change message to trigger a snapshot
 		EntityType entityType;
