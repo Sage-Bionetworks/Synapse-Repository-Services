@@ -1120,6 +1120,21 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
+	public void testSignalDeletedSubjectIdsOneDeleted() {
+		List<RestrictableObjectDescriptor> currentRods = generateRods(1); // id == 0
+		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		updatedRods.add(rod);
+		when(nodeDao.getNodeTypeById("0")).thenThrow(new NotFoundException());
+		// call under test: "0" should all be signaled
+		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+		verify(nodeDao).getNodeTypeById("0");
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
+	}
+
+	@Test
 	public void testSignalDeletedSubjectIdsDistinct() {
 		List<RestrictableObjectDescriptor> currentRods = generateRods(1); // id == 0
 		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
@@ -1127,6 +1142,7 @@ public class AccessRequirementManagerImplUnitTest {
 		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
 		updatedRods.add(rod);
+		when(nodeDao.getNodeTypeById("0")).thenReturn(EntityType.file);
 		// call under test: "0" should all be signaled
 		arm.signalDeletedSubjectIds(currentRods, updatedRods);
 		verify(nodeDao).getNodeTypeById("0");

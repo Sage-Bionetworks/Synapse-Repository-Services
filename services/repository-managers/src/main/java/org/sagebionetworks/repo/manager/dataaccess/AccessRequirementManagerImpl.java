@@ -137,7 +137,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			throw new IllegalArgumentException("Only signal ENTITY type!");
 		}
 		// Send a change message to trigger a snapshot
-		EntityType entityType = nodeDao.getNodeTypeById(rod.getId());
+		EntityType entityType;
+		try {
+			entityType = nodeDao.getNodeTypeById(rod.getId());
+		} catch (NotFoundException e){
+			// Do not signal nodes that are deleted
+			return;
+		}
 		if (NodeUtils.isProjectOrFolder(entityType)) {
 			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		} else {

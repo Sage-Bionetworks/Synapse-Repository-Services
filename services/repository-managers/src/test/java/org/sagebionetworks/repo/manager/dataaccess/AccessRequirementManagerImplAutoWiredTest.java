@@ -350,14 +350,4 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertEquals(expectedMessage, exception.getMessage());
 	}
 
-	@Test
-	public void testDeleteAccessRequirementMissing() throws Exception {
-		String expectedMessage = "An access requirement with id 3141529 cannot be found.";
-		// Call under test
-		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-			accessRequirementManager.deleteAccessRequirement(adminUserInfo, "3141529");
-		});
-		assertEquals(expectedMessage, exception.getMessage());
-	}
-
 }
