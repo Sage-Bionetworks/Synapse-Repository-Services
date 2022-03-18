@@ -184,11 +184,15 @@ public class NodeManagerImplUnitTest {
 		Date presetCreatedOn = new Date(100L);
 		node.setCreatedByPrincipalId(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
+		node.setModifiedOn(new Date());
 		// Now validate the node
 		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values SHOULD  have changed
+		
 		assertTrue(Math.abs(System.currentTimeMillis()-node.getCreatedOn().getTime())<100L);
-		assertEquals(anonUserInfo.getId().toString(), node.getCreatedByPrincipalId().toString());
+		assertEquals(node.getModifiedOn(), node.getCreatedOn());
+		assertEquals(anonUserInfo.getId(), node.getCreatedByPrincipalId());
+		assertEquals(anonUserInfo.getId(), node.getModifiedByPrincipalId());
 	}
 	
 	@Test
@@ -198,30 +202,8 @@ public class NodeManagerImplUnitTest {
 		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
+		assertEquals(node.getModifiedOn(), node.getCreatedOn());
 		assertEquals(anonUserInfo.getId(), node.getCreatedByPrincipalId());
-	}
-	
-	@Test
-	public void testValidateNodeModifiedDataWithPreset(){
-		Node node = new Node();
-		Long presetModifiedBy = 2L;
-		Date presetModifiedOn = new Date(100L);
-		node.setModifiedByPrincipalId(presetModifiedBy);
-		node.setModifiedOn(presetModifiedOn);
-		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
-		// the values should have changed
-		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
-		assertTrue(!presetModifiedBy.equals( node.getModifiedByPrincipalId().toString()));
-	}
-	
-	@Test
-	public void testValidateNodeModifiedDataWithNulls(){
-		Node node = new Node();
-		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
-		// the values should not have changed
-		assertNotNull(node.getModifiedOn());
 		assertEquals(anonUserInfo.getId(), node.getModifiedByPrincipalId());
 	}
 	

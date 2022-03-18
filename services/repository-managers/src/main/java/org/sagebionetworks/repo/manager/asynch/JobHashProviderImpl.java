@@ -31,14 +31,20 @@ public class JobHashProviderImpl implements JobHashProvider {
 			String tableId = TableQueryUtils.getTableIdFromRequestBody(body);
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 
-			/*
-			 * Since view query results can vary with permission changes on
-			 * entities within a view's scope, the view results cannot be
-			 * cached. Returning a null job hash will prevent caching of view
-			 * results. See PLFM-4231.
-			 */
 			ObjectType type = tableManagerSupport.getTableType(idAndVersion);
-			if (ObjectType.ENTITY_VIEW.equals(type)) {
+			
+			/* 
+			 * We only support caching of queries from tables. 
+			 * 
+			 * Since view and dataset query results can vary with permission changes on entities 
+			 * within a view's scope, the view results cannot be cached (See PLFM-4231). 
+			 * 
+			 * Materialized views results might not be valid anymore if any source is deleted 
+			 * or moved to the trash can (See PLFM-7203).
+			 * 
+			 * Returning a null job hash will prevent caching of view results.
+			 */
+			if (!ObjectType.TABLE.equals(type)) {
 				return null;
 			}
 			
