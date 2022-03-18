@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -70,6 +72,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -114,6 +117,9 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	
 	@Autowired
 	private TableEntityManager tableManager;
+	
+	@Autowired
+	private TrashManager trashManager;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -376,6 +382,41 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			});
 		}, MAX_WAIT_MS);
 
+	}
+	
+	@Test
+	public void testMaterializedViewWithDeletedSource() throws Exception {
+		int numberOfFiles = 2;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		
+		String projectId = entites.get(0).getId();
+				
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		
+		String definingSql = String.format(
+				"select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
+		
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(2, results.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		
+		// Now move the table to the trash can
+		trashManager.moveToTrash(adminUserInfo, tableId.toString(), false);
+		
+		assertThrows(EntityInTrashCanException.class, () -> {
+			asyncHelper.assertQueryResult(adminUserInfo, "select * from "+materializedViewId.toString(), (results) -> {}, MAX_WAIT_MS);
+		});
 	}
 	
 	@Test
