@@ -463,7 +463,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -481,7 +481,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -499,7 +499,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -519,7 +519,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -540,7 +540,7 @@ public class AccessRequirementManagerImplUnitTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -579,7 +579,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -598,7 +598,6 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 		when(accessRequirementDAO.get(accessRequirementId)).thenReturn(toUpdate);
-		when(nodeDao.getNodeTypeById(TEST_ENTITY_ID)).thenReturn(EntityType.project);
 
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
 
@@ -619,7 +618,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
@@ -1085,80 +1084,149 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 	}
 
-	@Test
-	public void testSignalDeletedSubjectIdsAll() {
-		List<RestrictableObjectDescriptor> currentRods = generateRods(2);
-		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
-		// call under test: should all be signaled
-		arm.signalDeletedSubjectIds(currentRods, updatedRods);
-		verify(nodeDao, times(2)).getNodeTypeById(any(String.class));
-		verify(nodeDao).getNodeTypeById("0");
-		verify(nodeDao).getNodeTypeById("1");
-		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(String.class), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq("0"), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq("1"), eq(ObjectType.ENTITY), eq(ChangeType.UPDATE));
-	}
 
 	@Test
-	public void testSignalDeletedSubjectIdsNone() {
-		List<RestrictableObjectDescriptor> updatedRods = generateRods(2);
-		List<RestrictableObjectDescriptor> currentRods = new ArrayList<>();
-		// call under test: none should be signaled
-		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+	public void testSignalSubjectIdNotEntity() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		rod.setId("0");
+
+		// call under test
+		arm.signalSubjectId(rod);
+
 		verify(nodeDao, never()).getNodeTypeById(any(String.class));
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
+		verifyZeroInteractions(mockTransactionalMessenger);
+
+		rod.setType(RestrictableObjectType.EVALUATION);
+
+		// call under test
+		arm.signalSubjectId(rod);
+
+		verify(nodeDao, never()).getNodeTypeById(any(String.class));
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
-	public void testSignalDeletedSubjectIdsOne() {
-		List<RestrictableObjectDescriptor> currentRods = generateRods(2); 	// 0,1
-		List<RestrictableObjectDescriptor> updatedRods = generateRods(1);	//	0
-		when(nodeDao.getNodeTypeById("1")).thenReturn(EntityType.file);
-		// call under test: "1" should be signaled
-		arm.signalDeletedSubjectIds(currentRods, updatedRods);
-		verify(nodeDao).getNodeTypeById("1");
-		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.ENTITY, ChangeType.UPDATE);
-	}
-
-	@Test
-	public void testSignalDeletedSubjectIdsOneDeleted() {
-		List<RestrictableObjectDescriptor> currentRods = generateRods(1); // id == 0
-		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+	public void testSignalSubjectIdNotFound() {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
-		updatedRods.add(rod);
+		rod.setId("0");
 		when(nodeDao.getNodeTypeById("0")).thenThrow(new NotFoundException());
-		// call under test: "0" should all be signaled
-		arm.signalDeletedSubjectIds(currentRods, updatedRods);
-		verify(nodeDao).getNodeTypeById("0");
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
+
+		// call under test
+		arm.signalSubjectId(rod);
+
+		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
 	@Test
-	public void testSignalDeletedSubjectIdsDistinct() {
-		List<RestrictableObjectDescriptor> currentRods = generateRods(1); // id == 0
-		List<RestrictableObjectDescriptor> updatedRods = new ArrayList<>();
+	public void testSignalSubjectIdContainer() {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
-		updatedRods.add(rod);
+		rod.setId("0");
+		when(nodeDao.getNodeTypeById("0")).thenReturn(EntityType.folder);
+
+		// call under test
+		arm.signalSubjectId(rod);
+
+		verify(nodeDao).getNodeTypeById("0");
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testSignalSubjectIdNotContainer() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.ENTITY);
+		rod.setId("0");
 		when(nodeDao.getNodeTypeById("0")).thenReturn(EntityType.file);
-		// call under test: "0" should all be signaled
-		arm.signalDeletedSubjectIds(currentRods, updatedRods);
+
+		// call under test
+		arm.signalSubjectId(rod);
+
 		verify(nodeDao).getNodeTypeById("0");
 		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY, ChangeType.UPDATE);
 	}
 
-	private List<RestrictableObjectDescriptor> generateRods(int numRods) {
-		List<RestrictableObjectDescriptor> rods = new ArrayList<>();
-		for (int i = 0; i < numRods; i++) {
-			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-			rod.setId(String.valueOf(i));
-			rod.setType(RestrictableObjectType.ENTITY);
-			rods.add(rod);
+	@Test
+	public void testFindSubjectIdsToSignalCurrentEmpty() {
+		Set<RestrictableObjectDescriptor> currentSubjectIds = new HashSet<>();
+		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+		assertNotNull(subjectIdsToSignal);
+		assertEquals(2, subjectIdsToSignal.size());
+		assertEquals(updatedSubjectIds, subjectIdsToSignal);
+	}
+
+	@Test
+	public void testFindSubjectIdsToSignalUpdatedEmpty() {
+		Set<RestrictableObjectDescriptor> updatedSubjectIds = new HashSet<>();
+		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 2); // 2,3
+
+		// call under test
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+
+		assertNotNull(subjectIdsToSignal);
+		assertEquals(2, subjectIdsToSignal.size());
+		assertEquals(currentSubjectIds, subjectIdsToSignal);
+	}
+
+	@Test
+	public void testFindSubjectIdsToSignalAll() {
+		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
+		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 2); // 2,3
+		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(4, 0);
+
+		// call under test
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+
+		assertNotNull(subjectIdsToSignal);
+		assertEquals(4, subjectIdsToSignal.size());
+		assertEquals(expectedSubjectIdsToSignal, subjectIdsToSignal);
+	}
+
+	@Test
+	public void testFindSubjectIdsToSignalOverlap() {
+		Set<RestrictableObjectDescriptor> currentSubjectIds = generateSubjectIds(2, 0); // 0,1
+		Set<RestrictableObjectDescriptor> updatedSubjectIds = generateSubjectIds(2, 1); // 1,2
+		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal = generateSubjectIds(1, 0);
+		Set<RestrictableObjectDescriptor> expectedSubjectIdsToSignal2 = generateSubjectIds(1, 2);
+		expectedSubjectIdsToSignal.addAll(expectedSubjectIdsToSignal2);
+
+		// call under test
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = arm.findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds);
+
+		assertNotNull(subjectIdsToSignal);
+		assertEquals(2, subjectIdsToSignal.size());
+		assertEquals(expectedSubjectIdsToSignal, subjectIdsToSignal);
+	}
+
+	@Test
+	public void testSignalSubjectIds() {
+		List<RestrictableObjectDescriptor> currentSubjectIds = new ArrayList<>(generateSubjectIds(2, 0));
+		List<RestrictableObjectDescriptor> updatedSubjectIds = new ArrayList<>();
+		when(nodeDao.getNodeTypeById(any(String.class))).thenReturn(EntityType.file);
+
+		// call under test
+		arm.signalSubjectIds(currentSubjectIds, updatedSubjectIds);
+
+		verify(nodeDao, times(2)).getNodeTypeById(any(String.class));
+		verify(nodeDao).getNodeTypeById("0");
+		verify(nodeDao).getNodeTypeById("1");
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("0", ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.ENTITY, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
+
+	}
+
+	private Set<RestrictableObjectDescriptor> generateSubjectIds(int numIds, int startId) {
+		Set<RestrictableObjectDescriptor> subjectIds = new HashSet<>();
+		for (int i = startId; i < startId+numIds; i++) {
+			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+			subjectId.setId(String.valueOf(i));
+			subjectId.setType(RestrictableObjectType.ENTITY);
+			subjectIds.add(subjectId);
 		}
-		return rods;
+		return subjectIds;
 	}
 
 }

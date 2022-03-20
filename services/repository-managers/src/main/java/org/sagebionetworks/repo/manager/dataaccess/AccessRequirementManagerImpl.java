@@ -4,7 +4,9 @@ import java.nio.channels.NotYetBoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -132,29 +134,41 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 	}
 
-	private void signalSubjectId(RestrictableObjectDescriptor rod) {
-		if (RestrictableObjectType.ENTITY != rod.getType()) {
-			return;
+	void signalSubjectId(RestrictableObjectDescriptor rod) {
+		if (RestrictableObjectType.ENTITY == rod.getType()) {
+			// Send a change message to trigger a snapshot
+			EntityType entityType;
+			try {
+				entityType = nodeDao.getNodeTypeById(rod.getId());
+			} catch (NotFoundException e){
+				// Do not signal nodes that are deleted
+				return;
+			}
+			if (NodeUtils.isProjectOrFolder(entityType)) {
+				transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+			} else {
+				transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY, ChangeType.UPDATE);
+			}
 		}
-		// Send a change message to trigger a snapshot
-		EntityType entityType;
-		try {
-			entityType = nodeDao.getNodeTypeById(rod.getId());
-		} catch (NotFoundException e){
-			// Do not signal nodes that are deleted
-			return;
-		}
-		if (NodeUtils.isProjectOrFolder(entityType)) {
-			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
-		} else {
-			transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY, ChangeType.UPDATE);
-		}
+		// TODO: Handle team and evaluations here
+		return;
 	}
 
-	public void signalDeletedSubjectIds(List<RestrictableObjectDescriptor> currentIds, List<RestrictableObjectDescriptor> updatedIds) {
-		List<RestrictableObjectDescriptor> deletedToSignal = new ArrayList<>(currentIds);
-		deletedToSignal.removeAll(updatedIds);
-		for (RestrictableObjectDescriptor rod: deletedToSignal) {
+	Set<RestrictableObjectDescriptor> findSubjectIdsToSignal(Set<RestrictableObjectDescriptor> currentSubjectIds, Set<RestrictableObjectDescriptor> updatedSubjectIds) {
+		// We need to signal the subjectIds in the symmetric difference between currentSubjectIds and updatedSubjectIds
+		Set<RestrictableObjectDescriptor> symmetricDiff = new HashSet<>(currentSubjectIds);
+		symmetricDiff.removeAll(updatedSubjectIds); // A-B
+		Set<RestrictableObjectDescriptor> bMinusA = new HashSet<>(updatedSubjectIds);
+		bMinusA.removeAll(currentSubjectIds); // B-A
+		symmetricDiff.addAll(bMinusA);
+		return symmetricDiff;
+	}
+
+	void signalSubjectIds(List<RestrictableObjectDescriptor> currentSubjectIds, List<RestrictableObjectDescriptor> updatedSubjectIds) {
+		Set<RestrictableObjectDescriptor> curSubjIds = new HashSet<>(currentSubjectIds);
+		Set<RestrictableObjectDescriptor> updSubjIds = new HashSet<>(updatedSubjectIds);
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = findSubjectIdsToSignal(curSubjIds, updSubjIds);
+		for (RestrictableObjectDescriptor rod: subjectIdsToSignal) {
 			signalSubjectId(rod);
 		}
 	}
@@ -170,9 +184,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
-				signalSubjectId(rod);
 			}
 		}
+		signalSubjectIds(new ArrayList<RestrictableObjectDescriptor>(), accessRequirement.getSubjectIds()); // Create == empty currentSibjectIds
 		
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
@@ -268,10 +282,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		for (RestrictableObjectDescriptor rod : toUpdate.getSubjectIds()) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
-				signalSubjectId(rod);
 			}
 		}
-
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())
 				|| !current.getCurrentVersion().equals(toUpdate.getVersionNumber())){
@@ -280,10 +292,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(current.getAccessType().equals(toUpdate.getAccessType()), "Cannot modify AccessType");
 		ValidateArgument.requirement(current.getConcreteType().equals(toUpdate.getConcreteType()), "Cannot change "+current.getConcreteType()+" to "+toUpdate.getConcreteType());
 
-		// Also need to signal nodes that are removed from an AR
 		AccessRequirement currentAr = accessRequirementDAO.get(accessRequirementId);
 		List<RestrictableObjectDescriptor> currentArSubjectIds = currentAr.getSubjectIds();
-		signalDeletedSubjectIds(currentArSubjectIds, toUpdate.getSubjectIds());
+		signalSubjectIds(currentArSubjectIds, toUpdate.getSubjectIds());
 
 		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
 		populateModifiedFields(userInfo, toUpdate);
@@ -306,7 +317,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		} catch (NotFoundException e) {
 			return;
 		}
-		signalDeletedSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
+		signalSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 
@@ -386,9 +397,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 
 		ManagedACTAccessRequirement toUpdate = convert((ACTAccessRequirement) current, userInfo.getId().toString());
-		for (RestrictableObjectDescriptor rod: toUpdate.getSubjectIds()) {
-			signalSubjectId(rod);
-		}
 		return accessRequirementDAO.update(setDefaultValues(toUpdate));
 	}
 
