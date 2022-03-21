@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.nio.channels.NotYetBoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -16,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -31,7 +35,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
@@ -65,6 +72,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	TransactionalMessenger transactionalMessenger;
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
 		ValidateArgument.required(ar.getAccessType(), "AccessType");
@@ -124,6 +134,45 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 	}
 
+	void signalSubjectId(RestrictableObjectDescriptor rod) {
+		if (RestrictableObjectType.ENTITY == rod.getType()) {
+			// Send a change message to trigger a snapshot
+			EntityType entityType;
+			try {
+				entityType = nodeDao.getNodeTypeById(rod.getId());
+			} catch (NotFoundException e){
+				// Do not signal nodes that are deleted
+				return;
+			}
+			if (NodeUtils.isProjectOrFolder(entityType)) {
+				transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
+			} else {
+				transactionalMessenger.sendMessageAfterCommit(rod.getId(), ObjectType.ENTITY, ChangeType.UPDATE);
+			}
+		}
+		// TODO: Handle team and evaluations here
+		return;
+	}
+
+	Set<RestrictableObjectDescriptor> findSubjectIdsToSignal(Set<RestrictableObjectDescriptor> currentSubjectIds, Set<RestrictableObjectDescriptor> updatedSubjectIds) {
+		// We need to signal the subjectIds in the symmetric difference between currentSubjectIds and updatedSubjectIds
+		Set<RestrictableObjectDescriptor> symmetricDiff = new HashSet<>(currentSubjectIds);
+		symmetricDiff.removeAll(updatedSubjectIds); // A-B
+		Set<RestrictableObjectDescriptor> bMinusA = new HashSet<>(updatedSubjectIds);
+		bMinusA.removeAll(currentSubjectIds); // B-A
+		symmetricDiff.addAll(bMinusA);
+		return symmetricDiff;
+	}
+
+	void signalSubjectIds(List<RestrictableObjectDescriptor> currentSubjectIds, List<RestrictableObjectDescriptor> updatedSubjectIds) {
+		Set<RestrictableObjectDescriptor> curSubjIds = new HashSet<>(currentSubjectIds);
+		Set<RestrictableObjectDescriptor> updSubjIds = new HashSet<>(updatedSubjectIds);
+		Set<RestrictableObjectDescriptor> subjectIdsToSignal = findSubjectIdsToSignal(curSubjIds, updSubjIds);
+		for (RestrictableObjectDescriptor rod: subjectIdsToSignal) {
+			signalSubjectId(rod);
+		}
+	}
+
 	@WriteTransaction
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -132,12 +181,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
 		populateCreationFields(userInfo, accessRequirement);
-		
 		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
 			}
 		}
+		signalSubjectIds(new ArrayList<RestrictableObjectDescriptor>(), accessRequirement.getSubjectIds()); // Create == empty currentSibjectIds
 		
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
@@ -178,6 +227,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
 		preventCreateWithinSTSFolder(entityId);
+		signalSubjectId(subjectId);
 		
 		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
 		String jiraKey = JRJCHelper.createRestrictIssue(jiraClient,
@@ -234,7 +284,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				preventCreateWithinSTSFolder(rod.getId());
 			}
 		}
-
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())
 				|| !current.getCurrentVersion().equals(toUpdate.getVersionNumber())){
@@ -242,6 +291,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 		ValidateArgument.requirement(current.getAccessType().equals(toUpdate.getAccessType()), "Cannot modify AccessType");
 		ValidateArgument.requirement(current.getConcreteType().equals(toUpdate.getConcreteType()), "Cannot change "+current.getConcreteType()+" to "+toUpdate.getConcreteType());
+
+		AccessRequirement currentAr = accessRequirementDAO.get(accessRequirementId);
+		List<RestrictableObjectDescriptor> currentArSubjectIds = currentAr.getSubjectIds();
+		signalSubjectIds(currentArSubjectIds, toUpdate.getSubjectIds());
 
 		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
 		populateModifiedFields(userInfo, toUpdate);
@@ -258,6 +311,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can delete an AccessRequirement.");
 		}
+		AccessRequirement ar;
+		try {
+			ar = accessRequirementDAO.get(accessRequirementId);
+		} catch (NotFoundException e) {
+			return;
+		}
+		signalSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 

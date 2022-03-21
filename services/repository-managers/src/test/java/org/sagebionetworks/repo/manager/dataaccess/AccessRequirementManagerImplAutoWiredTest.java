@@ -139,6 +139,16 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 	@AfterEach
 	public void after() throws Exception {
+
+		if (ar!=null && ar.getId()!=null && accessRequirementManager!=null) {
+			//
+			try {
+				accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
+			} catch (NotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
@@ -149,9 +159,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 			}
 		}
 		
-		if (ar!=null && ar.getId()!=null && accessRequirementManager!=null) {
-			accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
-		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 		if (team!=null) teamManager.delete(adminUserInfo, team.getId());
 	}
