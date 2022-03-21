@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -50,6 +52,7 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -371,6 +374,16 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
+	public void updateView(String viewId, UserInfo user, List<String> schema, List<String> scope) {
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(ViewEntityType.submissionview);
+		viewScope.setScope(scope);
+		viewScope.setViewTypeMask(0L);
+		
+		tableViewManager.setViewSchemaAndScope(user, schema, viewScope, viewId);		
+	}
+	
+	@Override
 	public Dataset createDataset(UserInfo user, Dataset dataset) {
 		ViewEntityType entityType = ViewEntityType.dataset;
 		Long typeMask = 0L;
@@ -388,20 +401,36 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 		return dataset;
 	}
-
+	
 	@Override
-	public void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS)
-			throws InterruptedException {
+	public TableEntity createTable(UserInfo user, String name, String parentId, List<String> columnIds, boolean searchEnabled) {
+		TableEntity table = new TableEntity();
+		table.setName(name);
+		table.setParentId(parentId);
+		table.setIsSearchEnabled(searchEnabled);
+		table.setColumnIds(columnIds);
+		
+		String tableId = entityManager.createEntity(user, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(user, columnIds, tableId, searchEnabled);
+		
+		return entityManager.getEntity(user, tableId, TableEntity.class);
+	}
+	
+	@Override
+	public void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException {
+		long maxWaitMS = 60 * 1000; 
 		long start = System.currentTimeMillis();
 		while (true) {
 			try {
-				tableEntityManager.tableUpdated(userInfo, newSchema, tableId, false);
+				tableEntityManager.tableUpdated(user, newSchema, tableId, searchEnabled);
 				return;
 			} catch (TemporarilyUnavailableException e) {
 				LOG.info("Waiting for excluisve lock on {}...", tableId);
 				Thread.sleep(1000);
 			}
-			assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out Waiting for excluisve lock on " + tableId);
+			assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out Waiting for exclusive lock on " + tableId);
 		}
 	}
 

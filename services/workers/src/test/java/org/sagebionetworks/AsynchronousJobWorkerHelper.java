@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 
 public interface AsynchronousJobWorkerHelper {
@@ -135,24 +136,44 @@ public interface AsynchronousJobWorkerHelper {
 	SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope);
 	
 	/**
+	 * Updates the schema and/or scope of the view
+	 * @param viewId
+	 * @param user
+	 * @param schema
+	 * @param scope
+	 */
+	void updateView(String viewId, UserInfo user, List<String> schema, List<String> scope);
+	
+	/**
 	 * Create a dataset with the default columns.
 	 * @param user
 	 * @param dataset
 	 * @return
 	 */
 	Dataset createDataset(UserInfo user, Dataset dataset);
+	
+	/**
+	 * Creates a table with the given columns.
+	 * 
+	 * @param user
+	 * @param name
+	 * @param parentId
+	 * @param columnIds
+	 * @param searchEnabled
+	 * @return
+	 */
+	TableEntity createTable(UserInfo user, String name, String parentId, List<String> columnIds, boolean searchEnabled);
 
 	/**
-	 * Set the schema for the given table and wait for the lock as needed.
+	 * Updates the table schema and/or search state
 	 * 
-	 * @param userInfo
-	 * @param newSchema
 	 * @param tableId
-	 * @param maxWaitMS
-	 * @throws InterruptedException
+	 * @param user
+	 * @param newSchema
+	 * @param searchEnabled
 	 */
-	void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS)
-			throws InterruptedException;
+	void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException;
+
 
 	/**
 	 * Helper to download the contents of the given FileHandle ID to a string.
