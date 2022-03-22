@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,7 +34,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,8 +53,6 @@ public class TableAppendRowSetWorkerIntegrationTest {
 	StackConfiguration config;
 	@Autowired
 	EntityManager entityManager;
-	@Autowired
-	TableEntityManager tableEntityManager;
 	@Autowired
 	ColumnModelManager columnManager;
 	@Autowired
@@ -109,13 +105,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		headers = TableModelUtils.getIds(schema);
 
 		// Create the table
-		TableEntity table = new TableEntity();
-		table.setParentId(project.getId());
-		table.setColumnIds(headers);
-		table.setName(UUID.randomUUID().toString());
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), project.getId(), headers, false);
 
 	}
 

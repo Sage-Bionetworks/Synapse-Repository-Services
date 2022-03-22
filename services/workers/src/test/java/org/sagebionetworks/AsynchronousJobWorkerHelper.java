@@ -10,16 +10,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 
 public interface AsynchronousJobWorkerHelper {
 
@@ -122,7 +121,19 @@ public interface AsynchronousJobWorkerHelper {
 	 * @param viewTypeMask
 	 * @return
 	 */
-	EntityView createView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask);
+	EntityView createEntityView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask);
+	
+	/**
+	 * Create a view with the given schema
+	 * @param user
+	 * @param name
+	 * @param parentId
+	 * @param schema
+	 * @param scope
+	 * @param viewTypeMask
+	 * @return
+	 */
+	EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask);
 
 	/**
 	 * Creates a submission view with the default columns
@@ -136,13 +147,22 @@ public interface AsynchronousJobWorkerHelper {
 	SubmissionView createSubmissionView(UserInfo user, String name, String parentId, List<String> scope);
 	
 	/**
+	 * Updates the submission view with the given schema and/or scope
+	 * @param viewId
+	 * @param user
+	 * @param schema
+	 * @param scope
+	 */
+	void updateSubmissionView(String viewId, UserInfo user, List<String> schema, List<String> scope);
+	
+	/**
 	 * Updates the schema and/or scope of the view
 	 * @param viewId
 	 * @param user
 	 * @param schema
 	 * @param scope
 	 */
-	void updateView(String viewId, UserInfo user, List<String> schema, List<String> scope);
+	void updateEntityView(String viewId, UserInfo user, List<String> schema, List<String> scope, long viewType);
 	
 	/**
 	 * Create a dataset with the default columns.
@@ -173,6 +193,16 @@ public interface AsynchronousJobWorkerHelper {
 	 * @param searchEnabled
 	 */
 	void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException;
+	
+	/**
+	 * Creates a materialized view from the given query
+	 *  
+	 * @param user
+	 * @param parentId
+	 * @param sql
+	 * @return
+	 */
+	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql);
 
 
 	/**
@@ -185,5 +215,6 @@ public interface AsynchronousJobWorkerHelper {
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
 
 	void emptyAllQueues();
+
 
 }

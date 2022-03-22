@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,8 +16,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -45,11 +43,10 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableTransactionManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -72,13 +69,11 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -88,7 +83,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -129,6 +123,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	DefaultColumnModelMapper columnModelMapper;
 	@Autowired
 	private EntityAclManager entityAclManager;
+
+	@Autowired
+	private AsynchronousJobWorkerHelper asyncHelper;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
@@ -373,14 +370,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
-		List<String> headers = TableModelUtils.getIds(schema);
-		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		List<String> headers = TableModelUtils.getIds(schema);		
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), null, headers, false).getId();
 		// Create some CSV data
 		List<String[]> input = new ArrayList<String[]>(3);
 		input.add(new String[] { "a", "b", "c" });
