@@ -105,7 +105,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		headers = TableModelUtils.getIds(schema);
 
 		// Create the table
-		asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), project.getId(), headers, false);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), project.getId(), headers, false).getId();
 
 	}
 
