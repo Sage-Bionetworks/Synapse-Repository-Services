@@ -113,7 +113,6 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -274,13 +273,7 @@ public class TableWorkerIntegrationTest {
 	void createTableWithSchema() {
 		headers = TableModelUtils.getIds(schema);
 		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		table.setParentId(projectId);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
 	}
 
 	@Test
@@ -940,7 +933,9 @@ public class TableWorkerIntegrationTest {
 		// add new column
 		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
 		headers = TableModelUtils.getIds(schema);
-		asyncHelper.setTableSchema(adminUserInfo, headers, tableId, MAX_WAIT_MS);
+		
+		asyncHelper.updateTable(tableId, adminUserInfo, headers, false);
+		
 		String newColumnId = ""+headers.get(headers.size()-1);
 		// set data on new column
 		
@@ -963,7 +958,8 @@ public class TableWorkerIntegrationTest {
 		// remove column a
 		schema.remove(0);
 		headers = TableModelUtils.getIds(schema);
-		asyncHelper.setTableSchema(adminUserInfo, headers, tableId, MAX_WAIT_MS);
+		
+		asyncHelper.updateTable(tableId, adminUserInfo, headers, false);
 
 		// wait for table to be available
 		sql = "select * from " + tableId;
@@ -1570,12 +1566,7 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testNoColumnsNoRows() throws Exception {
 		// Create a table with no columns.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(null);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, null, tableId, false);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, null, false).getId();
 		// We should be able to query
 		String sql = "select * from " + tableId;
 		waitForConsistentQuery(adminUserInfo, sql, null, 1L, (queryResult) -> {			
@@ -1848,13 +1839,8 @@ public class TableWorkerIntegrationTest {
 
 		List<String> headers = TableModelUtils.getIds(schema);
 		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		table.setParentId(projectId);
-		tableId = entityManager.createEntity(owner, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
+		
 		appendRows(owner, tableId,
 				createRowSet(headers), mockProgressCallback);
 		assertThrows(UnauthorizedException.class, ()->{
@@ -1935,12 +1921,7 @@ public class TableWorkerIntegrationTest {
 		List<String> headers = Lists.newArrayList(oldColumn.getId());
 		
 		// Create the table with the column
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
 		
 		// Add a row
 		PartialRow row = new PartialRow();
@@ -3133,13 +3114,7 @@ public class TableWorkerIntegrationTest {
 	
 	@Test
 	public void testEnableSearchWithEmptyTable() throws Exception {
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(projectId);
-		table.setIsSearchEnabled(true);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, Collections.emptyList(), true).getId();
 		
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('something')", null, null, (queryResult) -> {
 			assertEquals(0, queryResult.getQueryResults().getRows().size());
@@ -3151,16 +3126,7 @@ public class TableWorkerIntegrationTest {
 		createSchemaOneOfEachType();
 		headers = TableModelUtils.getIds(schema);
 		
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(projectId);
-		table.setIsSearchEnabled(true);
-		table.setColumnIds(headers);
-		
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		
-		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, null);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
 		
 		// Searching should throw now as it is not enabled yet
 		assertThrows(IllegalArgumentException.class, () -> {
@@ -3176,9 +3142,8 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		
 		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
-		
-		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+
+		asyncHelper.updateTable(tableId, adminUserInfo, headers, true);
 		
 		// Should not break the table
 		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null, (queryResult) -> {
@@ -3194,18 +3159,12 @@ public class TableWorkerIntegrationTest {
 	// Test to rerproduce PLFM-7024
 	@Test
 	public void testEnableSearchIdempotent() throws Exception {
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(projectId);
-		table.setIsSearchEnabled(true);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// set the search transaction. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, true);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, Collections.emptyList(), true).getId();
 		
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
 		// Update a second time, note the use of "new" Boolean (reproduce PLFM-7024
-		tableEntityManager.tableUpdated(adminUserInfo, Collections.emptyList(), tableId, new Boolean(true));
+		asyncHelper.updateTable(tableId, adminUserInfo, Collections.emptyList(), new Boolean(true));
 		
 		assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 		
@@ -3216,16 +3175,7 @@ public class TableWorkerIntegrationTest {
 		createSchemaOneOfEachType();
 		headers = TableModelUtils.getIds(schema);
 		
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(projectId);
-		table.setIsSearchEnabled(true);
-		table.setColumnIds(headers);
-		
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		
-		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
 			
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
@@ -3242,7 +3192,7 @@ public class TableWorkerIntegrationTest {
 		});
 		
 		// Now disable search
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+		asyncHelper.updateTable(tableId, adminUserInfo, headers, false);
 		
 		// Searching should throw now as it is disabled
 		assertThrows(IllegalArgumentException.class, () -> {
@@ -3260,16 +3210,7 @@ public class TableWorkerIntegrationTest {
 		
 		headers = TableModelUtils.getIds(schema);
 		
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(projectId);
-		table.setIsSearchEnabled(true);
-		table.setColumnIds(headers);
-		
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		
-		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();		
 		
 		// Now add some data
 		List<Row> rows = Arrays.asList(
@@ -3339,16 +3280,7 @@ public class TableWorkerIntegrationTest {
 			
 			headers = TableModelUtils.getIds(schema);
 			
-			TableEntity table = new TableEntity();
-			table.setName(UUID.randomUUID().toString());
-			table.setParentId(projectId);
-			table.setIsSearchEnabled(true);
-			table.setColumnIds(headers);
-			
-			tableId = entityManager.createEntity(adminUserInfo, table, null);
-			
-			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
 			
 			// Now add some data
 			List<Row> rows = Arrays.asList(
@@ -3398,17 +3330,7 @@ public class TableWorkerIntegrationTest {
 			
 			headers = TableModelUtils.getIds(schema);
 			
-			TableEntity table = new TableEntity();
-			table.setName(UUID.randomUUID().toString());
-			table.setParentId(projectId);
-			table.setIsSearchEnabled(false);
-			table.setColumnIds(headers);
-			
-			tableId = entityManager.createEntity(adminUserInfo, table, null);
-			
-			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-			// Initially the search is not enabled
-			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
+			tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, false).getId();
 			
 			// Now add some data
 			List<Row> rows = Arrays.asList(
@@ -3435,7 +3357,7 @@ public class TableWorkerIntegrationTest {
 			assertEquals("Invalid use of TEXT_MATCHES. Full text search is not enabled on table " + tableId + ".", errorMessage);
 			
 			// Now enable the search on the table
-			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			asyncHelper.updateTable(tableId, adminUserInfo, headers, true);
 			
 			// Check that now we can search on the existing data
 			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('singlevalue')", null, null, (queryResult) -> {
@@ -3454,16 +3376,7 @@ public class TableWorkerIntegrationTest {
 			
 			headers = TableModelUtils.getIds(schema);
 			
-			TableEntity table = new TableEntity();
-			table.setName(UUID.randomUUID().toString());
-			table.setParentId(projectId);
-			table.setIsSearchEnabled(false);
-			table.setColumnIds(headers);
-			
-			tableId = entityManager.createEntity(adminUserInfo, table, null);
-			
-			// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), projectId, headers, true).getId();
 			
 			// Now add some data
 			List<Row> rows = Arrays.asList(
@@ -3478,6 +3391,9 @@ public class TableWorkerIntegrationTest {
 			rowSet.setTableId(tableId);
 			
 			referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+			
+			// Wait for the table to be available to avoid a race condition when we update the table below (that might throw a temporary unavailable)
+			assertEquals(TableState.AVAILABLE, waitForTableProcessing(tableId).getState());
 						
 			// Check that now we can search on the existing data
 			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('value')", null, null, (queryResult) -> {
@@ -3493,7 +3409,7 @@ public class TableWorkerIntegrationTest {
 			
 			headers = TableModelUtils.getIds(schema);
 			
-			tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, true);
+			asyncHelper.updateTable(tableId, adminUserInfo, headers, true);
 			
 			// Now only the second row matches since the the first row does not have the column with the value anymore
 			waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('value')", null, null, (queryResult) -> {

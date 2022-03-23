@@ -288,7 +288,7 @@ public class SubmissionViewIntegrationTest {
 		columnModels.add(fooColumnModel);
 		
 		// Updates the schema
-		asyncHelper.setTableSchema(evaluationOwner, TableModelUtils.getIds(columnModels), view.getId(), MAX_WAIT);
+		asyncHelper.updateSubmissionView(view.getId(), evaluationOwner, TableModelUtils.getIds(columnModels), view.getScopeIds());
 
 		// Updates the status of the 1st submission adding the foo annotation
 		SubmissionStatus status = submissionManager.getSubmissionStatus(evaluationOwner, submission1.getSubmission().getId());
@@ -368,7 +368,7 @@ public class SubmissionViewIntegrationTest {
 		columnModels.add(fooColumnModel);
 		
 		// Updates the schema
-		asyncHelper.setTableSchema(evaluationOwner, TableModelUtils.getIds(columnModels), view.getId(), MAX_WAIT);
+		asyncHelper.updateSubmissionView(view.getId(), evaluationOwner, TableModelUtils.getIds(columnModels), view.getScopeIds());
 		
 		PartialRow row = new PartialRow();
 		
@@ -436,7 +436,7 @@ public class SubmissionViewIntegrationTest {
 		columnModels.add(fooColumnModel);
 		
 		// Updates the schema
-		asyncHelper.setTableSchema(evaluationOwner, TableModelUtils.getIds(columnModels), view.getId(), MAX_WAIT);
+		asyncHelper.updateSubmissionView(view.getId(), evaluationOwner, TableModelUtils.getIds(columnModels), view.getScopeIds());
 		
 		Row expectedRow = mapSubmission(evaluationProject, submission1);
 		

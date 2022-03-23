@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
+import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -34,17 +36,17 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -230,6 +232,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Autowired
 	private TableEntityManager tableEntityManager;
 	@Autowired
+	private MaterializedViewManager materializedViewManager;
+	@Autowired
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private SynapseS3Client s3Client;
@@ -328,23 +332,37 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	 * @return
 	 */
 	@Override
-	public EntityView createView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
-		ViewEntityType entityType = ViewEntityType.entityview;
-		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(entityType, viewTypeMask);
+	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
+		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
+		return createEntityView(user, name, parentId, TableModelUtils.getIds(defaultColumns), scope, viewTypeMask);
+	}
+	
+	@Override
+	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask) {
 		EntityView view = new EntityView();
 		view.setName(name);
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(parentId);
-		view.setColumnIds(TableModelUtils.getIds(defaultColumns));
+		view.setColumnIds(schema);
 		view.setScopeIds(scope);
 		String viewId = entityManager.createEntity(user, view, null);
 		view = entityManager.getEntity(user, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(entityType);
+		viewScope.setViewEntityType(ViewEntityType.entityview);
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewTypeMask(viewTypeMask);
 		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
 		return view;
+	}
+	
+	@Override
+	public void updateEntityView(String viewId, UserInfo user, List<String> schema, List<String> scope, long typeMask) {
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(ViewEntityType.entityview);
+		viewScope.setScope(scope);
+		viewScope.setViewTypeMask(typeMask);
+		
+		tableViewManager.setViewSchemaAndScope(user, schema, viewScope, viewId);
 	}
 
 	@Override
@@ -371,6 +389,16 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
+	public void updateSubmissionView(String viewId, UserInfo user, List<String> schema, List<String> scope) {
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(ViewEntityType.submissionview);
+		viewScope.setScope(scope);
+		viewScope.setViewTypeMask(0L);
+		
+		tableViewManager.setViewSchemaAndScope(user, schema, viewScope, viewId);
+	}
+	
+	@Override
 	public Dataset createDataset(UserInfo user, Dataset dataset) {
 		ViewEntityType entityType = ViewEntityType.dataset;
 		Long typeMask = 0L;
@@ -388,21 +416,53 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 		return dataset;
 	}
-
+	
 	@Override
-	public void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS)
-			throws InterruptedException {
+	public TableEntity createTable(UserInfo user, String name, String parentId, List<String> columnIds, boolean searchEnabled) {
+		TableEntity table = new TableEntity();
+		table.setName(name);
+		table.setParentId(parentId);
+		table.setIsSearchEnabled(searchEnabled);
+		table.setColumnIds(columnIds);
+		
+		String tableId = entityManager.createEntity(user, table, null);
+		
+		// Set the search transaction and bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.tableUpdated(user, columnIds, tableId, searchEnabled);
+		
+		return entityManager.getEntity(user, tableId, TableEntity.class);
+	}
+	
+	@Override
+	public void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException {
+		long maxWaitMS = 60 * 1000; 
 		long start = System.currentTimeMillis();
 		while (true) {
 			try {
-				tableEntityManager.tableUpdated(userInfo, newSchema, tableId, false);
+				tableEntityManager.tableUpdated(user, newSchema, tableId, searchEnabled);
 				return;
 			} catch (TemporarilyUnavailableException e) {
 				LOG.info("Waiting for excluisve lock on {}...", tableId);
 				Thread.sleep(1000);
 			}
-			assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out Waiting for excluisve lock on " + tableId);
+			assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out Waiting for exclusive lock on " + tableId);
 		}
+	}
+	
+	@Override
+	public MaterializedView createMaterializedView(UserInfo user, String parentId, String sql) {
+		MaterializedView materializedView = new MaterializedView();
+		
+		materializedView.setName(UUID.randomUUID().toString());
+		materializedView.setDefiningSQL(sql);
+		materializedView.setParentId(parentId);
+		
+		String materializedViewId = entityManager.createEntity(user, materializedView, null);
+		
+		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
+		materializedViewManager.registerSourceTables(KeyFactory.idAndVersion(materializedViewId, null), sql);
+		
+		return entityManager.getEntity(user, materializedViewId, MaterializedView.class);
 	}
 
 	/**

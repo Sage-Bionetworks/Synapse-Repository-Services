@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -49,7 +50,6 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -92,6 +92,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	SemaphoreManager semphoreManager;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private AsynchronousJobWorkerHelper asyncHelper;
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
@@ -496,17 +498,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	 * 
 	 */
 	void createTableWithSchema() {
-		List<String> ids = TableModelUtils.getIds(schema);
-		headers = ids;
+		headers = TableModelUtils.getIds(schema);
 
-		// Create the table
-		TableEntity table = new TableEntity();
-		table.setColumnIds(headers);
-		table.setName(UUID.randomUUID().toString());
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		tableId = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), null, headers, false).getId();
+		
 		toDelete.add(tableId);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.tableUpdated(adminUserInfo, headers, tableId, false);
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,

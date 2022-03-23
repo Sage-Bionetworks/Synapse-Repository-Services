@@ -26,7 +26,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -72,8 +71,6 @@ public class TableUpdateRequestWorkerIntegrationTest {
 	StackConfiguration config;
 	@Autowired
 	EntityManager entityManager;
-	@Autowired
-	TableEntityManager tableEntityManager;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired

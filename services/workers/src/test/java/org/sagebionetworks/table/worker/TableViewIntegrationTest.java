@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -106,7 +105,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -136,8 +134,6 @@ public class TableViewIntegrationTest {
 	private TableManagerSupport tableManagerSupport;
 	@Autowired
 	private ColumnModelManager columnModelManager;
-	@Autowired
-	private TableViewManager tableViewManager;
 	@Autowired
 	private EntityAclManager entityAclManager;
 	@Autowired
@@ -185,11 +181,9 @@ public class TableViewIntegrationTest {
 	ColumnModel stringListColumn;
 	
 	private ReplicationType viewObjectType;
-	private ViewEntityType viewEntityType;
 	
 	@BeforeEach
-	public void before(){
-		viewEntityType = ViewEntityType.entityview;
+	public void before() {
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		bulkDownloadManager.truncateAllDownloadDataForAllUsers(adminUserInfo);
@@ -220,7 +214,7 @@ public class TableViewIntegrationTest {
 			String fileId = entityManager.createEntity(adminUserInfo, file, null);
 			fileIds.add(fileId);
 		}
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(viewEntityType, ViewTypeMask.File.getMask());
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, ViewTypeMask.File.getMask());
 		// add an annotation column
 		anno1Column = new ColumnModel();
 		anno1Column.setColumnType(ColumnType.INTEGER);
@@ -295,6 +289,9 @@ public class TableViewIntegrationTest {
 		fileViewId = createView(type, scope);
 	}
 	
+	private void updateFileViewSchema(List<String> columnIds) {
+		asyncHelper.updateEntityView(fileViewId, adminUserInfo, columnIds, Collections.singletonList(project.getId()), ViewTypeMask.getMaskForDepricatedType(ViewType.file));
+	}	
 
 	/**
 	 * Create a view of the given type and scope.
@@ -303,22 +300,7 @@ public class TableViewIntegrationTest {
 	 * @param scope
 	 */
 	private String createView(ViewType type, List<String> scope) {
-		// Create a new file view
-		EntityView view = new EntityView();
-		view.setName("aFileView");
-		view.setParentId(project.getId());
-		view.setColumnIds(defaultColumnIds);
-		view.setScopeIds(scope);
-		view.setType(type);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(viewEntityType);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewType(view.getType());
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-		entitiesToDelete.add(view.getId());
-		return viewId;
+		return createView(ViewTypeMask.getMaskForDepricatedType(type), scope);
 	}
 	
 	/**
@@ -328,22 +310,9 @@ public class TableViewIntegrationTest {
 	 * @param scope
 	 */
 	private String createView(Long viewTypeMask, List<String> scope) {
-		// Create a new file view
-		EntityView view = new EntityView();
-		view.setName("aFileView");
-		view.setParentId(project.getId());
-		view.setColumnIds(defaultColumnIds);
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(viewEntityType);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
+		EntityView view = asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), project.getId(), defaultColumnIds, scope, viewTypeMask);
 		entitiesToDelete.add(view.getId());
-		return viewId;
+		return view.getId();
 	}
 	
 	
@@ -697,16 +666,11 @@ public class TableViewIntegrationTest {
 		stringColumn.setName("aString");
 		stringColumn.setColumnType(ColumnType.STRING);
 		stringColumn.setMaximumSize(1L);
-		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
-				stringColumn);
+		stringColumn = columnModelManager.createColumnModel(adminUserInfo, stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
-		ViewScope scope = new ViewScope();
-		scope.setViewEntityType(viewEntityType);
-		scope.setScope(Lists.newArrayList(project.getId()));
-		scope.setViewType(ViewType.file);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				scope, fileViewId);
-
+		
+		updateFileViewSchema(defaultColumnIds);
+		
 		// Add an annotation with the same name and a value larger than the size
 		// of the column.
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
@@ -744,12 +708,8 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
-		ViewScope scope = new ViewScope();
-		scope.setViewEntityType(viewEntityType);
-		scope.setScope(Lists.newArrayList(project.getId()));
-		scope.setViewTypeMask(ViewTypeMask.File.getMask());
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				scope, fileViewId);
+		
+		updateFileViewSchema(defaultColumnIds);
 
 		// Add an annotation with a duplicate name as a primary annotation.
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
@@ -1189,7 +1149,7 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testViewWithFilesAndTables() throws Exception{
 		// use the default columns for this type.
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(viewEntityType, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		// Add a table to the project
 		TableEntity table = new TableEntity();
 		table.setName("someTable");
@@ -1230,7 +1190,7 @@ public class TableViewIntegrationTest {
 	public void testViewWithFilesAndDatasets() throws Exception{
 		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask();
 		// use the default columns for this type.
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(viewEntityType, viewTypeMask);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
 		// Add a table to the project
 		Dataset dataset = new Dataset();
 		dataset.setName("some dataset");

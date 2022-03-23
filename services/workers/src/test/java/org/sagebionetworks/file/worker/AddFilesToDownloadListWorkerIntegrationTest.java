@@ -133,7 +133,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		// create a view of the project.
 		Long viewTypeMask = 0x01L;
 		List<String> scope = Lists.newArrayList(project.getId());
-		EntityView view = asynchronousJobWorkerHelper.createView(adminUserInfo, "aView" + UUID.randomUUID().toString(), project.getParentId(), scope, viewTypeMask);
+		EntityView view = asynchronousJobWorkerHelper.createEntityView(adminUserInfo, "aView" + UUID.randomUUID().toString(), project.getParentId(), scope, viewTypeMask);
 		
 		// Wait for the file to appear in the table's database.
 		asynchronousJobWorkerHelper.waitForEntityReplication(adminUserInfo, view.getId(), file.getId(), MAX_WAIT_MS);

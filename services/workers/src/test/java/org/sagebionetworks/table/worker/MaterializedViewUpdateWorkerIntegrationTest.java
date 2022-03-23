@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -70,7 +69,6 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
-import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
@@ -104,9 +102,6 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 
 	@Autowired
 	private ColumnModelManager columnModelManager;
-
-	@Autowired
-	private TableViewManager tableViewManager;
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
@@ -651,20 +646,8 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	 */
 	EntityView createView(String projectId, Long viewTypeMask, List<ColumnModel> schema) {
 		List<String> scope = Arrays.asList(projectId);
-		EntityView view = new EntityView();
-		view.setName(UUID.randomUUID().toString());
-		view.setParentId(projectId);
-		view.setColumnIds(schema.stream().map(c -> c.getId()).collect(Collectors.toList()));
-		view.setScopeIds(scope);
-		view.setViewTypeMask(viewTypeMask);
-		String viewId = entityManager.createEntity(adminUserInfo, view, null);
-		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-		return view;
+		List<String> columnIds = schema.stream().map(c -> c.getId()).collect(Collectors.toList());
+		return asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), projectId, columnIds, scope, viewTypeMask);
 	}
 	
 	/**
@@ -849,35 +832,17 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 	
 	private IdAndVersion createTable(String parentId, List<String> columnIds) {
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setParentId(parentId);
-		table.setColumnIds(columnIds);
+		TableEntity table = asyncHelper.createTable(adminUserInfo, UUID.randomUUID().toString(), parentId, columnIds, false);
 		
-		String tableId = entityManager.createEntity(adminUserInfo, table, null);
-		
-		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableManager.tableUpdated(adminUserInfo, table.getColumnIds(), tableId, false);
-		
-		return KeyFactory.idAndVersion(tableId, null);
+		return KeyFactory.idAndVersion(table.getId(), null);
 	}
-	
+
 	private IdAndVersion createMaterializedView(String parentId, String sql) {
-		MaterializedView materializedView = new MaterializedView();
+		MaterializedView view = asyncHelper.createMaterializedView(adminUserInfo, parentId, sql);
 		
-		materializedView.setName(UUID.randomUUID().toString());
-		materializedView.setDefiningSQL(sql);
-		materializedView.setParentId(parentId);
-		
-		String materializedViewId = entityManager.createEntity(adminUserInfo, materializedView, null);
-		
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(materializedViewId, null);
-		
-		// Bind the schema. This is normally done at the service layer but the workers cannot depend on that layer.
-		materializedViewManager.registerSourceTables(idAndVersion, sql);
-		
-		return idAndVersion;
+		return KeyFactory.idAndVersion(view.getId(), null);
 	}
+
 
 	static class PatientData {
 		Long patientId;
