@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
@@ -52,6 +54,7 @@ import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -464,6 +467,62 @@ public class ITJsonSchemaControllerTest {
 		assertEquals(AnnotationsValueType.STRING, value.getType());
 		assertEquals(Lists.newArrayList("some value"), value.getValue());
 	}
+	
+	// Reproduce PLFM-6890
+	@Test
+	public void testUpdateEntityJsonWithDoubleAnnotations() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		
+		// Using the double wrapper ensures that the 1.0 is sent to the server with the trailing zero
+		projectJSON.put("sample", Arrays.asList(
+				new DoubleJSONStringWrapper(1.2),
+				new DoubleJSONStringWrapper(1.0),
+				new DoubleJSONStringWrapper(3.14)
+			)
+		);
+		
+		List<Double> expected = Arrays.asList(1.2, 1.0, 3.14);
+		
+		// call under test
+		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
+		
+		assertEquals(expected, updatedJson.getJSONArray("sample").toList());
+				
+		Annotations annos = synapse.getAnnotationsV2(project.getId());
+		AnnotationsValue value =  annos.getAnnotations().get("sample");
+		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
+		assertEquals(Arrays.asList("1.2", "1.0", "3.14"), value.getValue());
+
+	}
+	
+	// Reproduce PLFM-6890
+	@Test
+	public void testUpdateEntityJsonWithMixDoubleAndLongValues() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		assertNotNull(projectJSON);
+		
+		// This is accepted and it will be treated as an array of doubles (but storing the original format)
+		projectJSON.put("sample", Arrays.asList(1.2, 1, 2, 3, 4.5, 6));
+		
+		List<Double> expected = Arrays.asList(1.2, 1.0, 2.0, 3.0, 4.5, 6.0);
+		
+		// call under test
+		JSONObject updatedJson = synapse.updateEntityJson(project.getId(), projectJSON);
+		
+		assertEquals(expected, updatedJson.getJSONArray("sample").toList());
+				
+		Annotations annos = synapse.getAnnotationsV2(project.getId());
+		AnnotationsValue value =  annos.getAnnotations().get("sample");
+		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
+		assertEquals(Arrays.asList("1.2", "1", "2", "3", "4.5", "6"), value.getValue());
+
+	}
+	
 	
 	/**
 	 * Wait for the validation results
