@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -81,6 +82,15 @@ public class DatasetMetadataIndexProviderTest {
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewId);
 		ViewFilter expected = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
+		assertEquals(filter, expected);
+	}
+
+	@Test
+	public void testGetViewFilterNoItems() {
+		when(mockNodeDao.getDatasetItems(viewId)).thenReturn(null);
+		// call under test
+		ViewFilter filter = provider.getViewFilter(viewId);
+		ViewFilter expected = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, Collections.EMPTY_SET);
 		assertEquals(filter, expected);
 	}
 

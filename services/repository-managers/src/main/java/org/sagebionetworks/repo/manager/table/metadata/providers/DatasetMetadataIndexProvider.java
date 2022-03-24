@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -87,9 +88,12 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
 		List<DatasetItem> items = nodeDao.getDatasetItems(viewId);
-		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
-				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
-				.collect(Collectors.toSet());
+		Set<IdVersionPair> scope = Collections.EMPTY_SET;
+		if (items!=null) {
+			scope = items.stream().map(i -> new IdVersionPair()
+					.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
+					.collect(Collectors.toSet());
+		}
 		return new FlatIdAndVersionFilter(ReplicationType.ENTITY, getSubTypes(), scope);
 	}
 
