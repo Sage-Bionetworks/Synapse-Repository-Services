@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.org.json.JsonDateUtils;
+import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 
 import com.google.common.collect.Lists;
 
@@ -273,8 +274,8 @@ public class AnnotationsTranslatorImplTest {
 		String key = "theKey";
 		JSONArray value = new JSONArray();
 		value.put(0, "a string");
-		value.put(1, new Double(3.14));
-		value.put(2, new Long(123));
+		value.put(1, Double.valueOf(3.14));
+		value.put(2, Long.valueOf(123));
 		JSONObject json = new JSONObject();
 		json.put(key, value);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -282,6 +283,24 @@ public class AnnotationsTranslatorImplTest {
 			translator.getAnnotationValueFromJsonObject(key, json);
 		}).getMessage();
 		assertEquals("List of mixed types found for key: 'theKey'", message);
+	}
+	
+	@Test
+	public void testGetAnnotationValueFromJsonObjectWithArrayOfMixedDoubleAndLongs() {
+		String key = "theKey";
+		JSONArray value = new JSONArray(
+			Arrays.asList(0, 3.14, 1, 2, 3, 7.28, 9)
+		);
+		JSONObject json = new JSONObject();
+		json.put(key, value);
+		AnnotationsValue expected = new AnnotationsValue()
+				.setType(AnnotationsValueType.DOUBLE)
+				.setValue(Arrays.asList("0", "3.14", "1", "2", "3", "7.28", "9"));
+		// call under test
+		AnnotationsValue result = translator.getAnnotationValueFromJsonObject(key, json);
+		
+		assertEquals(expected, result);
+		
 	}
 
 	@Test
@@ -766,15 +785,18 @@ public class AnnotationsTranslatorImplTest {
 	public void testWriteAnnotationsToJSONObjectWithListOfDoubles() {
 		schema = null;
 		Annotations toWrite = new Annotations();
-		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","2.33"), AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(toWrite, "aListOfDoubles", Lists.newArrayList("1.22","2.33", "1.0"), AnnotationsValueType.DOUBLE);
 		JSONObject json = new JSONObject();
 		// call under test
 		translator.writeAnnotationsToJSONObject(toWrite, json, schema);
 		JSONArray array = json.getJSONArray("aListOfDoubles");
-		assertNotNull(array);
-		assertEquals(2, array.length());
-		assertEquals(new Double(1.22), array.getDouble(0));
-		assertEquals(new Double(2.33), array.getDouble(1));
+		assertEquals(Arrays.asList(
+			new DoubleJSONStringWrapper(1.22),
+			new DoubleJSONStringWrapper(2.33),
+			new DoubleJSONStringWrapper(1.0)
+		), array.toList());
+		// https://sagebionetworks.jira.com/browse/PLFM-6890 Make sure that when the json array is serialized the trailing 0s are preserved
+		assertEquals("[1.22,2.33,1.0]", array.toString());
 	}
 	
 	@Test

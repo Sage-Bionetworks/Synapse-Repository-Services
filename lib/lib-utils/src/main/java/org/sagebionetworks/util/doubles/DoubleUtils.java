@@ -1,5 +1,6 @@
 package org.sagebionetworks.util.doubles;
 
+import org.json.JSONString;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class DoubleUtils {
@@ -20,5 +21,10 @@ public class DoubleUtils {
 			// Try to match it to NaN or Infinity.
 			return AbstractDouble.lookupType(string).getDoubleValue();
 		}
+	}
+	
+	public static JSONString toJSONString(Double value) {
+		ValidateArgument.required(value, "The value");
+		return new DoubleJSONStringWrapper(value);
 	}
 }

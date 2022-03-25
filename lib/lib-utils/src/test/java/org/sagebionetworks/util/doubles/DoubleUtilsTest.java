@@ -9,21 +9,21 @@ import org.junit.jupiter.api.Test;
 
 class DoubleUtilsTest {
 	@Test
-	public void testFromString_InvalidString(){
+	public void testFromStringWithInvalidString(){
 		assertThrows(NumberFormatException.class, ()->{
 			DoubleUtils.fromString("NotADouble");
 		});
 	}
 
 	@Test
-	public void testFromString_nullString(){
+	public void testFromStringWithNullString(){
 		assertThrows(IllegalArgumentException.class, ()->{
 			DoubleUtils.fromString(null);
 		});
 	}
 
 	@Test
-	public void testFromString_NaN() {
+	public void testFromStringWithNaN() {
 
 		Set<String> nanStringPermutations = Sets.newHashSet( "nan", "Nan", "NaN", "NAn", "NAN", "nAn", "nAN", "naN");
 		assertEquals(8, nanStringPermutations.size()); // 2^3 = 8
@@ -33,17 +33,33 @@ class DoubleUtilsTest {
 		}
 	}
 	@Test
-	public void testFromString_normalDoubles() {
+	public void testFromStringWithNormalDoubles() {
 		assertEquals(-1.2, DoubleUtils.fromString("-1.2"));
 		assertEquals(0.0, DoubleUtils.fromString("0"));
 		assertEquals(3.14159265359, DoubleUtils.fromString("3.14159265359"));
 	}
 
 	@Test
-	public void testFromString_Infinity(){
+	public void testFromStringWithInfinity(){
 		Set<String> infinity = Sets.newHashSet( "inFinItY", "+inFinity", "iNf", "+inF", "-InF", "-inFiNiTy");
 		for (String s : infinity) {
 			assertTrue(Double.isInfinite(DoubleUtils.fromString(s)));
 		}
+	}
+	
+	@Test
+	public void testToJSONStringWithNullInput() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			DoubleUtils.toJSONString(null);
+		}).getMessage();
+		
+		assertEquals("The value is required.", message);
+	}
+	
+	@Test
+	public void testToJSONString() {
+		Double value = 3.14;
+		DoubleJSONStringWrapper expected = new DoubleJSONStringWrapper(value);
+		assertEquals(expected, DoubleUtils.toJSONString(value));
 	}
 }

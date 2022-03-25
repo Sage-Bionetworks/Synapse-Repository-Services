@@ -326,15 +326,29 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			List<String> valueList = new ArrayList<String>(array.length());
 			AnnotationsValueType lastType = null;
 			for (int i = 0; i < array.length(); i++) {
-				ListValue listValue = Stream
-						.of(attemptToReadAsBoolean(i, array), attemptToReadAsDouble(i, array), attemptToReadAsTimestamp(i, array),
-								attemptToReadAsLong(i, array), attemptToReadAsString(i, array))
-						.filter(Optional::isPresent).findFirst().get().orElseThrow(() -> new IllegalArgumentException(
-								"Cannot translate value at '" + key + "' to an Annotation"));
+				ListValue listValue = Stream.of(
+					attemptToReadAsBoolean(i, array), 
+					attemptToReadAsDouble(i, array), 
+					attemptToReadAsTimestamp(i, array),
+					attemptToReadAsLong(i, array), 
+					attemptToReadAsString(i, array)
+				).filter(Optional::isPresent)
+				 .findFirst()
+				 .get()
+				 .orElseThrow(() -> new IllegalArgumentException("Cannot translate value at '" + key + "' to an Annotation"));
+
 				if (lastType != null && !lastType.equals(listValue.getType())) {
-					throw new IllegalArgumentException("List of mixed types found for key: '" + key + "'");
+					// Special treatment for double and long mix, we always treat them as double.
+					if (lastType == AnnotationsValueType.DOUBLE && listValue.getType() == AnnotationsValueType.LONG 
+							|| 
+						lastType == AnnotationsValueType.LONG && listValue.getType() == AnnotationsValueType.DOUBLE) {
+						lastType = AnnotationsValueType.DOUBLE;
+					} else {
+						throw new IllegalArgumentException("List of mixed types found for key: '" + key + "'");
+					}
+				} else {
+					lastType = listValue.getType();
 				}
-				lastType = listValue.getType();
 				valueList.add(listValue.getValue());
 			}
 			AnnotationsValue annValue = new AnnotationsValue();
@@ -475,7 +489,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 			Double doubleValue = DoubleUtils.fromString(value);
 			
 			if (Double.isFinite(doubleValue)) {
-				return doubleValue;
+				// https://sagebionetworks.jira.com/browse/PLFM-6890, we wrap the value into a JSONString so that when serialized the trailing zeros are maintained
+				return DoubleUtils.toJSONString(doubleValue);
 			} else {
 				// NaN, Infinite etc are not valid double values in JSON, so we convert them to their string representation instead.
 				return doubleValue.toString();
