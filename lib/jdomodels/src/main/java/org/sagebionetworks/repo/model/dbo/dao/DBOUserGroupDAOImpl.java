@@ -200,17 +200,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 	
 	@Override
-	public UserGroup get(Long id) throws DatastoreException,
-			NotFoundException {
+	public UserGroup get(Long id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		DBOUserGroup dbo;
-		try {
-			dbo = basicDao.getObjectByPrimaryKey(DBOUserGroup.class, param);
-		} catch (NotFoundException e) {
-			// Rethrow the basic DAO's generic error message
-			throw new NotFoundException("Principal (" + id + ") does not exist");
-		}
+		DBOUserGroup dbo = basicDao.getObjectByPrimaryKey(DBOUserGroup.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Principal '%s' does not exist", id)));
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);
 		return dto;

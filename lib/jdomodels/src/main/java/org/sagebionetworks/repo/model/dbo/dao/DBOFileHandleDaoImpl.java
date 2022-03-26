@@ -142,10 +142,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 
 	DBOFileHandle getDBO(String id) throws NotFoundException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
+		if (id == null)
+			throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
-		DBOFileHandle dbo = basicDao.getObjectByPrimaryKey(DBOFileHandle.class, param);
+		DBOFileHandle dbo = basicDao.getObjectByPrimaryKey(DBOFileHandle.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("FileHandle: '%s' cannot be found", id)));
 		return dbo;
 	}
 

@@ -130,7 +130,7 @@ public class NodeDAOImplTest {
 	public static final long TEST_FILE_SIZE = 1234567l;
 
 	@Autowired
-	private NodeDAO nodeDao;
+	private NodeDAOImpl nodeDao;
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
@@ -4241,7 +4241,7 @@ public class NodeDAOImplTest {
 		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
 		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
 		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));
-		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource);
+		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource).get();
 
 		// Now retrieve it and we should stil get back an empty NamedAnnotation
 		Annotations copy = nodeDao.getUserAnnotations(id);
@@ -5178,5 +5178,32 @@ public class NodeDAOImplTest {
 		assertEquals("offset is required.", message);
 	}
 	
+	@Test
+	public void testGetNodeByIdWitNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeById(-1L);
+		}).getMessage();
+		assertEquals("Resource: 'syn-1' does not exist", message);
+	}
+	
+	
+	@Test
+	public void testGgetNodeRevisionByIdWitNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeRevisionById(-1L, 3L);
+		}).getMessage();
+		assertEquals("Resource: 'syn-1.3' does not exist", message);
+	}
+	
+	@Test
+	public void testGetNodeNameWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeName("syn-1");
+		}).getMessage();
+		assertEquals("Resource: 'syn-1' does not exist", message);
+	}
 
 }

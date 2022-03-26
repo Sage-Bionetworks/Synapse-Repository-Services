@@ -57,6 +57,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
+	public static final String ACCESS_REQUIREMENT_DOES_NOT_EXIST = "Access Requirement: '%s' does not exist";
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
 	public static final Long DEFAULT_VERSION = 0L;
@@ -285,7 +286,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				
 			});
 		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			throw new NotFoundException(String.format(ACCESS_REQUIREMENT_DOES_NOT_EXIST, accessRequirementId));
 		}
 	}
 
@@ -336,7 +337,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_CONCRETE_TYPE_SQL, String.class, accessRequirementId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(ACCESS_REQUIREMENT_DOES_NOT_EXIST, accessRequirementId));
 		}
 	}
 

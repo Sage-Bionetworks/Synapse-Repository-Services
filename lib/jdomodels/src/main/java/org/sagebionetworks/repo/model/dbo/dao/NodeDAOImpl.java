@@ -64,7 +64,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
@@ -125,7 +124,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,9 +139,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import com.amazonaws.services.glue.model.NodeType;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -153,6 +149,8 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
+	public static final String RESOURCE_DOES_NOT_EXIST = "Resource: '%s' does not exist";
+
 	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
@@ -435,8 +433,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
 			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
-	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
-
 	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
@@ -777,12 +773,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	private DBONode getNodeById(Long id){
-		if(id == null) {
+	DBONode getNodeById(Long id) {
+		if (id == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 		MapSqlParameterSource params = getNodeParameters(id);
-		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params).orElseThrow(() -> new NotFoundException(
+				String.format(RESOURCE_DOES_NOT_EXIST, KeyFactory.keyToString(id))));
 	}
 
 	/**
@@ -795,9 +792,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return params;
 	}
 	
-	private DBORevision getNodeRevisionById(Long id, Long revNumber){
+	DBORevision getNodeRevisionById(Long id, Long revNumber) {
 		MapSqlParameterSource params = getRevisionParameters(id, revNumber);
-		return dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params)
+				.orElseThrow(() -> new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST,
+						IdAndVersion.newBuilder().setId(id).setVersion(revNumber).build().toString())));
 	}
 
 	/**
@@ -1982,7 +1981,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			Long entityId = namedParameterJdbcTemplate.queryForObject(SQL_SELECT_CHILD, parameters, Long.class);
 			return KeyFactory.keyToString(entityId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Child not found for parent: '%s' with name: '%s'", parentId, entityName));
 		}
 	}
 
@@ -2065,7 +2064,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" =? ", String.class, KeyFactory.stringToKey(nodeId));
 		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 	}
 	

@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class DBORequestDAOImpl implements RequestDAO{
 
+	public static final String DATA_ACCESS_REQUEST_DOES_NOT_EXIST = "Data access request: '%s' does not exist";
+
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -66,7 +68,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 			RequestInterface dto = RequestUtils.copyDboToDto(dbo);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Data access request does not exist for access requirement: '%s' and user id: '%s'", accessRequirementId, userId));
 		}
 	}
 
@@ -93,7 +95,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 			RequestInterface dto = RequestUtils.copyDboToDto(dbo);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, id));
 		}
 	}
 
@@ -104,7 +106,7 @@ public class DBORequestDAOImpl implements RequestDAO{
 			RequestInterface dto = RequestUtils.copyDboToDto(dbo);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, id));
 		}
 	}
 

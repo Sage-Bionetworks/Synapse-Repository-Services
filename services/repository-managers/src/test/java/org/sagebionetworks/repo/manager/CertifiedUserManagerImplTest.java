@@ -629,7 +629,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
-		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException(""));
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -666,7 +666,7 @@ public class CertifiedUserManagerImplTest {
 		created.setId(10101L);
 		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
 		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
-		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException());
+		when(quizResponseDao.getPassingRecord(quizGenerator.getId(), 666L)).thenThrow(new NotFoundException(""));
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
 		PassingRecord passingRecord = captor.getValue();
