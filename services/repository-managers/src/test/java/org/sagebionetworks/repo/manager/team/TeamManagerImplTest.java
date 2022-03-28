@@ -1421,7 +1421,7 @@ public class TeamManagerImplTest {
 						notificationUnsubscribeEndpoint);
 		assertEquals(1, resultList.size());
 		MessageToUserAndBody result = resultList.get(0);
-		assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
+		assertEquals("Your Team Membership Has Been Approved", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
 		UserProfile userProfile = mockUserProfileManager.getUserProfile(userInfo.getId().toString());
 		String userId = MEMBER_PRINCIPAL_ID;

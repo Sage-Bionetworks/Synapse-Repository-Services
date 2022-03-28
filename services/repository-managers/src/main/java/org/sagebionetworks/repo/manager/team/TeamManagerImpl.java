@@ -125,6 +125,7 @@ public class TeamManagerImpl implements TeamManager {
 	public static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.html";
 	public static final String ADMIN_HAS_ADDED_USER_TEMPLATE = "message/teamAdminHasAddedUserTemplate.html";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "New Member Has Joined the Team";
+	private static final String JOIN_TEAM_REQUEST_APPROVED_MESSAGE_SUBJECT = "Your Team Membership Has Been Approved";
 
 	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_BE_TEAM_MANAGER = AuthorizationStatus.accessDenied("You must be a team manager to perform this operation.");
 	public static final AuthorizationStatus UNAUTHORIZED_ADD_TEAM_MEMBER_MUST_HAVE_REQUEST = AuthorizationStatus.accessDenied("The prospective member must request to join the team.");
@@ -622,7 +623,7 @@ public class TeamManagerImpl implements TeamManager {
 			String recipient = memberInfo.getId().toString();
 			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
-			mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+			mtu.setSubject(JOIN_TEAM_REQUEST_APPROVED_MESSAGE_SUBJECT);
 			mtu.setRecipients(Collections.singleton(recipient));
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
