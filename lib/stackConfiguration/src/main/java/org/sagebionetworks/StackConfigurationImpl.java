@@ -786,7 +786,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientId() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.id");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.id.v2");
 	}
 
 	/**
@@ -794,7 +794,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientSecret() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret.v2");
 	}
 
 	/**
