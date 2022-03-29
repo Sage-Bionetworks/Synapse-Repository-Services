@@ -357,7 +357,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		ValidateArgument.required(type, "type");
 		List<Long> queryResult = findPrincipalsWithAliases(Lists.newArrayList(alias), Lists.newArrayList(type));
 		if (queryResult.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException("");
 		}
 		return queryResult.get(0);
 	}

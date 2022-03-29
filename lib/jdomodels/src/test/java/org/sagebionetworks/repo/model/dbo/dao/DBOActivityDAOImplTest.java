@@ -1,17 +1,21 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ActivityDAO;
@@ -24,7 +28,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -33,6 +36,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author dburdick
  *
  */
+@ExtendWith(MockitoExtension.class)
 public class DBOActivityDAOImplTest {
 	
 	private ActivityDAO activityDao;
@@ -45,7 +49,7 @@ public class DBOActivityDAOImplTest {
 	@Mock
 	private IdGenerator mockIdGenerator;
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		activityDao = new DBOActivityDAOImpl();
@@ -54,24 +58,27 @@ public class DBOActivityDAOImplTest {
 		ReflectionTestUtils.setField(activityDao, "jdbcTemplate", mockJdbcTemplate);
 	}
 	
-	@Test(expected=NotFoundException.class) 
+	@Test
 	public void testUpdateNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(Class.class))).thenReturn((Long)0L);
-		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException(""));
 
 		Activity act = new Activity();
 		act.setId(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
-		activityDao.update(act);
+		assertThrows(NotFoundException.class, ()->{
+			activityDao.update(act);
+		});
 	}
 	
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(Class.class))).thenReturn((Long)0L);
-		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(Optional.empty());
 		
-		activityDao.get(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
+		String message = assertThrows(NotFoundException.class, ()->{
+			activityDao.get(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
+		}).getMessage();
+		assertEquals("Activity with id '123' could not be found.", message);
 	}
 
 	@Test
@@ -80,34 +87,34 @@ public class DBOActivityDAOImplTest {
 		String newEtag = "newEtag";
 		Long id = 123L;
 		DBOActivity mockDbo = mock(DBOActivity.class);
-		when(mockDbo.getId()).thenReturn(id);
 		when(mockDbo.getEtag()).thenReturn(newEtag);
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(id);
 		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn(oldEtag);
-		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(mockDbo);
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(Optional.of(mockDbo));
 		
 		ChangeType type = ChangeType.UPDATE;
 		String returnedNewEtag = activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, type);
 		assertEquals(newEtag, returnedNewEtag);
 	}
 
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testLockActivityAndIncrementEtagNotFound() throws Exception {
 		String oldEtag = "oldEtag";
 		Long id = 123L;
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(id);
 		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn(oldEtag);
-		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException(""));
 		
-		activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, ChangeType.UPDATE);
+		assertThrows(NotFoundException.class, ()->{
+			activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, ChangeType.UPDATE);
+		});
 	}
 
-	@Test(expected=ConflictingUpdateException.class)
+	@Test
 	public void testLockActivityAndIncrementEtagConflictingUpdate() throws Exception {
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
 		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn("newEtag");
 		
-		activityDao.lockActivityAndGenerateEtag("1234", "oldEtag", ChangeType.UPDATE);
+		assertThrows(ConflictingUpdateException.class, ()->{
+			activityDao.lockActivityAndGenerateEtag("1234", "oldEtag", ChangeType.UPDATE);
+		});
 	}
 
 }

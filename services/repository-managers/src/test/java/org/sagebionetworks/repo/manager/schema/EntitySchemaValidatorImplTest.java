@@ -75,7 +75,7 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithNotFound() {
-		NotFoundException exception = new NotFoundException();
+		NotFoundException exception = new NotFoundException("");
 		when(mockEntityManger.getBoundSchema(entityId)).thenThrow(exception);
 		// call under test
 		manager.validateObject(entityId);

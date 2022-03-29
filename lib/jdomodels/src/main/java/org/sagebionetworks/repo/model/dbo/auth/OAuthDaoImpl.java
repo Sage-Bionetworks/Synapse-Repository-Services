@@ -123,7 +123,8 @@ public class OAuthDaoImpl implements OAuthDao {
 	public OIDCAuthorizationRequest redeemAuthorizationCode(String authorizationCode) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("authCode", authorizationCode);
-		DBOAuthorizationCode dbo = basicDao.getObjectByPrimaryKey(DBOAuthorizationCode.class, param);
+		DBOAuthorizationCode dbo = basicDao.getObjectByPrimaryKey(DBOAuthorizationCode.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Authorization code: '%s' does not exist", authorizationCode)));
 		OIDCAuthorizationRequest result = null;
 		try {
 			result = (OIDCAuthorizationRequest)

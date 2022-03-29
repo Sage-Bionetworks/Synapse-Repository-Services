@@ -51,6 +51,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class DBOChallengeDAOImpl implements ChallengeDAO {
 
+	public static final String CHALLENGE_DOES_NOT_EXIST = "Challenge: '%s' does not exist";
+
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
@@ -232,7 +234,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	@Override
 	public Challenge get(long challengeId) throws NotFoundException, DatastoreException {
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(challengeId);
-		DBOChallenge dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, param);
+		DBOChallenge dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_DOES_NOT_EXIST, challengeId)));
 		return copyDBOtoDTO(dbo);
 	}
 
@@ -295,8 +298,10 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			DatastoreException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallenge(dto);
-		DBOChallenge dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class,
-				new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		DBOChallenge dbo = basicDao
+				.getObjectByPrimaryKeyWithUpdateLock(DBOChallenge.class,
+						new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_DOES_NOT_EXIST, dto.getId())));
 		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge Project ID.");
@@ -323,8 +328,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 			}
 		}
 			
-
-		dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		dbo = basicDao.getObjectByPrimaryKey(DBOChallenge.class, new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_DOES_NOT_EXIST, dto.getId())));
 		return copyDBOtoDTO(dbo);
 	}
 

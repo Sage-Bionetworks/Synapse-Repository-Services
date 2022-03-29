@@ -711,7 +711,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		ValidateArgument.required(wikiPageId, "wikiPageId");
 		List<List<WikiAttachment>> queryResult = jdbcTemplate.query(SQL_GET_CURRENT_WIKI_MARKDOWN_ATTACHMENT_LIST, WIKI_ATTACHMENT_MAPPER, wikiPageId);
 		if (queryResult.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Wiki page '%s' does not exist", wikiPageId));
 		}
 		return queryResult.get(0);
 	}

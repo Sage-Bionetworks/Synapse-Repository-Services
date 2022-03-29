@@ -162,7 +162,7 @@ public class ForumManagerImplTest {
 	@Test
 	public void testGetForumWithNonExistingProjectId() {
 		when(mockAuthManager.canAccess(userInfo, projectId, ENTITY_TYPE, READ_ACCESS))
-				.thenThrow(new NotFoundException());
+				.thenThrow(new NotFoundException(""));
 		String forumId = dto.getId();
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(dto);
 		

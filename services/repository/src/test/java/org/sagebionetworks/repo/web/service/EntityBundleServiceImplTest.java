@@ -279,7 +279,7 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeDOIAssociation(true);
 		String entityId = "syn123";
-		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException());
+		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException(""));
 		// Call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);

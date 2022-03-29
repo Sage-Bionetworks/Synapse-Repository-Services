@@ -105,7 +105,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(any());
+		doThrow(new NotFoundException("")).when(mockDAO).updateEvaluationSubmissionStatuses(any());
 		worker.run(mockProgressCallback, message2);
 	}
 	

@@ -399,7 +399,7 @@ public class FileHandleManagerImplTest {
 	public void testDeleteNotFound() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
-		when(mockFileHandleDao.get(handleId)).thenThrow(new NotFoundException());
+		when(mockFileHandleDao.get(handleId)).thenThrow(new NotFoundException(""));
 		manager.deleteFileHandle(mockUser, handleId);
 	}
 	

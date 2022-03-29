@@ -301,7 +301,7 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testGetNotFound() {
-		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException());
+		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException(""));
 		
 		// Call under test
 		ResearchProject rp = manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
@@ -414,7 +414,7 @@ public class ResearchProjectManagerImplTest {
 	@Test
 	public void testUpdateNotFound() {
 		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
-		when(mockResearchProjectDao.getForUpdate(anyString())).thenThrow(new NotFoundException());
+		when(mockResearchProjectDao.getForUpdate(anyString())).thenThrow(new NotFoundException(""));
 
 		ResearchProject toUpdate = createNewResearchProject();
 		NotFoundException ex = assertThrows(NotFoundException.class, () -> {			

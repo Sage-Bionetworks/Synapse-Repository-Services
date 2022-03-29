@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,10 +15,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -39,9 +40,10 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOChallengeTeamDAOImplTest {
 	
@@ -75,7 +77,7 @@ public class DBOChallengeTeamDAOImplTest {
 	private Team participantTeam;
 	private Team registeredTeam;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		principalId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		nodesToDelete = new ArrayList<Node>();
@@ -138,7 +140,7 @@ public class DBOChallengeTeamDAOImplTest {
 		userGroupDAO.delete(team.getId());
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for (Node node : nodesToDelete) {
 			nodeDAO.delete(node.getId());
@@ -218,6 +220,14 @@ public class DBOChallengeTeamDAOImplTest {
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
 		ChallengeTeam retrieved = challengeTeamDAO.get(Long.parseLong(challengeTeam.getId()));
 		assertEquals(challengeTeam, retrieved);
+	}
+	
+	@Test
+	public void testGetWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			challengeTeamDAO.get(-123L);
+		}).getMessage();
+		assertEquals("Challenge team: '-123' does not exist", message);
 	}
 	
 	@Test
@@ -316,20 +326,18 @@ public class DBOChallengeTeamDAOImplTest {
 	public void testUniquenessConstraint() throws Exception {
 		challengeTeam = newChallengeTeam();
 		challengeTeam = challengeTeamDAO.create(challengeTeam);
-		
+
 		// the database should not allow same challenge-team combination
 		// to be registered twice
 		ChallengeTeam secondChallengeTeam = new ChallengeTeam();
 		secondChallengeTeam.setChallengeId(challenge.getId());
 		secondChallengeTeam.setTeamId(registeredTeam.getId());
-		try {
-			secondChallengeTeam = challengeTeamDAO.create(secondChallengeTeam);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		} finally {
-			String id = secondChallengeTeam.getId();
-			if (id!=null) challengeTeamDAO.delete(Long.parseLong(id));
+		assertThrows(IllegalArgumentException.class, () -> {
+			challengeTeamDAO.create(secondChallengeTeam);
+		});
+		String id = secondChallengeTeam.getId();
+		if (id != null) {
+			challengeTeamDAO.delete(Long.parseLong(id));
 		}
 	}
 

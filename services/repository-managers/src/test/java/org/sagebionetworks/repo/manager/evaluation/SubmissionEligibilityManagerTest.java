@@ -176,7 +176,7 @@ public class SubmissionEligibilityManagerTest {
 	@Test
 	public void testIsIndividualEligibleNoChallenge() throws Exception {
 		// no challenge for evaluation
-		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException(""));
 		assertTrue(submissionEligibilityManager.
 			isIndividualEligible(EVAL_ID, userInfo, now).isAuthorized());
 	}
@@ -462,7 +462,7 @@ public class SubmissionEligibilityManagerTest {
 	@Test
 	public void testGetTeamSubmissionEligibilityNoChallenge() throws Exception {
 		// no challenge for evaluation
-		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException(""));
 		// add a user to submitting team
 		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
 
@@ -664,7 +664,7 @@ public class SubmissionEligibilityManagerTest {
 	@Test
 	public void testGetTeamSubmissionEligibilityConflictingSubmission() throws Exception {
 		// no challenge for evaluation
-		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
+		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException(""));
 		// add a user to submitting team
 		submittingTeamMembers.add(createUserGroup(SUBMITTER_PRINCIPAL_ID));
 

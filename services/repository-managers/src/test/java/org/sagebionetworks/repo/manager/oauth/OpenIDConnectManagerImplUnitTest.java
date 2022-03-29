@@ -415,7 +415,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetAuthenticationRequestDescription_MissingOrInvalidClientId() {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setClientId("42");
-		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
+		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException(""));
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, ()->{
 				openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
@@ -558,7 +558,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testAuthorizeClient_InvalidClientId() {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setClientId("42");
-		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
+		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException(""));
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
@@ -824,7 +824,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String invalidAuthCode = "some invalid code";
 		
-		when(mockOauthDao.redeemAuthorizationCode(invalidAuthCode)).thenThrow(new NotFoundException());
+		when(mockOauthDao.redeemAuthorizationCode(invalidAuthCode)).thenThrow(new NotFoundException(""));
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test

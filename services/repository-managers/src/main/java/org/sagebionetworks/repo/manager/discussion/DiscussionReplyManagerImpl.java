@@ -104,7 +104,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			try {
 				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE).checkAuthorizationOrElseThrow();
 			} catch (UnauthorizedException e) {
-				throw new NotFoundException();
+				throw new NotFoundException(String.format("Reply: '%s' does not exist", replyId));
 			}
 		} else {
 			authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();

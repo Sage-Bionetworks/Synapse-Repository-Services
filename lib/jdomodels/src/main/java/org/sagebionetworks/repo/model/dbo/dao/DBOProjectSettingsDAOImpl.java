@@ -39,6 +39,8 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
+	public static final String PROJECT_SETTINGS_DOES_NOT_EXIST = "Project settings: '%s' does not exist";
+
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -130,7 +132,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Override
 	public ProjectSetting get(String id) throws DatastoreException, NotFoundException {
 		DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-				new SinglePrimaryKeySqlParameterSource(id));
+				new SinglePrimaryKeySqlParameterSource(id)).orElseThrow(()->new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, id)));
 		ProjectSetting dto = convertDboToDto(projectSetting);
 		return dto;
 	}
@@ -164,8 +166,9 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Override
 	public ProjectSetting update(ProjectSetting dto)
 			throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
-		DBOProjectSetting dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-				new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		DBOProjectSetting dbo = basicDao
+				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, dto.getId())));
 
 		if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()).longValue())) {
 			throw new IllegalArgumentException(
@@ -190,8 +193,9 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating project setting in database.");
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
-		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-				new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		dbo = basicDao
+				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, dto.getId())));
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}

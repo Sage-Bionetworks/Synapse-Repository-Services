@@ -57,6 +57,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
+	public static final String SUBMISSION_DOES_NOT_EXIST = "Submission: '%s' does not exist";
+
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -285,7 +287,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_SUBMISSION_BY_ID, SUBMISSION_MAPPER, submissionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, submissionId));
 		}
 	}
 
@@ -323,7 +325,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_STATUS_BY_ID, STATUS_MAPPER, submissionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, submissionId));
 		}
 	}
 
@@ -339,7 +341,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_SUBMISSION_FOR_UPDATE, SUBMISSION_MAPPER, submissionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, submissionId));
 		}
 	}
 

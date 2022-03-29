@@ -1,31 +1,34 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOAnnotatedExample.ExampleEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:dboExample-test-context.xml" })
 public class DBOAnnotatedExampleTest {
 	
@@ -34,13 +37,13 @@ public class DBOAnnotatedExampleTest {
 	
 	List<Long> toDelete;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		assertNotNull(dboBasicDao);
 		toDelete = new LinkedList<Long>();
 	}
 
-	@After
+	@AfterEach
 	public void after(){
 		if(dboBasicDao != null && toDelete != null){
 			for(Long id: toDelete){
@@ -60,19 +63,21 @@ public class DBOAnnotatedExampleTest {
 		assertEquals(fileDll.trim().replace("\r\n", "\n"), annotatedDll.trim());
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testInsertMissingValues() throws DatastoreException{
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
 		example.setModifiedOn(new Date());
-		example = dboBasicDao.createNew(example);
-		assertNotNull(example);
+		assertThrows(IllegalArgumentException.class, ()->{
+			dboBasicDao.createNew(example);
+		});
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testInsertMissingValuesNullPointerException() throws DatastoreException {
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
-		example = dboBasicDao.createNew(example);
-		assertNotNull(example);
+		assertThrows(IllegalArgumentException.class, ()->{
+			dboBasicDao.createNew(example);
+		});
 	}
 
 	@Test
@@ -94,7 +99,7 @@ public class DBOAnnotatedExampleTest {
 		assertNotNull(example.getId());
 
 		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, new SinglePrimaryKeySqlParameterSource(
-				example.getId()));
+				example.getId())).get();
 		assertEquals(example.toString(), clone.toString());
 	}
 
@@ -137,7 +142,7 @@ public class DBOAnnotatedExampleTest {
 			// Check the results
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", created.getId());
-			DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params);
+			DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params).get();
 			assertNotNull(clone);
 			assertEquals(created, clone);
 		}
@@ -159,17 +164,17 @@ public class DBOAnnotatedExampleTest {
 		// Make sure we can get a clone
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", example.getId());
-		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params);
+		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params).get();
 		assertNotNull(clone);
 		assertEquals(example, clone);
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetByDoesNotExist() throws Exception{
 		// This should fail with NotFoundException
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", new Long(33344));
-		dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params);
+		assertEquals(Optional.empty(), dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params));
 	}
 	
 	@Test
@@ -207,7 +212,7 @@ public class DBOAnnotatedExampleTest {
 		// Get it back from the DB
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", example.getId());
-		DBOAnnotatedExample fetched = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params);
+		DBOAnnotatedExample fetched = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params).get();
 		assertEquals(example, fetched);
 		// Now change the value
 		fetched.setBlob("I am the new string for the blob!".getBytes("UTF-8"));
@@ -217,7 +222,7 @@ public class DBOAnnotatedExampleTest {
 		boolean result = dboBasicDao.update(fetched);
 		assertTrue(result);
 		// Fetch it back
-		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params);
+		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, params).get();
 		assertEquals(fetched, clone);
 		
 	}

@@ -296,7 +296,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testIsTokenActive_notFound() {
-		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException());
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException(""));
 		// method under test
 		assertFalse(personalAccessTokenManager.isTokenActive(TOKEN_ID));
 
@@ -313,7 +313,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testUpdateLastUsedFirstTime() {
-		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException());
+		when(mockPersonalAccessTokenDao.getLastUsedDate(TOKEN_ID)).thenThrow(new NotFoundException(""));
 		// method under test
 		personalAccessTokenManager.updateLastUsedTime(TOKEN_ID);
 		verify(mockPersonalAccessTokenDao).updateLastUsed(TOKEN_ID);

@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.wikiV2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
@@ -16,7 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -310,9 +312,11 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(Arrays.equals(dto.getIdList().toArray(), newDTO.getIdList().toArray()));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetFileHandleIdListNullAttachmentList() {
-		V2WikiTranslationUtils.getFileHandleIdList(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			V2WikiTranslationUtils.getFileHandleIdList(null);
+		});
 	}
 
 	@Test
@@ -333,36 +337,44 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(fileHandleIdList.contains(attachment2.getFileHandleId()));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testLookupFileHandleIdAndThrowExceptionNullList() {
-		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(null, "fileName", new NotFoundException());
+		assertThrows(IllegalArgumentException.class, ()->{
+			V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(null, "fileName", new NotFoundException(""));
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testLookupFileHandleIdAndThrowExceptionNullFileName() {
-		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), null, new NotFoundException());
+		assertThrows(IllegalArgumentException.class, ()->{
+			V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), null, new NotFoundException(""));
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testLookupFileHandleIdAndThrowExceptionNullException() {
-		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", null);
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testLookupFileHandleIdAndThrowExceptionEmptyList() {
-		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", new NotFoundException());
+		assertThrows(NotFoundException.class, ()->{
+			V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(new ArrayList<WikiAttachment>(0), "fileName", new NotFoundException(""));
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testLookupFileHandleIdAndThrowExceptionNotFound() {
-		V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "fileName", new NotFoundException());
+		assertThrows(NotFoundException.class, ()->{
+			V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "fileName", new NotFoundException(""));
+		});
 	}
 
 	@Test
 	public void testLookupFileHandleIdAndThrowExceptionFound() {
-		assertEquals("1", V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "file1", new NotFoundException()));
+		assertEquals("1", V2WikiTranslationUtils.lookupFileHandleIdAndThrowException(Arrays.asList(new WikiAttachment("1", "file1")), "file1", new NotFoundException("")));
 	}
 
-/*	@Test
-	public void testConvertByteArrayToWikiAttachmentList*/
 }

@@ -48,6 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 
+	public static final String THREAD_DOES_NOT_EXIST = "Thread: '%s' does not exist";
 	private static final long DEFAULT_OFFSET = 0L;
 	private static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 	public static final int MAX_TITLE_LENGTH = 140;
@@ -115,7 +116,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			try {
 				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE).checkAuthorizationOrElseThrow();
 			} catch (UnauthorizedException e) {
-				throw new NotFoundException();
+				throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 			}
 		} else {
 			authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
@@ -218,7 +219,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
 		if (threadDao.isThreadDeleted(threadId)) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.pinThread(Long.parseLong(threadId));
@@ -228,7 +229,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
 		if (threadDao.isThreadDeleted(threadId)) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.unpinThread(Long.parseLong(threadId));

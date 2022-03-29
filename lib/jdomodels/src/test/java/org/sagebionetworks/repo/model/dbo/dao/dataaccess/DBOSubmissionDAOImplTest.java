@@ -578,4 +578,13 @@ public class DBOSubmissionDAOImplTest {
 		submissionDao.delete(dto1.getId());
 		submissionDao.delete(dto2.getId());
 	}
+	
+	@Test
+	public void testGetSubmissionWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			submissionDao.getSubmission("-123");
+		}).getMessage();
+		assertEquals("Submission: '-123' does not exist", message);
+	}
+	
 }

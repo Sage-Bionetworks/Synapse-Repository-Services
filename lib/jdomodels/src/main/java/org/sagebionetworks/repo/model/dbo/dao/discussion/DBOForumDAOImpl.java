@@ -57,7 +57,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 	public Forum getForum(long id) {
 		List<DBOForum> results = jdbcTemplate.query(SQL_SELECT_FORUM_BY_ID, ROW_MAPPER, id);
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Forum: '%s' does not exist", id));
 		}
 		return ForumUtils.createDTOFromDBO(results.get(0));
 	}
@@ -68,7 +68,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 		List<DBOForum> results = jdbcTemplate.query(SQL_SELECT_FORUM_BY_PROJECT_ID, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Forum for project '%s' does not exist", projectId));
 		}
 		return ForumUtils.createDTOFromDBO(results.get(0));
 	}

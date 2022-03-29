@@ -43,6 +43,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
+	public static final String REPLY_DOES_NOT_EXIST = "Reply '%s' does not exist";
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
@@ -187,7 +188,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		String query = addCondition(SQL_GET_REPLY_BY_ID, filter);
 		List<DiscussionReplyBundle> results = jdbcTemplate.query(query, DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, replyId);
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(REPLY_DOES_NOT_EXIST, replyId));
 		}
 		return results.get(0);
 	}
@@ -283,7 +284,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			}
 		}, replyId);
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(REPLY_DOES_NOT_EXIST, replyId));
 		}
 		return results.get(0);
 	}
@@ -313,7 +314,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			}
 		}, replyId);
 		if (queryResult.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(REPLY_DOES_NOT_EXIST, replyId));
 		}
 		return queryResult.get(0);
 	}

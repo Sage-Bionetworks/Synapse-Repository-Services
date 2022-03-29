@@ -1,21 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -33,12 +36,11 @@ import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-
 public class DBOAuthenticationDAOImplTest {
 	
 	@Autowired
@@ -61,7 +63,7 @@ public class DBOAuthenticationDAOImplTest {
 	private static final Date VALIDATED_ON = new Date();
 
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
 		
@@ -92,7 +94,7 @@ public class DBOAuthenticationDAOImplTest {
 		touAgreement = basicDAO.createNew(touAgreement);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for (String toDelete: groupsToDelete) {
 			userGroupDAO.delete(toDelete);
@@ -165,9 +167,11 @@ public class DBOAuthenticationDAOImplTest {
 		assertArrayEquals(salt, passedSalt);
 	}
 	
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetPasswordSalt_InvalidUser() throws Exception {
-		authDAO.getPasswordSalt(-99);
+		assertThrows(NotFoundException.class, ()->{
+			authDAO.getPasswordSalt(-99);
+		});
 	}
 	
 	@Test
@@ -219,7 +223,7 @@ public class DBOAuthenticationDAOImplTest {
 					&& !AuthorizationUtils.isUserAnonymous(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
-				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param);
+				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();
 				assertTrue(touAgreement.getAgreesToTermsOfUse());
 			}
 		}
@@ -245,14 +249,14 @@ public class DBOAuthenticationDAOImplTest {
 	public void testSetAuthenticatedOn() {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("principalId", userId);
-		DBOAuthenticatedOn original = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param);
+		DBOAuthenticatedOn original = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param).get();
 		
 		Date newAuthOn = new Date(original.getAuthenticatedOn().getTime()+10000L);
 		
 		//method under test
 		authDAO.setAuthenticatedOn(userId, newAuthOn);
 		
-		DBOAuthenticatedOn updated = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param);
+		DBOAuthenticatedOn updated = basicDAO.getObjectByPrimaryKey(DBOAuthenticatedOn.class, param).get();
 		// check that date has been set
 		assertEquals(newAuthOn, updated.getAuthenticatedOn());
 		// check that etag has changed

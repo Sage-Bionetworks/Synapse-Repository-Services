@@ -129,7 +129,7 @@ public class ChangeMessageToSearchDocumentTranslatorTest{
 	@Test
 	public void testWikiChangeWikiNotFound() {
 		String wikiId = "987";
-		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenThrow(new NotFoundException());
+		when(mockWikiPageDao.lookupWikiKey(wikiId)).thenThrow(new NotFoundException(""));
 
 		// call under test
 		Document doc = translator.wikiChange(wikiId, mocKRecord);

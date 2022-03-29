@@ -135,7 +135,7 @@ public class DockerClientAuthFilterTest {
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
 		when(mockAuthenticationService.lookupUserForAuthentication(USERNAME))
-				.thenThrow(new NotFoundException());
+				.thenThrow(new NotFoundException(""));
 
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
