@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -16,13 +16,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -31,23 +29,15 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.util.SerializationUtils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EmailUtilsTest {
 	
 	@Mock
 	private TokenGenerator mockTokenGenerator;
 	
-	@Before
+	@BeforeEach
 	public void before() {
-		doAnswer(new Answer<SignedTokenInterface>() {
-
-			@Override
-			public SignedTokenInterface answer(InvocationOnMock invocation) throws Throwable {
-				SignedTokenInterface token = (SignedTokenInterface) invocation.getArguments()[0];
-				token.setHmac("signed");
-				return null;
-			}
-		}).when(mockTokenGenerator).signToken(any());
+		
 	}
 	
 	@Test
@@ -56,7 +46,9 @@ public class EmailUtilsTest {
 		fieldValues.put("#displayName#", "Foo Bar");
 		fieldValues.put("#domain#", "Synapse");
 		fieldValues.put("#username#", "foobar");
+		// Call under test
 		String actual = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		
 		String expected = "Hello Foo Bar,\r\n" + 
 				"\r\n" + 
 				"Welcome to Synapse!\r\n" + 
@@ -77,7 +69,9 @@ public class EmailUtilsTest {
 		fieldValues.put("#displayName#", "Foo Bar");
 		fieldValues.put("#domain#", "Synapse");
 		fieldValues.put("#username#", null);
+		// Call under test
 		String actual = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		
 		String expected = "Hello Foo Bar,\r\n" + 
 				"\r\n" + 
 				"Welcome to Synapse!\r\n" + 
@@ -97,14 +91,19 @@ public class EmailUtilsTest {
 		UserProfile up = new UserProfile();
 		up.setUserName("jh");
 		
+		// Call under test
 		assertNull(EmailUtils.getDisplayName(up));
 		assertEquals("jh", EmailUtils.getDisplayNameWithUsername(up));
 		
 		up.setFirstName("J");
+		
+		// Call under test
 		assertEquals("J", EmailUtils.getDisplayName(up));
 		assertEquals("J (jh)", EmailUtils.getDisplayNameWithUsername(up));
 		
 		up.setLastName("H");
+		
+		// Call under test
 		assertEquals("J H", EmailUtils.getDisplayName(up));
 		assertEquals("J H (jh)", EmailUtils.getDisplayNameWithUsername(up));
 	}
@@ -114,6 +113,7 @@ public class EmailUtilsTest {
 		UserProfile up = new UserProfile();
 		up.setUserName("user");
 		
+		// Call under test
 		assertEquals("user", EmailUtils.getDisplayNameOrUsername(up));
 	}
 	
@@ -124,6 +124,7 @@ public class EmailUtilsTest {
 		up.setLastName(null);
 		up.setUserName("user");
 		
+		// Call under test
 		assertEquals("user", EmailUtils.getDisplayNameOrUsername(up));
 	}
 	
@@ -134,6 +135,7 @@ public class EmailUtilsTest {
 		up.setLastName("Last");
 		up.setUserName("user");
 		
+		// Call under test
 		assertEquals("First Last", EmailUtils.getDisplayNameOrUsername(up));
 	}
 	
@@ -160,22 +162,26 @@ public class EmailUtilsTest {
 
 	@Test
 	public void testValidateSynapsePortalHostNotOk() throws Exception {
-		try {
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			EmailUtils.validateSynapsePortalHost("https://www.spam.com");
-			fail("Expected exception to be thrown");
-		}catch (IllegalArgumentException e){
-			assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
-		}
+		});
+		
+		assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
+		
 	}
 
 	@Test
 	public void testValidateSynapsePortalHost_BaseDomainContainsSubstringSynapse() throws Exception {
-		try {
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
 			EmailUtils.validateSynapsePortalHost("https://www.notSynapse.org");
-			fail("Expected exception to be thrown");
-		}catch (IllegalArgumentException e){
-			assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
-		}
+		});
+		
+		assertEquals("The provided parameter is not a valid Synapse endpoint.", e.getMessage());
+		
 	}
 	
 	@Test
@@ -185,7 +191,16 @@ public class EmailUtilsTest {
 		String memberId = "222";
 		String teamId = "333";
 		Date createdOn = new Date();
+		
+		doAnswer(invocation -> {
+			SignedTokenInterface token = (SignedTokenInterface) invocation.getArguments()[0];
+			token.setHmac("signed");
+			return null;
+		}).when(mockTokenGenerator).signToken(any());
+		
+		// Call under test
 		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId, createdOn, mockTokenGenerator);
+		
 		verify(mockTokenGenerator).signToken(any());
 		assertTrue(link.startsWith(endpoint));
 		
@@ -202,7 +217,16 @@ public class EmailUtilsTest {
 	public void testCreateOneClickUnsubscribeLink() throws Exception {
 		String endpoint = "https://synapse.org/#";
 		String userId = "111";
+		
+		doAnswer(invocation -> {
+			SignedTokenInterface token = (SignedTokenInterface) invocation.getArguments()[0];
+			token.setHmac("signed");
+			return null;
+		}).when(mockTokenGenerator).signToken(any());
+		
+		// Call under test
 		String link = EmailUtils.createOneClickUnsubscribeLink(endpoint, userId, mockTokenGenerator);
+		
 		verify(mockTokenGenerator).signToken(any());
 		assertTrue(link.startsWith(endpoint));
 		NotificationSettingsSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
@@ -217,7 +241,10 @@ public class EmailUtilsTest {
 	@Test
 	public void testCreateHtmlUnsubscribeLink() throws Exception {
 		String unsubscribeLink = "https://foo.bar.com#baz:12345";
+		
+		// Call under test
 		String footer = EmailUtils.createHtmlUnsubscribeLink(unsubscribeLink);
+		
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeLink.html", delims);
 		assertEquals(3, templatePieces.size());
@@ -230,7 +257,10 @@ public class EmailUtilsTest {
 	@Test
 	public void testCreateHtmlProfileSettingLink() throws Exception {
 		String profileSettingLink = "https://synapse.org/!#Profile:edit";
+
+		// Call under test
 		String footer = EmailUtils.createHtmlUserProfileSettingLink(profileSettingLink);
+		
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_PROFILE_SETTING_LINK});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/userProfileSettingLink.html", delims);
 		assertEquals(3, templatePieces.size());
@@ -243,7 +273,10 @@ public class EmailUtilsTest {
 	@Test
 	public void testCreateTextUnsubscribeLink() throws Exception {
 		String unsubscribeLink = "https://foo.bar.com#baz:12345";
+		
+		// Call under test
 		String footer = EmailUtils.createTextUnsubscribeLink(unsubscribeLink);
+		
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/unsubscribeLink.txt", delims);
 		assertEquals(3, templatePieces.size());
@@ -256,7 +289,10 @@ public class EmailUtilsTest {
 	@Test
 	public void testCreateTextProfileSettingLink() throws Exception {
 		String profileSettingLink = "https://synapse.org/!#Profile:edit";
+		
+		// Call under test
 		String footer = EmailUtils.createTextUserProfileSettingLink(profileSettingLink);
+		
 		List<String> delims = Arrays.asList(new String[] {EmailUtils.TEMPLATE_KEY_PROFILE_SETTING_LINK});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate("message/userProfileSettingLink.txt", delims);
 		assertEquals(3, templatePieces.size());
