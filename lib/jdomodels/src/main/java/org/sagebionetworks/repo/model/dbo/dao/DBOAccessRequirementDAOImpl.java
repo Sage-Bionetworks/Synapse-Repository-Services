@@ -399,7 +399,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		try {
 			return namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, requirementMapper);
 		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			throw new NotFoundException(String.format(ACCESS_REQUIREMENT_DOES_NOT_EXIST, accessRequirementId));
 		}
 	}
 	

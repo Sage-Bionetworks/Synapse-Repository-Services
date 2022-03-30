@@ -439,7 +439,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		try{
 			dbo = namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, TEAM_ROW_MAPPER);
 		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			throw new NotFoundException(String.format(TEAM_ID_DOES_NOT_EXIST, dto.getId()));
 		}
 		
 		String oldEtag = dbo.getEtag();

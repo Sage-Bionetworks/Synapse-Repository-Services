@@ -9,11 +9,12 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANN
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -131,12 +133,18 @@ public class EntityAuthorizationManagerAutowireTest {
 	public void testHasAccessWithEntityDoesNotExist() {
 		String entityId = "syn123";
 		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
+		List<ACCESS_TYPE> types = Arrays.asList(
+				ACCESS_TYPE.CREATE,
+				ACCESS_TYPE.UPDATE,
+				ACCESS_TYPE.DELETE,
+				ACCESS_TYPE.CHANGE_PERMISSIONS);
+		for(ACCESS_TYPE accessType: types) {
+			// new call under test
+			String newMessage = assertThrows(NotFoundException.class, () -> {
+				entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
+			}).getMessage();
+			assertEquals("Resource: 'syn123' does not exist", newMessage);
+		}
 	}
 
 	@Test
@@ -392,19 +400,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
-	}
-	
-	@Test
-	public void testHasAccessWithUpdateDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
-
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
 	@Test
@@ -776,18 +771,6 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
-	public void testHasAccessWithCreateDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
-	}
-	
-	@Test
 	public void testHasAccessWithCreateWihtoutPermission() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -1035,19 +1018,6 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
-	public void testHasAccessWithReadDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
-
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
-	}
-	
-	@Test
 	public void testHasAccessWithReadWihtoutPermission() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -1147,19 +1117,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
-	}
-	
-	@Test
-	public void testHasAccessWithDeleteDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.DELETE;
-
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
 	@Test
@@ -1284,20 +1241,7 @@ public class EntityAuthorizationManagerAutowireTest {
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
 	}
-	
-	@Test
-	public void testHasAccessWithModerateDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.MODERATE;
-
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
-	}
-	
+		
 	@Test
 	public void testHasAccessWithModerateWihtoutPermission() {
 		Node project = nodeDaoHelper.create(n -> {
@@ -1467,19 +1411,6 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
-	public void testHasAccessWithChangeSettingsDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
-
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
-	}
-	
-	@Test
 	public void testHasAccessWithChangeSettingsWihtoutPermission() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -1602,18 +1533,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
-	}
-	
-	@Test
-	public void testHasAccessWithChangePermissionsDoesNotExist() {
-		String entityId = "syn123";
-		UserInfo user = userOne;
-		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
-		// new call under test
-		String newMessage = assertThrows(NotFoundException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND, newMessage);
 	}
 	
 	@Test

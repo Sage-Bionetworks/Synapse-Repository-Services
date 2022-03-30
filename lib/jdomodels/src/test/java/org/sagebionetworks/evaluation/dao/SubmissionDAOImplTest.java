@@ -924,7 +924,7 @@ public class SubmissionDAOImplTest {
     	String message = assertThrows(NotFoundException.class, () -> {
     		submissionDAO.getCreatedBy(submission.getId());
     	}).getMessage();
-    	assertEquals("Submission '206' does not exists", message);
+    	assertEquals("Submission '206' does not exist", message);
     }
 
     @Test
