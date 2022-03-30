@@ -77,7 +77,7 @@ public class ViewScopeDaoImplTest {
 		// check the value in the database.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("viewId", viewId1);
-		DBOViewType dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
+		DBOViewType dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param).get();
 		assertNotNull(dboType);
 		assertEquals(new Long(viewId1), dboType.getViewId());
 		assertNotNull(dboType.getEtag());
@@ -90,7 +90,7 @@ public class ViewScopeDaoImplTest {
 		// one
 		viewScopeDao.setViewScopeAndType(viewId1, containers, viewScopeType);
 		// check the etag
-		dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
+		dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param).get();
 		assertNotNull(dboType.getEtag());
 		assertNotEquals(startEtag, dboType.getEtag());
 	}

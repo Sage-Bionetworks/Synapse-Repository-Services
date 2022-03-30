@@ -66,7 +66,7 @@ public class DBOTeamTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", team.getId());
-		clone = dboBasicDao.getObjectByPrimaryKey(DBOTeam.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOTeam.class, params).get();
 		assertNotNull(clone);
 		assertEquals(team, clone);
 		
@@ -79,7 +79,7 @@ public class DBOTeamTest {
 		// Get the clone back again
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		DBOTeam clone2 = dboBasicDao.getObjectByPrimaryKey(DBOTeam.class, params);
+		DBOTeam clone2 = dboBasicDao.getObjectByPrimaryKey(DBOTeam.class, params).get();
 		assertEquals(clone, clone2);
 	}
 

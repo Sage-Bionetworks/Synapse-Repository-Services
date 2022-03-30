@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -130,19 +129,17 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
 
-		DBOStatisticsMonthlyStatus dbo;
+		Optional<DBOStatisticsMonthlyStatus> dbo;
 
-		try {
-			if (forUpdate) {
-				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params);
-			} else {
-				dbo = basicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, params);
-			}
-		} catch (NotFoundException e) {
+		if (forUpdate) {
+			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params);
+		} else {
+			dbo = basicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, params);
+		}
+		if(dbo.isEmpty()) {
 			return Optional.empty();
 		}
-
-		return Optional.of(map(dbo));
+		return Optional.of(map(dbo.get()));
 	}
 
 	private StatisticsMonthlyStatus createOrUpdate(StatisticsObjectType objectType, YearMonth month, StatisticsStatus status,
@@ -153,13 +150,9 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
 
-		DBOStatisticsMonthlyStatus dbo;
-
-		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params);
-		} catch (NotFoundException e) {
-			dbo = new DBOStatisticsMonthlyStatus();
-		}
+		DBOStatisticsMonthlyStatus dbo = basicDao
+				.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params)
+				.orElse(new DBOStatisticsMonthlyStatus());
 
 		dbo.setObjectType(objectType.toString());
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));

@@ -82,7 +82,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	public SubmissionStatus get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
+		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Submission status: '%s' does not exist", id)));
 		return SubmissionUtils.convertDboToDto(dbo);
 	}
 	

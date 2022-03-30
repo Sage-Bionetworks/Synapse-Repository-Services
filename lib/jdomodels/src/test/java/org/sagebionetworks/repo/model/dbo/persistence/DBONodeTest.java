@@ -76,7 +76,7 @@ public class DBONodeTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", node.getId());
-		clone = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params).get();
 		assertNotNull(clone);
 		assertEquals(node, clone);
 		
@@ -106,7 +106,7 @@ public class DBONodeTest {
 		// Get the clone back again
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		DBONode clone2 = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+		DBONode clone2 = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params).get();
 		assertEquals(clone, clone2);
 	}
 	

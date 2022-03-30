@@ -113,14 +113,14 @@ public class SubmissionStatusDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
+        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params).get();
         assertEquals(status, clone2);
         
         // Update it
         clone2.setStatusEnum(SubmissionStatusEnum.SCORED);
         clone2.setScore(0.9);
         dboBasicDao.update(clone2);
-        SubmissionStatusDBO clone3 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
+        SubmissionStatusDBO clone3 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params).get();
         assertEquals(clone2, clone3);
 
     	// Delete it
@@ -148,7 +148,7 @@ public class SubmissionStatusDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
+        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params).get();
         assertEquals(status, clone2);
         
     	// Delete it

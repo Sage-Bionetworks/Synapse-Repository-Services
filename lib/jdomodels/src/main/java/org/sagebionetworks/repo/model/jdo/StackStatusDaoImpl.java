@@ -45,7 +45,8 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 		try{
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", DBOStackStatus.STATUS_ID);
-			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params);
+			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params)
+					.orElseThrow(() -> new NotFoundException("Stack status does not exist"));
 			jdo.setStatus(dto.getStatus().name());
 			jdo.setCurrentMessage(dto.getCurrentMessage());
 			jdo.setPendingMessage(dto.getPendingMaintenanceMessage());

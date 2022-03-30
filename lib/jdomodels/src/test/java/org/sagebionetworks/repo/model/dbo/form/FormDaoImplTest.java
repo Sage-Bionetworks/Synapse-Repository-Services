@@ -590,6 +590,14 @@ public class FormDaoImplTest {
 			formDao.getFormDataFileHandleId(formId);
 		});
 	}
+	
+	@Test
+	public void testGetFormDataWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			formDao.getFormData("-123");
+		}).getMessage();
+		assertEquals("Form data: '-123' does not exist", message);
+	}
 
 	/**
 	 * Helper to create a FormGroup.

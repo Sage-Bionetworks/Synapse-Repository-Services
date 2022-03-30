@@ -22,6 +22,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import com.amazonaws.services.sns.model.NotFoundException;
+
 public class DataTypeDaoImpl implements DataTypeDao {
 
 	/**
@@ -79,7 +81,10 @@ public class DataTypeDaoImpl implements DataTypeDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
-		DBODataType dbo = dboBasicDao.getObjectByPrimaryKey(DBODataType.class, params);
+		DBODataType dbo = dboBasicDao.getObjectByPrimaryKey(DBODataType.class, params)
+				.orElseThrow(() -> new NotFoundException(
+						String.format("Datatype response for object: '%s' of type: '%s' does not exist", objectIdString,
+								objectType)));
 		DataTypeResponse dto = new DataTypeResponse();
 		dto.setObjectId(objectIdString);
 		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));

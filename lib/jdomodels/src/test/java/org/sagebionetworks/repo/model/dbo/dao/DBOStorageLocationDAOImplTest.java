@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -46,6 +48,14 @@ public class DBOStorageLocationDAOImplTest {
 		locationSetting.setUploadType(UploadType.SFTP);
 		locationSetting.setUrl("sftp://");
 		doTestCRUD(locationSetting);
+	}
+	
+	@Test
+	public void testGetWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			storageLocationDAO.get(-123L);
+		}).getMessage();
+		assertEquals("Storage location setting: '-123' does not exist", message);
 	}
 
 	@Test

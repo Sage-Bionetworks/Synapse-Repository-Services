@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -326,14 +327,27 @@ public class OAuthClientDaoImplTest {
 		String clientId = createSectorIdentifierAndClient();
 		// method under test
 		oauthClientDao.deleteOAuthClient(clientId);
-		try {
+		assertThrows(NotFoundException.class, ()->{
 			oauthClientDao.getOAuthClient(clientId);
-			fail("deletion failed");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		});
 	}
 
+	@Test
+	public void testGetOAuthClientWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			oauthClientDao.getOAuthClient("-123");
+		}).getMessage();
+		assertEquals("OAuth client: '-123' does not exist", message);
+	}
+	
+	@Test
+	public void testSelectOAuthClientForUpdateWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			oauthClientDao.selectOAuthClientForUpdate("-123");
+		}).getMessage();
+		assertEquals("OAuth client: '-123' does not exist", message);
+	}
+	
 	@Test
 	public void testDeleteSectorIdentifer() {
 		SectorIdentifier sectorIdentifier = newSectorIdentifier();

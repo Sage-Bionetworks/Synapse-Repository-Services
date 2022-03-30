@@ -63,6 +63,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  */
 public class DBOTeamDAOImpl implements TeamDAO {
 
+	public static final String TEAM_ID_DOES_NOT_EXIST = "Team id: '%s' does not exist";
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
@@ -315,12 +316,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public Team get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOTeam dbo = null;
-		try {
-			dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param);
-		} catch(NotFoundException e) {
-			throw new NotFoundException("Team does not exist for teamId: " + id, e);
-		}
+		DBOTeam dbo = basicDao.getObjectByPrimaryKey(DBOTeam.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(TEAM_ID_DOES_NOT_EXIST, id)));
 		Team dto = TeamUtils.copyDboToDto(dbo);
 		return dto;
 	}
@@ -329,7 +326,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public void validateTeamExists(String teamId) {
 		boolean exists = jdbcTemplate.queryForObject(SELECT_CHECK_TEAM_EXISTS, boolean.class, teamId);
 		if (!exists) {
-			throw new NotFoundException("Team does not exist for teamId: " + teamId);
+			throw new NotFoundException(String.format(TEAM_ID_DOES_NOT_EXIST, teamId));
 		}
 	}
 	

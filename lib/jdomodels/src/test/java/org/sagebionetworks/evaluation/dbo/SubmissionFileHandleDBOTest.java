@@ -130,7 +130,7 @@ public class SubmissionFileHandleDBOTest {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);
         params.addValue(DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID, fileHandleId);
-        SubmissionFileHandleDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionFileHandleDBO.class, params);
+        SubmissionFileHandleDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionFileHandleDBO.class, params).get();
         assertNotNull(clone2);
         assertEquals(handle, clone2); 
         

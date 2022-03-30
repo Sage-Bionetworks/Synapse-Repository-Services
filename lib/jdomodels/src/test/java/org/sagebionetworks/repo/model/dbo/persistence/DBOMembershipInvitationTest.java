@@ -1,17 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -21,9 +22,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMembershipInvitationTest {
 	
@@ -36,7 +37,7 @@ public class DBOMembershipInvitationTest {
 	private List<Long> toDelete = null;
 	private List<Long> teamToDelete = null;
 	
-	@After
+	@AfterEach
 	public void after() throws DatastoreException {
 		if(dboBasicDao != null && toDelete != null){
 			for(Long id: toDelete){
@@ -54,7 +55,7 @@ public class DBOMembershipInvitationTest {
 		}
 	}
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		toDelete = new LinkedList<Long>();
 		teamToDelete = new LinkedList<Long>();
@@ -89,7 +90,7 @@ public class DBOMembershipInvitationTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", invitation.getId());
-		clone = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, params).get();
 		assertNotNull(clone);
 		assertEquals(invitation, clone);
 		
@@ -101,7 +102,7 @@ public class DBOMembershipInvitationTest {
 		// Get the clone back again
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		DBOMembershipInvitation clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, params);
+		DBOMembershipInvitation clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, params).get();
 		assertEquals(clone, clone2);
 	}
 }

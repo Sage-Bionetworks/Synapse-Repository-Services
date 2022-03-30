@@ -74,14 +74,14 @@ class EvaluationRoundDBOTest {
 		//retrieve
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
-		EvaluationRoundDBO retrieved = dboBasicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, params);
+		EvaluationRoundDBO retrieved = dboBasicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, params).get();
 		assertEquals(evaluationRoundDBO, retrieved);
 
 		//update
 		evaluationRoundDBO.setLimitsJson("[{\"limitType\": \"TOTAL\", \"maximumSubmissions\": 23}]");
 		boolean wasUpdated = dboBasicDao.update(evaluationRoundDBO);
 		assertTrue(wasUpdated);
-		EvaluationRoundDBO updated = dboBasicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, params);
+		EvaluationRoundDBO updated = dboBasicDao.getObjectByPrimaryKey(EvaluationRoundDBO.class, params).get();
 		assertEquals(evaluationRoundDBO, updated);
 
 		//delete

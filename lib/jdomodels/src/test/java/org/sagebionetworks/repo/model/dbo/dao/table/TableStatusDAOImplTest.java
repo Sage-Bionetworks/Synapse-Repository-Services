@@ -177,6 +177,22 @@ public class TableStatusDAOImplTest {
 	}
 	
 	@Test
+	public void testGetTableStausWithVersionNotFound() throws NotFoundException{
+		String message = assertThrows(NotFoundException.class, ()->{
+			tableStatusDAO.getTableStatus(tableIdWithVersion);
+		}).getMessage();
+		assertEquals("Table status for 'syn123.456' does not exist", message);
+	}
+	
+	@Test
+	public void testGetTableStausWithNoVersionNotFound() throws NotFoundException{
+		String message = assertThrows(NotFoundException.class, ()->{
+			tableStatusDAO.getTableStatus(tableIdNoVersion);
+		}).getMessage();
+		assertEquals("Table status for 'syn123' does not exist", message);
+	}
+	
+	@Test
 	public void testAttemptToSetTableStatusToAvailableConflict() throws NotFoundException{
 		// This should insert a row for this table.
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);

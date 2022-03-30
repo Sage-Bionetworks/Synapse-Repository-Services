@@ -1,28 +1,29 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableTransactionDaoImplTest {
 
@@ -37,7 +38,7 @@ public class TableTransactionDaoImplTest {
 	String tableId;
 	long tableIdLong;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		assertNotNull(userId);
@@ -59,31 +60,40 @@ public class TableTransactionDaoImplTest {
 		assertEquals(1, tableTransactionDao.deleteTable(tableId));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testStartTransactionNullTableId() {
 		tableId = null;
-		// call under test
-		tableTransactionDao.startTransaction(tableId, userId);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableTransactionDao.startTransaction(tableId, userId);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testStartTransactionNullUserd() {
 		userId = null;
-		// call under test
-		tableTransactionDao.startTransaction(tableId, userId);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableTransactionDao.startTransaction(tableId, userId);
+		});
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetNotFound() {
-		// call under test
-		tableTransactionDao.getTransaction(-1L);
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			tableTransactionDao.getTransaction(-1L);
+		}).getMessage();
+		assertEquals("Table transaction: '-1' does not exist", message);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetNullId() {
 		Long id = null;
-		// call under test
-		tableTransactionDao.getTransaction(id);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableTransactionDao.getTransaction(id);
+		});
 	}
 	
 	@Test
@@ -106,23 +116,22 @@ public class TableTransactionDaoImplTest {
 		assertEquals(1, tableTransactionDao.deleteTable(tableTwoId));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testDeleteNullTableId() {
 		tableId = null;
-		// call under test
-		tableTransactionDao.deleteTable(tableId);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableTransactionDao.deleteTable(tableId);
+		});
 	}
 	
 	@Test
 	public void testGetTableIdWithLockNoTransaction() {
 		Long transactionId = tableTransactionDao.startTransaction(tableId, userId);
-		try {
+		assertThrows(IllegalTransactionStateException.class, ()->{
 			// call under test
 			tableTransactionDao.getTableIdWithLock(transactionId);
-			fail();
-		} catch (IllegalTransactionStateException e) {
-			// expected
-		}
+		});
 	}
 	
 	@Test
@@ -133,23 +142,24 @@ public class TableTransactionDaoImplTest {
 		assertEquals(tableIdLong, resultTableId);
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetTableIdWithLockNotFound() {
 		Long transactionId = -1L;
-		// call under test
-		getTableIdWithLock(transactionId);
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			getTableIdWithLock(transactionId);
+		}).getMessage();
+		assertEquals("Table transaction: '-1' does not exist", message);
 	}
 	
 	@Test
 	public void testlinkTransactionToVersionNoTransaction() {
 		Long transactionId = tableTransactionDao.startTransaction(tableId, userId);
 		long version = 15L;
-		try {
+		assertThrows(IllegalTransactionStateException.class, ()->{
+			// call under test
 			tableTransactionDao.linkTransactionToVersion(transactionId, version);
-			fail();
-		} catch (IllegalTransactionStateException e) {
-			// expected
-		}
+		});
 	}
 	
 	@Test
@@ -193,13 +203,10 @@ public class TableTransactionDaoImplTest {
 	@Test
 	public void testUpdateEtagNoTransaction() {
 		Long transactionId = tableTransactionDao.startTransaction(tableId, userId);
-		try {
+		assertThrows(IllegalTransactionStateException.class, ()->{
 			// call under test
 			tableTransactionDao.updateTransactionEtag(transactionId);
-			fail();
-		} catch (IllegalTransactionStateException e) {
-			// expected.
-		}
+		});
 	}
 	
 	/**
