@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -24,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 @ExtendWith(SpringExtension.class)
@@ -101,12 +103,12 @@ public class TeamServiceAutowireTest {
 	@Test
 	public void testGetMembersInvalidTeamId() throws Exception {
 		String invalidTeamId = "404";
-		String expectedResponse = "Team does not exist for teamId: " + invalidTeamId;
+		String expectedResponse =  String.format(DBOTeamDAOImpl.TEAM_ID_DOES_NOT_EXIST, invalidTeamId);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
 			teamService.getMembers(invalidTeamId, null, TeamMemberTypeFilterOptions.ALL, 1, 0 );
 		});
-		assertEquals(expectedResponse, exception.getMessage());
+		assertTrue(exception.getMessage().contains(expectedResponse));
 	}
 
 	/**

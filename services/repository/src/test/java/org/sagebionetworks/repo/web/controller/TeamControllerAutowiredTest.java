@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -77,12 +79,12 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTest
 	@Test
 	public void testGetTeamMembersByInvalidId() throws Exception {
 		String invalidTeamId = "404";
-		String expectedResponse = "{\"reason\":\"Team does not exist for teamId: " + invalidTeamId + "\"}";
+		String expectedResponse =  String.format(DBOTeamDAOImpl.TEAM_ID_DOES_NOT_EXIST, invalidTeamId);
 		NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
 			servletTestHelper.getTeamMembersWithTeamId(dispatchServlet, adminUserId, invalidTeamId);
 		});
-		assertEquals(expectedResponse, exception.getMessage());
+		assertTrue(exception.getMessage().contains(expectedResponse));
 	}
 
 	@Test
