@@ -154,6 +154,7 @@ public class EmailUtilsTest {
 		EmailUtils.validateSynapsePortalHost("http://localhost");
 		EmailUtils.validateSynapsePortalHost("http://127.0.0.1");
 		EmailUtils.validateSynapsePortalHost("https://synapse-staging.sagebase.org");
+		EmailUtils.validateSynapsePortalHost("https://staging.accounts.sagebionetworks.org/register2?emailValidationSignedToken=");
 		EmailUtils.validateSynapsePortalHost("https://www.synapse.org/Portal.html#!PasswordReset:");
 	}
 
