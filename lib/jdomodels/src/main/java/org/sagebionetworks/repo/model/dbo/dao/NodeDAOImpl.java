@@ -64,7 +64,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
@@ -125,7 +124,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,9 +139,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import com.amazonaws.services.glue.model.NodeType;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -153,6 +149,8 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
+	public static final String RESOURCE_DOES_NOT_EXIST = "Resource: '%s' does not exist";
+
 	public static final String ENTITY_DEPTH_SQL = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/EntityDepth.sql");
 	
@@ -356,7 +354,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_USER_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", R."+COL_REVISION_USER_ANNOS_JSON+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER + " = ";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String CANNOT_FIND_A_NODE_WITH_ID_AND_VERSION = "Cannot find a node with id %s and version %d";
-	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_NODE_TYPE_SQL = "SELECT "+COL_NODE_TYPE+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
@@ -435,8 +432,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
 			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
-	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
-
 	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
@@ -654,7 +649,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, NODE_MAPPER, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, id));
 		}
 	}
 	
@@ -665,7 +660,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER, versionNumber, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST,
+					IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(id)).setVersion(versionNumber).build().toString()));
 		}
 	}
 
@@ -764,7 +760,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			String typeString = this.jdbcTemplate.queryForObject(GET_NODE_TYPE_SQL, String.class, KeyFactory.stringToKey(nodeId));
 			return EntityType.valueOf(typeString);
 		} catch(EmptyResultDataAccessException e){
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 	}
 	
@@ -777,12 +773,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	private DBONode getNodeById(Long id){
-		if(id == null) {
+	DBONode getNodeById(Long id) {
+		if (id == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 		MapSqlParameterSource params = getNodeParameters(id);
-		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params).orElseThrow(() -> new NotFoundException(
+				String.format(RESOURCE_DOES_NOT_EXIST, KeyFactory.keyToString(id))));
 	}
 
 	/**
@@ -795,9 +792,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return params;
 	}
 	
-	private DBORevision getNodeRevisionById(Long id, Long revNumber){
+	DBORevision getNodeRevisionById(Long id, Long revNumber) {
 		MapSqlParameterSource params = getRevisionParameters(id, revNumber);
-		return dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params)
+				.orElseThrow(() -> new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST,
+						IdAndVersion.newBuilder().setId(id).setVersion(revNumber).build().toString())));
 	}
 
 	/**
@@ -1166,7 +1165,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		List<EntityHeader> header = getEntityHeader(Collections.singletonList(new Reference().setTargetId(nodeId)));
 		if(header.size() != 1){
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 		return header.get(0);
 	}
@@ -1439,7 +1438,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			return this.jdbcTemplate.queryForObject(GET_CURRENT_REV_NUMBER_SQL, Long.class, KeyFactory.stringToKey(nodeId));
 		}catch(EmptyResultDataAccessException e){
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 	}
 	
@@ -1456,7 +1455,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					.queryForObject(GET_REV_ACTIVITY_ID_SQL, Long.class, KeyFactory.stringToKey(nodeId), revNumber);
 			return activityId == null ? null : activityId.toString();
 		}catch(EmptyResultDataAccessException e){
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format("Activity for: '%s', version: '%s' does not exist", nodeId, revNumber));
 		}		
 	}
 	
@@ -1466,7 +1465,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			return this.jdbcTemplate.queryForObject(GET_NODE_CREATED_BY_SQL, Long.class, KeyFactory.stringToKey(nodeId));
 		}catch(EmptyResultDataAccessException e){
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 	}
 
@@ -1732,7 +1731,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			 * is in the trash. In either case a NotFoundException should be
 			 * thrown.
 			 */
-			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}else if(projectId < 0){
 			throw new IllegalStateException("Infinite loop detected for: "+nodeId);
 		}
@@ -1982,7 +1981,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			Long entityId = namedParameterJdbcTemplate.queryForObject(SQL_SELECT_CHILD, parameters, Long.class);
 			return KeyFactory.keyToString(entityId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format("Child not found for parent: '%s' with name: '%s'", parentId, entityName));
 		}
 	}
 
@@ -2065,7 +2064,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" =? ", String.class, KeyFactory.stringToKey(nodeId));
 		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId));
 		}
 	}
 	

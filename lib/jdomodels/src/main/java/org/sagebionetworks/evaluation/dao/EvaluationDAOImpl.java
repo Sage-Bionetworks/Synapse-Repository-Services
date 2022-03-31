@@ -174,14 +174,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public Evaluation get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		try {
-			EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
-			Evaluation dto = new Evaluation();
-			EvaluationDBOUtil.copyDboToDto(dbo, dto);
-			return dto;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(EVALUATION_NOT_FOUND + id);
-		}
+		EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param)
+				.orElseThrow(() -> new NotFoundException(EVALUATION_NOT_FOUND + id));
+		Evaluation dto = new Evaluation();
+		EvaluationDBOUtil.copyDboToDto(dbo, dto);
+		return dto;
 	}
 
 	private static final String AUTHORIZATION_SQL_WHERE = 

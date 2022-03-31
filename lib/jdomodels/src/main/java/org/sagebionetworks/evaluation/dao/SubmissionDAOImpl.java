@@ -70,7 +70,6 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdAndChecksum;
-import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -92,6 +91,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class SubmissionDAOImpl implements SubmissionDAO {
+
+	public static final String SUBMISSION_DOES_NOT_EXIST = "Submission '%s' does not exist";
 
 	public static final String GET_ID_AND_CHECKSUM_FOR_CHILDREN = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/evaluation/GetIdAndChecksumParentId.sql");
@@ -398,7 +399,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public Submission get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		SubmissionDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionDBO.class, param);
+		SubmissionDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionDBO.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, id)));
 		Submission dto = new Submission();
 		SubmissionUtils.copyDboToDto(dbo, dto);
 		insertContributors(Collections.singletonList(dto));
@@ -734,7 +736,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_CREATED_BY, String.class, submissionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, submissionId));
 		}
 	}
 

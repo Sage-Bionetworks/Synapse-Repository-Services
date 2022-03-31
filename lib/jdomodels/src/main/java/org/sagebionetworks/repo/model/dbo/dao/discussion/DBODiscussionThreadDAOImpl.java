@@ -66,6 +66,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
+	public static final String THREAD_DOES_NOT_EXIST = "Thread: '%s' does not exist";
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
@@ -315,7 +316,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		String query = addCondition(SQL_SELECT_THREAD_BY_ID, filter);
 		List<DiscussionThreadBundle> results = jdbcTemplate.query(query, DISCUSSION_THREAD_BUNDLE_ROW_MAPPER, threadId);
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		return results.get(0);
 	}
@@ -457,7 +458,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			}
 		}, threadId);
 		if (results.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		return results.get(0);
 	}
@@ -484,7 +485,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			}
 		}, threadId);
 		if (queryResult.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		return queryResult.get(0);
 	}
@@ -499,7 +500,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			}
 		}, threadId);
 		if (queryResult.size() != 1) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 		return queryResult.get(0);
 	}
@@ -509,7 +510,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_IS_DELETED, Boolean.class, threadId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(THREAD_DOES_NOT_EXIST, threadId));
 		}
 	}
 

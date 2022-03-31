@@ -37,7 +37,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 			throws DatastoreException, NotFoundException {
 		// Get the file form the mad
 		CloudProviderFileHandleInterface metadata = (CloudProviderFileHandleInterface) map.get(fileId);
-		if(metadata == null) throw new NotFoundException();
+		if(metadata == null) throw new NotFoundException("");
 		metadata.setPreviewId(previewId);
 	}
 
@@ -45,7 +45,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public FileHandle get(String id) throws DatastoreException,
 			NotFoundException {
 		FileHandle metadata = map.get(id);
-		if(metadata == null) throw new NotFoundException();
+		if(metadata == null) throw new NotFoundException("");
 		return metadata;
 	}
 

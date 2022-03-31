@@ -96,7 +96,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
-		DBOQuizResponse dbo = basicDao.getObjectByPrimaryKey(DBOQuizResponse.class, param);
+		DBOQuizResponse dbo = basicDao.getObjectByPrimaryKey(DBOQuizResponse.class, param).orElseThrow(()->new NotFoundException("Quiz response not found for: "+id));
 		QuizResponse dto = QuizResponseUtils.copyDboToDto(dbo);
 		return dto;
 	}

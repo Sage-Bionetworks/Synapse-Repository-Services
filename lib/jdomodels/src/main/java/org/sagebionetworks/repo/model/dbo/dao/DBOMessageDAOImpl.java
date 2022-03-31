@@ -430,7 +430,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public boolean getMessageSent(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOMessageToUser.MESSAGE_ID_FIELD_NAME, messageId);
-		DBOMessageToUser dbo = basicDAO.getObjectByPrimaryKey(DBOMessageToUser.class, params);
+		DBOMessageToUser dbo = basicDAO.getObjectByPrimaryKey(DBOMessageToUser.class, params)
+				.orElseThrow(() -> new NotFoundException(String.format("Message: '%s' does not exist", messageId)));
 		return dbo.getSent();
 	}
 

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.util.Optional;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -51,7 +53,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		Mockito.when(mockBasicDao.createNew(dbo)).thenReturn(dbo);
 
 		Mockito.when(mockBasicDao.getObjectByPrimaryKey(
-				(Class)Mockito.any(), (SinglePrimaryKeySqlParameterSource)Mockito.any())).thenReturn(dbo);
+				(Class)Mockito.any(), (SinglePrimaryKeySqlParameterSource)Mockito.any())).thenReturn(Optional.of(dbo));
 		Mockito.when(mockBasicDao.update(dbo)).thenReturn(true);
 		
 	}

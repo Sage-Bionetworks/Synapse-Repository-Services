@@ -197,7 +197,8 @@ public class FormDaoImpl implements FormDao {
 		ValidateArgument.required(formDataId, "formDataId");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", formDataId);
-		DBOFormData dto = basicDao.getObjectByPrimaryKey(DBOFormData.class, param);
+		DBOFormData dto = basicDao.getObjectByPrimaryKey(DBOFormData.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Form data: '%s' does not exist", formDataId)));
 		return dtoToDbo(dto);
 	}
 

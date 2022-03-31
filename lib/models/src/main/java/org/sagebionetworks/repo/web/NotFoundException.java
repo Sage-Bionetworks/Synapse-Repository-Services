@@ -9,14 +9,6 @@ package org.sagebionetworks.repo.web;
 public class NotFoundException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
-	private static final String DEFAULT_MESSAGE = "The resource you are attempting to access cannot be found";
-
-	/**
-	 * Default constructor
-	 */
-	public NotFoundException() {
-		super(DEFAULT_MESSAGE);
-	}
 
 	/**
 	 * @param message
@@ -32,4 +24,6 @@ public class NotFoundException extends RuntimeException {
 	public NotFoundException(String message, Throwable rootCause) {
 		super(message, rootCause);
 	}
+
+
 }

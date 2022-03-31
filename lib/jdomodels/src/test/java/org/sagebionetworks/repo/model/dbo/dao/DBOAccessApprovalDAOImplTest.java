@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -1103,5 +1104,13 @@ public class DBOAccessApprovalDAOImplTest {
 		boolean result = accessApprovalDAO.hasAccessorApproval(ap1.getRequirementId().toString(), ap1.getAccessorId());
 		
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			accessApprovalDAO.get("-123");
+		}).getMessage();
+		assertEquals("Access approval '-123' does not exist", message);
 	}
 }

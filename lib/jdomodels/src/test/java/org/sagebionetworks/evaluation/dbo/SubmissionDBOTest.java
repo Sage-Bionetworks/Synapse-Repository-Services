@@ -118,7 +118,7 @@ public class SubmissionDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionDBO.class, params);
+        SubmissionDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionDBO.class, params).get();
         assertNotNull(clone2);
         assertEquals(submission, clone2); 
         

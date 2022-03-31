@@ -88,7 +88,7 @@ public class DBOMembershipRequestTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", request.getId());
-		clone = dboBasicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, params).get();
 		assertNotNull(clone);
 		assertEquals(request, clone);
 		
@@ -100,7 +100,7 @@ public class DBOMembershipRequestTest {
 		// Get the clone back again
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		DBOMembershipRequest clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, params);
+		DBOMembershipRequest clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, params).get();
 		assertEquals(clone, clone2);
 	}
 }

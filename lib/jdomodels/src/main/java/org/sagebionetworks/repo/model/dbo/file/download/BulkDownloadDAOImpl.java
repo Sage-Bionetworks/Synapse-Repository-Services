@@ -47,6 +47,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 
+	public static final String PRINCIPAL_DOES_NO_EXIST = "Download list for '%s' does no exist";
+
 	private static final String SQL_TRUNCATE_DOWNLOAD_ORDERS = "DELETE FROM " + TABLE_DOWNLOAD_ORDER + " WHERE "
 			+ COL_DOWNLOAD_ORDER_ID + " > 0";
 
@@ -198,9 +200,11 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 			param.addValue("principalId", ownerPrincipalId);
 			DBODownloadList dbo;
 			if(forUpdate) {
-				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBODownloadList.class, param);
+				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBODownloadList.class, param)
+						.orElseThrow(() -> new NotFoundException(String.format(PRINCIPAL_DOES_NO_EXIST, ownerPrincipalId)));
 			}else {
-				dbo = basicDao.getObjectByPrimaryKey(DBODownloadList.class, param);
+				dbo = basicDao.getObjectByPrimaryKey(DBODownloadList.class, param)
+						.orElseThrow(() -> new NotFoundException(String.format(PRINCIPAL_DOES_NO_EXIST, ownerPrincipalId)));
 			}
 			// load the items
 			List<DBODownloadListItem> items = jdbcTemplate.query(SQL_SELECT_DOWNLOAD_LIST_ITEMS,
@@ -347,8 +351,9 @@ public class BulkDownloadDAOImpl implements BulkDownloadDAO {
 	public DownloadOrder getDownloadOrder(String orderId) {
 		ValidateArgument.required(orderId, "orderId");
 		Long orderIdLong = Long.parseLong(orderId);
-		DBODownloadOrder dbo = basicDao.getObjectByPrimaryKey(DBODownloadOrder.class,
-				new SinglePrimaryKeySqlParameterSource(orderIdLong));
+		DBODownloadOrder dbo = basicDao
+				.getObjectByPrimaryKey(DBODownloadOrder.class, new SinglePrimaryKeySqlParameterSource(orderIdLong))
+				.orElseThrow(() -> new NotFoundException(String.format("Download order '%s' does not exist", orderId)));
 		return translateFromDBOtoDTO(dbo);
 	}
 

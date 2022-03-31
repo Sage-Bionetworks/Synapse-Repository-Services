@@ -124,6 +124,14 @@ public class PersonalAccessTokenDaoAutowiredTest {
 				PersonalAccessTokenDaoImpl.personalAccessTokenDboToDto(dbo));
 		assertEquals(dbo, mapped);
 	}
+	
+	@Test
+	public void testGetTokenRecordWithDoesNotExist() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			personalAccessTokenDao.getTokenRecord("-123");
+		}).getMessage();
+		assertEquals("Access token '-123' does not exist", message);
+	}
 
 	@Test
 	void testCreateGetDelete() {

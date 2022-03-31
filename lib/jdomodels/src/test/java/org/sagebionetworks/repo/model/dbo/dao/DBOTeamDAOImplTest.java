@@ -542,16 +542,11 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testGetNonexistentTeam() {
-		String invalidTeamId = "404";
-		String innerExceptionMessage = "The resource you are attempting to access cannot be found";
-		String expected = "Team does not exist for teamId: " + invalidTeamId;
-		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			teamDAO.get(invalidTeamId);
-		});
-		assertEquals(expected, exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals(innerExceptionMessage ,exception.getCause().getMessage());
+			teamDAO.get("404");
+		}).getMessage();
+		assertEquals("Team id: '404' does not exist", message);
 	}
 
 	@Test
@@ -570,13 +565,11 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testValidateTeamExistsNotFound() {
-		String invalidTeamId = "404";
-		String expected = "Team does not exist for teamId: " + invalidTeamId;
-		NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			teamDAO.validateTeamExists(invalidTeamId);
-		});
-		assertEquals(expected, exception.getMessage());
+			teamDAO.validateTeamExists("404");
+		}).getMessage();
+		assertEquals("Team id: '404' does not exist", message);
 	}
 
 	private Team createTeam(String teamName) {

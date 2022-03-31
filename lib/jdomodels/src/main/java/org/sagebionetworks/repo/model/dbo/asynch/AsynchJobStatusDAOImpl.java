@@ -51,6 +51,8 @@ import org.springframework.jdbc.core.RowMapper;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
+	public static final String ASYNCHRONOUS_JOB_DOES_NOT_EXIST = "Asynchronous job: '%s' does not exist";
+
 	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM " + ASYNCH_JOB_STATUS + " WHERE "
 			+ COL_ASYNCH_JOB_REQUEST_HASH + " = ? AND " + COL_ASYNCH_JOB_STARTED_BY + " = ? AND " + COL_ASYNCH_JOB_STATE
 			+ " = ? LIMIT 5";
@@ -92,7 +94,10 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Cannot read job id: "+e.getMessage());
 		}
-		DBOAsynchJobStatus dbo =  basicDao.getObjectByPrimaryKey(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobIdLong));
+		DBOAsynchJobStatus dbo = basicDao
+				.getObjectByPrimaryKey(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobIdLong))
+				.orElseThrow(
+						() -> new NotFoundException(String.format(ASYNCHRONOUS_JOB_DOES_NOT_EXIST, jobIdLong)));
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
@@ -174,7 +179,10 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
-		DBOAsynchJobStatus dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
+		DBOAsynchJobStatus dbo = basicDao
+				.getObjectByPrimaryKeyWithUpdateLock(DBOAsynchJobStatus.class,
+						new SinglePrimaryKeySqlParameterSource(jobId))
+				.orElseThrow(() -> new NotFoundException(String.format(ASYNCHRONOUS_JOB_DOES_NOT_EXIST, jobId)));
 		// Calculate the runtime
 		long now = System.currentTimeMillis();
 		long runtimeMS = now - dbo.getStartedOn().getTime();

@@ -27,6 +27,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 public class TableTransactionDaoImpl implements TableTransactionDao {
 
+	public static final String TABLE_TRANSACTION_DOES_NOT_EXIST = "Table transaction: '%s' does not exist";
+
 	private static final String SQL_GET_TRANSACTION_FOR_VERSION = "SELECT T." + COL_TABLE_TRX_ID + " FROM "
 			+ TABLE_TABLE_TRANSACTION + " T JOIN " + TABLE_TABLE_TRX_TO_VERSION + " V ON (T." + COL_TABLE_TRX_ID
 			+ " = V." + COL_TABLE_TRX_TO_VER_TRX_ID + ") WHERE T." + COL_TABLE_TRX_TABLE_ID + " = ? AND V."
@@ -77,8 +79,10 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 	@Override
 	public TableTransaction getTransaction(Long transactionId) {
 		ValidateArgument.required(transactionId, "transactionId");
-		DBOTableTransaction dbo = basicDao.getObjectByPrimaryKey(DBOTableTransaction.class,
-				new SinglePrimaryKeySqlParameterSource(transactionId));
+		DBOTableTransaction dbo = basicDao
+				.getObjectByPrimaryKey(DBOTableTransaction.class, new SinglePrimaryKeySqlParameterSource(transactionId))
+				.orElseThrow(() -> new NotFoundException(
+						String.format(TABLE_TRANSACTION_DOES_NOT_EXIST, transactionId)));
 		return dboToDto(dbo);
 	}
 
@@ -129,7 +133,8 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 		try {
 			return jdbcTemplate.queryForObject(SQL_SELECT_TABLE_ID_FOR_UPDATE, Long.class, transactionId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No transaction found for id: "+transactionId);
+			throw new NotFoundException(
+					String.format(TABLE_TRANSACTION_DOES_NOT_EXIST, transactionId));
 		}
 	}
 	

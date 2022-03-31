@@ -104,7 +104,9 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("tableId", idAndVersion.getId());
 		param.addValue("version", version);
-		DBOTableStatus dbo = basicDao.getObjectByPrimaryKey(DBOTableStatus.class, param);
+		DBOTableStatus dbo = basicDao.getObjectByPrimaryKey(DBOTableStatus.class, param)
+				.orElseThrow(() -> new NotFoundException(
+						String.format("Table status for '%s' does not exist", idAndVersion.toString())));
 		return TableStatusUtils.createDTOFromDBO(dbo);
 	}
 

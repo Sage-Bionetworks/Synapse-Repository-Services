@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -391,6 +392,14 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(KeyFactory.stringToKey(fistMessage.getObjectId()), sent.getObjectId());
 		assertEquals(fistMessage.getObjectType().name(), sent.getObjectType());
 		assertEquals(fistMessage.getObjectVersion(), sent.getObjectVersion());
+	}
+	
+	@Test
+	public void testGetSentMessageWithDoesNotExist() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			changeDAO.getSentMessage("syn123", 4L, ObjectType.ENTITY);
+		}).getMessage();
+		assertEquals("Sent message for object: 'syn123', version: '4', type: 'ENTITY' does not exist", message);
 	}
 	
 	

@@ -292,7 +292,7 @@ public class ActivityManagerImplTest {
 	@Test
 	public void testGetEntitiesGeneratedByNotFound() throws Exception {
 		String id = "123";
-		when(mockActivityDAO.get(anyString())).thenThrow(new NotFoundException());
+		when(mockActivityDAO.get(anyString())).thenThrow(new NotFoundException(""));
 
 		assertThrows(NotFoundException.class, () -> {
 			activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);

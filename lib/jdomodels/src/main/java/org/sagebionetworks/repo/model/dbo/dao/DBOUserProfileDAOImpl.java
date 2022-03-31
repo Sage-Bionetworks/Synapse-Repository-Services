@@ -255,7 +255,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 					USER_PROFILE_ROW_MAPPER);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(
-					"The resource you are attempting to access cannot be found");
+					String.format("User profile for '%s' does not exist", dto.getOwnerId()));
 		}
 
 		// Check dbo's etag against dto's etag

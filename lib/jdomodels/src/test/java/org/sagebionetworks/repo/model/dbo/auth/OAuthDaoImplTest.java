@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.ContextConfiguration;
@@ -169,7 +168,7 @@ class OAuthDaoImplTest {
 	
 	@Test
 	public void testAuthorizatioonCodeRoundTrip() {
-		String authorizationCode = UUID.randomUUID().toString();
+		String authorizationCode = "123";
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId("101");
 		authorizationRequest.setUserId("999");
@@ -184,9 +183,10 @@ class OAuthDaoImplTest {
 		assertEquals(authorizationRequest, retrieved);
 		
 		// method under test (can't redeem an auth code twice)
-		assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			oauthDao.redeemAuthorizationCode(authorizationCode);
-		});
+		}).getMessage();
+		assertEquals("Authorization code: '123' does not exist", message);
 	}
 
 }

@@ -70,6 +70,7 @@ import com.google.common.collect.Sets;
 
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
 	static private Log log = LogFactory
 			.getLog(DBOAccessControlListDaoImpl.class);
 	private static final String IDS_PARAM_NAME = "ids_param";
@@ -299,16 +300,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList get(final String ownerId,
-			final ObjectType ownerType) throws DatastoreException,
-			NotFoundException {
+	public AccessControlList get(final String ownerId, final ObjectType ownerType)
+			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME,
-				KeyFactory.stringToKey(ownerId));
-		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME,
-				ownerType.name());
-		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(
-				DBOAccessControlList.class, param);
+		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
+		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
+		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param)
+				.orElseThrow(() -> new NotFoundException(
+						String.format(ACL_DOES_NOT_EXIST, ownerId, ownerType.name())));
 		AccessControlList acl = doGet(dboAcl);
 		return acl;
 	}

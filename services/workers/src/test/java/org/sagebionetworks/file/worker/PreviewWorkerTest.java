@@ -74,7 +74,7 @@ public class PreviewWorkerTest {
 	@Test
 	public void testNotFound() throws Exception{
 		// When a file is not found the message must be returned so it can be removed from the queue
-		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenThrow(new NotFoundException());
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenThrow(new NotFoundException(""));
 		// Fire!
 		worker.run(mockProgressCallback, change);
 		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));

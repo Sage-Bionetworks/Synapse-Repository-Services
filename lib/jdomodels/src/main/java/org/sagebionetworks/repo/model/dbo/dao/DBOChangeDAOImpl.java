@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -399,7 +400,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
 		params.addValue("objectVersion", objectVersion);
-		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params);
+		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params)
+				.orElseThrow(() -> new NotFoundException(
+						String.format("Sent message for object: '%s', version: '%s', type: '%s' does not exist",
+								objectId, objectVersion, objectType.name())));
 	}
 
 }

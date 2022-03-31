@@ -334,6 +334,14 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
+    public void testGetWithNotFound() {
+    	String message = assertThrows(NotFoundException.class, ()->{
+    		submissionDAO.get("123");
+    	}).getMessage();
+    	assertEquals("Submission '123' does not exist", message);
+    }
+    
+    @Test
     public void testGetBundle() throws Exception {
     	submissionDAO.create(submission);
      	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
@@ -913,9 +921,10 @@ public class SubmissionDAOImplTest {
 
     @Test
     public void testGetCreatedByWithNotExistingSubmission(){
-    	assertThrows(NotFoundException.class, () -> {
+    	String message = assertThrows(NotFoundException.class, () -> {
     		submissionDAO.getCreatedBy(submission.getId());
-    	});
+    	}).getMessage();
+    	assertEquals("Submission '206' does not exist", message);
     }
 
     @Test

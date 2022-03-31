@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -179,6 +181,15 @@ public class MembershipRequestDAOImplTest {
 		groupMembersDAO.removeMembers(""+teamId,  Arrays.asList(new String[]{individUser.getId()}));
 	}
 
+	@Test
+	public void testGetWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			membershipRequestDAO.get("-123");
+		}).getMessage();
+		assertEquals("Membership request '-123' does not exist", message);
+	}
+	
+	
 	@Test
 	public void testNoExpirationDate() throws Exception {
 		Long teamId = Long.parseLong(team.getId());

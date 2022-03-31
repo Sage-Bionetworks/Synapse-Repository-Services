@@ -51,6 +51,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
 
+	public static final String O_AUTH_CLIENT_DOES_NOT_EXIST = "OAuth client: '%s' does not exist";
 	private static final String INTERMEDIATE_COL_OVERALL_LAST_USED = "OVERALL_LAST_USED";
 	private static final String INTERMEDIATE_COL_FIRST_AUTHORIZED_ON = "FIRST_AUTHORIZED_ON";
 
@@ -195,7 +196,9 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public OAuthClient getOAuthClient(String clientId) {
 		ValidateArgument.required(clientId, "Client ID");
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(clientId);
-		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKey(DBOOAuthClient.class, param);
+		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKey(DBOOAuthClient.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(O_AUTH_CLIENT_DOES_NOT_EXIST, clientId)));
+		
 		return clientDboToDto(dbo);
 	}
 	
@@ -203,7 +206,8 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	public OAuthClient selectOAuthClientForUpdate(String clientId) {
 		ValidateArgument.required(clientId, "Client ID");
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(clientId);
-		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOOAuthClient.class, param);
+		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOOAuthClient.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(O_AUTH_CLIENT_DOES_NOT_EXIST, clientId)));
 		return clientDboToDto(dbo);
 	}
 	

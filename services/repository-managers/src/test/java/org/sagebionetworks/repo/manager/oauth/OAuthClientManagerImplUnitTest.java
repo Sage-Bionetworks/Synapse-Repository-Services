@@ -678,7 +678,7 @@ public class OAuthClientManagerImplUnitTest {
 	@Test
 	public void testValidateClientCredentials_badClientId() {
 		String wrongClientId = "wrong id";
-		when(mockOauthClientDao.getSecretSalt(wrongClientId)).thenThrow(new NotFoundException());
+		when(mockOauthClientDao.getSecretSalt(wrongClientId)).thenThrow(new NotFoundException(""));
 
 		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
 		clientIdAndSecret.setClient_id(wrongClientId);

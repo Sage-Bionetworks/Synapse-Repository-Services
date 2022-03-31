@@ -34,6 +34,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
+	public static final String CHALLENGE_TEAM_DOES_NOT_EXIST = "Challenge team: '%s' does not exist";
+
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
@@ -127,7 +129,8 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Override
 	public ChallengeTeam get(long id) throws NotFoundException, DatastoreException {
 		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(id);
-		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, param);
+		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_TEAM_DOES_NOT_EXIST, id)));
 		return copyDBOtoDTO(dbo);
 	}
 
@@ -174,8 +177,10 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 			ConflictingUpdateException {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required.");
 		validateChallengeTeam(dto);
-		DBOChallengeTeam dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(
-				dto.getId()));
+		DBOChallengeTeam dbo = basicDao
+				.getObjectByPrimaryKeyWithUpdateLock(DBOChallengeTeam.class,
+						new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_TEAM_DOES_NOT_EXIST, dto.getId())));
 		if (!dbo.getChallengeId().equals(Long.parseLong(dto.getChallengeId()))) {
 			throw new IllegalArgumentException(
 					"You cannot change the challenge ID.");
@@ -198,7 +203,9 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating ChallengeTeam in database.");
 
-		dbo = basicDao.getObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		dbo = basicDao
+				.getObjectByPrimaryKey(DBOChallengeTeam.class, new SinglePrimaryKeySqlParameterSource(dto.getId()))
+				.orElseThrow(() -> new NotFoundException(String.format(CHALLENGE_TEAM_DOES_NOT_EXIST, dto.getId())));
 		return copyDBOtoDTO(dbo);
 	}
 	

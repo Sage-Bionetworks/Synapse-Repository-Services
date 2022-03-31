@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -233,6 +235,22 @@ public class MembershipInvitationDAOImplTest {
 	}
 	
 	@Test
+	public void testGetWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			membershipInvitationDAO.get("-123");
+		}).getMessage();
+		assertEquals("Membership invitation '-123' does not exist", message);
+	}
+	
+	@Test
+	public void testGetWithUpdateLockWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			membershipInvitationDAO.getWithUpdateLock("-123");
+		}).getMessage();
+		assertEquals("Membership invitation '-123' does not exist", message);
+	}
+	
+	@Test
 	public void testDeleteByTeamAndUser() throws Exception {
 		Long teamId = Long.parseLong(team.getId());
 		Long pgLong = Long.parseLong(individUser.getId());
@@ -285,13 +303,13 @@ public class MembershipInvitationDAOImplTest {
 		// Get the invitation's etag
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, misId);
-		DBOMembershipInvitation dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param);
+		DBOMembershipInvitation dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param).get();
 		String oldEtag = dbo.getEtag();
 
 		// Update the inviteeId and get the updated invitation
 		String inviteeId = individUser.getId();
 		membershipInvitationDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
-		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param);
+		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param).get();
 
 		// inviteeId should be updated
 		assertEquals(inviteeId, dbo.getInviteeId().toString());

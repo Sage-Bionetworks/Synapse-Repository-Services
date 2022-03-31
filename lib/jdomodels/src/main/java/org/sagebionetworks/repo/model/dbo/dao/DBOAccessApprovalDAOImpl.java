@@ -200,16 +200,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			DBOAccessApproval dbo =  namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, rowMapper);
 			return AccessApprovalUtils.copyDboToDto(dbo);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(
+					"Access approval for requirement Id: '%s', requirement version: '%s', submitter: '%s', accessor '%s'  ",
+					requirementId, requirementVersion, submitterId, accessorId));
 		}
 	}
 
 	@Override
-	public AccessApproval get(String id) throws DatastoreException,
-			NotFoundException {
+	public AccessApproval get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID.toLowerCase(), id);
-		DBOAccessApproval dbo = basicDao.getObjectByPrimaryKey(DBOAccessApproval.class, param);
+		DBOAccessApproval dbo = basicDao.getObjectByPrimaryKey(DBOAccessApproval.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Access approval '%s' does not exist", id)));
 		AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 		return dto;
 	}

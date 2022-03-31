@@ -59,7 +59,7 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectId("12345");
 		chgMsg.setObjectType(ObjectType.MESSAGE);
 		chgMsg.setTimestamp(new Date());
-		NotFoundException e = new NotFoundException();
+		NotFoundException e = new NotFoundException("");
 		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.common.util.progress.ProgressCallback.class))).thenThrow(e);
 		// call under test
 		worker.run(mockCallback, chgMsg);

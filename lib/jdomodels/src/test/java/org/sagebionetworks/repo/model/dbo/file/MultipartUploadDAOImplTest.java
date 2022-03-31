@@ -167,7 +167,7 @@ public class MultipartUploadDAOImplTest {
 		assertEquals(null, composite.getMultipartUploadStatus().getResultFileHandleId());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", composite.getMultipartUploadStatus().getUploadId());
-		DBOMultipartUpload dbo = basicDao.getObjectByPrimaryKey(DBOMultipartUpload.class, param);
+		DBOMultipartUpload dbo = basicDao.getObjectByPrimaryKey(DBOMultipartUpload.class, param).get();
 		assertNotNull(dbo);
 		assertEquals(null, dbo.getFileHandleId());
 		assertEquals(composite.getMultipartUploadStatus().getUploadId(), "" + dbo.getId());

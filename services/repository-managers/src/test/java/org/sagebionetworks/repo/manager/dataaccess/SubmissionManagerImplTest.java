@@ -31,7 +31,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -259,7 +258,7 @@ public class SubmissionManagerImplTest {
 	@Test
 	public void testCreateWithOutdatedEtag() {
 		csRequest.setRequestEtag("outdated etag");
-		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException());
+		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.create(mockUser, csRequest);
 		});
@@ -267,7 +266,7 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCreateWithNonExistRequest() {
-		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException());
+		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.create(mockUser, csRequest);
 		});
@@ -275,7 +274,7 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCreateWithNotExistResearchProject() {
-		when(mockResearchProjectDao.get(researchProjectId)).thenThrow(new NotFoundException());
+		when(mockResearchProjectDao.get(researchProjectId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.create(mockUser, csRequest);
 		});
@@ -301,7 +300,7 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCreateWithNotExistAccessRequirement() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.create(mockUser, csRequest);
 		});
@@ -494,7 +493,7 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCancelWithNotFoundSubmission() {
-		when(mockSubmissionDao.getForUpdate(submissionId)).thenThrow(new NotFoundException());
+		when(mockSubmissionDao.getForUpdate(submissionId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.cancel(mockUser, submissionId);
 		});
@@ -643,7 +642,7 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
-		when(mockSubmissionDao.getForUpdate(submissionId)).thenThrow(new NotFoundException());
+		when(mockSubmissionDao.getForUpdate(submissionId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.updateStatus(atcUser, request);
 		});
@@ -990,7 +989,7 @@ public class SubmissionManagerImplTest {
 	@Test
 	public void testGetAccessRequirementStatusWithNonExistingAccessRequirement() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenThrow(new NotFoundException());
+			.thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
 			manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		});
@@ -1165,4 +1164,5 @@ public class SubmissionManagerImplTest {
 		assertEquals(approval1.getExpiredOn(),
 				SubmissionManagerImpl.getLatestExpirationDate(Arrays.asList(approval1, approval2)));
 	}
+	
 }

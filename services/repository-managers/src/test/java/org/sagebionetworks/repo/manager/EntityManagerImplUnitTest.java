@@ -576,7 +576,7 @@ public class EntityManagerImplUnitTest {
 		when(mockAuthorizationManger.hasAccess(mockUser, request.getParentId(), ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName()))
-				.thenThrow(new NotFoundException());
+				.thenThrow(new NotFoundException(""));
 
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			entityManager.lookupChild(mockUser, request);

@@ -751,7 +751,7 @@ public class JsonSchemaManagerImplTest {
 		String schemaName = "one";
 		String semanticVersion = "1.1.1";
 		String versionId = "123";
-		when(mockSchemaDao.getVersionId(any(), any(), any())).thenThrow(new NotFoundException());
+		when(mockSchemaDao.getVersionId(any(), any(), any())).thenThrow(new NotFoundException(""));
 
 		assertThrows(NotFoundException.class, () -> {
 			// call under test

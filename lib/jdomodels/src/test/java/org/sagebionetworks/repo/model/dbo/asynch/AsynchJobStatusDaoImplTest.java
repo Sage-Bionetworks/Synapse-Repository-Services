@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,10 +16,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Resource;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -33,7 +34,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ThreadStepper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -41,7 +42,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class AsynchJobStatusDaoImplTest {
 	
@@ -57,7 +58,7 @@ public class AsynchJobStatusDaoImplTest {
 
 	TableUpdateTransactionResponse response;
 
-	@Before
+	@BeforeEach
 	public void before(){
 		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
 		uploadToTableRequest.setTableId("syn456");
@@ -75,7 +76,7 @@ public class AsynchJobStatusDaoImplTest {
 		assertNotNull(creatorUserGroupId);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		asynchJobStatusDao.truncateAllAsynchTableJobStatus();
 	}
@@ -98,9 +99,12 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals(status, clone);
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testNotFound() throws DatastoreException, NotFoundException{
-		asynchJobStatusDao.getJobStatus("-99");
+		String message = assertThrows(NotFoundException.class, ()->{
+			asynchJobStatusDao.getJobStatus("-99");
+		}).getMessage();
+		assertEquals("Asynchronous job: '-99' does not exist", message);
 	}
 	
 	@Test
@@ -153,95 +157,84 @@ public class AsynchJobStatusDaoImplTest {
 		stepper.add(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
-				try {
-					DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
-					transactionDef.setReadOnly(false);
-					transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-					transactionDef.setName("Test");
-					TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager, transactionDef);
+				DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
+				transactionDef.setReadOnly(false);
+				transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+				transactionDef.setName("Test");
+				TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager, transactionDef);
 
-					transactionTemplate.execute(new TransactionCallback<String>() {
-						@Override
-						public String doInTransaction(TransactionStatus tStatus) {
-							try {
-								AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
-								assertNotNull(status);
-								assertNotNull(status.getEtag());
-								jobId.set(status.getJobId());
+				transactionTemplate.execute(new TransactionCallback<String>() {
+					@Override
+					public String doInTransaction(TransactionStatus tStatus) {
+						AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
+						assertNotNull(status);
+						assertNotNull(status.getEtag());
+						jobId.set(status.getJobId());
 
-								stepper.stepDone("job started");
-								stepper.waitForStepDone("get status initial");
+						stepper.stepDone("job started");
+						stepper.waitForStepDone("get status initial");
 
-								asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
+						asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
 
-								stepper.stepDone("progress reported 1");
-								stepper.waitForStepDone("get status 1");
+						stepper.stepDone("progress reported 1");
+						stepper.waitForStepDone("get status 1");
 
-								asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE2");
+						asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE2");
 
-								stepper.stepDone("progress reported 2");
-								stepper.waitForStepDone("get status 2");
+						stepper.stepDone("progress reported 2");
+						stepper.waitForStepDone("get status 2");
 
-								String requestHash = null;
-								asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
+						String requestHash = null;
+						asynchJobStatusDao.setComplete(status.getJobId(), response, requestHash);
 
-								stepper.stepDone("job completed");
-								stepper.waitForStepDone("get status completed in transaction");
-							} catch (Exception e) {
-								fail("got exception: " + e.getMessage());
-							}
-							return "";
-						}
-					});
+						stepper.stepDone("job completed");
+						stepper.waitForStepDone("get status completed in transaction");
 
-					stepper.stepDone("out of transaction");
-					stepper.waitForStepDone("get status completed not in transaction");
-				} catch (Exception e) {
-					fail("got exception: " + e.getMessage());
-				}
+						return "";
+					}
+				});
+
+				stepper.stepDone("out of transaction");
+				stepper.waitForStepDone("get status completed not in transaction");
 				return null;
 			}
 		});
-		
+
 		stepper.add(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
-				try {
-					stepper.waitForStepDone("job started");
+				stepper.waitForStepDone("job started");
 
-					AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(jobId.get());
-					assertEquals(null, clone.getProgressMessage());
-					assertEquals(AsynchJobState.PROCESSING, clone.getJobState());
+				AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(jobId.get());
+				assertEquals(null, clone.getProgressMessage());
+				assertEquals(AsynchJobState.PROCESSING, clone.getJobState());
 
-					stepper.stepDone("get status initial");
-					stepper.waitForStepDone("progress reported 1");
+				stepper.stepDone("get status initial");
+				stepper.waitForStepDone("progress reported 1");
 
-					clone = asynchJobStatusDao.getJobStatus(jobId.get());
-					assertEquals("A MESSAGE", clone.getProgressMessage());
+				clone = asynchJobStatusDao.getJobStatus(jobId.get());
+				assertEquals("A MESSAGE", clone.getProgressMessage());
 
-					stepper.stepDone("get status 1");
-					stepper.waitForStepDone("progress reported 2");
+				stepper.stepDone("get status 1");
+				stepper.waitForStepDone("progress reported 2");
 
-					clone = asynchJobStatusDao.getJobStatus(jobId.get());
-					assertEquals("A MESSAGE2", clone.getProgressMessage());
+				clone = asynchJobStatusDao.getJobStatus(jobId.get());
+				assertEquals("A MESSAGE2", clone.getProgressMessage());
 
-					stepper.stepDone("get status 2");
-					stepper.waitForStepDone("job completed");
+				stepper.stepDone("get status 2");
+				stepper.waitForStepDone("job completed");
 
-					clone = asynchJobStatusDao.getJobStatus(jobId.get());
-					assertEquals("A MESSAGE2", clone.getProgressMessage());
+				clone = asynchJobStatusDao.getJobStatus(jobId.get());
+				assertEquals("A MESSAGE2", clone.getProgressMessage());
 
-					stepper.stepDone("get status completed in transaction");
-					stepper.waitForStepDone("out of transaction");
+				stepper.stepDone("get status completed in transaction");
+				stepper.waitForStepDone("out of transaction");
 
-					clone = asynchJobStatusDao.getJobStatus(jobId.get());
-					assertEquals("Complete", clone.getProgressMessage());
-					assertEquals(AsynchJobState.COMPLETE, clone.getJobState());
+				clone = asynchJobStatusDao.getJobStatus(jobId.get());
+				assertEquals("Complete", clone.getProgressMessage());
+				assertEquals(AsynchJobState.COMPLETE, clone.getJobState());
 
-					stepper.stepDone("get status completed not in transaction");
-				} catch (Exception e) {
-					fail("got exception: " + e.getMessage());
-				}
+				stepper.stepDone("get status completed not in transaction");
 				return null;
 			}
 		});
@@ -276,7 +269,7 @@ public class AsynchJobStatusDaoImplTest {
 		Throwable error = new Throwable("something when wrong", new IllegalArgumentException("This is bad"));
 		String newEtag = asynchJobStatusDao.setJobFailed(status.getJobId(), error);
 		assertNotNull(newEtag);
-		assertFalse("The etag must change when the status changes",startEtag.equals(newEtag));
+		assertFalse(startEtag.equals(newEtag), "The etag must change when the status changes");
 		// Get the status
 		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId());
 		assertEquals("something when wrong", clone.getErrorMessage());
@@ -382,13 +375,18 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals(two, foundStatus.get(1));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testIdNull(){
-		asynchJobStatusDao.getJobStatus(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			asynchJobStatusDao.getJobStatus(null);
+		});
+
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testIdNAN(){
-		asynchJobStatusDao.getJobStatus("not a number");
+		assertThrows(IllegalArgumentException.class, ()->{
+			asynchJobStatusDao.getJobStatus("not a number");
+		});
 	}
 }

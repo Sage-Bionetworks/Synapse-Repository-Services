@@ -217,7 +217,7 @@ public class SearchManagerImplTest {
 		org.sagebionetworks.repo.model.search.Hit hit3 = new org.sagebionetworks.repo.model.search.Hit(); hit3.setId(id3); hits.add(hit3);
 
 		when(mockSearchDocumentDriver.getEntityPath(id1)).thenReturn(new EntityPath());
-		when(mockSearchDocumentDriver.getEntityPath(id2)).thenThrow(new NotFoundException());
+		when(mockSearchDocumentDriver.getEntityPath(id2)).thenThrow(new NotFoundException(""));
 		when(mockSearchDocumentDriver.getEntityPath(id3)).thenReturn(new EntityPath());
 		
 		// method under test

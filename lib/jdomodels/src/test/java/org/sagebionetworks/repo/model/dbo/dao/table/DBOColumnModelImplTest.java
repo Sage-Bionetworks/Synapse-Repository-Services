@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
@@ -16,10 +17,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.codec.binary.Hex;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -29,11 +30,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOColumnModelImplTest {
 	
@@ -46,7 +47,7 @@ public class DBOColumnModelImplTest {
 	
 	IdAndVersion idAndVersion;
 	
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException{
 		// One
 		one = new ColumnModel();
@@ -70,7 +71,7 @@ public class DBOColumnModelImplTest {
 		idAndVersion  = IdAndVersion.parse("syn123");
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		columnModelDao.truncateAllColumnData();
 	}
@@ -102,18 +103,24 @@ public class DBOColumnModelImplTest {
 		// If we save the same model again we should get the same ID as the two models will have the same hash
 		result = columnModelDao.createColumnModel(model);
 		assertNotNull(result);
-		assertEquals("Creating the same column model with the same data should have returned same object as the original",originalId, result.getId());
+		assertEquals(originalId, result.getId(), "Creating the same column model with the same data should have returned same object as the original");
 		ColumnModel two = columnModelDao.getColumnModel(originalId);
 		assertEquals(result, two);
 		// Now delete the model
 		columnModelDao.deleteColumModel(originalId);
-		// Now it should be not found
-		try {
-			columnModelDao.getColumnModel(originalId);
-			fail("This model should have been deleted");
-		} catch (NotFoundException e) {
-			// expected
-		}
+		
+		assertThrows(NotFoundException.class, ()->{
+			columnModelDao.getColumnModel("20");
+		});
+
+	}
+	
+	@Test
+	public void testGetColumnModelWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			columnModelDao.getColumnModel("-20");
+		}).getMessage();
+		assertEquals("Column model: '-20' does not exist", message);
 	}
 	
 	@Test
@@ -256,11 +263,9 @@ public class DBOColumnModelImplTest {
 		columnModelDao.bindColumnToObject(toBind, idAndVersion);
 		columnModelDao.lockOnOwner("syn123");
 		columnModelDao.deleteOwner("syn123");
-		try {
+		assertThrows(EmptyResultDataAccessException.class, ()->{
 			columnModelDao.lockOnOwner("syn123");
-			fail("owner should no longer exist");
-		} catch (EmptyResultDataAccessException e) {
-		}
+		});
 		List<ColumnModel> columnModelsForObject = columnModelDao.getColumnModelsForObject(idAndVersion);
 		assertEquals(0, columnModelsForObject.size());
 	}
@@ -371,11 +376,11 @@ public class DBOColumnModelImplTest {
 		second.setColumnType(first.getColumnType());
 		second.setMaximumSize(first.getMaximumSize());
 		String secondId = columnModelDao.createColumnModel(second).getId();
-		assertTrue("Two columns that are identical should have the same ID",firstId.equals(secondId));
+		assertTrue(firstId.equals(secondId), "Two columns that are identical should have the same ID");
 		// Now change the case and try again
 		second.setName(first.getName().toLowerCase());
 		secondId = columnModelDao.createColumnModel(second).getId();
-		assertFalse("Two columns that differ only by case should not get the same",firstId.equals(secondId));
+		assertFalse(firstId.equals(secondId), "Two columns that differ only by case should not get the same");
 	}
 
 	
@@ -387,18 +392,15 @@ public class DBOColumnModelImplTest {
 		m.setColumnType(ColumnType.STRING);
 		m.setMaximumSize(10L);
 		m = columnModelDao.createColumnModel(m);
+		String id = m.getId();
 		// Verify that not bound
 		Set<String> boundColModelIds = new HashSet<String>();
 		boundColModelIds.add(m.getId());
 		// Delete the column model should succeed
-		columnModelDao.deleteColumModel(m.getId());
-		// Check that not found
-		try {
-			columnModelDao.getColumnModel(m.getId());
-			fail("This model should have been deleted");
-		} catch (NotFoundException e) {
-			// expected
-		}
+		columnModelDao.deleteColumModel(id);
+		assertThrows(NotFoundException.class, ()->{
+			columnModelDao.getColumnModel(id);
+		});
 	}
 		
 	@Test

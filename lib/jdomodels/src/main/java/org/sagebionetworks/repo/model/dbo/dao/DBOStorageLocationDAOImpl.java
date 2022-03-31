@@ -156,8 +156,10 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 			return getDefaultStorageLocationSetting();
 		}
 
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
-				new SinglePrimaryKeySqlParameterSource(storageLocationId));
+		DBOStorageLocation dbo = basicDao
+				.getObjectByPrimaryKey(DBOStorageLocation.class,
+						new SinglePrimaryKeySqlParameterSource(storageLocationId))
+				.orElseThrow(() -> new NotFoundException(String.format("Storage location setting: '%s' does not exist", storageLocationId)));
 
 		return StorageLocationUtils.convertDBOtoDTO(dbo);
 	}

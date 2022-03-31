@@ -21,6 +21,8 @@ import org.springframework.jdbc.core.RowMapper;
 
 public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
+	public static final String RESEARCH_PROJECT_DOES_NOT_EXIST = "Research project: '%s' does not exist";
+
 	@Autowired
 	private DBOBasicDao basicDao;
 
@@ -59,14 +61,17 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	}
 
 	@Override
-	public ResearchProject getUserOwnResearchProject(String accessRequirementId, String createdBy) throws NotFoundException {
+	public ResearchProject getUserOwnResearchProject(String accessRequirementId, String createdBy)
+			throws NotFoundException {
 		try {
 			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET, MAPPER, accessRequirementId, createdBy);
 			ResearchProject dto = new ResearchProject();
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(
+					String.format("Research project does not exist for access requirement: '%s' and created by: '%s'",
+							accessRequirementId, createdBy));
 		}
 	}
 
@@ -94,7 +99,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(RESEARCH_PROJECT_DOES_NOT_EXIST, researchProjectId));
 		}
 	}
 
@@ -107,7 +112,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			throw new NotFoundException(String.format(RESEARCH_PROJECT_DOES_NOT_EXIST, researchProjectId));
 		}
 	}
 

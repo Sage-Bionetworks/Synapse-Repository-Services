@@ -8,7 +8,6 @@ import java.util.Optional;
 import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,7 +20,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 /**
  * Provides basic CRUD operations for objects that implement DatabaseObject
  * 
- * @author jmhill
  *
  */
 @SuppressWarnings("rawtypes")
@@ -250,12 +248,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	@Override
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters)
-			throws DatastoreException, NotFoundException {
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException {
 		try {
-			return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+			return Optional.of(doGetObjectByPrimaryKey(clazz, namedParameters, false));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			return Optional.empty();
 		}
 	}
 
@@ -270,12 +268,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 	
 	@Override
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
-			throws DatastoreException, NotFoundException {
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException{
 		try {
-			return doGetObjectByPrimaryKey(clazz, namedParameters, true);
+			return  Optional.of(doGetObjectByPrimaryKey(clazz, namedParameters, true));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			return Optional.empty();
 		}
 	}
 

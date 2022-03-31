@@ -377,7 +377,7 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testBootstrapTeamsThatDontExist() {
-		when(mockTeamDAO.get(any(String.class))).thenThrow(new NotFoundException());
+		when(mockTeamDAO.get(any(String.class))).thenThrow(new NotFoundException(""));
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(String.class))).thenReturn(null);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(new PrincipalAlias());
 		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);

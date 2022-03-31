@@ -24,14 +24,13 @@ public class ValidationJsonSchemaIndexDaoImpl implements ValidationJsonSchemaInd
 
 	@Override
 	public JsonSchema getValidationSchema(String versionId) {
-		try {
-			DBOValidationJsonSchemaIndex dbo = basicDao.getObjectByPrimaryKey(DBOValidationJsonSchemaIndex.class, 
-					new SinglePrimaryKeySqlParameterSource(versionId));
-			JsonSchema dto = convertFromDBOtoDTO(dbo);
-			return dto;
-		} catch (NotFoundException e) {
-			throw new NotFoundException();
-		}
+		DBOValidationJsonSchemaIndex dbo = basicDao
+				.getObjectByPrimaryKey(DBOValidationJsonSchemaIndex.class,
+						new SinglePrimaryKeySqlParameterSource(versionId))
+				.orElseThrow(() -> new NotFoundException(String.format("Validation schema for version: '%s' does not exist", versionId)));
+		JsonSchema dto = convertFromDBOtoDTO(dbo);
+		return dto;
+
 	}
 	
 	@WriteTransaction

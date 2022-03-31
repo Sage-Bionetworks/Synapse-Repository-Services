@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANN
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
@@ -125,7 +124,7 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 		assertTrue(resultOptional.isPresent());
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus.accessDenied(
-				new NotFoundException(ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND)));
+				new NotFoundException("Resource: 'syn111' does not exist")));
 		assertEquals(expected, resultOptional.get());
 	}
 

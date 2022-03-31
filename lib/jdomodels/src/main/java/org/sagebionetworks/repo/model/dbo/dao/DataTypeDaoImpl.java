@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODataType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -79,7 +80,10 @@ public class DataTypeDaoImpl implements DataTypeDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
-		DBODataType dbo = dboBasicDao.getObjectByPrimaryKey(DBODataType.class, params);
+		DBODataType dbo = dboBasicDao.getObjectByPrimaryKey(DBODataType.class, params)
+				.orElseThrow(() -> new NotFoundException(
+						String.format("Datatype response for object: '%s' of type: '%s' does not exist", objectIdString,
+								objectType)));
 		DataTypeResponse dto = new DataTypeResponse();
 		dto.setObjectId(objectIdString);
 		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));

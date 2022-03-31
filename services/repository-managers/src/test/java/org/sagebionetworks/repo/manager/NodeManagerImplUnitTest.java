@@ -410,7 +410,7 @@ public class NodeManagerImplUnitTest {
 		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
 		
 		// test activity not found		
-		when(mockNodeDao.getActivityId(nodeId)).thenThrow(new NotFoundException());
+		when(mockNodeDao.getActivityId(nodeId)).thenThrow(new NotFoundException(""));
 		
 		Assertions.assertThrows(NotFoundException.class, ()-> {
 			nodeManager.getActivityForNode(mockUserInfo, nodeId, null);

@@ -90,7 +90,7 @@ public class DBOFavoriteTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, favorite.getPrincipalId());
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, favorite.getNodeId());
-		clone = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params).get();
 		assertNotNull(clone);
 		assertEquals(favorite, clone);
 		
@@ -103,7 +103,7 @@ public class DBOFavoriteTest {
 		params = new MapSqlParameterSource();
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, clone.getPrincipalId());
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, clone.getNodeId());
-		DBOFavorite clone2 = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params);
+		DBOFavorite clone2 = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params).get();
 		assertEquals(clone, clone2);
 	}
 

@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -15,12 +16,14 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -38,6 +41,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class RequestManagerImplTest {
 
 	@Mock
@@ -63,7 +67,7 @@ public class RequestManagerImplTest {
 	private Renewal renewal;
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		manager = new RequestManagerImpl();
@@ -81,13 +85,6 @@ public class RequestManagerImplTest {
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
-		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
-		when(mockRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
-		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
 	}
 
 	private Request createNewRequest() {
@@ -104,48 +101,65 @@ public class RequestManagerImplTest {
 		return dto;
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullUserInfo() {
-		manager.create(null, createNewRequest());
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(null, createNewRequest());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullRequest() {
-		manager.create(mockUser, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(mockUser, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullAccessRequirementId() {
 		Request toCreate = createNewRequest();
 		toCreate.setAccessRequirementId(null);
-		manager.create(mockUser, toCreate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(mockUser, toCreate);
+		});
+
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullResearchProjectId() {
 		Request toCreate = createNewRequest();
 		toCreate.setResearchProjectId(null);
-		manager.create(mockUser, toCreate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(mockUser, toCreate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNotACTAccessRequirementId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		manager.create(null, createNewRequest());
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(mockUser, createNewRequest());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithMoreThanMaxAccessorChanges() {
 		request = createNewRequest();
 		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
 		when(mockAccessorChanges.isEmpty()).thenReturn(false);
 		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
 		request.setAccessorChanges(mockAccessorChanges );
-		manager.create(null, request);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.create(mockUser, request);
+		});
 	}
 
 	@Test
 	public void testCreate() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		
 		assertEquals(request, manager.create(mockUser, createNewRequest()));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
@@ -171,25 +185,33 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, prepared.getId());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetRequestForUpdateWithNullUserInfo() {
-		manager.getRequestForUpdate(null, accessRequirementId);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRequestForUpdate(null, accessRequirementId);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetRequestForUpdateWithNullAccessRequirementId() {
-		manager.getRequestForUpdate(mockUser, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.getRequestForUpdate(mockUser, null);
+		});
 	}
 
 	@Test
 	public void testGetRequestForUpdate() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
+	
 		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
 		verify(mockRequestDao).getUserOwnCurrentRequest(accessRequirementId, userId);
 	}
 
 	@Test
 	public void testGetForUpdateNotFound() {
-		when(mockRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenThrow(new NotFoundException());
+		when(mockRequestDao.getUserOwnCurrentRequest(any(), any())).thenThrow(new NotFoundException(""));
 		request = (Request) manager.getRequestForUpdate(mockUser, accessRequirementId);
 		assertNotNull(request);
 		assertEquals(accessRequirementId, request.getAccessRequirementId());
@@ -247,104 +269,153 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testGetForUpdateAlreadyHasRenewal() {
-		when(mockRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(renewal);
+		when(mockRequestDao.getUserOwnCurrentRequest(any(), any())).thenReturn(renewal);
 		assertEquals(renewal, manager.getRequestForUpdate(mockUser, accessRequirementId));
 		verifyZeroInteractions(mockAccessRequirement);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullUserInfo() {
-		manager.update(null, createNewRequest());
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(null, createNewRequest());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdatWeithNullRequest() {
-		manager.update(mockUser, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullAccessRequirementId() {
 		Request toUpdate = createNewRequest();
 		toUpdate.setAccessRequirementId(null);
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithNullResearchProjectId() {
 		Request toUpdate = createNewRequest();
 		toUpdate.setResearchProjectId(null);
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testUpdateNotFound() {
 		Request toUpdate = createNewRequest();
-		when(mockRequestDao.getForUpdate(anyString())).thenThrow(new NotFoundException());
-		manager.update(mockUser, toUpdate);
+		when(mockRequestDao.getForUpdate(anyString())).thenThrow(new NotFoundException(""));
+		assertThrows(NotFoundException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateResearchProjectId() {
+		
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setResearchProjectId("222");
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateCreatedBy() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setCreatedBy("333");
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateCreatedOn() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setCreatedOn(new Date(0L));
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateAccessRequirementId() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setAccessRequirementId("444");
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = ConflictingUpdateException.class)
+	@Test
 	public void testUpdateWithOutdatedEtag() {
+		
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setEtag("oldEtag");
-		manager.update(mockUser, toUpdate);
+		assertThrows(ConflictingUpdateException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testUpdateUnauthorized() {
+		
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		
 		Request toUpdate = createNewRequest();
 		when(mockUser.getId()).thenReturn(555L);
-		manager.update(mockUser, toUpdate);
+		assertThrows(UnauthorizedException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithSubmittedSubmission() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(true);
-		manager.update(mockUser, request);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, request);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateWithMoreThanMaxAccessorChanges() {
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
 		when(mockAccessorChanges.isEmpty()).thenReturn(false);
 		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
 		toUpdate.setAccessorChanges(mockAccessorChanges );
-		manager.update(mockUser, toUpdate);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
 	@Test
 	public void testUpdate() {
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
+		
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
 		// call under test.
@@ -390,18 +461,27 @@ public class RequestManagerImplTest {
 		assertEquals(renewal.getAccessorChanges(), Arrays.asList(change1, change2));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateOrUpdateWithNullRequest() {
-		manager.createOrUpdate(mockUser, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.createOrUpdate(mockUser, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateOrUpdateWithRenewalNullId() {
-		manager.createOrUpdate(mockUser, new Renewal());
+		assertThrows(IllegalArgumentException.class, ()->{
+			manager.createOrUpdate(mockUser, new Renewal());
+		});
 	}
 
 	@Test
 	public void testCreateOrUpdateWithNullId() {
+		
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockRequestDao.create(any())).thenReturn(request);
+		
 		request.setId(null);
 		assertEquals(request, manager.createOrUpdate(mockUser, request));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
@@ -413,6 +493,12 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithId() {
+		
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
+		
 		Request toUpdate = createNewRequest();
 		toUpdate.setDucFileHandleId("777");
 		assertEquals(request, manager.createOrUpdate(mockUser, toUpdate));

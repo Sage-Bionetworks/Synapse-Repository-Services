@@ -99,8 +99,9 @@ public class ValidationJsonSchemaIndexDaoImplTest {
 	
 	@Test
 	public void testGetValidationSchemaWithNotFound() {
-		assertThrows(NotFoundException.class, () -> {
+		String message = assertThrows(NotFoundException.class, () -> {
 			validationIndexDao.getValidationSchema("randomId");
-		});
+		}).getMessage();
+		assertEquals("Validation schema for version: 'randomId' does not exist", message);
 	}
 }

@@ -229,9 +229,10 @@ public class DiscussionReplyManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		
-		assertThrows(NotFoundException.class, () -> {			
+		String message = assertThrows(NotFoundException.class, () -> {			
 			replyManager.getReply(userInfo, replyId.toString());
-		});
+		}).getMessage();
+		assertEquals("Reply: '222' does not exist", message);
 	}
 
 	@Test
@@ -267,7 +268,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testUpdateReplyMessageForDeletedReply() throws IOException {
-		when(mockReplyDao.getReply(replyId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
+		when(mockReplyDao.getReply(replyId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException(""));
 		UpdateReplyMessage newMessage = new UpdateReplyMessage();
 		newMessage.setMessageMarkdown("messageMarkdown");
 		

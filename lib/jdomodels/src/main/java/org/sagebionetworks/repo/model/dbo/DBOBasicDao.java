@@ -68,11 +68,10 @@ public interface DBOBasicDao {
 	 * @param <T>
 	 * @param clazz
 	 * @param id
-	 * @return
+	 * @return Optional.empty() if the object cannot be found.
 	 * @throws DatastoreException
-	 * @throws NotFoundException 
 	 */
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException;
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameterse) throws DatastoreException;
 	
 	/**
 	 * Get an object using its ID.
@@ -95,8 +94,8 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
-			throws DatastoreException, NotFoundException;
+	public <T extends DatabaseObject<T>> Optional<T> getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException;
 
 	/**
 	 * 

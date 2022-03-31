@@ -328,7 +328,7 @@ public class ChallengeManagerImplTest {
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
 
 		// if you are not in the challenge then you are not authorized
-		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException(""));
 		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).isAuthorized());
 	}
 	
@@ -342,7 +342,7 @@ public class ChallengeManagerImplTest {
 		// if youlack admin control of the team you are trying to register then you are not authorized
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
-		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException(""));
 		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, ADMIN_USER, 
 				ModelConstants.TEAM_ADMIN_PERMISSIONS,
 				new Date());
@@ -386,7 +386,7 @@ public class ChallengeManagerImplTest {
 		Challenge challenge = newChallenge();
 		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
 		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
-		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException(""));
 		challengeManager.createChallengeTeam(USER_INFO, challengeTeam);
 	}
 
@@ -469,7 +469,7 @@ public class ChallengeManagerImplTest {
 		Challenge challenge = newChallenge();
 		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
 		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
-		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException(""));
 		challengeManager.updateChallengeTeam(USER_INFO, challengeTeam);
 	}
 
@@ -491,7 +491,7 @@ public class ChallengeManagerImplTest {
 		challengeTeam.setId(challengeTeamId.toString());
 		when(mockChallengeDAO.get(Long.parseLong(challenge.getId()))).thenReturn(challenge);
 		when(mockChallengeTeamDAO.get(challengeTeamId)).thenReturn(challengeTeam);
-		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
+		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException(""));
 		challengeManager.deleteChallengeTeam(USER_INFO, challengeTeamId);
 	}
 

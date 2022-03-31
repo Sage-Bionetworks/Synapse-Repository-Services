@@ -57,6 +57,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
+	public static final String COLUMN_MODEL_DOES_NOT_EXIST = "Column model: '%s' does not exist";
 	private static final String INPUT = "input";
 	private static final String SELECT_COLUMN_NAME = "SELECT "+ COL_CM_ID+","+COL_CM_NAME+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN (:"+INPUT+")";
 	private static final String SQL_SELECT_OWNER_ETAG_FOR_UPDATE = "SELECT "+COL_BOUND_OWNER_ETAG+" FROM "+TABLE_BOUND_COLUMN_OWNER+" WHERE "+COL_BOUND_OWNER_OBJECT_ID+" = ? FOR UPDATE";
@@ -163,7 +164,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	public ColumnModel getColumnModel(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		DBOColumnModel dbo = basicDao.getObjectByPrimaryKey(DBOColumnModel.class, param);
+		DBOColumnModel dbo = basicDao.getObjectByPrimaryKey(DBOColumnModel.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(COLUMN_MODEL_DOES_NOT_EXIST, id)));
 		return ColumnModelUtils.createDTOFromDBO(dbo);
 	}
 	

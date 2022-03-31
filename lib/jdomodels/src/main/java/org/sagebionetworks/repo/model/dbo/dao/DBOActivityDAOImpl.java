@@ -189,15 +189,12 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	 * Private Methods
 	 */
 	private DBOActivity getDBO(String id) throws NotFoundException {
-		if(id == null) throw new NotFoundException("No activity");
+		if (id == null)
+			throw new NotFoundException("No activity");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
-		try {
-			DBOActivity dbo = basicDao.getObjectByPrimaryKey(DBOActivity.class, param);
-			return dbo;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(String.format(ACTIVITY_NOT_FOUND, id));
-		}
+		return basicDao.getObjectByPrimaryKey(DBOActivity.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(ACTIVITY_NOT_FOUND, id)));
 	}
 
 	private String lockActivity(String id) {

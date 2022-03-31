@@ -71,7 +71,7 @@ public class EvaluationDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id", id);
-        clone = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
+        clone = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params).get();
         assertNotNull(clone);
         assertEquals(eval.getId(), clone.getId());
         assertEquals(eval.getName(), clone.getName());
@@ -85,7 +85,7 @@ public class EvaluationDBOTest {
 		// Verify it
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		EvaluationDBO clone2 = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
+		EvaluationDBO clone2 = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params).get();
 		assertEquals(clone, clone2);
         
         // Delete it
@@ -135,7 +135,7 @@ public class EvaluationDBOTest {
  		SqlParameterSource params = new SinglePrimaryKeySqlParameterSource(eval.getId());
  		
  		// Call under test, this will in turn use the table mapping for the evaluation
- 		EvaluationDBO fromDB = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
+ 		EvaluationDBO fromDB = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params).get();
  		
  		// Makes sure that the start and end timestamps are actually read as null (instead of 0) 
  		assertNull(fromDB.getStartTimestamp());

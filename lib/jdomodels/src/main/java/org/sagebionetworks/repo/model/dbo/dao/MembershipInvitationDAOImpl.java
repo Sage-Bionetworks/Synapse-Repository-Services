@@ -45,6 +45,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  */
 public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 
+	public static final String MEMBERSHIP_INVITATION_DOES_NOT_EXIST = "Membership invitation '%s' does not exist";
 	@Autowired
 	private DBOBasicDao basicDao;	
 	@Autowired
@@ -139,7 +140,8 @@ public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 	public MembershipInvitation get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOMembershipInvitation dbo = basicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, param);
+		DBOMembershipInvitation dbo = basicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(MEMBERSHIP_INVITATION_DOES_NOT_EXIST, id)));
 		MembershipInvitation dto = MembershipInvitationUtils.copyDboToDto(dbo);
 		return dto;
 	}
@@ -148,7 +150,8 @@ public class MembershipInvitationDAOImpl implements MembershipInvitationDAO {
 	public MembershipInvitation getWithUpdateLock(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOMembershipInvitation dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMembershipInvitation.class, param);
+		DBOMembershipInvitation dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMembershipInvitation.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format(MEMBERSHIP_INVITATION_DOES_NOT_EXIST, id)));
 		MembershipInvitation dto = MembershipInvitationUtils.copyDboToDto(dbo);
 		return dto;
 	}

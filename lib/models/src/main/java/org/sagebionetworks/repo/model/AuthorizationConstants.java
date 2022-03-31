@@ -252,7 +252,6 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS = "There are unmet access requirements that must be met to read content in the requested container.";
 	public static final String ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION = "Anonymous users have only READ access permission.";
 	public static final String ERR_MSG_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
-	public static final String ERR_MSG_THE_RESOURCE_YOU_ARE_ATTEMPTING_TO_ACCESS_CANNOT_BE_FOUND = "The resource you are attempting to access cannot be found";
 	public static final String ERR_MSG_ENTITY_IN_TRASH_TEMPLATE = "Entity %s is in trash can.";
 	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
 	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";

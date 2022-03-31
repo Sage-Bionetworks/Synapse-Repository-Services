@@ -1127,7 +1127,7 @@ public class V2WikiManagerTest {
 	@Test
 	public void testDeleteOwnerNotFound() throws UnauthorizedException, NotFoundException{
 		// If the owner does not exist then then we can delete it.
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenThrow(new NotFoundException());
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenThrow(new NotFoundException(""));
 		wikiManager.deleteWiki(new UserInfo(true), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	

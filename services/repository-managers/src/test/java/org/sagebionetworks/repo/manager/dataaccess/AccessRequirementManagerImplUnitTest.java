@@ -459,7 +459,7 @@ public class AccessRequirementManagerImplUnitTest {
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
 		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException());
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException(""));
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
@@ -864,7 +864,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testConvertAccessRequirementNotFound() {
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenThrow(new NotFoundException());
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenThrow(new NotFoundException(""));
 		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
 		request.setAccessRequirementId("1");
 		request.setEtag("etag");
@@ -1111,7 +1111,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.ENTITY);
 		rod.setId("0");
-		when(nodeDao.getNodeTypeById("0")).thenThrow(new NotFoundException());
+		when(nodeDao.getNodeTypeById("0")).thenThrow(new NotFoundException(""));
 
 		// call under test
 		arm.signalSubjectId(rod);

@@ -291,10 +291,14 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testGetDeletedThreadUnauthorized() {
-		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenThrow(new NotFoundException());
-		assertThrows(NotFoundException.class, () -> {
+		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenReturn(dto);
+		dto.setIsDeleted(true);
+		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
+				.thenReturn(AuthorizationStatus.accessDenied(""));
+		String message = assertThrows(NotFoundException.class, () -> {
 			threadManager.getThread(userInfo, threadId.toString());
-		});
+		}).getMessage();
+		assertEquals("Thread: '3' does not exist", message);
 	}
 
 	@Test
@@ -347,7 +351,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUpdateTitleDeletedThread() {
-		when(mockThreadDao.getAuthorForUpdate(threadId.toString())).thenThrow(new NotFoundException());
+		when(mockThreadDao.getAuthorForUpdate(threadId.toString())).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, () -> {
 			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
 		});
@@ -388,7 +392,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUpdateMessageForDeletedThread() throws Exception {
-		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
+		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, () -> {
 			threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
 		});
@@ -480,10 +484,11 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testPinNotExistingThread() {
-		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
-		assertThrows(NotFoundException.class, () -> {
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
+		String message = assertThrows(NotFoundException.class, () -> {
 			threadManager.pinThread(userInfo, threadId.toString());
-		});
+		}).getMessage();
+		assertEquals("Thread: '3' does not exist", message);
 	}
 
 	@Test
@@ -515,10 +520,11 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testUnpinNonExistingThread() {
-		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
-		assertThrows(NotFoundException.class, () -> {
+		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
+		String message = assertThrows(NotFoundException.class, () -> {
 			threadManager.unpinThread(userInfo, threadId.toString());
-		});
+		}).getMessage();
+		assertEquals("Thread: '3' does not exist", message);
 	}
 
 	@Test
@@ -853,7 +859,7 @@ public class DiscussionThreadManagerImplTest {
 
 	@Test
 	public void testGetModeratorsWithNotFoundForum() {
-		when(mockForumDao.getForum(Long.parseLong(forum.getId()))).thenThrow(new NotFoundException());
+		when(mockForumDao.getForum(Long.parseLong(forum.getId()))).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, () -> {
 			threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
 		});

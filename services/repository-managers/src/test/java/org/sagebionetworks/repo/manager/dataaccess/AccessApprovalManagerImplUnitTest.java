@@ -136,7 +136,7 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testRevokeAccessApprovalsWithNonExistingAccessRequirement() {
 		String accessRequirementId = "1";
 		String accessorId = ""+userInfo.getId();
-		when(mockAccessRequirementDAO.get(accessRequirementId)).thenThrow(new NotFoundException());
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, () -> {
 			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 		});

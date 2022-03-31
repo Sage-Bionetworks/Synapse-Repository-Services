@@ -194,7 +194,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetEvaluationWithNotFoundException() throws DatastoreException, NotFoundException, UnauthorizedException {
 		
-		NotFoundException expected = new NotFoundException();
+		NotFoundException expected = new NotFoundException("");
 		
 		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenThrow(expected);
 
@@ -671,7 +671,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-		when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME +  "2"))).thenThrow(new NotFoundException());
+		when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME +  "2"))).thenThrow(new NotFoundException(""));
 
 		assertThrows(NotFoundException.class, ()->evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME +  "2"));
 	}

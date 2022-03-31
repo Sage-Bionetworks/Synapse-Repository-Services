@@ -125,7 +125,8 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 	@Override
 	public AccessTokenRecord getTokenRecord(String tokenId) throws NotFoundException {
 		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(tokenId);
-		DBOPersonalAccessToken dbo =  basicDao.getObjectByPrimaryKey(DBOPersonalAccessToken.class, params);
+		DBOPersonalAccessToken dbo = basicDao.getObjectByPrimaryKey(DBOPersonalAccessToken.class, params)
+				.orElseThrow(() -> new NotFoundException(String.format("Access token '%s' does not exist", tokenId)));
 		return personalAccessTokenDboToDto(dbo);
 	}
 

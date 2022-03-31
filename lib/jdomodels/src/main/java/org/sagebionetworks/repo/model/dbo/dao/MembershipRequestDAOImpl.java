@@ -130,7 +130,8 @@ public class MembershipRequestDAOImpl implements MembershipRequestDAO {
 	public MembershipRequest get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		DBOMembershipRequest dbo = basicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, param);
+		DBOMembershipRequest dbo = basicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, param)
+				.orElseThrow(() -> new NotFoundException(String.format("Membership request '%s' does not exist", id)));
 		MembershipRequest dto = MembershipRequestUtils.copyDboToDto(dbo);
 		return dto;
 	}

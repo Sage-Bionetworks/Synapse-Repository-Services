@@ -130,7 +130,7 @@ public class NodeDAOImplTest {
 	public static final long TEST_FILE_SIZE = 1234567l;
 
 	@Autowired
-	private NodeDAO nodeDao;
+	private NodeDAOImpl nodeDao;
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
@@ -526,18 +526,20 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetNodeNotFound(){
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			// call under test
 			nodeDao.getNode("syn123");
-		});
+		}).getMessage();
+		assertEquals("Resource: 'syn123' does not exist", message);
 	}
 	
 	@Test
 	public void testGetNodeVersionNotFound(){
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			// call under test
 			nodeDao.getNodeForVersion("syn123", 1L);
-		});
+		}).getMessage();
+		assertEquals("Resource: 'syn123.1' does not exist", message);
 	}
 	
 	@Test
@@ -1675,11 +1677,10 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
-		// There should be no node with this id.
-		long id = idGenerator.generateNewId(IdType.ENTITY_ID);
-		assertThrows(NotFoundException.class, ()->{
-			nodeDao.getEntityHeader(KeyFactory.keyToString(id));
-		});
+		String message = assertThrows(NotFoundException.class, ()->{
+			nodeDao.getEntityHeader("syn123");
+		}).getMessage();
+		assertEquals("Resource: 'syn123' does not exist", message);
 	}
 	
 	@Test
@@ -2158,10 +2159,19 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetNodeTypeWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			nodeDao.getNodeTypeById("syn123");
+		}).getMessage();
+		assertEquals("Resource: 'syn123' does not exist", message);
+	}
+	
+	@Test
 	public void testGetCurrentRevNumberDoesNotExist() throws NotFoundException, DatastoreException{
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(new Long(-12)));
-		});
+		}).getMessage();
+		assertEquals("Resource: 'syn-12' does not exist", message);
 	}
 	
 	@Test 
@@ -2201,6 +2211,14 @@ public class NodeDAOImplTest {
 		// test current version (should be 3)
 		assertEquals(testActivity2.getId(), nodeDao.getActivityId(id));
 	}
+	
+	@Test
+	public void testGetActivityWithDoesNotExist() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			nodeDao.getActivityId("syn123", 5L);
+		}).getMessage();
+		assertEquals("Activity for: 'syn123', version: '5' does not exist", message);
+	}
 
 	
 	@Test
@@ -2216,9 +2234,10 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetCreatedByDoesNotExist() throws NotFoundException, DatastoreException{
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			nodeDao.getCreatedBy(KeyFactory.keyToString(new Long(-12)));
-		});
+		}).getMessage();
+		assertEquals("Resource: 'syn-12' does not exist", message);
 	}
 	
 	/**
@@ -2949,10 +2968,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetProjectNodeDoesNotEixst(){
 		String doesNotExist = "syn9999999";
-		assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, ()->{
 			// call under test
 			nodeDao.getProjectId(doesNotExist);
-		});
+		}).getMessage();
+		assertEquals("Resource: 'syn9999999' does not exist", message);
 	}
 	
 	@Test
@@ -4241,7 +4261,7 @@ public class NodeDAOImplTest {
 		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
 		parameterSource.addValue("owner", KeyFactory.stringToKey(id));
 		parameterSource.addValue("revisionNumber", nodeDao.getCurrentRevisionNumber(id));
-		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource);
+		DBORevision nodeRevision = basicDao.getObjectByPrimaryKey(DBORevision.class, parameterSource).get();
 
 		// Now retrieve it and we should stil get back an empty NamedAnnotation
 		Annotations copy = nodeDao.getUserAnnotations(id);
@@ -5178,5 +5198,32 @@ public class NodeDAOImplTest {
 		assertEquals("offset is required.", message);
 	}
 	
+	@Test
+	public void testGetNodeByIdWitNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeById(-1L);
+		}).getMessage();
+		assertEquals("Resource: 'syn-1' does not exist", message);
+	}
+	
+	
+	@Test
+	public void testGgetNodeRevisionByIdWitNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeRevisionById(-1L, 3L);
+		}).getMessage();
+		assertEquals("Resource: 'syn-1.3' does not exist", message);
+	}
+	
+	@Test
+	public void testGetNodeNameWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			// call under test
+			nodeDao.getNodeName("syn-1");
+		}).getMessage();
+		assertEquals("Resource: 'syn-1' does not exist", message);
+	}
 
 }

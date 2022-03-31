@@ -91,7 +91,7 @@ public class DBORevisionTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("owner", rev.getOwner());
 		params.addValue("revisionNumber", rev.getRevisionNumber());
-		DBORevision clone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
+		DBORevision clone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params).get();
 		assertEquals(rev, clone);
 		// Update with some values
 		Reference ref = new Reference();
@@ -101,7 +101,7 @@ public class DBORevisionTest {
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		// Fetch the updated
-		DBORevision updatedClone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
+		DBORevision updatedClone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params).get();
 		assertEquals(clone, updatedClone);
 	}
 

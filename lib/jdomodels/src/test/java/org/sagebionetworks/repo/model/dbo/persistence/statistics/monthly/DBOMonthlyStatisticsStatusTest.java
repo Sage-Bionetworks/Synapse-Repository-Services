@@ -130,7 +130,7 @@ public class DBOMonthlyStatisticsStatusTest {
 	}
 
 	private DBOStatisticsMonthlyStatus getStatus(YearMonth month) {
-		return dboBasicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, getPrimaryKeyParams(month));
+		return dboBasicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, getPrimaryKeyParams(month)).get();
 	}
 
 	private SqlParameterSource getPrimaryKeyParams(YearMonth month) {

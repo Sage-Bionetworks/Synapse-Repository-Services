@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -386,7 +388,7 @@ public class DBOMessageDAOImplTest {
 		// Get the original etag
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("messageId", userToUser.getId());
-		DBOMessageContent content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
+		DBOMessageContent content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params).get();
 		String etag = content.getEtag();
 		
 		// Change one message to READ
@@ -397,7 +399,7 @@ public class DBOMessageDAOImplTest {
 		messageDAO.updateMessageStatus(status);
 		
 		// Etag should have changed
-		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
+		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params).get();
 		assertFalse(etag.equals(content.getEtag()));
 		
 		List<MessageBundle> messages = messageDAO.getReceivedMessages(maliciousUser.getId(), 
@@ -418,6 +420,14 @@ public class DBOMessageDAOImplTest {
 		assertTrue(messageDAO.getMessageSent(userToGroup.getId()));
 		assertTrue(messageDAO.getMessageSent(groupReplyToUser.getId()));
 		assertTrue(messageDAO.getMessageSent(userReplyToGroup.getId()));
+	}
+	
+	@Test
+	public void testGetMessgeSentWithNotFound() {
+		String message = assertThrows(NotFoundException.class, ()->{
+			assertTrue(messageDAO.getMessageSent("-123"));
+		}).getMessage();
+		assertEquals("Message: '-123' does not exist", message);
 	}
 	
 	@Test
