@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.download.Action;
-import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
-import org.sagebionetworks.repo.model.download.RequestDownload;
 
 /**
  * An action that the user must take to gain access to this file.
