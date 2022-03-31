@@ -539,7 +539,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getNodeForVersion("syn123", 1L);
 		}).getMessage();
-		assertEquals("Resource: 'syn123' for version: '1' does not exist", message);
+		assertEquals("Resource: 'syn123.1' does not exist", message);
 	}
 	
 	@Test

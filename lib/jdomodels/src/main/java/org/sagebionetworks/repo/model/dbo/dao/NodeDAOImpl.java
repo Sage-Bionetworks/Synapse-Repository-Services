@@ -660,7 +660,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER, versionNumber, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format("Resource: '%s' for version: '%s' does not exist", id, versionNumber));
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST,
+					IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(id)).setVersion(versionNumber).build().toString()));
 		}
 	}
 
