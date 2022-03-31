@@ -15,15 +15,37 @@ public class FileActionRequiredBatchPreparedStatementSetter implements BatchPrep
 
 	public FileActionRequiredBatchPreparedStatementSetter(FileActionRequired[] actionsParam) {
 		List<FileActionRequired> actions = new ArrayList<FileActionRequired>();
-		for (FileActionRequired elem : actionsParam) {
-			if (elem.isValid()) {
-				actions.add(elem);
+		for (FileActionRequired far : actionsParam) {
+			if (isValid(far)) {
+				actions.add(far);
 			}
 		}
 		this.actions=actions.toArray(new FileActionRequired[] {});
 	}
 	
-
+	
+	public static boolean isValid(FileActionRequired far) {
+		if (far.getAction()==null) {
+			return false;
+		}
+		Action action = far.getAction();
+		if (action instanceof MeetAccessRequirement) {
+			MeetAccessRequirement mar = (MeetAccessRequirement)action;
+			if (mar.getAccessRequirementId()==null) {
+				return false;
+			}
+		} else if (action instanceof RequestDownload) {
+			RequestDownload rd = (RequestDownload)action;
+			if (rd.getBenefactorId()==null) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+		
+		return true;
+	}
+	
 	@Override
 	public void setValues(PreparedStatement ps, int i) throws SQLException {
 		FileActionRequired required = actions[i];

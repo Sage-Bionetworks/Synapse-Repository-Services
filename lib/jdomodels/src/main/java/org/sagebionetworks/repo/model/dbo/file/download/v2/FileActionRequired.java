@@ -41,28 +41,6 @@ public class FileActionRequired {
 		return this;
 	}
 	
-	public boolean isValid() {
-		if (getAction()==null) {
-			return false;
-		}
-		Action action = getAction();
-		if (action instanceof MeetAccessRequirement) {
-			MeetAccessRequirement mar = (MeetAccessRequirement)action;
-			if (mar.getAccessRequirementId()==null) {
-				return false;
-			}
-		} else if (action instanceof RequestDownload) {
-			RequestDownload rd = (RequestDownload)action;
-			if (rd.getBenefactorId()==null) {
-				return false;
-			}
-		} else {
-			return false;
-		}
-		
-		return true;
-	}
-	
 	@Override
 	public int hashCode() {
 		return Objects.hash(action, fileId);

@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequiredBatchPreparedStatementSetter.isValid;
 
 import java.sql.PreparedStatement;
 
@@ -22,6 +25,54 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 	private static final long FILE_ID = 101;
 	private static final long AR_ID = 202;
 	private static final long BENEFACTOR_ID = 303;
+
+	@Test
+	void testValidMeetAccessRequirement() {
+		FileActionRequired far = new FileActionRequired();
+		MeetAccessRequirement action = new MeetAccessRequirement();
+		action.setAccessRequirementId(AR_ID);
+		far.withFileId(FILE_ID).withAction(action);
+		
+		assertTrue(isValid(far));
+	}
+
+	@Test
+	void testINValidMeetAccessRequirement_NO_AR_ID() {
+		FileActionRequired far = new FileActionRequired();
+		MeetAccessRequirement action = new MeetAccessRequirement();
+		action.setAccessRequirementId(null);
+		far.withFileId(FILE_ID).withAction(action);
+		
+		assertFalse(isValid(far));
+	}
+
+	@Test
+	void testINValid_NO_ACTION() {
+		FileActionRequired far = new FileActionRequired();
+		far.withAction(null);
+		
+		assertFalse(isValid(far));
+	}
+
+	@Test
+	void testValidRequestDownload() {
+		FileActionRequired far = new FileActionRequired();
+		RequestDownload action = new RequestDownload();
+		action.setBenefactorId(BENEFACTOR_ID);
+		far.withFileId(FILE_ID).withAction(action);
+		
+		assertTrue(isValid(far));
+	}
+
+	@Test
+	void testINValidRequestDownload_NO_BENEFACTOR_ID() {
+		FileActionRequired far = new FileActionRequired();
+		RequestDownload action = new RequestDownload();
+		action.setBenefactorId(null);
+		far.withFileId(FILE_ID).withAction(action);
+		
+		assertFalse(isValid(far));
+	}
 
 	@Test
 	void testPreparedStatementSetter_MeetAccessRequirement() throws Exception {
