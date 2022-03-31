@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.download.Action;
+import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
+import org.sagebionetworks.repo.model.download.RequestDownload;
 
 /**
  * An action that the user must take to gain access to this file.
@@ -37,6 +39,28 @@ public class FileActionRequired {
 	public FileActionRequired withAction(Action action) {
 		this.action = action;
 		return this;
+	}
+	
+	public boolean isValid() {
+		if (getAction()==null) {
+			return false;
+		}
+		Action action = getAction();
+		if (action instanceof MeetAccessRequirement) {
+			MeetAccessRequirement mar = (MeetAccessRequirement)action;
+			if (mar.getAccessRequirementId()==null) {
+				return false;
+			}
+		} else if (action instanceof RequestDownload) {
+			RequestDownload rd = (RequestDownload)action;
+			if (rd.getBenefactorId()==null) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+		
+		return true;
 	}
 	
 	@Override

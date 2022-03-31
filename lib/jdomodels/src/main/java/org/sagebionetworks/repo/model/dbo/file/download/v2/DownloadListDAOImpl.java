@@ -590,39 +590,22 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 	}
 	
+	public static void addBatchOfActionsToTempTableHelper(PreparedStatement ps, FileActionRequired[] actions) {
+		
+	}
+	
 	/**
 	 * Helper to add the given batch of entity IDs to a temporary table.
 	 * 
 	 * @param entityIdsToAdd
 	 * @param tableName
 	 */
-	void addBatchOfActionsToTempTable(FileActionRequired[] actions, String tableName) {
+	void addBatchOfActionsToTempTable(final FileActionRequired[] actions, String tableName) {
 		if (actions.length < 1) {
 			return;
 		}
 		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID) VALUES (?,?,?)", tableName);
-		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				FileActionRequired required = actions[i];
-				int index = 0;
-				ps.setLong(++index, required.getFileId());
-				Action action = required.getAction();
-				if(action instanceof MeetAccessRequirement) {
-					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
-					ps.setLong(++index, ((MeetAccessRequirement)action).getAccessRequirementId());
-				}else if(action instanceof RequestDownload) {
-					ps.setString(++index, ActionType.DOWNLOAD_PERMISSION.name());
-					ps.setLong(++index, ((RequestDownload)action).getBenefactorId());
-				}else {
-					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
-				}
-			}
-			@Override
-			public int getBatchSize() {
-				return actions.length;
-			}
-		});
+		jdbcTemplate.batchUpdate(sql, new FileActionRequiredBatchPreparedStatementSetter(actions));
 	}
 	
 	/**
