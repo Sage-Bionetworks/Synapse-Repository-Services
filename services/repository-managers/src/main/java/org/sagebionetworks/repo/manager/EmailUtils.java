@@ -5,18 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
-
-import com.google.common.net.InternetDomainName;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -29,6 +26,8 @@ import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
+
+import com.google.common.net.InternetDomainName;
 
 public class EmailUtils {
 	//////////////////////////////////////////
@@ -62,6 +61,10 @@ public class EmailUtils {
 	
 	public static final String TEMPLATE_KEY_REASON = "#reason#";
 	
+	// Set of domains allowed for portals (e.g. for redirect URLs)
+	public static final Set<String> ALLOWED_PORTAL_DOMAINS = Set.of(
+		"synapse.org", "sagebase.org", "sagebionetworks.org"
+	); 
 	
 	/*
 	 * The default local/name part of the email address
@@ -200,15 +203,20 @@ public class EmailUtils {
 
 		//check for local build endpoints
 		final String portalHost = uri.getHost().toLowerCase().trim();
-		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
+		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) {
+			return;
+		}
 
 		// If not for local build, find the host's base domain.
 		// For example, the base domain for "staging.synapse.org" would be "synapse.org"
-		// It is VERY IMPORTANT to use .equals() and NOT .endsWith().
+		// It is VERY IMPORTANT to use strict equality (e.g NOT .endsWith())
 		// Otherwise a domain such as notsynapse.org would pass the validation
 		final String baseDomain = InternetDomainName.from(portalHost).topPrivateDomain().toString();
-		if (baseDomain.equals("synapse.org") || baseDomain.equals("sagebase.org")) return;
-
+		
+		if (ALLOWED_PORTAL_DOMAINS.contains(baseDomain)) {
+			return;
+		}
+		
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
