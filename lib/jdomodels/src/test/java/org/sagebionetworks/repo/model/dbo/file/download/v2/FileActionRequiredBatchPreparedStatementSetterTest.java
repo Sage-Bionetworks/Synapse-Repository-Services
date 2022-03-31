@@ -33,6 +33,7 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 		action.setAccessRequirementId(AR_ID);
 		far.withFileId(FILE_ID).withAction(action);
 		
+		// method under test
 		assertTrue(isValid(far));
 	}
 
@@ -43,6 +44,7 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 		action.setAccessRequirementId(null);
 		far.withFileId(FILE_ID).withAction(action);
 		
+		// method under test
 		assertFalse(isValid(far));
 	}
 
@@ -51,6 +53,7 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 		FileActionRequired far = new FileActionRequired();
 		far.withAction(null);
 		
+		// method under test
 		assertFalse(isValid(far));
 	}
 
@@ -61,6 +64,7 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 		action.setBenefactorId(BENEFACTOR_ID);
 		far.withFileId(FILE_ID).withAction(action);
 		
+		// method under test
 		assertTrue(isValid(far));
 	}
 
@@ -71,6 +75,7 @@ public class FileActionRequiredBatchPreparedStatementSetterTest {
 		action.setBenefactorId(null);
 		far.withFileId(FILE_ID).withAction(action);
 		
+		// method under test
 		assertFalse(isValid(far));
 	}
 
