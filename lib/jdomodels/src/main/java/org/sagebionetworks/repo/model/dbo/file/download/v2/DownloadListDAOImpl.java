@@ -590,17 +590,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		}
 	}
 	
-	public static void addBatchOfActionsToTempTableHelper(PreparedStatement ps, FileActionRequired[] actions) {
-		
-	}
-	
 	/**
 	 * Helper to add the given batch of entity IDs to a temporary table.
 	 * 
 	 * @param entityIdsToAdd
 	 * @param tableName
 	 */
-	void addBatchOfActionsToTempTable(final FileActionRequired[] actions, String tableName) {
+	void addBatchOfActionsToTempTable(FileActionRequired[] actions, String tableName) {
 		if (actions.length < 1) {
 			return;
 		}
