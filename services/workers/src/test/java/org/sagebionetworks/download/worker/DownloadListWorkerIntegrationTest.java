@@ -148,6 +148,30 @@ public class DownloadListWorkerIntegrationTest {
 	}
 	
 	@Test
+	public void testQueryWorkerWithActionRequired_FileDeleted() throws Exception {
+		// The user is only granted read and not download on the file.
+		Node file = createFileHierarchy(ACCESS_TYPE.READ);
+		Long benefactorId = KeyFactory.stringToKey(file.getParentId());
+		List<DownloadListItem> batch = Arrays.asList(new DownloadListItem().setFileEntityId(file.getId()));
+		downloadListDao.addBatchOfFilesToDownloadList(user.getId(), batch);
+		
+		// delete the file!
+		nodeDao.delete(file.getId());
+
+		DownloadListQueryRequest request = new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest());
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResponseDetails());
+			assertTrue(response.getResponseDetails() instanceof ActionRequiredResponse);
+			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
+			assertNotNull(details.getPage());
+			List<ActionRequiredCount> expected = Arrays.asList(); // empty list
+			assertEquals(expected, details.getPage());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	@Test
 	public void testAddToDownloadListDatasetItems() throws Exception {
 		// create file in a project with read access
 		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ);

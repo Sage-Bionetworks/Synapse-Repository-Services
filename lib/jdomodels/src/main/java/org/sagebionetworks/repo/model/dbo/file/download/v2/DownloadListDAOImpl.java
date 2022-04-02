@@ -601,7 +601,28 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			return;
 		}
 		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID) VALUES (?,?,?)", tableName);
-		jdbcTemplate.batchUpdate(sql, new FileActionRequiredBatchPreparedStatementSetter(actions));
+		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				FileActionRequired required = actions[i];
+				int index = 0;
+				ps.setLong(++index, required.getFileId());
+				Action action = required.getAction();
+				if(action instanceof MeetAccessRequirement) {
+					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
+					ps.setLong(++index, ((MeetAccessRequirement)action).getAccessRequirementId());
+				}else if(action instanceof RequestDownload) {
+					ps.setString(++index, ActionType.DOWNLOAD_PERMISSION.name());
+					ps.setLong(++index, ((RequestDownload)action).getBenefactorId());
+				}else {
+					throw new IllegalStateException("Unknown action type: "+action.getClass().getName());
+				}
+			}
+			@Override
+			public int getBatchSize() {
+				return actions.length;
+			}
+		});
 	}
 	
 	/**
