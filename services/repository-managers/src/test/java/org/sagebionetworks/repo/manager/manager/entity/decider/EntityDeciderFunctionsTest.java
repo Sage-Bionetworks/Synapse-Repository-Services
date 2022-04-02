@@ -118,7 +118,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfDoesNotExistWithExistsFalse() {
-		permissionState.withtDoesEntityExist(false);
+		permissionState.withDoesEntityExist(false);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST
@@ -131,7 +131,7 @@ public class EntityDeciderFunctionsTest {
 
 	@Test
 	public void testDenyIfDoesNotExistWithExistsTrue() {
-		permissionState.withtDoesEntityExist(true);
+		permissionState.withDoesEntityExist(true);
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST

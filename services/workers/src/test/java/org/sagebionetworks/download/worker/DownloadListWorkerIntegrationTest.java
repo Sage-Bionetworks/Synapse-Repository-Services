@@ -160,6 +160,7 @@ public class DownloadListWorkerIntegrationTest {
 
 		DownloadListQueryRequest request = new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest());
 		// call under test
+		// PLFM-70523 generates a NPE here:
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (DownloadListQueryResponse response) -> {
 			assertNotNull(response);
 			assertNotNull(response.getResponseDetails());

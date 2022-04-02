@@ -129,7 +129,7 @@ public class UserEntityPermissionsState {
 	/**
 	 * Does this entity exist?
 	 */
-	public UserEntityPermissionsState withtDoesEntityExist(boolean doesEntityExist) {
+	public UserEntityPermissionsState withDoesEntityExist(boolean doesEntityExist) {
 		this.doesEntityExist = doesEntityExist;
 		return this;
 	}

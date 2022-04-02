@@ -320,7 +320,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authroizationStatus");
 			ValidateArgument.required(info.getAccessRestrictions(), "info.accessRestrictions()");
-			if (!info.getAuthorizationStatus().isAuthorized()) {
+			if (!info.getAuthorizationStatus().isAuthorized() && info.doesEntityExist()) {
 				if (info.getAccessRestrictions().hasUnmet()) {
 					for (UsersRequirementStatus status : info.getAccessRestrictions().getAccessRestrictions()) {
 						if (status.isUnmet()) {

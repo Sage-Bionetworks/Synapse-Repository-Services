@@ -16,6 +16,7 @@ public class UsersEntityAccessInfo {
 
 	Long entityId;
 	Long benefactorId;
+	boolean entityExists;
 	AuthorizationStatus authorizationStatus;
 	UsersRestrictionStatus accessRestrictions;
 	
@@ -28,6 +29,7 @@ public class UsersEntityAccessInfo {
 		ValidateArgument.required(status, "AuthorizationStatus");
 		this.entityId = context.getPermissionsState().getEntityId();
 		this.benefactorId = context.getPermissionsState().getBenefactorId();
+		this.entityExists= context.getPermissionsState().doesEntityExist();
 		this.accessRestrictions = context.getRestrictionStatus();
 		this.authorizationStatus = status;
 	}
@@ -85,23 +87,58 @@ public class UsersEntityAccessInfo {
 		return benefactorId;
 	}
 
+	public boolean doesEntityExist() {
+		return entityExists;
+	}
+
+	public void setEntityExists(boolean entityExists) {
+		this.entityExists = entityExists;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessRestrictions, authorizationStatus, entityId);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((accessRestrictions == null) ? 0 : accessRestrictions.hashCode());
+		result = prime * result + ((authorizationStatus == null) ? 0 : authorizationStatus.hashCode());
+		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
+		result = prime * result + (entityExists ? 1231 : 1237);
+		result = prime * result + ((entityId == null) ? 0 : entityId.hashCode());
+		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!(obj instanceof UsersEntityAccessInfo)) {
+		if (obj == null)
 			return false;
-		}
+		if (getClass() != obj.getClass())
+			return false;
 		UsersEntityAccessInfo other = (UsersEntityAccessInfo) obj;
-		return Objects.equals(accessRestrictions, other.accessRestrictions)
-				&& Objects.equals(authorizationStatus, other.authorizationStatus)
-				&& Objects.equals(entityId, other.entityId);
+		if (accessRestrictions == null) {
+			if (other.accessRestrictions != null)
+				return false;
+		} else if (!accessRestrictions.equals(other.accessRestrictions))
+			return false;
+		if (authorizationStatus == null) {
+			if (other.authorizationStatus != null)
+				return false;
+		} else if (!authorizationStatus.equals(other.authorizationStatus))
+			return false;
+		if (benefactorId == null) {
+			if (other.benefactorId != null)
+				return false;
+		} else if (!benefactorId.equals(other.benefactorId))
+			return false;
+		if (entityExists != other.entityExists)
+			return false;
+		if (entityId == null) {
+			if (other.entityId != null)
+				return false;
+		} else if (!entityId.equals(other.entityId))
+			return false;
+		return true;
 	}
 
 	@Override
