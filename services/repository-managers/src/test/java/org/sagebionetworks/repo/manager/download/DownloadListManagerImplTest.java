@@ -218,7 +218,7 @@ public class DownloadListManagerImplTest {
 
 		entityId = 999L;
 		benefactorId = 888L;
-		permissionsState = new UserEntityPermissionsState(entityId).withBenefactorId(benefactorId);
+		permissionsState = new UserEntityPermissionsState(entityId).withBenefactorId(benefactorId).withDoesEntityExist(true);
 		restrictionStatus = new UsersRestrictionStatus(entityId, userOne.getId());
 		accessContext = new AccessContext().withUser(userOne).withPermissionsState(permissionsState)
 				.withRestrictionStatus(restrictionStatus);
@@ -778,6 +778,19 @@ public class DownloadListManagerImplTest {
 
 		List<FileActionRequired> expected = Arrays.asList(new FileActionRequired().withFileId(entityId)
 				.withAction(new RequestDownload().setBenefactorId(benefactorId)));
+		// call under test
+		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
+		assertEquals(expected, actions);
+	}
+
+	@Test
+	public void testCreateActionRequiredWithNonExistentEntity() {
+		permissionsState.withDoesEntityExist(false);
+
+		List<UsersEntityAccessInfo> batchInfo = Arrays
+				.asList(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")));
+		
+		List<FileActionRequired> expected = Arrays.asList();
 		// call under test
 		List<FileActionRequired> actions = DownloadListManagerImpl.createActionRequired(batchInfo);
 		assertEquals(expected, actions);

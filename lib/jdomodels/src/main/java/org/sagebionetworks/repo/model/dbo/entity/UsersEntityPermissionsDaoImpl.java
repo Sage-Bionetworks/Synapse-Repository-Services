@@ -54,7 +54,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				UserEntityPermissionsState permission = results.get(rs.getLong("ENTITY_ID"));
-				permission.withtDoesEntityExist(true);
+				permission.withDoesEntityExist(true);
 				permission.withBenefactorId(rs.getLong("BENEFACTOR_ID"));
 				permission.withEntityType(EntityType.valueOf(rs.getString("ENTITY_TYPE")));
 				permission.withEntityParentId(rs.getLong("ENTITY_PARENT_ID"));
