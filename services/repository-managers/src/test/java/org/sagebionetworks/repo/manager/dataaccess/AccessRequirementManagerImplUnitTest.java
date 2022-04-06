@@ -20,6 +20,7 @@ import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManag
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,10 +43,13 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -54,6 +58,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -90,6 +95,8 @@ public class AccessRequirementManagerImplUnitTest {
 	private AuthorizationManager authorizationManager;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private AccessControlListDAO mockAclDao;
 
 	@InjectMocks
 	private AccessRequirementManagerImpl arm;
@@ -1216,6 +1223,318 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit("1", ObjectType.ENTITY, ChangeType.UPDATE);
 		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(String.class), any(ObjectType.class), any(ChangeType.class));
 
+	}
+	
+	@Test
+	public void testGetAccessRequirementAcl() {
+		
+		Long arId = 1L;		
+		AccessRequirement ar = new ManagedACTAccessRequirement().setId(arId);		
+		AccessControlList expected = generateArAcl(2L);
+		
+		when(accessRequirementDAO.get(any())).thenReturn(ar);
+		when(mockAclDao.get(any(), any())).thenReturn(expected);
+		
+		// Call under test
+		AccessControlList result = arm.getAccessRequirementAcl(userInfo, arId.toString());
+		
+		assertEquals(expected, result);
+		
+		verify(accessRequirementDAO).get(arId.toString());
+		verify(mockAclDao).get(arId.toString(), ObjectType.ACCESS_REQUIREMENT);
+	}
+	
+	@Test
+	public void testGetAccessRequirementAclWithNoUser() {
+		
+		Long arId = 1L;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.getAccessRequirementAcl(null, arId.toString());
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", message);
+
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testGetAccessRequirementAclWithNoArId() {
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.getAccessRequirementAcl(userInfo, null);
+		}).getMessage();
+		
+		assertEquals("accessRequirementId is required.", message);
+		
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementAcl() {
+		
+		Long arId = 1L;		
+		AccessRequirement ar = new ManagedACTAccessRequirement().setId(arId);
+		AccessControlList acl = generateArAcl(2L);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		when(accessRequirementDAO.get(any())).thenReturn(ar);
+		when(mockAclDao.get(any(), any())).thenReturn(acl);
+		
+		// Call under test
+		arm.createAccessRequirementAcl(userInfo, arId.toString(), acl);
+		
+		assertEquals(acl.getId(), arId.toString());
+		assertNotNull(acl.getCreatedBy());
+		assertNotNull(acl.getCreationDate());
+		
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockAclDao).create(acl, ObjectType.ACCESS_REQUIREMENT);
+		verify(mockAclDao).get(arId.toString(), ObjectType.ACCESS_REQUIREMENT);
+	}
+
+	@Test
+	public void testCreateAccessRequirementAclWithNonACT() {
+		
+		Long arId = 1L;		
+		AccessControlList acl = generateArAcl(2L);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			arm.createAccessRequirementAcl(userInfo, arId.toString(), acl);
+		}).getMessage();
+		
+		assertEquals("Only an ACT member can assign an ACL to an access requirement.", message);
+		
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementAclWithNullUser() {
+		
+		Long arId = 1L;		
+		AccessControlList acl = generateArAcl(2L);
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.createAccessRequirementAcl(null, arId.toString(), acl);
+		}).getMessage();
+
+		assertEquals("userInfo is required.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementAclWithNullArId() {
+		
+		AccessControlList acl = generateArAcl(2L);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.createAccessRequirementAcl(userInfo, null, acl);
+		}).getMessage();
+
+		assertEquals("accessRequirementId is required.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementAclWithNullAcl() {
+		
+		Long arId = 1L;
+		AccessControlList acl = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.createAccessRequirementAcl(userInfo, arId.toString(), acl);
+		}).getMessage();
+
+		assertEquals("acl is required.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementAcl() {
+		
+		Long arId = 1L;		
+		AccessRequirement ar = new ManagedACTAccessRequirement().setId(arId);
+		AccessControlList acl = generateArAcl(2L);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		when(accessRequirementDAO.get(any())).thenReturn(ar);
+		when(mockAclDao.get(any(), any())).thenReturn(acl);
+		
+		// Call under test
+		arm.updateAccessRequirementAcl(userInfo, arId.toString(), acl);
+		
+		assertEquals(acl.getId(), arId.toString());
+		
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockAclDao).update(acl, ObjectType.ACCESS_REQUIREMENT);
+		verify(mockAclDao).get(arId.toString(), ObjectType.ACCESS_REQUIREMENT);
+	}
+
+	@Test
+	public void testUpdateAccessRequirementAclWithNonACT() {
+		
+		Long arId = 1L;
+		AccessControlList acl = generateArAcl(2L);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
+				
+		String message = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			arm.updateAccessRequirementAcl(userInfo, arId.toString(), acl);
+		}).getMessage();
+		
+		assertEquals("Only an ACT member can update the ACL of an access requirement.", message);
+
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementAclWithNullUser() {
+		
+		Long arId = 1L;		
+		AccessControlList acl = generateArAcl(2L);
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.updateAccessRequirementAcl(null, arId.toString(), acl);
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", message);
+
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementAclWithNullArId() {
+		
+		AccessControlList acl = generateArAcl(2L);
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.updateAccessRequirementAcl(userInfo, null, acl);
+		}).getMessage();
+		
+		assertEquals("accessRequirementId is required.", message);
+
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementAclWithNullAcl() {
+		
+		Long arId = 1L;
+		AccessControlList acl = null;
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.updateAccessRequirementAcl(userInfo, arId.toString(), acl);
+		}).getMessage();
+		
+		assertEquals("acl is required.", message);
+
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementAcl() {
+		
+		Long arId = 1L;		
+		AccessRequirement ar = new ManagedACTAccessRequirement().setId(arId);
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(true);
+		when(accessRequirementDAO.get(any())).thenReturn(ar);
+		
+		// Call under test
+		arm.deleteAccessRequirementAcl(userInfo, arId.toString());
+		
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(accessRequirementDAO).get(arId.toString());
+		verify(mockAclDao).delete(arId.toString(), ObjectType.ACCESS_REQUIREMENT);
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementAclWithNonACT() {
+		
+		Long arId = 1L;		
+		
+		when(authorizationManager.isACTTeamMemberOrAdmin(any())).thenReturn(false);
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// Call under test
+			arm.deleteAccessRequirementAcl(userInfo, arId.toString());
+		}).getMessage();
+		
+		assertEquals("Only an ACT member can delete the ACL of an access requirement.", message);
+		
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementAclWithNullUser() {
+		
+		Long arId = 1L;		
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			arm.deleteAccessRequirementAcl(null, arId.toString());
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementAclWithNullArId() {
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			arm.deleteAccessRequirementAcl(userInfo, null);
+		}).getMessage();
+		
+		assertEquals("accessRequirementId is required.", message);
+		
+		verifyZeroInteractions(authorizationManager);
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	private AccessControlList generateArAcl(Long userId) {
+		return new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(userId).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
 	}
 
 	private Set<RestrictableObjectDescriptor> generateSubjectIds(int numIds, int startId) {

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -19,7 +20,7 @@ public interface AccessRequirementManager {
 	/**
 	 *  create access requirement
 	 */
-	public <T extends AccessRequirement> T  createAccessRequirement(UserInfo userInfo, T AccessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	<T extends AccessRequirement> T  createAccessRequirement(UserInfo userInfo, T AccessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -28,23 +29,23 @@ public interface AccessRequirementManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
+	AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
 
 	/**
 	 *  get a page of the access requirements for an entity
 	 */
-	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
+	List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 *  update an access requirement
 	 *
 	 */
-	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, String acccessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException;
+	<T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, String acccessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException;
 	
 	/*
 	 *  delete an access requirement
 	 */
-	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Create an LockAccessRequirement on an entity
@@ -56,7 +57,7 @@ public interface AccessRequirementManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public LockAccessRequirement createLockAccessRequirement(UserInfo userInfo,
+	LockAccessRequirement createLockAccessRequirement(UserInfo userInfo,
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
 
@@ -70,7 +71,7 @@ public interface AccessRequirementManager {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request)
+	AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request)
 			throws NotFoundException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
@@ -80,7 +81,45 @@ public interface AccessRequirementManager {
 	 * @param nextPageToken
 	 * @return
 	 */
-	public RestrictableObjectDescriptorResponse getSubjects(String accessRequirementId,
+	RestrictableObjectDescriptorResponse getSubjects(String accessRequirementId,
 			String nextPageToken);
+	
+	/**
+	 * Fetch the ACL assigned to the AR with the given id if any
+	 * 
+	 * @param userInfo 
+	 * @param accessRequirementId The id of the AR
+	 * @return The ACL assigned to the AR if any
+	 */
+	AccessControlList getAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
+
+	/**
+	 * Creates an ACL for the access requirement with the given id
+	 * 
+	 * @param userInfo The user creating the ACL, must be a member of the ACT
+	 * @param accessRequirementId The if of the access requirement
+	 * @param acl The ACL to assign to the AR, can only contain the REVIEW_SUBMISSION ACCESS_TYPE
+	 * @return
+	 */
+	AccessControlList createAccessRequirementAcl(UserInfo userInfo, String accessRequirementId, AccessControlList acl) throws NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Updates the ACL for the access requirement with the given id, the caller must be a member of the ACT
+	 * 
+	 * @param userInfo The user updating the AR acl, must be a member of the ACT
+	 * @param accessRequirementId The id of the access requirement
+	 * @param acl The ACL to assign to the AR, can only contain the REVIEW_SUBMISSION ACCESS_TYPE
+	 * @return The updated ACL
+	 */
+	AccessControlList updateAccessRequirementAcl(UserInfo userInfo, String accessRequirementId, AccessControlList acl) throws NotFoundException, UnauthorizedException;
+
+	/**
+	 * Deletes the ACL assigned to the access requirement with the given id
+	 * 
+	 * @param userInfo The user deleting the AR acl, must be a member of the ACT
+	 * @param accessRequirementId The id of the access requirement
+	 */
+	void deleteAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) throws NotFoundException, UnauthorizedException;
+
 
 }

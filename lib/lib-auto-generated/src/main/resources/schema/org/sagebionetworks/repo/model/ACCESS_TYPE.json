@@ -66,6 +66,10 @@
         {
             "name": "MODERATE",
             "description": "TODO: Auto-generated description"
+        },
+        {
+        	"name": "REVIEW_SUBMISSIONS",
+        	"description": "Allows to review a group of submissions (e.g. on ARs) for a given object"
         }
     ]
 }
