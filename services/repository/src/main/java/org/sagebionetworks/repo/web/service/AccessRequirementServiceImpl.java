@@ -89,4 +89,30 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		return accessRequirementManager.getSubjects(requirementId, nextPageToken);
 	}
 
+	@Override
+	public AccessControlList getAccessRequirementAcl(Long userId, String requirementId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.getAccessRequirementAcl(userInfo, requirementId);
+	}
+
+	@Override
+	public AccessControlList createAccessRequirementAcl(Long userId, String requirementId, AccessControlList acl) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.createAccessRequirementAcl(userInfo, requirementId, acl);
+	}
+
+	@Override
+	public AccessControlList updateAccessRequirementAcl(Long userId, String requirementId, AccessControlList acl) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.updateAccessRequirementAcl(userInfo, requirementId, acl);
+	}
+
+	@Override
+	public void deleteAccessRequirementAcl(Long userId, String requirementId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		accessRequirementManager.deleteAccessRequirementAcl(userInfo, requirementId);
+	}
+	
+	
+
 }

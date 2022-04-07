@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -12,30 +12,38 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementService {
 
-	public AccessRequirement createAccessRequirement(Long userId,
+	AccessRequirement createAccessRequirement(Long userId,
 			AccessRequirement accessRequirement) throws Exception;
 
-	public AccessRequirement createLockAccessRequirement(Long userId,
+	AccessRequirement createLockAccessRequirement(Long userId,
 			String entityId) throws Exception;
 	
-	public AccessRequirement getAccessRequirement(String requirementId)
+	AccessRequirement getAccessRequirement(String requirementId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public PaginatedResults<AccessRequirement> getAccessRequirements(
+	PaginatedResults<AccessRequirement> getAccessRequirements(
 			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 	
-	public AccessRequirement updateAccessRequirement(
+	AccessRequirement updateAccessRequirement(
 			Long userId, String requirementId, AccessRequirement accessRequirement) throws Exception;
 
 
-	public void deleteAccessRequirements(Long userId, String requirementId)
+	void deleteAccessRequirements(Long userId, String requirementId)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 
-	public AccessRequirement convertAccessRequirements(Long userId, AccessRequirementConversionRequest request);
+	AccessRequirement convertAccessRequirements(Long userId, AccessRequirementConversionRequest request);
 
-	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken);
+	RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken);
+	
+	AccessControlList getAccessRequirementAcl(Long userId, String requirementId);
+	
+	AccessControlList createAccessRequirementAcl(Long userId, String requirementId, AccessControlList acl);
+	
+	AccessControlList updateAccessRequirementAcl(Long userId, String requirementId, AccessControlList acl);
+	
+	void deleteAccessRequirementAcl(Long userId, String requirementId);
 
 }

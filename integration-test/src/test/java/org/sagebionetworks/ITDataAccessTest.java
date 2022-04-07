@@ -2,11 +2,14 @@ package org.sagebionetworks;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +22,11 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -49,6 +54,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
@@ -223,6 +230,30 @@ public class ITDataAccessTest {
 		assertNotNull(result);
 		assertEquals(actAR.getId(), result.getRequirementId());
 		assertTrue(result.getResults().isEmpty());
+	}
+	
+	@Test
+	public void testAccessRequirementAcl() throws SynapseException {
+		AccessControlList acl = new AccessControlList()
+			.setId(actAR.getId().toString())
+			.setResourceAccess(Collections.singleton(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		adminSynapse.createAccessRequirementAcl(acl);
+		
+		acl = adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
+		
+		String currentEtag = acl.getEtag();
+		
+		acl.setResourceAccess(Collections.singleton(
+			new ResourceAccess().setPrincipalId(Long.valueOf(adminSynapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		acl = adminSynapse.updateAccessRequiremenetAcl(acl);
+		
+		assertNotEquals(currentEtag, acl.getEtag());
+		
 	}
 
 }
