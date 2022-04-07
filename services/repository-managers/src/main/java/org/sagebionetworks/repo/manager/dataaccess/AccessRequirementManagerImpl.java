@@ -471,8 +471,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
 		
-		acl.setId(aclArId);	
-		acl.setCreatedBy(userInfo.getId().toString());
+		acl.setId(aclArId);
 		acl.setCreationDate(Date.from(Instant.now()));
 		
 		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);

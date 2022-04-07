@@ -1289,7 +1289,6 @@ public class AccessRequirementManagerImplUnitTest {
 		arm.createAccessRequirementAcl(userInfo, arId.toString(), acl);
 		
 		assertEquals(acl.getId(), arId.toString());
-		assertNotNull(acl.getCreatedBy());
 		assertNotNull(acl.getCreationDate());
 		
 		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
