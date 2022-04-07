@@ -4,6 +4,7 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -19,6 +20,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -32,6 +34,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
@@ -54,6 +57,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -240,19 +244,41 @@ public class ITDataAccessTest {
 				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
 			));
 		
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.createAccessRequirementAcl(acl);
+		});
+		
 		adminSynapse.createAccessRequirementAcl(acl);
 		
-		acl = adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
+		AccessControlList fetchedAcl = adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
 		
-		String currentEtag = acl.getEtag();
+		String currentEtag = fetchedAcl.getEtag();
 		
-		acl.setResourceAccess(Collections.singleton(
-			new ResourceAccess().setPrincipalId(Long.valueOf(adminSynapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
-		));
+		AccessControlList updatedAcl = new AccessControlList()
+			.setId(actAR.getId().toString())
+			.setEtag(fetchedAcl.getEtag())
+			.setCreationDate(fetchedAcl.getCreationDate())
+			.setResourceAccess(Collections.singleton(
+				new ResourceAccess().setPrincipalId(Long.valueOf(adminSynapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
 		
-		acl = adminSynapse.updateAccessRequiremenetAcl(acl);
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.updateAccessRequiremenetAcl(updatedAcl);
+		});
 		
-		assertNotEquals(currentEtag, acl.getEtag());
+		fetchedAcl = adminSynapse.updateAccessRequiremenetAcl(updatedAcl);
+		
+		assertNotEquals(currentEtag, fetchedAcl.getEtag());
+		
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.deleteAccessRequirementAcl(actAR.getId().toString());
+		});
+		
+		adminSynapse.deleteAccessRequirementAcl(actAR.getId().toString());
+		
+		assertThrows(SynapseNotFoundException.class, () -> {
+			adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
+		});
 		
 	}
 
