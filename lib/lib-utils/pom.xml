@@ -98,4 +98,17 @@
 		<jacoco.branch.minumum>0.40</jacoco.branch.minumum>
 		<jacoco.line.minumum>0.40</jacoco.line.minumum>
 	</properties>
+
+    <build>
+        <plugins>
+            <!-- Compile to Java 8 for compatibility with SWC -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>8</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
