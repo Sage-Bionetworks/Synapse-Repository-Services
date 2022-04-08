@@ -77,13 +77,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	private AccessControlListDAO aclDao;
 	
-	private UserProfileManager userProfileManager;
-	
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
-			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao,
-			UserProfileManager userProfileManager) {
+			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
 		this.nodeDao = nodeDao;
@@ -92,7 +89,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.projectSettingsManager = projectSettingsManager;
 		this.transactionalMessenger = transactionalMessenger;
 		this.aclDao = aclDao;
-		this.userProfileManager = userProfileManager;
 	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
