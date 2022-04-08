@@ -1,0 +1,33 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000007",
+	"title": "disease specific research",
+	"properties": {
+		"DS": {
+			"type": "boolean",
+			"description": "This data use permission indicates that use is allowed provided it is related to the specified disease.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"DS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"DS_disease": {
+				"type": "string",
+				"description": "DUO recommends MONDO be used, to provide the basis for automated evaluation. For more information see https://github.com/EBISPOT/DUO/blob/master/MONDO_Overview.md",
+				"enum": [
+					"cancer",
+					"alzheimer",
+					"amnesia",
+					"..."
+				]
+			}
+		}
+	}
+}

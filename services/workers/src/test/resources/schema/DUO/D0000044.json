@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000044",
+	"title": "population origins or ancestry research prohibited",
+	"properties": {
+		"NPOA": {
+			"type": "boolean",
+			"description": "This data use modifier indicates use for purposes of population, origin, or ancestry research is prohibited.",
+			"default": "false"
+		}
+	}
+}

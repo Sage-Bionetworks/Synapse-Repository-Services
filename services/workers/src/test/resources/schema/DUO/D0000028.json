@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000028",
+	"title": "institution specific restriction",
+	"properties": {
+		"IS": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is limited to use within an approved institution.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"IS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"IS_institution": {
+				"type": "string",
+				"description": "???"
+			}
+		}
+	}
+}

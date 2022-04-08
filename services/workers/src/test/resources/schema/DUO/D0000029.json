@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000029",
+	"title": "return to database or resource",
+	"properties": {
+		"RTN": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that the requestor must return derived/enriched data to the database/resource.",
+			"default": "false"
+		}
+	}
+}

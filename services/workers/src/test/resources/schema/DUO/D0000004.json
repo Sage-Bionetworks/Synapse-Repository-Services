@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000004",
+	"title": "no restriction",
+	"properties": {
+		"NRES": {
+			"type": "boolean",
+			"description": "This data use permission indicates there is no restriction on use.",
+			"default": "false"
+		}
+	}
+}

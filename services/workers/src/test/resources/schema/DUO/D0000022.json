@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000022",
+	"title": "geographical restriction",
+	"properties": {
+		"GS": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is limited to within a specific geographic region.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"GS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"GS_location": {
+				"type": "string",
+				"description": "This should be coupled with an ontology term describing the geographical location the restriction applies to."
+			}
+		}
+	}
+}

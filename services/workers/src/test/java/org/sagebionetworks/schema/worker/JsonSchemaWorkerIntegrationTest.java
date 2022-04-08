@@ -209,7 +209,7 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@Test
 	public void testMainUseCase() throws Exception {
-		bootstrapAndCreateOrganization();
+		bootstrapAndCreateOrganization("my.organization");
 		String[] schemasToRegister = { "pets/PetType.json", "pets/Pet.json", "pets/CatBreed.json", "pets/DogBreed.json",
 				"pets/Cat.json", "pets/Dog.json", "pets/PetPhoto.json" };
 		for (String fileName : schemasToRegister) {
@@ -252,11 +252,11 @@ public class JsonSchemaWorkerIntegrationTest {
 		printJson(result);
 	}
 
-	void bootstrapAndCreateOrganization() throws RecoverableMessageException, InterruptedException {
+	void bootstrapAndCreateOrganization(String organizationName) throws RecoverableMessageException, InterruptedException {
 		jsonSchemaManager.truncateAll();
 		schemaBootstrap.bootstrapSynapseSchemas();
 		CreateOrganizationRequest createOrgRequest = new CreateOrganizationRequest();
-		createOrgRequest.setOrganizationName("my.organization");
+		createOrgRequest.setOrganizationName(organizationName);
 		organization = jsonSchemaManager.createOrganziation(adminUserInfo, createOrgRequest);
 	}
 
@@ -288,7 +288,7 @@ public class JsonSchemaWorkerIntegrationTest {
 
 	@Test
 	public void testEntitySchemaValidation() throws Exception {
-		bootstrapAndCreateOrganization();
+		bootstrapAndCreateOrganization("my.organization");
 		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
 		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 
@@ -352,7 +352,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	
 	@Test
 	public void testEntitySchemaValidationWithBoolean() throws Exception {
-		bootstrapAndCreateOrganization();
+		bootstrapAndCreateOrganization("my.organization");
 		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
 		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 
@@ -397,7 +397,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	@Test
 	public void testNoSemanticVersionSchemaRevalidationWithSchemaChange() throws Exception {
 		// PLFM-6757
-		bootstrapAndCreateOrganization();
+		bootstrapAndCreateOrganization("my.organization");
 		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
 		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		
@@ -681,6 +681,95 @@ public class JsonSchemaWorkerIntegrationTest {
 		// clean up
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
+	@Test
+	public void testDuoSchema() throws Exception {
+		bootstrapAndCreateOrganization("ebispot.duo");
+		String[] schemasToRegister = { "schema/DUO/hmb.json", "schema/DUO/irb.json", "schema/DUO/duo.json"};
+		for (String fileName : schemasToRegister) {
+			JsonSchema schema = getSchemaFromClasspath(fileName);
+			registerSchema(schema);
+		}
+
+		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("ebispot.duo-duo");
+		assertNotNull(schemaBootstrap);
+		printJson(validationSchema);
+		assertNotNull(validationSchema.getDefinitions());
+		assertTrue(validationSchema.getDefinitions().containsKey("ebispot.duo-D0000006"));
+		assertTrue(validationSchema.getDefinitions().containsKey("ebispot.duo-D0000021"));
+
+
+		String validJsonFile = loadStringFromClasspath("schema/DUO/ValidDuoFile.json");
+		JSONObject validJson = new JSONObject(validJsonFile);
+		JsonSubject mockSubject = Mockito.mock(JsonSubject.class);
+		when(mockSubject.toJson()).thenReturn(validJson);
+		// this schema should be valid
+		ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
+	
+	@Test
+	public void testDuoSchemaAppliedToFolder() throws Exception {
+		bootstrapAndCreateOrganization("ebispot.duo");
+		String[] schemasToRegister = { 
+				"schema/DUO/D0000001.json",
+				"schema/DUO/D0000004.json",
+				"schema/DUO/D0000006.json",
+				"schema/DUO/D0000007.json",
+				"schema/DUO/D0000011.json",
+				"schema/DUO/D0000012.json",
+				"schema/DUO/D0000015.json",
+				"schema/DUO/D0000016.json",
+				"schema/DUO/D0000018.json",
+				"schema/DUO/D0000019.json",
+				"schema/DUO/D0000020.json",
+				"schema/DUO/D0000021.json",
+				"schema/DUO/D0000022.json",
+				"schema/DUO/D0000024.json",
+				"schema/DUO/D0000025.json",
+				"schema/DUO/D0000026.json",
+				"schema/DUO/D0000027.json",
+				"schema/DUO/D0000028.json",
+				"schema/DUO/D0000029.json",
+				"schema/DUO/D0000042.json",
+				"schema/DUO/D0000043.json",
+				"schema/DUO/D0000044.json",
+				"schema/DUO/D0000045.json",
+				"schema/DUO/D0000046.json",
+				"schema/DUO/duo.json",
+		};
+		for (String fileName : schemasToRegister) {
+			JsonSchema schema = getSchemaFromClasspath(fileName);
+			registerSchema(schema);
+		}
+
+		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("ebispot.duo-duo");
+		assertNotNull(schemaBootstrap);
+		printJson(validationSchema);
+		
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		
+		String parentSchema$id = validationSchema.get$id();
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(parentSchema$id);
+		// we want to validate on putting annotations, so don't send notifications
+		boolean sendNotificationMessages = false;
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		
+
+		folderJson.put("GRU", true);
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		System.out.println(folderJson.toString(5));
 	}
 	
 	/**

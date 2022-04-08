@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000027",
+	"title": "project specific restriction",
+	"properties": {
+		"PS": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is limited to use within an approved project.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"PS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"PS_project": {
+				"type": "string",
+				"description": "???"
+			}
+		}
+	}
+}

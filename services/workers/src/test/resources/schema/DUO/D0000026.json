@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000026",
+	"title": "user specific restriction",
+	"properties": {
+		"US": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is limited to use by approved users.",
+			"default": "false"
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000018",
+	"title": "not for profit, non commercial use only",
+	"properties": {
+		"NPUNCU": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use of the data is limited to not-for-profit organizations and not-for-profit use, non-commercial use.",
+			"default": "false"
+		}
+	}
+}

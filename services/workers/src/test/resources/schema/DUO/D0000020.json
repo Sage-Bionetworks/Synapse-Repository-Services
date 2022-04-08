@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000020",
+	"title": "collaboration required",
+	"properties": {
+		"COL": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that the requestor must agree to collaboration with the primary study investigator(s).",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"COL": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"COL_PI": {
+				"type": "string",
+				"description": "This could be coupled with a string describing the primary study investigator(s)."
+			}
+		}
+	}
+}

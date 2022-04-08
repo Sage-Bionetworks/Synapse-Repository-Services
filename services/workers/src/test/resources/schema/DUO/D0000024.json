@@ -1,0 +1,28 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000024",
+	"title": "publication moratorium",
+	"properties": {
+		"MOR": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that requestor agrees not to publish results of studies until a specific date.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"MOR": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"MOR_date": {
+				"type": "string",
+				"format": "date-time",
+				"description": "This should be coupled with a date specified as ISO8601"
+			}
+		}
+	}
+}

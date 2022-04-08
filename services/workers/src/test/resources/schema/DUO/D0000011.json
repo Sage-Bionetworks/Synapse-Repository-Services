@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000011",
+	"title": "population origins or ancestry research only",
+	"properties": {
+		"POA": {
+			"type": "boolean",
+			"description": "This data use permission indicates that use of the data is limited to the study of population origins or ancestry.",
+			"default": "false"
+		}
+	}
+}

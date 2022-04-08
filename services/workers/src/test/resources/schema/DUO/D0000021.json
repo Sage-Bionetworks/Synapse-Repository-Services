@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000021",
+	"title": "ethics approval required",
+	"properties": {
+		"IRB": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that the requestor must provide documentation of local IRB/ERB approval.",
+			"default": "false"
+		}
+	}
+}

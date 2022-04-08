@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000043",
+	"title": "clinical care use",
+	"properties": {
+		"CC": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is allowed for clinical use and care. Clinical Care is defined as Health care or services provided at home, in a healthcare facility or hospital. Data may be used for clinical decision making.",
+			"default": "false"
+		}
+	}
+}

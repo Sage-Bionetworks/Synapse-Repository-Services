@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000006",
+	"title": "health or medical or biomedical research",
+	"properties": {
+		"HMB": {
+			"type": "boolean",
+			"description": "This data use permission indicates that use is allowed for health/medical/biomedical purposes; does not include the study of population origins or ancestry.",
+			"default": "false"
+		}
+	}
+}

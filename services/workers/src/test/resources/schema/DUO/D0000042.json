@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000042",
+	"title": "general research use",
+	"properties": {
+		"GRU": {
+			"type": "boolean",
+			"description": "This data use permission indicates that use is allowed for general research use for any research purpose.",
+			"default": "false"
+		}
+	}
+}

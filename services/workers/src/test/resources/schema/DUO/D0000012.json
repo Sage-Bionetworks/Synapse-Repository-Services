@@ -1,0 +1,31 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000012",
+	"title": "research specific restrictions",
+	"properties": {
+		"RS": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is limited to studies of a certain research type.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"RS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"RS_research_type": {
+				"type": "string",
+				"description": "...",
+				"enum": [
+					"???",
+					"..."
+				]
+			}
+		}
+	}
+}

@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "ebispot.duo-D0000025",
+	"title": "time limit on use",
+	"properties": {
+		"TS": {
+			"type": "boolean",
+			"description": "This data use modifier indicates that use is approved for a specific number of months.",
+			"default": "false"
+		}
+	},
+	"if": {
+		"properties": {
+			"TS": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"properties": {
+			"TS_number_of_months": {
+				"type": "integer",
+				"description": "This should be coupled with an integer value indicating the number of months."
+			}
+		}
+	}
+}
