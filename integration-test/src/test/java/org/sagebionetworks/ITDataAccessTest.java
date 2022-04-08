@@ -2,11 +2,15 @@ package org.sagebionetworks;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,17 +20,21 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
@@ -49,6 +57,9 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
@@ -223,6 +234,52 @@ public class ITDataAccessTest {
 		assertNotNull(result);
 		assertEquals(actAR.getId(), result.getRequirementId());
 		assertTrue(result.getResults().isEmpty());
+	}
+	
+	@Test
+	public void testAccessRequirementAcl() throws SynapseException {
+		AccessControlList acl = new AccessControlList()
+			.setId(actAR.getId().toString())
+			.setResourceAccess(Collections.singleton(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.createAccessRequirementAcl(acl);
+		});
+		
+		adminSynapse.createAccessRequirementAcl(acl);
+		
+		AccessControlList fetchedAcl = adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
+		
+		String currentEtag = fetchedAcl.getEtag();
+		
+		AccessControlList updatedAcl = new AccessControlList()
+			.setId(actAR.getId().toString())
+			.setEtag(fetchedAcl.getEtag())
+			.setCreationDate(fetchedAcl.getCreationDate())
+			.setResourceAccess(Collections.singleton(
+				new ResourceAccess().setPrincipalId(Long.valueOf(adminSynapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.updateAccessRequiremenetAcl(updatedAcl);
+		});
+		
+		fetchedAcl = adminSynapse.updateAccessRequiremenetAcl(updatedAcl);
+		
+		assertNotEquals(currentEtag, fetchedAcl.getEtag());
+		
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.deleteAccessRequirementAcl(actAR.getId().toString());
+		});
+		
+		adminSynapse.deleteAccessRequirementAcl(actAR.getId().toString());
+		
+		assertThrows(SynapseNotFoundException.class, () -> {
+			adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
+		});
+		
 	}
 
 }

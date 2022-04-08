@@ -6064,4 +6064,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = FILE_HANDLE_RESTORE + ASYNC_GET + asyncJobToken;
 		return (FileHandleRestoreResponse) getAsynchJobResponse(url, FileHandleRestoreResponse.class, getRepoEndpoint());
 	}
+
+	@Override
+	public AccessControlList getAccessRequirementAcl(String accessRequirementId) throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + accessRequirementId + "/acl", AccessControlList.class);
+	}
+
+	@Override
+	public AccessControlList createAccessRequirementAcl(AccessControlList acl) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + acl.getId() + "/acl", acl, AccessControlList.class);
+	}
+
+	@Override
+	public AccessControlList updateAccessRequiremenetAcl(AccessControlList acl) throws SynapseException {
+		return putJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + acl.getId() + "/acl", acl, AccessControlList.class);
+	}
+
+	@Override
+	public void deleteAccessRequirementAcl(String accessRequirementId) throws SynapseException {
+		deleteUri(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + accessRequirementId + "/acl");		
+	}
 }

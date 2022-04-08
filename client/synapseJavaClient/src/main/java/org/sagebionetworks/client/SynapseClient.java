@@ -4028,4 +4028,35 @@ public interface SynapseClient extends BaseClient {
 	 */
 	FileHandleRestoreResponse getFileHandleRestoreResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Get the ACL for the access requirement with the given id
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	AccessControlList getAccessRequirementAcl(String accessRequirementId) throws SynapseException;
+	
+	/**
+	 * Creates an ACL for the access requirement with the ACL.id id
+	 * 
+	 * @param acl
+	 * @return
+	 */
+	AccessControlList createAccessRequirementAcl(AccessControlList acl) throws SynapseException;
+	
+	/**
+	 * Updates the ACL for the access requirement with the ACL.id id
+	 * 
+	 * @param acl
+	 * @return
+	 */
+	AccessControlList updateAccessRequiremenetAcl(AccessControlList acl) throws SynapseException;
+	
+	/**
+	 * Deletes the ACL for the access requirement with the given id
+	 * 
+	 * @param accessRequirementId
+	 */
+	void deleteAccessRequirementAcl(String accessRequirementId) throws SynapseException;
 }

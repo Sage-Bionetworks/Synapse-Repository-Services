@@ -6,6 +6,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -261,5 +263,80 @@ public class AccessRequirementController {
 			@PathVariable String requirementId,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getAccessRequirementService().getSubjects(requirementId, nextPageToken);
+	}
+	
+	/**
+	 * Fetch the ACL for the access requirement with the given id.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException If an access requirement with the given id does not exist, or if the access requirement does not have any ACL
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ACL, method = RequestMethod.GET)
+	public @ResponseBody AccessControlList getAccessRequirementAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId) throws NotFoundException {
+		return serviceProvider.getAccessRequirementService().getAccessRequirementAcl(userId, requirementId);
+	}
+	
+	/**
+	 * Assign the given ACL to the access requirement with the given id. Only an ACT member is allowed to assign the ACL. 
+	 * Only supports {@link ACCESS_TYPE#REVIEW_SUBMISSIONS} access type.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException If an access requirement with the given id does not exist
+	 * @throws UnauthorizedException If the user is not a member of the ACT
+	 */
+	@RequiredScope({view, modify, authorize})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ACL, method = RequestMethod.POST)
+	public @ResponseBody AccessControlList createAccessRequirementAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestBody AccessControlList acl) throws NotFoundException, UnauthorizedException {
+		return serviceProvider.getAccessRequirementService().createAccessRequirementAcl(userId, requirementId, acl);
+	}
+	
+	/**
+	 * Updates the ACL for the access requirement with the given id. Only an ACT member is allowed to update the ACL. 
+	 * Only supports {@link ACCESS_TYPE#REVIEW_SUBMISSIONS} access type.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException If an access requirement with the given id does not exist
+	 * @throws UnauthorizedException If the user is not a member of the ACT
+	 */
+	@RequiredScope({view, modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ACL, method = RequestMethod.PUT)
+	public @ResponseBody AccessControlList updateAccessRequirementAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestBody AccessControlList acl) throws NotFoundException, UnauthorizedException {
+		return serviceProvider.getAccessRequirementService().updateAccessRequirementAcl(userId, requirementId, acl);
+	}
+	
+	/**
+	 * Delete the ACL for the access requirement with the given id. Only an ACT member is allowed to delete the ACL.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException If an access requirement with the given id does not exist
+	 * @throws UnauthorizedException If the user is not a member of the ACT
+	 */
+	@RequiredScope({view, modify, authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ACL, method = RequestMethod.DELETE)
+	public void deleteAccessRequirementAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId) throws NotFoundException, UnauthorizedException {
+		serviceProvider.getAccessRequirementService().deleteAccessRequirementAcl(userId, requirementId);
 	}
 }

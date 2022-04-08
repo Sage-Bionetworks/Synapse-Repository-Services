@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.nio.channels.NotYetBoundException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -11,12 +11,16 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -27,6 +31,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -35,6 +40,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -55,26 +61,39 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
 	public static final int MAX_DESCRIPTION_LENGHT = 50;
 	
-	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 
-	@Autowired
 	private AuthorizationManager authorizationManager;
 	
-	@Autowired
 	private NodeDAO nodeDao;
 	
-	@Autowired
 	private NotificationEmailDAO notificationEmailDao;
 
-	@Autowired
 	private JiraClient jiraClient;
 
-	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
 
+	private TransactionalMessenger transactionalMessenger;
+	
+	private AccessControlListDAO aclDao;
+	
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	TransactionalMessenger transactionalMessenger;
+	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
+			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
+			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao,
+			UserProfileManager userProfileManager) {
+		this.accessRequirementDAO = accessRequirementDAO;
+		this.authorizationManager = authorizationManager;
+		this.nodeDao = nodeDao;
+		this.notificationEmailDao = notificationEmailDao;
+		this.jiraClient = jiraClient;
+		this.projectSettingsManager = projectSettingsManager;
+		this.transactionalMessenger = transactionalMessenger;
+		this.aclDao = aclDao;
+		this.userProfileManager = userProfileManager;
+	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
 		ValidateArgument.required(ar.getAccessType(), "AccessType");
@@ -426,4 +445,78 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		response.setNextPageToken(token.getNextPageTokenForCurrentResults(subjects));
 		return response;
 	}
+	
+	@Override
+	public AccessControlList getAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		
+		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+		
+		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+	}
+	
+	@Override
+	@WriteTransaction
+	public AccessControlList createAccessRequirementAcl(UserInfo userInfo, String accessRequirementId, AccessControlList acl) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		
+		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
+		// since the ARs do not have any ACL when created
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only an ACT member can assign an ACL to an access requirement.");
+		}
+		
+		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+		
+		acl.setId(aclArId);
+		acl.setCreationDate(Date.from(Instant.now()));
+		
+		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);
+		
+		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+	}
+	
+	@Override
+	@WriteTransaction
+	public AccessControlList updateAccessRequirementAcl(UserInfo userInfo, String accessRequirementId, AccessControlList acl)
+			throws NotFoundException, UnauthorizedException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		
+		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
+		// since the ARs do not have any ACL when created
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only an ACT member can update the ACL of an access requirement.");
+		}
+		
+		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+		
+		acl.setId(aclArId);		
+				
+		aclDao.update(acl, ObjectType.ACCESS_REQUIREMENT);
+		
+		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) {
+		ValidateArgument.required(userInfo, "userInfo");		
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		
+		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
+		// since the ARs do not have any ACL when created
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only an ACT member can delete the ACL of an access requirement.");
+		}
+		
+		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+		
+		aclDao.delete(aclArId, ObjectType.ACCESS_REQUIREMENT);
+	}
+	
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,11 +24,13 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -59,6 +62,9 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	@Autowired
 	private EntityAclManager entityAclManager;
+	
+	@Autowired
+	private AccessControlListDAO aclDao;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
@@ -159,8 +165,15 @@ public class AccessRequirementManagerImplAutoWiredTest {
 			}
 		}
 		
+		if (ar != null && ar.getId() != null) {
+			aclDao.delete(ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT);
+		}
+		
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
-		if (team!=null) teamManager.delete(adminUserInfo, team.getId());
+		
+		if (team!=null) { 
+			teamManager.delete(adminUserInfo, team.getId());
+		}
 	}
 	
 	private static ManagedACTAccessRequirement newManagedAccessRequirement(String entityId, Long expirationPeriod, String renewalDetailsUrl) {
@@ -348,6 +361,138 @@ public class AccessRequirementManagerImplAutoWiredTest {
 			accessRequirementManager.getAccessRequirement(accessRequirementId);
 		});
 		assertEquals(expectedMessage, exception.getMessage());
+	}
+	
+	@Test
+	public void testGetAccessRequirementACLWithNonExistingAR() {		
+		assertThrows(NotFoundException.class, () -> {			
+			accessRequirementManager.getAccessRequirementAcl(adminUserInfo, "123");
+		});
+	}
+	
+	@Test
+	public void testGetAccessRequirementACLWithNonExistingACL() {
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
+		
+		assertThrows(NotFoundException.class, () -> {			
+			accessRequirementManager.getAccessRequirementAcl(adminUserInfo, ar.getId().toString());
+		});
+	}
+	
+	@Test
+	public void testGetAccessRequirementACL() {
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
+		
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		accessRequirementManager.createAccessRequirementAcl(adminUserInfo, ar.getId().toString(), acl);
+
+		// Call under test
+		AccessControlList result = accessRequirementManager.getAccessRequirementAcl(adminUserInfo, ar.getId().toString());
+		
+		acl.setCreationDate(result.getCreationDate());
+		acl.setEtag(result.getEtag());
+		
+		assertEquals(acl, result);
+	}
+	
+	@Test
+	public void testCreateAccessRequirementACLWithNonExistingAR() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			accessRequirementManager.createAccessRequirementAcl(adminUserInfo, "123", acl);
+		});
+	}
+	
+	@Test
+	public void testCreateAccessRequirementACL() {
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
+		
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		// Call under test
+		AccessControlList result = accessRequirementManager.createAccessRequirementAcl(adminUserInfo, ar.getId().toString(), acl);
+		
+		acl.setCreationDate(result.getCreationDate());
+		acl.setEtag(result.getEtag());
+		
+		assertEquals(acl, result);
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementACL() {
+		
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
+
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		accessRequirementManager.createAccessRequirementAcl(adminUserInfo, ar.getId().toString(), acl);
+		
+		// Call unde test
+		accessRequirementManager.deleteAccessRequirementAcl(adminUserInfo, ar.getId().toString());
+		
+		assertThrows(NotFoundException.class, () -> {
+			accessRequirementManager.getAccessRequirementAcl(adminUserInfo, ar.getId().toString());
+		});
+
+	}
+	
+	@Test
+	public void testDeleteAccessRequirementACLWithNonExistingAR() {
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			accessRequirementManager.deleteAccessRequirementAcl(adminUserInfo, "123");
+		});
+	}
+		
+	@Test
+	public void testUpdateAccessRequirementACL() {
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
+		
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		acl = accessRequirementManager.createAccessRequirementAcl(adminUserInfo, ar.getId().toString(), acl);
+		
+		String currentEtag = acl.getEtag();
+		
+		acl.setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(adminUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+				
+		// Call under test
+		AccessControlList result = accessRequirementManager.updateAccessRequirementAcl(adminUserInfo, ar.getId().toString(), acl);
+		
+		assertNotEquals(currentEtag, result.getEtag());
+		
+		acl.setCreationDate(result.getCreationDate());
+		acl.setEtag(result.getEtag());
+		
+		assertEquals(acl, result);
+		
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementACLWithNonExistingAR() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			accessRequirementManager.updateAccessRequirementAcl(adminUserInfo, "123", acl);
+		});
 	}
 
 }

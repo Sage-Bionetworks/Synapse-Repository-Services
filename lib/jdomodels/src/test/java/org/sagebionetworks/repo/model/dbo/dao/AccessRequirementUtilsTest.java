@@ -14,8 +14,11 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -300,5 +303,108 @@ public class AccessRequirementUtilsTest {
 		Set<String> result = AccessRequirementUtils.extractAllFileHandleIds(dto);
 		
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccess() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
+			new ResourceAccess().setPrincipalId(2L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		// Call under test
+		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithNullInput() {
+		AccessControlList acl = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("acl is required.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithNullResourceAccess() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(null);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("acl.resourceAccess is required and must not be empty.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithEmptyResourceAccess() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Collections.emptySet());
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("acl.resourceAccess is required and must not be empty.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithMultipleAccessTypes() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.READ))
+		));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithWrongAccessTypes() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(1L).setAccessType(Set.of(ACCESS_TYPE.READ))
+		));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("Only the REVIEW_SUBMISSION ACCESS_TYPE is supported for access requirements.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithWrongAnonymousUser() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()).setAccessType(Set.of(ACCESS_TYPE.READ))
+		));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("Cannot assign permissions to the anonmous user.", message);
+	}
+	
+	@Test
+	public void testValidateAccessRequirementAclAccessWithWrongPublicGroup() {
+		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()).setAccessType(Set.of(ACCESS_TYPE.READ))
+		));
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		}).getMessage();
+		
+		assertEquals("Cannot assign permissions to the public group.", message);
 	}
 }
