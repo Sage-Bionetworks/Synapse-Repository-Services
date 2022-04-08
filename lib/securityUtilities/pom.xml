@@ -1,54 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <artifactId>lib</artifactId>
-    <groupId>org.sagebionetworks</groupId>
-    <version>develop-SNAPSHOT</version>
-  </parent>
+	<parent>
+		<artifactId>lib</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>develop-SNAPSHOT</version>
+	</parent>
 
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>lib-securityUtilities</artifactId>
-  <name>lib-securityUtilities</name>
-  <version>develop-SNAPSHOT</version>
-  <url>http://maven.apache.org</url>
+	<artifactId>lib-securityUtilities</artifactId>
+	<name>lib-securityUtilities</name>
+	<url>http://maven.apache.org</url>
 
-  <dependencies>
+	<dependencies>
 
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+		</dependency>
 
-	<dependency>
-		<groupId>org.junit.platform</groupId>
-		<artifactId>junit-platform-launcher</artifactId>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.junit.platform</groupId>
-		<artifactId>junit-platform-runner</artifactId>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.junit.jupiter</groupId>
-		<artifactId>junit-jupiter-engine</artifactId>
-		<scope>test</scope>
-	</dependency>
-	<dependency>
-		<groupId>org.junit.vintage</groupId>
-		<artifactId>junit-vintage-engine</artifactId>
-		<scope>test</scope>
-	</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-runner</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.vintage</groupId>
+			<artifactId>junit-vintage-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
 
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+		</dependency>
 
-  </dependencies>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Compile to Java 8 for compatibility with SWC -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<release>8</release>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<properties>
 		<jacoco.branch.minumum>0.80</jacoco.branch.minumum>
