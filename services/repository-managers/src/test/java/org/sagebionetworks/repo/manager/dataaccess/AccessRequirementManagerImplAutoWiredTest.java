@@ -362,23 +362,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		});
 		assertEquals(expectedMessage, exception.getMessage());
 	}
-	
-	@Test
-	public void testGetAccessRequirementACLWithNonExistingAR() {		
-		assertThrows(NotFoundException.class, () -> {			
-			accessRequirementManager.getAccessRequirementAcl(adminUserInfo, "123");
-		});
-	}
-	
-	@Test
-	public void testGetAccessRequirementACLWithNonExistingACL() {
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
 		
-		assertThrows(NotFoundException.class, () -> {			
-			accessRequirementManager.getAccessRequirementAcl(adminUserInfo, ar.getId().toString());
-		});
-	}
-	
 	@Test
 	public void testGetAccessRequirementACL() {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
@@ -397,19 +381,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		assertEquals(acl, result);
 	}
-	
-	@Test
-	public void testCreateAccessRequirementACLWithNonExistingAR() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
-		));
 		
-		assertThrows(NotFoundException.class, () -> {
-			// Call under test
-			accessRequirementManager.createAccessRequirementAcl(adminUserInfo, "123", acl);
-		});
-	}
-	
 	@Test
 	public void testCreateAccessRequirementACL() {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
@@ -446,15 +418,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		});
 
 	}
-	
-	@Test
-	public void testDeleteAccessRequirementACLWithNonExistingAR() {
-		assertThrows(NotFoundException.class, () -> {
-			// Call under test
-			accessRequirementManager.deleteAccessRequirementAcl(adminUserInfo, "123");
-		});
-	}
-		
+			
 	@Test
 	public void testUpdateAccessRequirementACL() {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));
@@ -481,18 +445,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		assertEquals(acl, result);
 		
-	}
-	
-	@Test
-	public void testUpdateAccessRequirementACLWithNonExistingAR() {
-		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(testUserInfo.getId()).setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS))
-		));
-		
-		assertThrows(NotFoundException.class, () -> {
-			// Call under test
-			accessRequirementManager.updateAccessRequirementAcl(adminUserInfo, "123", acl);
-		});
 	}
 
 }
