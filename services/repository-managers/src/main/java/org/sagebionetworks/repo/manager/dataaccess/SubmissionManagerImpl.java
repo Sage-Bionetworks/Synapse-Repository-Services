@@ -66,6 +66,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private TransactionalMessenger transactionalMessenger;
 	@Autowired
 	private AccessApprovalManager accessAprovalManager;
+	@Autowired
+	private DataAccessAuthorizationManager authorizationManager;
 
 	@WriteTransaction
 	@Override
@@ -223,12 +225,10 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(request.getNewState().equals(SubmissionState.APPROVED)
 				|| request.getNewState().equals(SubmissionState.REJECTED),
 				"Do not support changing to state: "+request.getNewState());
-		
-		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
-			throw new UnauthorizedException("Only ACT member can perform this action.");
-		}
-		
+				
 		Submission submission = submissionDao.getForUpdate(request.getSubmissionId());
+		
+		authorizationManager.canReviewSubmissions(userInfo, submission.getAccessRequirementId()).checkAuthorizationOrElseThrow();
 		
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
