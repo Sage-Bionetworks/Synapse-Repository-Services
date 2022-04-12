@@ -58,17 +58,12 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 	}
 	
 	AuthorizationStatus checkDownloadAccessForAccessRequirement(UserInfo userInfo, String accessRequirementId) {
-		AuthorizationStatus reviewerStatus = canReviewSubmissions(userInfo, accessRequirementId);
-		
-		if (reviewerStatus.isAuthorized()) {
-			return reviewerStatus;
-		}
-		
-		return AuthorizationStatus.accessDenied("The user does not have download access.");
+		return canReviewAccessRequirementSubmissions(userInfo, accessRequirementId)
+				.orElseGet( () -> AuthorizationStatus.accessDenied("The user does not have download access."));
 	}
 	
 	@Override
-	public AuthorizationStatus canReviewSubmissions(UserInfo userInfo, String accessRequirementId) {
+	public AuthorizationStatus canReviewAccessRequirementSubmissions(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		
@@ -76,18 +71,18 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 			return AuthorizationStatus.authorized();
 		}
 		
-		if (!aclDao.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS).isAuthorized()) {
-			return AuthorizationStatus.accessDenied(String.format("The user does not have permissions to review data access submissions for access requirement %s.", accessRequirementId));
-		} 
-		
 		// Only validated users can review submissions
 		VerificationSubmission currentVerification = userProfileManager.getCurrentVerificationSubmission(userInfo.getId());
-				
+		
 		if (!VerificationHelper.isVerified(currentVerification)) {
 			return AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions.");
 		}
 		
-		return AuthorizationStatus.authorized();		
+		if (!aclDao.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS).isAuthorized()) {
+			return AuthorizationStatus.accessDenied(String.format("The user does not have permissions to review data access submissions for access requirement %s.", accessRequirementId));
+		}
+		
+		return AuthorizationStatus.authorized();
 	}
 	
 

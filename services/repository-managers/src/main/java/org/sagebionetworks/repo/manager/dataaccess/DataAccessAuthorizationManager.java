@@ -31,6 +31,6 @@ public interface DataAccessAuthorizationManager {
 	 * @param accessRequirementId The id of the access requirement
 	 * @return The {@link AuthorizationStatus} defining the user access
 	 */
-	AuthorizationStatus canReviewSubmissions(UserInfo userInfo, String accessRequirementId);
+	AuthorizationStatus canReviewAccessRequirementSubmissions(UserInfo userInfo, String accessRequirementId);
 
 }

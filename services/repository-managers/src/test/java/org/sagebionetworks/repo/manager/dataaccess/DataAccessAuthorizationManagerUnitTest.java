@@ -65,28 +65,28 @@ public class DataAccessAuthorizationManagerUnitTest {
 	public void testCheckDownloadAccessForAccessRequirement() {
 		String accessRequirementId = "123";
 		
-		doReturn(AuthorizationStatus.authorized()).when(managerSpy).canReviewSubmissions(any(), any());
+		doReturn(AuthorizationStatus.authorized()).when(managerSpy).canReviewAccessRequirementSubmissions(any(), any());
 		
 		// Call under test
 		AuthorizationStatus result = managerSpy.checkDownloadAccessForAccessRequirement(user, accessRequirementId);
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verify(managerSpy).canReviewSubmissions(user, accessRequirementId);
+		verify(managerSpy).canReviewAccessRequirementSubmissions(user, accessRequirementId);
 	}
 	
 	@Test
 	public void testCheckDownloadAccessForAccessRequirementWithNonReviewer() {
 		String accessRequirementId = "123";
 		
-		doReturn(AuthorizationStatus.accessDenied("Nope")).when(managerSpy).canReviewSubmissions(any(), any());
+		doReturn(AuthorizationStatus.accessDenied("Nope")).when(managerSpy).canReviewAccessRequirementSubmissions(any(), any());
 		
 		// Call under test
 		AuthorizationStatus result = managerSpy.checkDownloadAccessForAccessRequirement(user, accessRequirementId);
 		
 		assertEquals(AuthorizationStatus.accessDenied("The user does not have download access."), result);
 		
-		verify(managerSpy).canReviewSubmissions(user, accessRequirementId);
+		verify(managerSpy).canReviewAccessRequirementSubmissions(user, accessRequirementId);
 	}
 	
 	@Test
@@ -190,39 +190,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	}
 	
 	@Test
-	public void testCanReviewSubmissionsWithACTMember() {
-		
-		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
-		
-		String accessRequirementId = "123";
-		
-		// Call under test
-		AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
-		
-		assertEquals(AuthorizationStatus.authorized(), result);
-		
-		verifyZeroInteractions(mockUserProfileManager);
-		verifyZeroInteractions(mockAclDao);
-	}
-	
-	@Test
-	public void testCanReviewSubmissionsWithAdmin() {
-		
-		user = new UserInfo(true);
-		
-		String accessRequirementId = "123";
-		
-		// Call under test
-		AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
-		
-		assertEquals(AuthorizationStatus.authorized(), result);
-		
-		verifyZeroInteractions(mockUserProfileManager);
-		verifyZeroInteractions(mockAclDao);
-	}
-	
-	@Test
-	public void testCanReviewSubmissions() {
+	public void testCanReviewAccessRequirementSubmissions() {
 		
 		String accessRequirementId = "123";
 		VerificationSubmission verificationSubmission = new VerificationSubmission()
@@ -232,17 +200,16 @@ public class DataAccessAuthorizationManagerUnitTest {
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		// Call under test
-		AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
+		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
 		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
 		verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
-	
 
 	@Test
-	public void testCanReviewSubmissionsWithNoApprovedUserValidation() {
+	public void testCanReviewAccessRequirementSubmissionsWithNoApprovedUserValidation() {
 		
 		String accessRequirementId = "123";
 		
@@ -255,55 +222,90 @@ public class DataAccessAuthorizationManagerUnitTest {
 			
 			Mockito.reset(mockUserProfileManager, mockAclDao);
 			
-			VerificationSubmission verificationSubmission = new VerificationSubmission()
-					.setStateHistory(Collections.singletonList(new VerificationState().setState(state)));
+			VerificationSubmission verificationSubmission = getVerfificationSubmission(state);
 
-			when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 			when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
 			
 			// Call under test
-			AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
+			AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 			
 			assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
 			
-			verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 			verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+			verifyZeroInteractions(mockAclDao);
 			
 		}
 	}
 	
 	@Test
-	public void testCanReviewSubmissionsWithNoReviewerPermission() {
+	public void testCanReviewAccessRequirementSubmissionsWithACTMember() {
+		
+		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
 		
 		String accessRequirementId = "123";
 		
-		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
-		
 		// Call under test
-		AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
+		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 		
-		assertEquals(AuthorizationStatus.accessDenied("The user does not have permissions to review data access submissions for access requirement 123."), result);
+		assertEquals(AuthorizationStatus.authorized(), result);
 		
 		verifyZeroInteractions(mockUserProfileManager);
-		verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
-	public void testCanReviewSubmissionsWithNoUserValidation() {
+	public void testCanReviewAccessRequirementSubmissionsWithAdmin() {
+		
+		user = new UserInfo(true);
 		
 		String accessRequirementId = "123";
-		VerificationSubmission verificationSubmission = null;
-
-		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
 		
 		// Call under test
-		AuthorizationStatus result = manager.canReviewSubmissions(user, accessRequirementId);
+		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 		
-		assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
+		assertEquals(AuthorizationStatus.authorized(), result);
+		
+		verifyZeroInteractions(mockUserProfileManager);
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testCanReviewAccessRequirementSubmissionsWithNoReviewerPermission() {
+		
+		String accessRequirementId = "123";
+		
+		VerificationSubmission verificationSubmission = getVerfificationSubmission(VerificationStateEnum.APPROVED);
+
+		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
+		
+		// Call under test
+		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
+		
+		assertEquals(AuthorizationStatus.accessDenied("The user does not have permissions to review data access submissions for access requirement 123."), result);
 		
 		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
 		verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
 	
+	@Test
+	public void testCanReviewAccessRequirementSubmissionsWithNoUserValidation() {
+		
+		String accessRequirementId = "123";
+		VerificationSubmission verificationSubmission = null;
+
+		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+		
+		// Call under test
+		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
+		
+		assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
+		
+		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	private VerificationSubmission getVerfificationSubmission(VerificationStateEnum state) {
+		return new VerificationSubmission().setStateHistory(Collections.singletonList(new VerificationState().setState(state)));
+	}
 }

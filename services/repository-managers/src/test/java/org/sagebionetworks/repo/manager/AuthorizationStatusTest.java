@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -68,5 +69,27 @@ class AuthorizationStatusTest {
 	@Test
 	public void testEquals_denied_diffMessage_sameException(){
 		assertNotEquals(AuthorizationStatus.accessDenied(new IllegalArgumentException("asdf")), AuthorizationStatus.accessDenied(new IllegalArgumentException("qwerty")));
+	}
+	
+	@Test
+	public void testOrElseGetWithAutorized() {
+		AuthorizationStatus status = AuthorizationStatus.authorized();
+		
+		// Call under test
+		AuthorizationStatus result = status.orElseGet(() -> AuthorizationStatus.accessDenied("Nope"));
+		
+		assertEquals(status, result);
+	}
+	
+	@Test
+	public void testOrElseGetWithNotAutorized() {
+		AuthorizationStatus status = AuthorizationStatus.accessDenied("Nope");
+		
+		// Call under test
+		AuthorizationStatus result = status.orElseGet(() -> AuthorizationStatus.accessDenied("Nope override"));
+		
+		assertNotEquals(status, result);
+		assertFalse(result.isAuthorized());
+		assertEquals("Nope override", result.getMessage());
 	}
 }

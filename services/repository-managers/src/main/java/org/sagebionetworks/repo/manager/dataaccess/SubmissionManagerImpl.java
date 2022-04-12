@@ -228,7 +228,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				
 		Submission submission = submissionDao.getForUpdate(request.getSubmissionId());
 		
-		authorizationManager.canReviewSubmissions(userInfo, submission.getAccessRequirementId()).checkAuthorizationOrElseThrow();
+		authorizationManager.canReviewAccessRequirementSubmissions(userInfo, submission.getAccessRequirementId()).checkAuthorizationOrElseThrow();
 		
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");

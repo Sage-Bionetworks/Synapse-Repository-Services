@@ -291,6 +291,11 @@ public class ITDataAccessTest {
 	
 	@Test
 	public void testAccessRequirementSubmissionReviewer() throws SynapseException, JSONObjectAdapterException {
+		
+		// A validated user
+		SynapseClient synapseTwo = new SynapseClientImpl();
+		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
+		
 		managedAR = new ManagedACTAccessRequirement()
 			.setAccessType(ACCESS_TYPE.DOWNLOAD)
 			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
@@ -320,16 +325,21 @@ public class ITDataAccessTest {
 				.setSubjectId(project.getId())
 				.setSubjectType(RestrictableObjectType.ENTITY));
 		
+		// The first user is not validated
 		String errorMessage = assertThrows(SynapseForbiddenException.class, () -> {			
 			synapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
 		}).getMessage();
 		
+		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
+			
+		// The second user is validated, but does not have permissions yet
+		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
+			synapseTwo.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		}).getMessage();
+		
 		assertEquals("The user does not have permissions to review data access submissions for access requirement " + managedAR.getId() + ".", errorMessage);
 		
-		// A validated user
-		SynapseClient synapseTwo = new SynapseClientImpl();
-		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
-		
+		// Adds both users as reviewers
 		AccessControlList acl = new AccessControlList()
 			.setId(managedAR.getId().toString())
 			.setResourceAccess(Set.of(
@@ -339,17 +349,42 @@ public class ITDataAccessTest {
 		
 		adminSynapse.createAccessRequirementAcl(acl);
 		
-		// The first user is not validated
+		// The first user is still not validated
 		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
 			synapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
 		}).getMessage();
 		
 		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
 		
-		// Second user is validated
-		synapseTwo.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		// Second user is validated and has permissions now
+		Submission submission = synapseTwo.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
 		
+		assertEquals(SubmissionState.APPROVED, submission.getState());
 		
+		// Try to update the request
+		request = synapse.getRequestForUpdate(managedAR.getId().toString());
+		
+		request.setAccessorChanges(Arrays.asList(
+			new AccessorChange().setType(AccessType.REVOKE_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId())
+		));
+		
+		SubmissionStatus newSubmission = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		// The first user is still not validated
+		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
+			synapse.updateSubmissionState(newSubmission.getSubmissionId(), SubmissionState.REJECTED, "Rejecting the request");
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
+		
+		// Second user is validated and has permissions now
+		submission = synapseTwo.updateSubmissionState(newSubmission.getSubmissionId(), SubmissionState.REJECTED, "Rejecting the request");
+		
+		assertEquals(SubmissionState.REJECTED, submission.getState());
 	}
 
 }
