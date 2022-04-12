@@ -29,23 +29,23 @@ public class SynapseClientHelper {
 	 * @return The ID of the user
 	 */
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, UUID.randomUUID().toString(), true);
+		return createUser(client, newUserClient, UUID.randomUUID().toString(), true, false);
 	}
 
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, UUID.randomUUID().toString(), acceptsTermsOfUse);
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, boolean acceptsTermsOfUse, boolean validateUser) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, UUID.randomUUID().toString(), acceptsTermsOfUse, validateUser);
 	}
 
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, username, "password"+UUID.randomUUID().toString(), acceptsTermsOfUse);
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, boolean acceptsTermsOfUse, boolean validateUser) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, username, "password"+UUID.randomUUID().toString(), acceptsTermsOfUse, validateUser);
 	}
 	
-	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, username, password, UUID.randomUUID().toString() + "@sagebase.org", acceptsTermsOfUse);
+	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password, boolean acceptsTermsOfUse, boolean validateUser) throws SynapseException, JSONObjectAdapterException {
+		return createUser(client, newUserClient, username, password, UUID.randomUUID().toString() + "@sagebase.org", acceptsTermsOfUse, validateUser);
 	}
 	
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, 
-			String username, String password, String email, boolean acceptsTermsOfUse) throws SynapseException, JSONObjectAdapterException {
+			String username, String password, String email, boolean acceptsTermsOfUse, boolean validateUser) throws SynapseException, JSONObjectAdapterException {
 		if (newUserClient == null) {
 			newUserClient = new SynapseClientImpl();
 		}
@@ -56,6 +56,7 @@ public class SynapseClientHelper {
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(password);
+		nu.setValidatedUser(validateUser);
 		LoginResponse loginResponse = client.createIntegrationTestUser(nu);
 		
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());

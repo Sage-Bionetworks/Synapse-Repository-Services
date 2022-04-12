@@ -17,6 +17,10 @@
 		"tou": {
 			"type": "boolean",
 			"description": "True if user agrees to Synapse terms of use"
+		},
+		"validatedUser": {
+			"type": "boolean",
+			"description": "True if a verification approved states should be added for the user"
 		}
 	}
 }

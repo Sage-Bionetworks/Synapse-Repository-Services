@@ -42,7 +42,7 @@ public class ITUserInfoRemoval {
 
 		SynapseClientHelper.setEndpoints(client);
 		
-		userId = SynapseClientHelper.createUser(adminSynapse, client, username, password, true);
+		userId = SynapseClientHelper.createUser(adminSynapse, client, username, password, true, false);
 	}
 
 	@AfterAll

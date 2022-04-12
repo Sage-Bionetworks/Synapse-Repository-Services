@@ -43,7 +43,7 @@ public class IT960TermsOfUse {
 	@BeforeAll
 	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
 		rejectTOUsynapse = new SynapseClientImpl();
-		rejectTOUuserToDelete = SynapseClientHelper.createUser(adminSynapse, rejectTOUsynapse, false);
+		rejectTOUuserToDelete = SynapseClientHelper.createUser(adminSynapse, rejectTOUsynapse, false, false);
 		
 		project = new Project();
 		project.setName("foo");
