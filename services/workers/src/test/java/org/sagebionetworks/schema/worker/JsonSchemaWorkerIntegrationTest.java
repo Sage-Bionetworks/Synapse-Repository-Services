@@ -711,8 +711,9 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testDuoSchemaAppliedToFolder() throws Exception {
+	public void testDuoSchemaAppliedAgainstValidFileJson() throws Exception {
 		bootstrapAndCreateOrganization("ebispot.duo");
+		jsonSchemaManager.createOrganziation(adminUserInfo, new CreateOrganizationRequest().setOrganizationName("some.project"));
 		String[] schemasToRegister = { 
 				"schema/DUO/D0000001.json",
 				"schema/DUO/D0000004.json",
@@ -739,37 +740,32 @@ public class JsonSchemaWorkerIntegrationTest {
 				"schema/DUO/D0000045.json",
 				"schema/DUO/D0000046.json",
 				"schema/DUO/duo.json",
+				"schema/DUO/DuoMainStory.json",
 		};
 		for (String fileName : schemasToRegister) {
 			JsonSchema schema = getSchemaFromClasspath(fileName);
 			registerSchema(schema);
 		}
+		
+		JsonSchema duoMain = jsonSchemaManager.getValidationSchema("ebispot.duo-duo");
+		assertNotNull(duoMain);
+		printJson(duoMain);
 
-		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("ebispot.duo-duo");
-		assertNotNull(schemaBootstrap);
+		JsonSchema validationSchema = jsonSchemaManager.getValidationSchema("some.project-main");
+		assertNotNull(validationSchema);
 		printJson(validationSchema);
-		
-		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
-		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
-		
-		String parentSchema$id = validationSchema.get$id();
-		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
-		bindRequest.setEntityId(projectId);
-		bindRequest.setSchema$id(parentSchema$id);
-		// we want to validate on putting annotations, so don't send notifications
-		boolean sendNotificationMessages = false;
-		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest, sendNotificationMessages);
-		
-		// add a folder to the project
-		Folder folder = new Folder();
-		folder.setParentId(project.getId());
-		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
-		
-
-		folderJson.put("GRU", true);
-		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
-		System.out.println(folderJson.toString(5));
+				
+		String[] validJsonFiles = { "schema/DUO/ValidSyn1.json", "schema/DUO/ValidSyn4.json" };
+		for (String schemaFile : validJsonFiles) {
+			String validJsonFile = loadStringFromClasspath(schemaFile);
+			JSONObject validJson = new JSONObject(validJsonFile);
+			JsonSubject mockSubject = Mockito.mock(JsonSubject.class);
+			when(mockSubject.toJson()).thenReturn(validJson);
+			// this schema should be valid
+			ValidationResults result = jsonSchemaValidationManager.validate(validationSchema, mockSubject);
+			assertNotNull(result);
+			assertTrue(result.getIsValid());
+		}
 	}
 	
 	/**

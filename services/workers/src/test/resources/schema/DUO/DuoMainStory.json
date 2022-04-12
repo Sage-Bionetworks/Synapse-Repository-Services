@@ -1,0 +1,146 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "Schema for Some Project",
+	"$id": "some.project-main",
+	"description": "This schema defines how DUO should be used with Some Project.",
+	"allOf": [
+		{
+			"$ref": "org.sagebionetworks-repo.model.FileEntity-1.0.0"
+		},
+		{
+			"$ref": "ebispot.duo-duo"
+		},
+		{
+			"if": {
+				"properties": {
+					"patientLocation": {
+						"const": "Germany"
+					},
+					"assayType": {
+						"const": "genomic"
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"GS": {
+						"title": "geographical restriction",
+						"type": "boolean",
+						"const": true
+					},
+					"GS_location": {
+						"type": "string",
+						"description": "This data cannot leave Germany",
+						"const": "Germany"
+					}
+				},
+				"required": [
+					"GS_location"
+				]
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"patientLocation": {
+						"const": "USA"
+					},
+					"assayType": {
+						"const": "genomic"
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"sourceGeography": {
+						"const": "US"
+					},
+					"jurisdiction ": {
+						"const": "HIPAA"
+					},
+					"dataLabel": {
+						"const": "De-identified"
+					}
+				},
+				"required": [
+					"sourceGeography",
+					"jurisdiction",
+					"dataLabel"
+				]
+			}
+		}
+	],
+	"properties": {
+		"assayType": {
+			"description": "Identifies they type of data for this files.",
+			"type": "string",
+			"enum": [
+				"clinical",
+				"assay",
+				"imaging",
+				"genomic"
+			]
+		},
+		"patientLocation": {
+			"description": "The location of the patient associated with the data",
+			"type": "string",
+			"enum": [
+				"USA",
+				"Germany"
+			]
+		},
+		"RS": {
+			"title": "research specific restrictions",
+			"type": "boolean",
+			"const": true
+		},
+		"RS_research_type": {
+			"title": "Restricted to cancer research",
+			"type": "string",
+			"const": "cancer"
+		},
+		"IRB": {
+			"title": "ethics approval required",
+			"type": "boolean",
+			"const": true
+		},
+		"MOR": {
+			"title": "publication moratorium",
+			"type": "boolean",
+			"const": true
+		},
+		"MOR_date": {
+			"title": "publication moratorium date",
+			"type": "string",
+			"format": "date",
+			"const": "2022-05-20"
+		}
+	},
+	"required": [
+		"assayType",
+		"patientLocation",
+		"NRES",
+		"HMB",
+		"DS",
+		"POA",
+		"RS",
+		"NMDS",
+		"GSO",
+		"NPUNCU",
+		"PUB",
+		"COL",
+		"IRB",
+		"GS",
+		"MOR",
+		"TS",
+		"US",
+		"PS",
+		"IS",
+		"RTN",
+		"GRU",
+		"CC",
+		"NPOA",
+		"NPU",
+		"NCU"
+	]
+}

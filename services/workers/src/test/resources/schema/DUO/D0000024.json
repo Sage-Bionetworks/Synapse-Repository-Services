@@ -20,7 +20,7 @@
 		"properties": {
 			"MOR_date": {
 				"type": "string",
-				"format": "date-time",
+				"format": "date",
 				"description": "This should be coupled with a date specified as ISO8601"
 			}
 		}
