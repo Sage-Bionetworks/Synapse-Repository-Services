@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.file.FileAssociateObject;
@@ -107,6 +108,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FormManager formManager;
 	@Autowired
 	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	@Autowired
+	private DataAccessAuthorizationManager dataAccessAuthorizationManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -196,13 +199,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 			}
 			case DATA_ACCESS_REQUEST:
+				if (accessType == ACCESS_TYPE.DOWNLOAD) {
+					return dataAccessAuthorizationManager.canDownloadRequestFiles(userInfo, objectId);
+				} else {
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
+				}
 			case DATA_ACCESS_SUBMISSION: {
 				if (accessType==ACCESS_TYPE.DOWNLOAD) {
-					if (isACTTeamMemberOrAdmin(userInfo)) {
-						return AuthorizationStatus.authorized();
-					} else {
-						return AuthorizationStatus.accessDenied("Download not allowed");
-					}
+					return dataAccessAuthorizationManager.canDownloadSubmissionFiles(userInfo, objectId);
 				} else {
 					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}

@@ -11,13 +11,16 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -34,7 +37,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
@@ -57,9 +59,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.google.common.collect.ImmutableSet;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
@@ -70,12 +70,13 @@ public class ITDataAccessTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private Long userTwoId;
 	
 	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
 	}
-
+	
 	@BeforeEach
 	public void before() throws SynapseException {
 		project = synapse.createEntity(new Project());
@@ -95,6 +96,12 @@ public class ITDataAccessTest {
 		try {
 			adminSynapse.deleteEntity(project);
 		} catch (SynapseNotFoundException e) {}
+		
+		if (userTwoId != null) {
+			try {
+				adminSynapse.deleteUser(userTwoId);
+			} catch (SynapseException e) {}
+		}
 	}
 
 	@Test
@@ -280,6 +287,104 @@ public class ITDataAccessTest {
 			adminSynapse.getAccessRequirementAcl(actAR.getId().toString());
 		});
 		
+	}
+	
+	@Test
+	public void testAccessRequirementSubmissionReviewer() throws SynapseException, JSONObjectAdapterException {
+		
+		// A validated user
+		SynapseClient synapseTwo = new SynapseClientImpl();
+		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
+		
+		rp.setInstitution("Sage");
+		rp.setProjectLead("Lead");
+		rp.setIntendedDataUseStatement("intendedDataUseStatement");
+		rp.setAccessRequirementId(managedAR.getId().toString());
+		
+		rp = synapse.createOrUpdateResearchProject(rp);
+		
+		RequestInterface request = synapse.createOrUpdateRequest(new Request()
+			.setResearchProjectId(rp.getId())
+			.setAccessRequirementId(managedAR.getId().toString())
+			.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId()),
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(synapse.getMyProfile().getOwnerId())
+			)));
+		
+		SubmissionStatus submissionStatus = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		// The first user is not validated
+		String errorMessage = assertThrows(SynapseForbiddenException.class, () -> {			
+			synapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
+			
+		// The second user is validated, but does not have permissions yet
+		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
+			synapseTwo.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		}).getMessage();
+		
+		assertEquals("The user does not have permissions to review data access submissions for access requirement " + managedAR.getId() + ".", errorMessage);
+		
+		// Adds both users as reviewers
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
+				new ResourceAccess().setPrincipalId(userTwoId).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		adminSynapse.createAccessRequirementAcl(acl);
+		
+		// The first user is still not validated
+		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
+			synapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
+		
+		// Second user is validated and has permissions now
+		Submission submission = synapseTwo.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		
+		assertEquals(SubmissionState.APPROVED, submission.getState());
+		
+		// Try to update the request
+		request = synapse.getRequestForUpdate(managedAR.getId().toString());
+		
+		request.setAccessorChanges(Arrays.asList(
+			new AccessorChange().setType(AccessType.REVOKE_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId())
+		));
+		
+		SubmissionStatus newSubmission = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		// The first user is still not validated
+		errorMessage = assertThrows(SynapseForbiddenException.class, () -> {		
+			synapse.updateSubmissionState(newSubmission.getSubmissionId(), SubmissionState.REJECTED, "Rejecting the request");
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", errorMessage);
+		
+		// Second user is validated and has permissions now
+		submission = synapseTwo.updateSubmissionState(newSubmission.getSubmissionId(), SubmissionState.REJECTED, "Rejecting the request");
+		
+		assertEquals(SubmissionState.REJECTED, submission.getState());
 	}
 
 }

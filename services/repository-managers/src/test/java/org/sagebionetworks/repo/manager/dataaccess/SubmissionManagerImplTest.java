@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -105,6 +106,8 @@ public class SubmissionManagerImplTest {
 	private AccessApprovalManager mockAccessAprovalManager;
 	@Mock
 	private RequestManager mockRequestManager;
+	@Mock
+	private DataAccessAuthorizationManager mockAuthManager;
 	@InjectMocks
 	private SubmissionManagerImpl manager;
 	
@@ -632,6 +635,9 @@ public class SubmissionManagerImplTest {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
+		
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
+		
 		assertThrows(UnauthorizedException.class, ()->{
 			manager.updateStatus(mockUser, request);
 		});
@@ -657,6 +663,7 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.CANCELLED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.updateStatus(atcUser, request);
 		});
@@ -671,6 +678,7 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.REJECTED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.updateStatus(atcUser, request);
 		});
@@ -685,6 +693,7 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.APPROVED);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.updateStatus(atcUser, request);
 		});
@@ -708,6 +717,7 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.REJECTED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		assertEquals(submission, manager.updateStatus(atcUser, request));
 		
@@ -744,6 +754,8 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.APPROVED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
+		
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		// call under test
 		assertEquals(submission, manager.updateStatus(atcUser, request));
@@ -798,6 +810,7 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.APPROVED), eq(reason), eq(atcUser.getId().toString()),
 				anyLong())).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		// call under test
 		assertEquals(submission, manager.updateStatus(atcUser, request));

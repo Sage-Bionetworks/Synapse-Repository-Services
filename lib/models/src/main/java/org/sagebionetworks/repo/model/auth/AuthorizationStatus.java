@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.auth;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 
@@ -51,11 +52,19 @@ public class AuthorizationStatus {
 	public static AuthorizationStatus accessDenied(String message){
 		return accessDenied(new UnauthorizedException(message));
 	}
-
+	
 	public void checkAuthorizationOrElseThrow(){
 		if(!isAuthorized()){
 			throw denialException;
 		}
+	}
+	
+	/**
+	 * @param orElseSupplier A supplier for an {@link AuthorizationStatus} in case this one is not authorized
+	 * @return This {@link AuthorizationStatus} if authorized, else the {@link AuthorizationStatus} from the given supplier
+	 */
+	public AuthorizationStatus orElseGet(Supplier<AuthorizationStatus> orElseSupplier) {
+		return isAuthorized() ? this : orElseSupplier.get();
 	}
 	
 	public boolean isAuthorized() {

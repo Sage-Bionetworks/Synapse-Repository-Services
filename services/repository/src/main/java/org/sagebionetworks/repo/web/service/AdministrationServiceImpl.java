@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
@@ -36,6 +37,9 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -49,8 +53,6 @@ import org.springframework.http.HttpHeaders;
  * @author John
  */
 public class AdministrationServiceImpl implements AdministrationService  {
-
-	static private Logger log = LogManager.getLogger(AdministrationServiceImpl.class);
 	
 	@Autowired
 	private ObjectTypeSerializer objectTypeSerializer;
@@ -71,28 +73,31 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	private DoiAdminManager doiAdminManager;
 	
 	@Autowired
-	SemaphoreManager semaphoreManager;
+	private SemaphoreManager semaphoreManager;
 
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	private DBOChangeDAO changeDAO;
 	
 	@Autowired
-	IdGenerator idGenerator;
+	private IdGenerator idGenerator;
 
 	@Autowired
-	TransactionSynchronizationProxy transactionSynchronizationManager;
+	private TransactionSynchronizationProxy transactionSynchronizationManager;
 
 	@Autowired
-	PasswordValidator passwordValidator;
+	private PasswordValidator passwordValidator;
 	
 	@Autowired
-	FeatureManager featureManager;
+	private FeatureManager featureManager;
 	
 	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenHelper oidcTokenHelper;
+
+	@Autowired
+	private VerificationDAO verificationDao;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -178,6 +183,19 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
 		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement);
+
+		if (Boolean.TRUE.equals(userSpecs.getValidatedUser())) {
+			VerificationSubmission submission = new VerificationSubmission()
+				.setCreatedBy(createdUser.getId().toString())
+				.setCreatedOn(Date.from(Instant.now()));
+			
+			submission = verificationDao.createVerificationSubmission(submission);
+			verificationDao.appendVerificationSubmissionState(Long.parseLong(submission.getId()), 
+				new VerificationState()
+					.setCreatedBy(userId.toString())
+					.setCreatedOn(Date.from(Instant.now()))
+					.setState(VerificationStateEnum.APPROVED));
+		}
 		
 		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
 	}

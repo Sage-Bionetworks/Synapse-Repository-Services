@@ -39,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
@@ -136,7 +137,9 @@ public class AuthorizationManagerImplUnitTest {
 	private Set<String> accessors;
 	@Mock
 	private TokenGenerator mockTokenGenerator;
-
+	@Mock
+	private DataAccessAuthorizationManager mockDataAccessAuthManager;
+	
 	@InjectMocks
 	private AuthorizationManagerImpl authorizationManager;
 	
@@ -542,11 +545,13 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessDataAccessRequestUnauthorized() throws Exception {
+		when(mockDataAccessAuthManager.canDownloadRequestFiles(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessRequestAuthorized() throws Exception {
+		when(mockDataAccessAuthManager.canDownloadRequestFiles(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
@@ -561,11 +566,13 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessDataAccessSubmissionUnauthorized() throws Exception {
+		when(mockDataAccessAuthManager.canDownloadSubmissionFiles(any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessSubmissionAuthorized() throws Exception {
+		when(mockDataAccessAuthManager.canDownloadSubmissionFiles(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
