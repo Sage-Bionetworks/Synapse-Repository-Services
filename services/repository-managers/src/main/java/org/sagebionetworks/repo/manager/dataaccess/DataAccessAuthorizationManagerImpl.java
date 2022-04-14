@@ -7,8 +7,6 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
@@ -41,9 +39,9 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		
-		RequestInterface request = requestDao.get(requestId);
+		String accessRequirementId = requestDao.getAccessRequirementId(requestId).toString();
 		
-		return checkDownloadAccessForAccessRequirement(userInfo, request.getAccessRequirementId());
+		return checkDownloadAccessForAccessRequirement(userInfo, accessRequirementId);
 	}
 	
 
@@ -52,9 +50,9 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 		
-		Submission submission = submissionDao.getSubmission(submissionId);
+		String accessRequirementId = submissionDao.getAccessRequirementId(submissionId);
 		
-		return checkDownloadAccessForAccessRequirement(userInfo, submission.getAccessRequirementId());
+		return checkDownloadAccessForAccessRequirement(userInfo, accessRequirementId);
 	}
 	
 	AuthorizationStatus checkDownloadAccessForAccessRequirement(UserInfo userInfo, String accessRequirementId) {

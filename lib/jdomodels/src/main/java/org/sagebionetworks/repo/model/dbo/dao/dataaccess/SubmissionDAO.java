@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.util.TemporaryCode;
 
 public interface SubmissionDAO {
 
@@ -19,7 +18,7 @@ public interface SubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public SubmissionStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId);
+	SubmissionStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId);
 
 	/**
 	 * Update the state of a submission.
@@ -30,7 +29,7 @@ public interface SubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public Submission updateSubmissionStatus(String submissionId,
+	Submission updateSubmissionStatus(String submissionId,
 			SubmissionState newState, String reason, String userId, Long timestamp);
 
 	/**
@@ -39,7 +38,7 @@ public interface SubmissionDAO {
 	 * @param submissionToCreate
 	 * @return
 	 */
-	public SubmissionStatus createSubmission(Submission submissionToCreate);
+	SubmissionStatus createSubmission(Submission submissionToCreate);
 
 	/**
 	 * Cancel a submission.
@@ -50,7 +49,7 @@ public interface SubmissionDAO {
 	 * @param etag
 	 * @return
 	 */
-	public SubmissionStatus cancel(String submissionId, String userId,
+	SubmissionStatus cancel(String submissionId, String userId,
 			Long timestamp, String etag);
 
 	/**
@@ -59,7 +58,7 @@ public interface SubmissionDAO {
 	 * @return true if the user has a submission with the given state for the given accessRequirementId,
 	 * false otherwise.
 	 */
-	public boolean hasSubmissionWithState(String userId, String accessRequirementId, SubmissionState state);
+	boolean hasSubmissionWithState(String userId, String accessRequirementId, SubmissionState state);
 
 	/**
 	 * Retrieve a submission
@@ -67,7 +66,7 @@ public interface SubmissionDAO {
 	 * @param submissionId
 	 * @return
 	 */
-	public Submission getForUpdate(String submissionId);
+	Submission getForUpdate(String submissionId);
 
 	/**
 	 * Retrieving a submission given its ID
@@ -75,14 +74,14 @@ public interface SubmissionDAO {
 	 * @param submissionId
 	 * @return
 	 */
-	public Submission getSubmission(String submissionId);
+	Submission getSubmission(String submissionId);
 
 	/**
 	 * use for test
 	 * 
 	 * @param id
 	 */
-	public void delete(String id);
+	void delete(String id);
 
 	/**
 	 * Retrieve a page of submissions
@@ -96,7 +95,7 @@ public interface SubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState stateFilter, String accessorId,
+	List<Submission> getSubmissions(String accessRequirementId, SubmissionState stateFilter, String accessorId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
 
 	/**
@@ -107,7 +106,7 @@ public interface SubmissionDAO {
 	 * @param includeAccessorChanges
 	 * @return
 	 */
-	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset, boolean includeAccessorChanges);
+	List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset, boolean includeAccessorChanges);
 	
 	/**
 	 * Return true if userId is an accessor of submissionId
@@ -116,7 +115,7 @@ public interface SubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public boolean isAccessor(String submissionId, String userId);
+	boolean isAccessor(String submissionId, String userId);
 
 	/**
 	 * Retrieve submitted Submission information
@@ -125,7 +124,13 @@ public interface SubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<OpenSubmission> getOpenSubmissions(long limit, long offset);
+	List<OpenSubmission> getOpenSubmissions(long limit, long offset);
+	
+	/**
+	 * @param submissionId
+	 * @return The id of the access requirement for the submission with the given id
+	 */
+	String getAccessRequirementId(String submissionId);
 	
 	// For testing
 	void truncateAll();

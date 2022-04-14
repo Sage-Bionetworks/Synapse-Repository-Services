@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dataaccess.Request;
-import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
@@ -96,12 +94,12 @@ public class DataAccessAuthorizationManagerUnitTest {
 		String accessRequirementId = "123";
 		
 		doReturn(AuthorizationStatus.authorized()).when(managerSpy).checkDownloadAccessForAccessRequirement(any(), any());
-		when(mockRequestDao.get(any())).thenReturn(new Request().setAccessRequirementId(accessRequirementId));
+		when(mockRequestDao.getAccessRequirementId(any())).thenReturn(accessRequirementId);
 		
 		// Call under test
 		managerSpy.canDownloadRequestFiles(user, requestId);
 		
-		verify(mockRequestDao).get(requestId);
+		verify(mockRequestDao).getAccessRequirementId(requestId);
 		verify(managerSpy).checkDownloadAccessForAccessRequirement(user, accessRequirementId);
 
 	}
@@ -146,12 +144,12 @@ public class DataAccessAuthorizationManagerUnitTest {
 		String accessRequirementId = "123";
 		
 		doReturn(AuthorizationStatus.authorized()).when(managerSpy).checkDownloadAccessForAccessRequirement(any(), any());
-		when(mockSubmissionDao.getSubmission(any())).thenReturn(new Submission().setAccessRequirementId(accessRequirementId));
+		when(mockSubmissionDao.getAccessRequirementId(any())).thenReturn(accessRequirementId);
 		
 		// Call under test
 		managerSpy.canDownloadSubmissionFiles(user, submissionId);
 		
-		verify(mockSubmissionDao).getSubmission(submissionId);
+		verify(mockSubmissionDao).getAccessRequirementId(submissionId);
 		verify(managerSpy).checkDownloadAccessForAccessRequirement(user, accessRequirementId);
 
 	}

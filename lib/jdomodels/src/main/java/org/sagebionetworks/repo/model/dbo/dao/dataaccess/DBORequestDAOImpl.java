@@ -19,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBORequestDAOImpl implements RequestDAO{
 
 	public static final String DATA_ACCESS_REQUEST_DOES_NOT_EXIST = "Data access request: '%s' does not exist";
@@ -42,6 +44,10 @@ public class DBORequestDAOImpl implements RequestDAO{
 			+ " AND "+COL_DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
 
 	public static final String SQL_GET_BY_ID = "SELECT *"
+			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ?";
+	
+	public static final String SQL_GET_AR_ID_BY_ID = "SELECT " + COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID
 			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
 			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ?";
 
@@ -107,6 +113,15 @@ public class DBORequestDAOImpl implements RequestDAO{
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, id));
+		}
+	}
+	
+	@Override
+	public String getAccessRequirementId(String requestId) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_AR_ID_BY_ID, String.class, requestId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, requestId));
 		}
 	}
 

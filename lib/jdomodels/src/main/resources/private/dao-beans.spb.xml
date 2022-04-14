@@ -323,11 +323,7 @@
 	<!-- DAO for Data Access Feature -->
 	<bean id="researchProjectDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
-	<bean id="requestDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequestDAOImpl" />
-	<bean id="submissionDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionDAOImpl" />
-		
+			
 	<bean id="tableExceptionTranslator"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslatorImpl"/>
 		

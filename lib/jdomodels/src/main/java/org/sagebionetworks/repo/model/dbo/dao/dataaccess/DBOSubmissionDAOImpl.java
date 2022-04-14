@@ -54,7 +54,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	public static final String SUBMISSION_DOES_NOT_EXIST = "Submission: '%s' does not exist";
@@ -129,6 +131,10 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_SUBMISSION
 			+" WHERE "+COL_DATA_ACCESS_SUBMISSION_ID+" = ?";
+	
+	private static final String SQL_AR_ID_BY_SUBMISSION_ID = "SELECT " + COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
+			+ " FROM " + TABLE_DATA_ACCESS_SUBMISSION
+			+ " WHERE " + COL_DATA_ACCESS_SUBMISSION_ID + " = ?";
 
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String DESCENDING = "DESC";
@@ -441,6 +447,15 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 				return os;
 			}
 		}, limit, offset);
+	}
+	
+	@Override
+	public String getAccessRequirementId(String submissionId) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_AR_ID_BY_SUBMISSION_ID, String.class, submissionId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(SUBMISSION_DOES_NOT_EXIST, submissionId));
+		}
 	}
 	
 	@Override

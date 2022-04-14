@@ -58,13 +58,13 @@ import com.google.common.collect.ImmutableSet;
 public class DBOSubmissionDAOImplTest {
 
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 
 	@Autowired
-	AccessRequirementDAO accessRequirementDAO;
+	private AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
@@ -584,6 +584,28 @@ public class DBOSubmissionDAOImplTest {
 		String message = assertThrows(NotFoundException.class, ()->{
 			submissionDao.getSubmission("-123");
 		}).getMessage();
+		assertEquals("Submission: '-123' does not exist", message);
+	}
+	
+	@Test
+	public void testGetAccessRequirementId() {
+		SubmissionStatus status = submissionDao.createSubmission(createSubmission());
+		
+		// Call under test
+		String result = submissionDao.getAccessRequirementId(status.getSubmissionId());
+		
+		assertEquals(accessRequirement.getId().toString(), result);
+		
+		submissionDao.delete(status.getSubmissionId());
+	}
+	
+	@Test
+	public void testGetAccessRequirementIdWithNonExisting() {
+		String message = assertThrows(NotFoundException.class, () -> {
+			// Call under test
+			submissionDao.getAccessRequirementId("-123");
+		}).getMessage();
+		
 		assertEquals("Submission: '-123' does not exist", message);
 	}
 	
