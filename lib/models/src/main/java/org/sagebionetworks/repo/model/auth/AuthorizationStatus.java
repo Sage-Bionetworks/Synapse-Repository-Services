@@ -60,11 +60,11 @@ public class AuthorizationStatus {
 	}
 	
 	/**
-	 * @param orElseSupplier A supplier for an {@link AuthorizationStatus} in case this one is not authorized
-	 * @return This {@link AuthorizationStatus} if authorized, else the {@link AuthorizationStatus} from the given supplier
+	 * @param isAuthorizedOrElseSupplier A supplier for a unauthorized message in case this one is not authorized, the message will be used with {@link AuthorizationStatus#accessDenied(String)}
+	 * @return This {@link AuthorizationStatus} if authorized, else an {@link AuthorizationStatus} created with the message from the given supplier
 	 */
-	public AuthorizationStatus orElseGet(Supplier<AuthorizationStatus> orElseSupplier) {
-		return isAuthorized() ? this : orElseSupplier.get();
+	public AuthorizationStatus isAuthorizedOrElseGet(Supplier<String> orElseSupplier) {
+		return isAuthorized() ? this : AuthorizationStatus.accessDenied(orElseSupplier.get());
 	}
 	
 	public boolean isAuthorized() {

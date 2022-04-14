@@ -18,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -37,7 +37,7 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 public class DataAccessAuthorizationManagerUnitTest {
 	
 	@Mock
-	private UserProfileManager mockUserProfileManager;
+	private VerificationDAO mockVerificationDao;
 	
 	@Mock
 	private AccessControlListDAO mockAclDao;
@@ -196,7 +196,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		VerificationSubmission verificationSubmission = new VerificationSubmission()
 				.setStateHistory(Collections.singletonList(new VerificationState().setState(VerificationStateEnum.APPROVED)));
 
-		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(anyLong())).thenReturn(verificationSubmission);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		// Call under test
@@ -204,7 +204,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 		verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
 
@@ -220,18 +220,18 @@ public class DataAccessAuthorizationManagerUnitTest {
 				continue;
 			}
 			
-			Mockito.reset(mockUserProfileManager, mockAclDao);
+			Mockito.reset(mockVerificationDao, mockAclDao);
 			
 			VerificationSubmission verificationSubmission = getVerfificationSubmission(state);
 
-			when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+			when(mockVerificationDao.getCurrentVerificationSubmissionForUser(anyLong())).thenReturn(verificationSubmission);
 			
 			// Call under test
 			AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 			
 			assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
 			
-			verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+			verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 			verifyZeroInteractions(mockAclDao);
 			
 		}
@@ -249,7 +249,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verifyZeroInteractions(mockUserProfileManager);
+		verifyZeroInteractions(mockVerificationDao);
 		verifyZeroInteractions(mockAclDao);
 	}
 	
@@ -265,7 +265,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verifyZeroInteractions(mockUserProfileManager);
+		verifyZeroInteractions(mockVerificationDao);
 		verifyZeroInteractions(mockAclDao);
 	}
 	
@@ -276,7 +276,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		VerificationSubmission verificationSubmission = getVerfificationSubmission(VerificationStateEnum.APPROVED);
 
-		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(anyLong())).thenReturn(verificationSubmission);
 		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 		
 		// Call under test
@@ -284,7 +284,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.accessDenied("The user does not have permissions to review data access submissions for access requirement 123."), result);
 		
-		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 		verify(mockAclDao).canAccess(user, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
 	
@@ -294,14 +294,14 @@ public class DataAccessAuthorizationManagerUnitTest {
 		String accessRequirementId = "123";
 		VerificationSubmission verificationSubmission = null;
 
-		when(mockUserProfileManager.getCurrentVerificationSubmission(anyLong())).thenReturn(verificationSubmission);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(anyLong())).thenReturn(verificationSubmission);
 		
 		// Call under test
 		AuthorizationStatus result = manager.canReviewAccessRequirementSubmissions(user, accessRequirementId);
 		
 		assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
 		
-		verify(mockUserProfileManager).getCurrentVerificationSubmission(user.getId());
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 		verifyZeroInteractions(mockAclDao);
 	}
 	
