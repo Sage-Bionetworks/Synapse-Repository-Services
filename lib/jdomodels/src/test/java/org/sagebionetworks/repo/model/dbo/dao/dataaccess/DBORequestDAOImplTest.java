@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Date;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -28,24 +28,24 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBORequestDAOImplTest {
 
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 
 	@Autowired
-	AccessRequirementDAO accessRequirementDAO;
+	private AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
@@ -62,7 +62,7 @@ public class DBORequestDAOImplTest {
 	private ResearchProject researchProject = null;
 	private String toDelete;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		toDelete = null;
 
@@ -94,7 +94,7 @@ public class DBORequestDAOImplTest {
 		researchProject = researchProjectDao.create(researchProject);
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (toDelete != null) {
 			requestDao.delete(toDelete);
@@ -114,10 +114,14 @@ public class DBORequestDAOImplTest {
 		}
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testNotFound() {
 		Request dto = RequestTestUtils.createNewRequest();
-		requestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		String message = assertThrows(NotFoundException.class, () -> {			
+			requestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		}).getMessage();
+		
+		assertEquals("Data access request does not exist for access requirement: '" + dto.getAccessRequirementId() + "' and user id: '"+ dto.getCreatedBy() +"'", message);
 	}
 
 	@Test
@@ -147,12 +151,9 @@ public class DBORequestDAOImplTest {
 		assertEquals(dto, updated);
 
 		// insert another one with the same accessRequirementId & createdBy
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {			
 			requestDao.create(dto);
-			fail("should fail because of uniqueness constraint");
-		} catch (IllegalArgumentException e){
-			// as expected
-		}
+		});
 
 		// test get for update
 		Request locked = transactionTemplate.execute(new TransactionCallback<Request>() {
@@ -164,9 +165,38 @@ public class DBORequestDAOImplTest {
 		assertEquals(updated, locked);
 	}
 
-	@Test (expected = IllegalTransactionStateException.class)
+	@Test
 	public void testGetForUpdateWithoutTransaction() {
 		Request dto = RequestTestUtils.createNewRequest();
-		requestDao.getForUpdate(dto.getId());
+		
+		assertThrows(IllegalTransactionStateException.class, () -> {			
+			requestDao.getForUpdate(dto.getId());
+		});
+	}
+	
+	@Test
+	public void testGetAccessRequirementId() {
+		Request request = RequestTestUtils.createNewRequest();
+		request.setAccessRequirementId(accessRequirement.getId().toString());
+		request.setResearchProjectId(researchProject.getId());
+		request = requestDao.create(request);
+		
+		toDelete = request.getId();
+		
+		// Call under test
+		String result = requestDao.getAccessRequirementId(request.getId());
+		
+		assertEquals(accessRequirement.getId().toString(), result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementIdWithNonExisting() {
+		
+		String message = assertThrows(NotFoundException.class, () -> {			
+			// Call under test
+			requestDao.getAccessRequirementId("-123");
+		}).getMessage();
+		
+		assertEquals("Data access request: '-123' does not exist", message);
 	}
 }

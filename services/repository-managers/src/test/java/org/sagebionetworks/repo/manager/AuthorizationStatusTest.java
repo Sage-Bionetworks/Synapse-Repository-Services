@@ -72,21 +72,21 @@ class AuthorizationStatusTest {
 	}
 	
 	@Test
-	public void testOrElseGetWithAutorized() {
+	public void testIsAuthorizedOrElseGetWithAutorized() {
 		AuthorizationStatus status = AuthorizationStatus.authorized();
 		
 		// Call under test
-		AuthorizationStatus result = status.orElseGet(() -> AuthorizationStatus.accessDenied("Nope"));
+		AuthorizationStatus result = status.isAuthorizedOrElseGet(() -> "Nope");
 		
 		assertEquals(status, result);
 	}
 	
 	@Test
-	public void testOrElseGetWithNotAutorized() {
+	public void testIsAuthorizedOrElseGetWithNotAutorized() {
 		AuthorizationStatus status = AuthorizationStatus.accessDenied("Nope");
 		
 		// Call under test
-		AuthorizationStatus result = status.orElseGet(() -> AuthorizationStatus.accessDenied("Nope override"));
+		AuthorizationStatus result = status.isAuthorizedOrElseGet(() -> "Nope override");
 		
 		assertNotEquals(status, result);
 		assertFalse(result.isAuthorized());

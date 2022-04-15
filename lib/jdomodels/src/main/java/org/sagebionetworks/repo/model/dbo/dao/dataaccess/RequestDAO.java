@@ -12,7 +12,7 @@ public interface RequestDAO {
 	 * @param toCreate
 	 * @return
 	 */
-	public Request create(Request toCreate);
+	Request create(Request toCreate);
 
 	/**
 	 * Retrieve the current request that the user created (or own) for the given accessRequirementId.
@@ -22,7 +22,7 @@ public interface RequestDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public RequestInterface getUserOwnCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
+	RequestInterface getUserOwnCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
 
 	/**
 	 * Update an existing Request.
@@ -31,7 +31,7 @@ public interface RequestDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public RequestInterface update(RequestInterface toUpdate) throws NotFoundException;
+	RequestInterface update(RequestInterface toUpdate) throws NotFoundException;
 
 	/**
 	 * used for tests
@@ -45,7 +45,7 @@ public interface RequestDAO {
 	 * @effect this call will put a lock on the returned object.
 	 * @return
 	 */
-	public RequestInterface getForUpdate(String id);
+	RequestInterface getForUpdate(String id);
 
 	/**
 	 * Retrieve the current Request.
@@ -53,7 +53,13 @@ public interface RequestDAO {
 	 * @param id
 	 * @return
 	 */
-	public RequestInterface get(String id);
+	RequestInterface get(String id);
+	
+	/**
+	 * @param requestId
+	 * @return The id of the access requirement for the request with the given id
+	 */
+	String getAccessRequirementId(String requestId);
 
 	// For testing
 
