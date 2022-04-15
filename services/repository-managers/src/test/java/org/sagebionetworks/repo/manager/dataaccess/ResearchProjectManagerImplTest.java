@@ -439,6 +439,27 @@ public class ResearchProjectManagerImplTest {
 
 		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
 	}
+	
+	@Test
+	public void testUpdateWithNullCreatedByCreatedOn() {
+		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
+		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
+		
+		ResearchProject toUpdate = createNewResearchProject();
+		
+		when(mockResearchProjectDao.update(any())).thenReturn(toUpdate);
+		
+		toUpdate.setCreatedBy(null);
+		toUpdate.setCreatedOn(null);
+		
+		// Call under test
+		ResearchProject result = manager.update(mockUser, toUpdate);
+		
+		assertEquals(result.getCreatedOn(), researchProject.getCreatedOn());
+		assertEquals(result.getCreatedBy(), researchProject.getCreatedBy());
+
+	}
 
 	@Test
 	public void testUpdateCreatedOn() {

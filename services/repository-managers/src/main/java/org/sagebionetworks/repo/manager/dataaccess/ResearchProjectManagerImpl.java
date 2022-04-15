@@ -14,15 +14,22 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	public static final int EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT = 0;
 
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
+	
 	private ResearchProjectDAO researchProjectDao;
+	
+	@Autowired
+	public ResearchProjectManagerImpl(AccessRequirementDAO accessRequirementDao, ResearchProjectDAO researchProjectDao) {
+		this.accessRequirementDao = accessRequirementDao;
+		this.researchProjectDao = researchProjectDao;
+	}
 
 	@WriteTransaction
 	@Override
@@ -87,8 +94,17 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		validateResearchProject(toUpdate);
 
 		ResearchProject original = researchProjectDao.getForUpdate(toUpdate.getId());
+		
 		if (!original.getEtag().equals(toUpdate.getEtag())) {
 			throw new ConflictingUpdateException();
+		}
+		
+		if (toUpdate.getCreatedOn() == null) {
+			toUpdate.setCreatedOn(original.getCreatedOn());
+		}
+		
+		if (toUpdate.getCreatedBy() == null) {
+			toUpdate.setCreatedBy(original.getCreatedBy());
 		}
 
 		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())

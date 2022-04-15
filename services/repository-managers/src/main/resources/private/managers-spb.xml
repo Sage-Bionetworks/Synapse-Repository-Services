@@ -373,9 +373,6 @@
 		class="org.sagebionetworks.repo.manager.table.TableUploadManagerImpl"
 		scope="singleton" />
 
-	<bean id="researchProjectManager"
-		class="org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManagerImpl"
-		scope="singleton" />
 	<bean id="requestManager"
 		class="org.sagebionetworks.repo.manager.dataaccess.RequestManagerImpl"
 		scope="singleton" />
