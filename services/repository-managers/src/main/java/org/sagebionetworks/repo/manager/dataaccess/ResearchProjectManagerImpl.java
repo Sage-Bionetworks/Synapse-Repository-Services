@@ -91,27 +91,20 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate)
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "The user");
-		validateResearchProject(toUpdate);
+		ValidateArgument.required(toUpdate, "The research project");
 
 		ResearchProject original = researchProjectDao.getForUpdate(toUpdate.getId());
+
+		toUpdate.setCreatedOn(original.getCreatedOn());
+		toUpdate.setCreatedBy(original.getCreatedBy());
+		toUpdate.setAccessRequirementId(original.getAccessRequirementId());
+		
+		validateResearchProject(toUpdate);
 		
 		if (!original.getEtag().equals(toUpdate.getEtag())) {
 			throw new ConflictingUpdateException();
 		}
 		
-		if (toUpdate.getCreatedOn() == null) {
-			toUpdate.setCreatedOn(original.getCreatedOn());
-		}
-		
-		if (toUpdate.getCreatedBy() == null) {
-			toUpdate.setCreatedBy(original.getCreatedBy());
-		}
-
-		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
-				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
-				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId()),
-				"accessRequirementId, createdOn and createdBy fields cannot be edited.");
-
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only the owner can perform this action.");
 		}

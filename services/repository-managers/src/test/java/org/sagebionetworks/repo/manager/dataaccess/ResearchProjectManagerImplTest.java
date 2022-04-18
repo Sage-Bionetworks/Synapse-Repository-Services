@@ -340,20 +340,8 @@ public class ResearchProjectManagerImplTest {
 	}
 
 	@Test
-	public void testUpdateWithNullAccessRequirementId() {
-		ResearchProject toUpdate = createNewResearchProject();
-		toUpdate.setAccessRequirementId(null);
-
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.update(mockUser, toUpdate);
-		});
-
-		assertEquals("The accessRequirementId is required.", ex.getMessage());
-	}
-
-	@Test
 	public void testUpdateWithNullProjectLead() {
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		
 		ResearchProject toUpdate = createNewResearchProject();
@@ -368,6 +356,7 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullInstitution() {
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setInstitution(null);
@@ -381,6 +370,7 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullIDUWhenRequired() {
+		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		when(mockAccessRequirement.getIsIDURequired()).thenReturn(true);
 		
@@ -413,7 +403,6 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testUpdateNotFound() {
-		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		when(mockResearchProjectDao.getForUpdate(anyString())).thenThrow(new NotFoundException("test"));
 
 		ResearchProject toUpdate = createNewResearchProject();
@@ -424,24 +413,9 @@ public class ResearchProjectManagerImplTest {
 
 		assertEquals("test", ex.getMessage());
 	}
-
-	@Test
-	public void testUpdateCreatedBy() {
-		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
-		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
-		
-		ResearchProject toUpdate = createNewResearchProject();
-		toUpdate.setCreatedBy("333");
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.update(mockUser, toUpdate);
-		});
-
-		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
-	}
 	
 	@Test
-	public void testUpdateWithNullCreatedByCreatedOn() {
+	public void testUpdateWithImmutableFields() {
 		when(mockUser.getId()).thenReturn(Long.valueOf(userId));
 		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
 		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
@@ -452,43 +426,15 @@ public class ResearchProjectManagerImplTest {
 		
 		toUpdate.setCreatedBy(null);
 		toUpdate.setCreatedOn(null);
+		toUpdate.setAccessRequirementId(null);
 		
 		// Call under test
 		ResearchProject result = manager.update(mockUser, toUpdate);
 		
 		assertEquals(result.getCreatedOn(), researchProject.getCreatedOn());
 		assertEquals(result.getCreatedBy(), researchProject.getCreatedBy());
+		assertEquals(result.getAccessRequirementId(), researchProject.getAccessRequirementId());
 
-	}
-
-	@Test
-	public void testUpdateCreatedOn() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
-		
-		ResearchProject toUpdate = createNewResearchProject();
-		toUpdate.setCreatedOn(new Date(0L));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.update(mockUser, toUpdate);
-		});
-
-		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
-	}
-
-	@Test
-	public void testUpdateAccessRequirementId() {
-		when(mockAccessRequirementDao.get(anyString())).thenReturn(mockAccessRequirement);
-		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
-		
-		ResearchProject toUpdate = createNewResearchProject();
-		toUpdate.setAccessRequirementId("444");
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.update(mockUser, toUpdate);
-		});
-
-		assertEquals("accessRequirementId, createdOn and createdBy fields cannot be edited.", ex.getMessage());
 	}
 
 	@Test
