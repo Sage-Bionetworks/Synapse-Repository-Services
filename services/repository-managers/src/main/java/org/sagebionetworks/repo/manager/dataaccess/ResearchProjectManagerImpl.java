@@ -14,15 +14,22 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	public static final int EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT = 0;
 
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
+	
 	private ResearchProjectDAO researchProjectDao;
+	
+	@Autowired
+	public ResearchProjectManagerImpl(AccessRequirementDAO accessRequirementDao, ResearchProjectDAO researchProjectDao) {
+		this.accessRequirementDao = accessRequirementDao;
+		this.researchProjectDao = researchProjectDao;
+	}
 
 	@WriteTransaction
 	@Override
@@ -84,18 +91,20 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate)
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "The user");
-		validateResearchProject(toUpdate);
+		ValidateArgument.required(toUpdate, "The research project");
 
 		ResearchProject original = researchProjectDao.getForUpdate(toUpdate.getId());
+
+		toUpdate.setCreatedOn(original.getCreatedOn());
+		toUpdate.setCreatedBy(original.getCreatedBy());
+		toUpdate.setAccessRequirementId(original.getAccessRequirementId());
+		
+		validateResearchProject(toUpdate);
+		
 		if (!original.getEtag().equals(toUpdate.getEtag())) {
 			throw new ConflictingUpdateException();
 		}
-
-		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
-				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
-				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId()),
-				"accessRequirementId, createdOn and createdBy fields cannot be edited.");
-
+		
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only the owner can perform this action.");
 		}
