@@ -1032,7 +1032,7 @@
 		<gwtVersion>2.8.2</gwtVersion>
 		<guavaVersion>30.1.1-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
-		<org.springframework.version>5.3.18</org.springframework.version>
+		<org.springframework.version>5.3.19</org.springframework.version>
 		<jackson.version>2.10.3</jackson.version>
 		<jackson.databind.version>2.10.5.1</jackson.databind.version>
 		<xstream.version>1.4.17</xstream.version>
