@@ -60,6 +60,11 @@
 					},
 					"dataLabel": {
 						"const": "De-identified"
+					},
+					"_accessRequirementIds": {
+						"const": [
+							4
+						]
 					}
 				},
 				"required": [
@@ -114,6 +119,13 @@
 			"type": "string",
 			"format": "date",
 			"const": "2022-05-20"
+		},
+		"_accessRequirementIds": {
+			"const": [
+				1,
+				2,
+				3
+			]
 		}
 	},
 	"required": [
