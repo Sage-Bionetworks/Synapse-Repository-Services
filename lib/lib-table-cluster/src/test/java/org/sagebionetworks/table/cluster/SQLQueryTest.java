@@ -1386,6 +1386,86 @@ public class SQLQueryTest {
 		}).getMessage();
 		assertEquals(TableConstants.DEFINING_SQL_WITH_GROUP_BY_ERROR, message);
 	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithWhereColumnNotFound() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype) where a.inttypeWrong = 123";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+			.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		}).getLocalizedMessage();
+		assertEquals("Column does not exist: a.inttypeWrong", message);
+	}
+	
+	@Test
+	public void testTranslateWithMaterializedViewWithJoinColumnNotFound() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order. 
+		List<IndexDescription> dependencies = Arrays.asList(
+				new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview)
+		);
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on (a.inttypeWrong = b.inttype)";
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+			.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		}).getLocalizedMessage();
+		assertEquals("Column does not exist: a.inttypeWrong", message);
+	}
+
+	@Test
+	public void testTranslateWithMaterializedViewWithComplexCondition() throws ParseException {
+		IdAndVersion viewId = IdAndVersion.parse("syn1");
+		IdAndVersion tableId = IdAndVersion.parse("syn2");
+		Map<IdAndVersion, List<ColumnModel>> schemaMap = new LinkedHashMap<IdAndVersion, List<ColumnModel>>();
+		schemaMap.put(viewId, Arrays.asList(columnNameToModelMap.get("inttype")));
+		schemaMap.put(tableId, Arrays.asList(columnNameToModelMap.get("inttype")));
+
+		// Note: The dependencies are in a different order.
+		List<IndexDescription> dependencies = Arrays.asList(new TableIndexDescription(tableId),
+				new ViewIndexDescription(viewId, EntityType.entityview));
+
+		IdAndVersion materializedViewId = IdAndVersion.parse("syn3");
+		IndexDescription indexDescription = new MaterializedViewIndexDescription(materializedViewId, dependencies);
+
+		// this query is used to build the materialized view.
+		sql = "select * from syn1 a join syn2 b on (a.inttype = b.inttype and a.inttype > 12)";
+		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
+				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
+		assertEquals(
+				"SELECT _A0._C888_, _A1._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0"
+				+ " JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ AND _A0._C888_ > :b0 )",
+				query.getOutputSQL());
+		Map<String, Object> expectedParams = new HashMap<>(4);
+		expectedParams.put("b0", 12L);
+		assertEquals(expectedParams, query.getParameters());
+	}
 
 	/**
 	 * Helper to create a schema provider for the given schema.

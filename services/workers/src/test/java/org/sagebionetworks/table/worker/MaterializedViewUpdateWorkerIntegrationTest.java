@@ -454,6 +454,35 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 	}
 	
+	/**
+	 * This is a test for PLFM-7240.
+	 * @throws Exception
+	 */
+	@Test
+	public void testMaterializedViewWithColumnNotFound() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		
+		String definingSql = String.format(
+				"select v.id as id, p.patientId as patient, p.code as code from %s v join %s p on (v.patientIdWrong = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			createMaterializedView(projectId, definingSql);
+		}).getMessage();
+		assertEquals("Column does not exist: v.patientIdWrong", message);
+	}
+	
 	@Test
 	public void testMaterializedViewWithJoinMultipleViews() throws Exception {
 		int numberOfFiles = 5;
