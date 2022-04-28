@@ -1780,6 +1780,28 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateModelWithKnownJoinColumn() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.id)").querySpecification();
+		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// call under test
+		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		assertEquals("SELECT * FROM T123 _A0 JOIN T123 _A1 ON ( _A0._C444_ = _A1._C444_ )",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelWithUnknownJoinColumn() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.wrong = b.id)").querySpecification();
+		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		}).getMessage();
+		assertEquals("Column does not exist: a.wrong", message);
+	}
+	
+	@Test
 	public void testTranslateModelSimple() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select foo from syn123").querySpecification();
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);

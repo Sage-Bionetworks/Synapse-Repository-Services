@@ -320,23 +320,19 @@ public class SQLTranslatorUtils {
 			return;
 		}
 
+
 		translateAllTableNameCorrelation(tableExpression.getFromClause(), mapper);
 
-		// Translate where
-		WhereClause whereClause = tableExpression.getWhereClause();
+		// Translate all predicates
+		Iterable<HasPredicate> hasPredicates = tableExpression.createIterable(HasPredicate.class);
+		for (HasPredicate predicate : hasPredicates) {
+			translate(predicate, parameters, mapper);
+		}
 
-		if(whereClause != null) {
-			// Translate all predicates
-			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
-			for (HasPredicate predicate : hasPredicates) {
-				translate(predicate, parameters, mapper);
-			}
-
-			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
-				replaceBooleanFunction(booleanPrimary, mapper);
-				replaceArrayHasPredicate(booleanPrimary, mapper);
-				replaceTextMatchesPredicate(booleanPrimary);
-			}
+		for (BooleanPrimary booleanPrimary : tableExpression.createIterable(BooleanPrimary.class)) {
+			replaceBooleanFunction(booleanPrimary, mapper);
+			replaceArrayHasPredicate(booleanPrimary, mapper);
+			replaceTextMatchesPredicate(booleanPrimary);
 		}
 
 		// translate Pagination
@@ -358,7 +354,7 @@ public class SQLTranslatorUtils {
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
-	
+
 	/**
 	 * Translate all ColumnReference found in the given root element.
 	 * 
