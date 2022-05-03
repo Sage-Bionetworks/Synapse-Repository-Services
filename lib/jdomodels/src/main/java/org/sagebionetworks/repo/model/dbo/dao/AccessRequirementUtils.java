@@ -45,6 +45,14 @@ public class AccessRequirementUtils {
 		dboRequirement.setAccessType(dto.getAccessType().name());
 		dboRequirement.setConcreteType(dto.getConcreteType());
 		dboRequirement.setCurrentRevNumber(dto.getVersionNumber());
+		if(dto.getName() == null) {
+			if(dto.getDescription() != null) {
+				dto.setName(dto.getDescription());
+			}else {
+				dto.setName(dto.getId().toString());
+			}
+		}
+		dboRequirement.setName(dto.getName());
 
 		// revision
 		dboRevision.setOwnerId(dto.getId());

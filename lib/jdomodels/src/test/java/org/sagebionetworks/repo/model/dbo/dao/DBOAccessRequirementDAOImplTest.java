@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -465,6 +466,156 @@ public class DBOAccessRequirementDAOImplTest {
 			accessRequirementDAO.delete(accessRequirementId);
 		});
 		assertEquals(expectedMessage, exception.getMessage());
+	}
+	
+	@Test
+	public void testTranslateExceptionWithUnknownMessage() {
+		IllegalArgumentException e = new IllegalArgumentException("Some random exception");
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			DBOAccessRequirementDAOImpl.translateException(e, "some name");
+		}).getMessage();
+		assertEquals("Some random exception", message);
+	}
+	
+	@Test
+	public void testTranslateExceptionWithDuplicateKey() {
+		IllegalArgumentException e = new IllegalArgumentException("Tagged with 'AR_NAME'");
+		String message = assertThrows(NameConflictException.class, ()->{
+			// call under test
+			DBOAccessRequirementDAOImpl.translateException(e, "some name");
+		}).getMessage();
+		assertEquals("An AccessRequirement with the name: 'some name' already exists", message);
+	}
+	
+	// create name
+	
+	@Test
+	public void testCreateAccessRequirmentWithNullDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setDescription(null);
+		ar.setName(null);
+		// call under test
+		ar = accessRequirementDAO.create(ar);
+		assertEquals(ar.getId().toString(), ar.getName());
+	}
+	
+	@Test
+	public void testCreateAccessRequirmentWithNullDescriptionAndNonNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setDescription(null);
+		ar.setName("some name");
+		// call under test
+		ar = accessRequirementDAO.create(ar);
+		assertEquals("some name", ar.getName());
+	}
+	
+	@Test
+	public void testCreateAccessRequirmentWithNonNullDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setDescription("some description");
+		ar.setName(null);
+		// call under test
+		ar = accessRequirementDAO.create(ar);
+		assertEquals("some description", ar.getName());
+	}
+	
+	@Test
+	public void testCreateAccessRequirmentWithNonNullDescriptionAndNonNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setDescription("some description");
+		ar.setName("some name");
+		// call under test
+		ar = accessRequirementDAO.create(ar);
+		assertEquals("some name", ar.getName());
+	}
+	
+	@Test
+	public void testCreateAccessRequirmentWithDuplicateName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("Not Unique");
+		ar = accessRequirementDAO.create(ar);
+		assertEquals("Not Unique", ar.getName());
+		
+		TermsOfUseAccessRequirement ardup = newEntityAccessRequirement(individualGroup, node, "foo");
+		ardup.setName("not unique");
+		String message = assertThrows(NameConflictException.class, ()->{
+			accessRequirementDAO.create(ardup);
+		}).getMessage();
+		assertEquals("An AccessRequirement with the name: 'not unique' already exists", message);
+	}
+	
+	// update name
+	
+	@Test
+	public void testUpdateAccessRequirmentWithNullDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		ar = accessRequirementDAO.create(ar);
+		ar.setDescription(null);
+		ar.setName(null);
+		ar.setVersionNumber(ar.getVersionNumber()+1);
+		// call under test
+		ar = accessRequirementDAO.update(ar);
+		assertEquals(ar.getId().toString(), ar.getName());
+	}
+	
+	@Test
+	public void testUpdateAccessRequirmentWithNullDescriptionAndNonNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		ar = accessRequirementDAO.create(ar);
+		ar.setDescription(null);
+		ar.setName("some name");
+		ar.setVersionNumber(ar.getVersionNumber()+1);
+		// call under test
+		ar = accessRequirementDAO.update(ar);
+		assertEquals("some name", ar.getName());
+	}
+	
+	@Test
+	public void testUpdateAccessRequirmentWithNonNullDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		ar = accessRequirementDAO.create(ar);
+		ar.setDescription("some description");
+		ar.setName(null);
+		ar.setVersionNumber(ar.getVersionNumber()+1);
+		// call under test
+		ar = accessRequirementDAO.update(ar);
+		assertEquals("some description", ar.getName());
+	}
+	
+	@Test
+	public void testUpdateAccessRequirmentWithNonNullDescriptionAndNonNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		ar = accessRequirementDAO.create(ar);
+		ar.setDescription("some description");
+		ar.setName("some name");
+		ar.setVersionNumber(ar.getVersionNumber()+1);
+		// call under test
+		ar = accessRequirementDAO.update(ar);
+		assertEquals("some name", ar.getName());
+	}
+	
+	@Test
+	public void testUpdateAccessRequirmentWithDuplicateName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("Not Unique");
+		ar = accessRequirementDAO.create(ar);
+		assertEquals("Not Unique", ar.getName());
+		
+		ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		TermsOfUseAccessRequirement arDup = accessRequirementDAO.create(ar);
+		arDup.setName("not unique");
+		arDup.setVersionNumber(arDup.getVersionNumber()+1);
+		String message = assertThrows(NameConflictException.class, ()->{
+			// call under test
+			accessRequirementDAO.update(arDup);
+		}).getMessage();
+		assertEquals("An AccessRequirement with the name: 'not unique' already exists", message);
 	}
 
 }

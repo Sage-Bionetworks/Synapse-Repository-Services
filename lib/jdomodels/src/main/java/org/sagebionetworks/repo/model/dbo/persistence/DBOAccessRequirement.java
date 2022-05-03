@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
@@ -22,9 +23,9 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * @author brucehoff
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirement> {
 	private Long id;
 	private String eTag;
+	private String name;
 	private Long createdBy;
 	private long createdOn;
 	private String accessType;
@@ -42,6 +44,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true).withIsBackupId(true),
 		new FieldColumn("eTag", COL_ACCESS_REQUIREMENT_ETAG).withIsEtag(true),
+		new FieldColumn("name", COL_ACCESS_REQUIREMENT_NAME),
 		new FieldColumn("currentRevNumber", COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER),
 		new FieldColumn("createdBy", COL_ACCESS_REQUIREMENT_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
@@ -59,6 +62,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				DBOAccessRequirement ar = new DBOAccessRequirement();
 				ar.setId(rs.getLong(COL_ACCESS_REQUIREMENT_ID));
 				ar.seteTag(rs.getString(COL_ACCESS_REQUIREMENT_ETAG));
+				ar.setName(rs.getString(COL_ACCESS_REQUIREMENT_NAME));
 				ar.setCurrentRevNumber(rs.getLong(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER));
 				ar.setCreatedBy(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_BY));
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
@@ -107,6 +111,14 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 
 	public void seteTag(String eTag) {
 		this.eTag = eTag;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 
@@ -158,7 +170,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id);
+		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id, name);
 	}
 
 	@Override
@@ -166,17 +178,14 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof DBOAccessRequirement)) {
 			return false;
 		}
 		DBOAccessRequirement other = (DBOAccessRequirement) obj;
 		return Objects.equals(accessType, other.accessType) && Objects.equals(concreteType, other.concreteType)
 				&& Objects.equals(createdBy, other.createdBy) && createdOn == other.createdOn
 				&& Objects.equals(currentRevNumber, other.currentRevNumber) && Objects.equals(eTag, other.eTag)
-				&& Objects.equals(id, other.id);
+				&& Objects.equals(id, other.id) && Objects.equals(name, other.name);
 	}
 
 	@Override
@@ -184,9 +193,23 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return MigrationType.ACCESS_REQUIREMENT;
 	}
 
+	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOAccessRequirement>();
+		return new  MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
+
+			@Override
+			public DBOAccessRequirement createDatabaseObjectFromBackup(DBOAccessRequirement backup) {
+				if(backup.getName() == null) {
+					backup.setName(backup.getId().toString());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOAccessRequirement createBackupFromDatabaseObject(DBOAccessRequirement dbo) {
+				return dbo;
+			}};
 	}
 
 	@Override
