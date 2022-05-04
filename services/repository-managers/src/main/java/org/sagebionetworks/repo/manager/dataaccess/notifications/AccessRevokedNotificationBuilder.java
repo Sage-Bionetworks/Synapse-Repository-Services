@@ -49,8 +49,8 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		String prefix = "Data";
 		
-		if (!StringUtils.isBlank(accessRequirement.getDescription())) {
-			prefix = accessRequirement.getDescription();
+		if (!StringUtils.isBlank(accessRequirement.getName())) {
+			prefix = accessRequirement.getName();
 		}
 		
 		return String.format(SUBJECT_TEMPLATE, prefix);
@@ -81,7 +81,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 		}
 		
 		context.put(PARAM_REQUIREMENT_ID, accessRequirement.getId());
-		context.put(PARAM_REQUIREMENT_DESCRIPTION, StringUtils.trimToNull(accessRequirement.getDescription()));
+		context.put(PARAM_REQUIREMENT_DESCRIPTION, StringUtils.trimToNull(accessRequirement.getName()));
 		context.put(PARAM_DISPLAY_NAME, displayName);
 		context.put(PARAM_SUBMITTER_DISPLAY_NAME, submitterDisplayName);
 		

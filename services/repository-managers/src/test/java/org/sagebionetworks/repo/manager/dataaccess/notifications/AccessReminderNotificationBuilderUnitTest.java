@@ -88,7 +88,7 @@ public class AccessReminderNotificationBuilderUnitTest {
 		String description = "Some Dataset";
 		String expected = description + " Access Renewal Reminder";
 		
-		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockRequirement.getName()).thenReturn(description);
 		
 		// Call under test
 		String result = builder.buildSubject(mockRequirement, mockApproval, mockRecipient);
@@ -110,7 +110,7 @@ public class AccessReminderNotificationBuilderUnitTest {
 		
 		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
-		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockRequirement.getName()).thenReturn(description);
 		when(mockApproval.getExpiredOn()).thenReturn(expiredOn);
 		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
 		doNothing().when(mockTemplate).merge(any(), any());
@@ -122,7 +122,7 @@ public class AccessReminderNotificationBuilderUnitTest {
 		verify(mockUserProfile).getUserName();
 		verify(mockApproval).getExpiredOn();
 		verify(mockRequirement).getId();
-		verify(mockRequirement).getDescription();
+		verify(mockRequirement).getName();
 		verify(mockRequirement).getIsDUCRequired();
 		verify(mockRequirement).getIsIRBApprovalRequired();
 		verify(mockVelocityEngine).getTemplate(AccessReminderNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());

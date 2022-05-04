@@ -88,7 +88,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		String description = "Some Dataset";
 		String expected = description + " Access Revoked";
 		
-		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockRequirement.getName()).thenReturn(description);
 		
 		// Call under test
 		String result = builder.buildSubject(mockRequirement, mockApproval, mockRecipient);
@@ -113,7 +113,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		
 		when(mockProfileManager.getUserProfile(recipientId.toString())).thenReturn(mockUserProfile);
 		when(mockRequirement.getId()).thenReturn(requirementId);
-		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockRequirement.getName()).thenReturn(description);
 		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
 		doNothing().when(mockTemplate).merge(any(), any());
 		
@@ -125,7 +125,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		verify(mockUserProfile).getLastName();
 		verify(mockUserProfile, never()).getUserName();
 		verify(mockRequirement).getId();
-		verify(mockRequirement).getDescription();
+		verify(mockRequirement).getName();
 		verify(mockVelocityEngine).getTemplate(AccessRevokedNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());
 
 		ArgumentCaptor<VelocityContext> contextCaptor = ArgumentCaptor.forClass(VelocityContext.class);
@@ -163,7 +163,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		when(mockProfileManager.getUserProfile(recipientId.toString())).thenReturn(mockUserProfile);
 		
 		when(mockRequirement.getId()).thenReturn(requirementId);
-		when(mockRequirement.getDescription()).thenReturn(description);
+		when(mockRequirement.getName()).thenReturn(description);
 		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
 		doNothing().when(mockTemplate).merge(any(), any());
 		
@@ -177,7 +177,7 @@ public class AccessRevokedNotificationBuilderUnitTest {
 		verify(mockUserProfile, never()).getUserName();
 		verify(mockSubmitterUserProfile).getUserName();
 		verify(mockRequirement).getId();
-		verify(mockRequirement).getDescription();
+		verify(mockRequirement).getName();
 		verify(mockVelocityEngine).getTemplate(AccessRevokedNotificationBuilder.TEMPLATE_FILE, StandardCharsets.UTF_8.name());
 
 		ArgumentCaptor<VelocityContext> contextCaptor = ArgumentCaptor.forClass(VelocityContext.class);

@@ -67,7 +67,7 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		when(mockProfile.getLastName()).thenReturn(lastName);
 		when(approval.getExpiredOn()).thenReturn(epxpiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalReminderNotificationWithDescription.html");
 
@@ -93,7 +93,7 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		when(mockProfile.getLastName()).thenReturn(lastName);
 		when(approval.getExpiredOn()).thenReturn(epxpiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalReminderNotificationWithoutDescription.html");
 
@@ -117,7 +117,7 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		when(mockProfile.getUserName()).thenReturn(userName);
 		when(approval.getExpiredOn()).thenReturn(epxpiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		when(accessRequirement.getIsIRBApprovalRequired()).thenReturn(true);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalReminderNotificationWithIRB.html");
@@ -142,7 +142,7 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		when(mockProfile.getUserName()).thenReturn(userName);
 		when(approval.getExpiredOn()).thenReturn(expiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		when(accessRequirement.getIsDUCRequired()).thenReturn(true);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalReminderNotificationWithDUC.html");
@@ -167,7 +167,7 @@ public class AccessReminderNotificationBuilderIntegrationTest {
 		when(mockProfile.getUserName()).thenReturn(userName);
 		when(approval.getExpiredOn()).thenReturn(epxpiresOn);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		when(accessRequirement.getIsDUCRequired()).thenReturn(true);
 		when(accessRequirement.getIsIRBApprovalRequired()).thenReturn(true);
 		

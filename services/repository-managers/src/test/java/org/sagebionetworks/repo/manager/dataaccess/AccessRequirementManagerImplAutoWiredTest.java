@@ -238,6 +238,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		expected.setEtag(result.getEtag());
 		expected.setModifiedOn(result.getModifiedOn());
 		expected.setModifiedBy(result.getModifiedBy());
+		expected.setName("Some description");
 		
 		assertEquals(expected, result);
 		
@@ -257,6 +258,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		expected.setEtag(result.getEtag());
 		expected.setModifiedOn(result.getModifiedOn());
 		expected.setModifiedBy(result.getModifiedBy());
+		expected.setName("Some description");
 		
 		assertEquals(expected, result);
 		
