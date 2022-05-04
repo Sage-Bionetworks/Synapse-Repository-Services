@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -45,14 +46,13 @@ public class AccessRequirementUtils {
 		dboRequirement.setAccessType(dto.getAccessType().name());
 		dboRequirement.setConcreteType(dto.getConcreteType());
 		dboRequirement.setCurrentRevNumber(dto.getVersionNumber());
-		if(dto.getName() == null) {
-			if(dto.getDescription() != null) {
-				dto.setName(dto.getDescription());
-			}else {
-				dto.setName(dto.getId().toString());
-			}
-		}
 		dboRequirement.setName(dto.getName());
+		if(dboRequirement.getName() == null) {
+			dboRequirement.setName(dto.getId().toString());
+		}
+		if(!StringUtils.isBlank(dto.getDescription())) {
+			dboRequirement.setName(dto.getDescription());
+		}
 
 		// revision
 		dboRevision.setOwnerId(dto.getId());
@@ -83,6 +83,7 @@ public class AccessRequirementUtils {
 		}
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
+		dto.setName(dbo.getName());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(revision.getModifiedBy().toString());

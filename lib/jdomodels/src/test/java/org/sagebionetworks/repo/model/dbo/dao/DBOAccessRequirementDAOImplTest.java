@@ -521,13 +521,23 @@ public class DBOAccessRequirementDAOImplTest {
 	}
 	
 	@Test
+	public void testCreateAccessRequirmentWithEmptyDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setDescription("");
+		ar.setName(null);
+		// call under test
+		ar = accessRequirementDAO.create(ar);
+		assertEquals(ar.getId().toString(), ar.getName());
+	}
+	
+	@Test
 	public void testCreateAccessRequirmentWithNonNullDescriptionAndNonNullName() {
 		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
 		ar.setDescription("some description");
 		ar.setName("some name");
 		// call under test
 		ar = accessRequirementDAO.create(ar);
-		assertEquals("some name", ar.getName());
+		assertEquals("some description", ar.getName());
 	}
 	
 	@Test
@@ -553,6 +563,19 @@ public class DBOAccessRequirementDAOImplTest {
 		ar.setName("change me");
 		ar = accessRequirementDAO.create(ar);
 		ar.setDescription(null);
+		ar.setName(null);
+		ar.setVersionNumber(ar.getVersionNumber()+1);
+		// call under test
+		ar = accessRequirementDAO.update(ar);
+		assertEquals(ar.getId().toString(), ar.getName());
+	}
+	
+	@Test
+	public void testUpdateAccessRequirmentWithEmptyDescriptionAndNullName() {
+		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+		ar.setName("change me");
+		ar = accessRequirementDAO.create(ar);
+		ar.setDescription("");
 		ar.setName(null);
 		ar.setVersionNumber(ar.getVersionNumber()+1);
 		// call under test
@@ -596,7 +619,7 @@ public class DBOAccessRequirementDAOImplTest {
 		ar.setVersionNumber(ar.getVersionNumber()+1);
 		// call under test
 		ar = accessRequirementDAO.update(ar);
-		assertEquals("some name", ar.getName());
+		assertEquals("some description", ar.getName());
 	}
 	
 	@Test

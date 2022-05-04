@@ -64,17 +64,20 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public static final String OFFSET_PARAM = "OFFSET";
 	public static final Long DEFAULT_VERSION = 0L;
 	
-	@Autowired
 	private DBOBasicDao basicDao;
-	
-	@Autowired
 	private IdGenerator idGenerator;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	public DBOAccessRequirementDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			NamedParameterJdbcTemplate namedJdbcTemplate, JdbcTemplate jdbcTemplate) {
+		super();
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	private static final String UPDATE_ACCESS_REQUIREMENT_SQL = "UPDATE "
 			+ TABLE_ACCESS_REQUIREMENT
