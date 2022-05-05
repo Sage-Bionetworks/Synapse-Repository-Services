@@ -97,7 +97,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			+ RESOURCE_ID_BIND_VAR
 			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
 	
-	private static final String SELECT_COUNT_RESOURCE_ACCESS = "SELECT COUNT(acl." + COL_ACL_OWNER_ID + ") FROM "
+	private static final String SELECT_HAS_ACCESS_TYPE = "SELECT COUNT(*) = 1 FROM (SELECT acl." + COL_ACL_OWNER_ID + " FROM "
 			+ AUTHORIZATION_SQL_TABLES
 			+ " WHERE "
 			+ AUTHORIZATION_SQL_JOIN
@@ -109,7 +109,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
 			+ "=:"
 			+ ACCESS_TYPE_BIND_VAR
-			+ " AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
+			+ " AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR +" LIMIT 1) AS T";
 	
 	private static final String SELECT_NON_VISIBLE_CHILDREN =
 			"SELECT N1."+COL_NODE_ID+
@@ -639,7 +639,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			ACCESS_TYPE_BIND_VAR, accessType.name()
 		);
 		
-		return namedParameterJdbcTemplate.queryForObject(SELECT_COUNT_RESOURCE_ACCESS, namedParameters, Long.class) > 0;
+		return namedParameterJdbcTemplate.queryForObject(SELECT_HAS_ACCESS_TYPE, namedParameters, Boolean.class);
 	}
 
 	@Override
