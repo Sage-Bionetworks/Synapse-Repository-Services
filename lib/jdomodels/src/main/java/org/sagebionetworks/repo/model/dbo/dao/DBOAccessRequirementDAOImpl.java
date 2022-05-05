@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
@@ -62,23 +64,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public static final String OFFSET_PARAM = "OFFSET";
 	public static final Long DEFAULT_VERSION = 0L;
 	
-	@Autowired
 	private DBOBasicDao basicDao;
-	
-	@Autowired
 	private IdGenerator idGenerator;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	public DBOAccessRequirementDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			NamedParameterJdbcTemplate namedJdbcTemplate, JdbcTemplate jdbcTemplate) {
+		super();
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	private static final String UPDATE_ACCESS_REQUIREMENT_SQL = "UPDATE "
 			+ TABLE_ACCESS_REQUIREMENT
 			+ " SET "+COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+" = :"+COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+", "
 			+ COL_ACCESS_REQUIREMENT_ETAG+" = :"+COL_ACCESS_REQUIREMENT_ETAG+", "
-			+ COL_ACCESS_REQUIREMENT_CONCRETE_TYPE+" = :"+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+ COL_ACCESS_REQUIREMENT_CONCRETE_TYPE+" = :"+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE+", "
+			+ COL_ACCESS_REQUIREMENT_NAME+" = :"+COL_ACCESS_REQUIREMENT_NAME
 			+ " WHERE "+COL_ACCESS_REQUIREMENT_ID+" = :"+COL_ACCESS_REQUIREMENT_ID;
 	
 	private static final String SELECT_CURRENT_REQUIREMENTS_BY_ID = 
@@ -199,10 +205,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo, dboRevision);
-		dbo = basicDao.createNew(dbo);
+		try {
+			dbo = basicDao.createNew(dbo);
+		} catch (IllegalArgumentException e) {
+			translateException(e, dto.getName());
+		}
 		basicDao.createNew(dboRevision);
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		return (T) get(dbo.getId().toString());
+	}
+	
+	/**
+	 * Attempt to translate the given exception.
+	 * @param e
+	 * @param dto
+	 */
+	static void translateException(IllegalArgumentException e, String name) {
+		if(e.getMessage().contains("AR_NAME")) {
+			throw new NameConflictException(String.format("An AccessRequirement with the name: '%s' already exists", name), e);
+		}else {
+			throw e;
+		}
 	}
 
 	/**
@@ -304,7 +327,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_ACCESS_REQUIREMENT_ETAG, UUID.randomUUID().toString());
 		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, toUpdate.getCurrentRevNumber());
 		param.addValue(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE, toUpdate.getConcreteType());
-		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
+		param.addValue(COL_ACCESS_REQUIREMENT_NAME, toUpdate.getName());
+		try {
+			namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
+		} catch (DataIntegrityViolationException e) {
+			translateException(new IllegalArgumentException(e), dto.getName());
+		}
 
 		// Create the new revision.
 		basicDao.createNew(revision);

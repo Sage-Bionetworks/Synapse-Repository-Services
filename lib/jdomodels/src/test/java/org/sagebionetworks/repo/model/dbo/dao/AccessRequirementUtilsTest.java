@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+import org.sagebionetworks.util.TemporaryCode;
 
 import com.google.common.collect.Lists;
 
@@ -44,6 +45,7 @@ public class AccessRequirementUtilsTest {
 	private static AccessRequirement createDTO() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
 		dto.setId(101L);
+		dto.setName("someName");
 		dto.setEtag("0");
 		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
 		dto.setCreatedBy("555");
@@ -406,5 +408,25 @@ public class AccessRequirementUtilsTest {
 		}).getMessage();
 		
 		assertEquals("Cannot assign permissions to the public group.", message);
+	}
+	
+	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithNullName() {
+		DBOAccessRequirement dbo = new DBOAccessRequirement();
+		dbo.setId(123L);
+		dbo.setName(null);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals("123", dbo.getName());
+	}
+	
+	@TemporaryCode(author = "john.hill@sagebase.org", comment = "One time migration of AR names.  Can be removed after all ARs have a name.")
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithName() {
+		DBOAccessRequirement dbo = new DBOAccessRequirement();
+		dbo.setId(123L);
+		dbo.setName("foo");
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals("foo", dbo.getName());
 	}
 }

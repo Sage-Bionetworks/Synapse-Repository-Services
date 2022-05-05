@@ -27,7 +27,7 @@ public class ManagedACTAccessRequirementObjectHelper implements DaoObjectHelper<
 		ar.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		ar.setAreOtherAttachmentsRequired(true);
 		ar.setCreatedOn(new Date());
-		ar.setDescription("Something or another");
+		ar.setDescription(null);
 		ar.setDucTemplateFileHandleId("123");
 		ar.setEtag(UUID.randomUUID().toString());
 		ar.setExpirationPeriod(0L);

@@ -203,6 +203,7 @@ public class SqlConstants {
 	public static final String TABLE_ACCESS_REQUIREMENT							= "ACCESS_REQUIREMENT";
 	public static final String COL_ACCESS_REQUIREMENT_ID						= "ID";
 	public static final String COL_ACCESS_REQUIREMENT_ETAG						= "ETAG";
+	public static final String COL_ACCESS_REQUIREMENT_NAME						= "NAME";
 	public static final String COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER	= "CURRENT_REV_NUM";
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY				= "CREATED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON				= "CREATED_ON";

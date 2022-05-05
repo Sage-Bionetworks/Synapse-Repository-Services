@@ -15,7 +15,11 @@
 		},
 		"description": {
 			"type": "string",
-			"description": "Short optional description for the AR. Limited to 50 characters."
+			"description": "Depricated. Replaced by name."
+		},
+		"name": {
+			"type": "string",
+			"description": "Name of the AR. Limited to 50 characters and must be unique. Required."
 		},
 		"etag": {
 			"type": "string",

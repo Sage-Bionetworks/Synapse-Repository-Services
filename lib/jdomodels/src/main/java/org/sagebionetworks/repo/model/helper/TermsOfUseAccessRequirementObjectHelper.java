@@ -31,7 +31,7 @@ public class TermsOfUseAccessRequirementObjectHelper implements DaoObjectHelper<
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(null);
+		rod.setId("syn1");
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(rod));
 		ar.setTermsOfUse("Do you agree?");

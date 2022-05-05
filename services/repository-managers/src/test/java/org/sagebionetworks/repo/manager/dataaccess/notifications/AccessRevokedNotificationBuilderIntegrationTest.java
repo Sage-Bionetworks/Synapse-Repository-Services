@@ -65,7 +65,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(mockProfile.getFirstName()).thenReturn(firstName);
 		when(mockProfile.getLastName()).thenReturn(lastName);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithDescription.html");
 
@@ -90,7 +90,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(mockProfile.getFirstName()).thenReturn(firstName);
 		when(mockProfile.getLastName()).thenReturn(lastName);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithoutDescription.html");
 
@@ -117,7 +117,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(mockProfile.getLastName()).thenReturn(lastName);
 		when(mockProfile.getUserName()).thenReturn(userName);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationWithoutFirstLast.html");
 		
@@ -144,7 +144,7 @@ public class AccessRevokedNotificationBuilderIntegrationTest {
 		when(mockProfile.getUserName()).thenReturn(userName);
 		when(mockSubmitterProfile.getUserName()).thenReturn(submitterUserName);
 		when(accessRequirement.getId()).thenReturn(requirementId);
-		when(accessRequirement.getDescription()).thenReturn(requirementDescription);
+		when(accessRequirement.getName()).thenReturn(requirementDescription);
 		
 		String expected = TestUtils.loadFromClasspath("message/AccessApprovalRevokedNotificationForNonSubmitter.html");
 		
