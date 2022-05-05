@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserInfoHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.verification.VerificationHelper;
@@ -48,9 +49,11 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
+@Service
 public class UserProfileServiceImpl implements UserProfileService {
 	
 	/**
@@ -58,27 +61,37 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 */
 	public static int MAX_HEADERS_PER_REQUEST = 100;
 
-	@Autowired
 	private UserProfileManager userProfileManager;
 	
-	@Autowired
-	PrincipalAliasDAO principalAliasDAO;
+	private PrincipalAliasDAO principalAliasDAO;
 	
-	@Autowired
 	private UserManager userManager;
 
-	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
 	
-	@Autowired
 	private EntityManager entityManager;
 	
-	@Autowired
-	PrincipalPrefixDAO principalPrefixDAO;
+	private PrincipalPrefixDAO principalPrefixDAO;
+	
+	private TokenGenerator tokenGenerator;
+	
+	private DataAccessAuthorizationManager dataAcccessAuthManager;
 	
 	@Autowired
-	TokenGenerator tokenGenerator;
-	
+	public UserProfileServiceImpl(UserProfileManager userProfileManager, PrincipalAliasDAO principalAliasDAO, UserManager userManager,
+			EntityAuthorizationManager entityAuthorizationManager, EntityManager entityManager, PrincipalPrefixDAO principalPrefixDAO,
+			TokenGenerator tokenGenerator, DataAccessAuthorizationManager dataAcccessAuthManager) {
+		super();
+		this.userProfileManager = userProfileManager;
+		this.principalAliasDAO = principalAliasDAO;
+		this.userManager = userManager;
+		this.entityAuthorizationManager = entityAuthorizationManager;
+		this.entityManager = entityManager;
+		this.principalPrefixDAO = principalPrefixDAO;
+		this.tokenGenerator = tokenGenerator;
+		this.dataAcccessAuthManager = dataAcccessAuthManager;
+	}
+
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -312,6 +325,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private static int IS_CERTIFIED_MASK = 0x8;
 	private static int IS_VERIFIED_MASK = 0x10;
 	private static int IS_ACT_MEMBER_MASK = 0x20;
+	private static int IS_AR_REVIEWER_MASK = 0x40;
 	
 	private UserBundle getUserBundleWithAllPrivateFields(Long profileId, int mask) {
 		UserBundle result = new UserBundle();
@@ -338,6 +352,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		if ((mask&ORCID_MASK)!=0) {
 			result.setORCID(userProfileManager.getOrcid(profileId));
+		}
+		if ((mask&IS_AR_REVIEWER_MASK)!=0) {
+			result.setIsARReviewer(dataAcccessAuthManager.isAccessRequirementReviewer(userInfo));
 		}
 		return result;
 		

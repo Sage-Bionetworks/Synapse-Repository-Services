@@ -683,4 +683,19 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
+	
+	@Test
+	public void testHasAccessWithExistingACL() {
+		assertTrue(aclDAO.hasAccess(userInfo, ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testHasAccessWithExistingACLAndNoPermission() {
+		assertFalse(aclDAO.hasAccess(userInfo, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+	}
+	
+	@Test
+	public void testHasAccessWithNoACL() {
+		assertFalse(aclDAO.hasAccess(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.CREATE));
+	}
 }

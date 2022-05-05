@@ -97,7 +97,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			+ RESOURCE_ID_BIND_VAR
 			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
 	
-
+	private static final String SELECT_COUNT_RESOURCE_ACCESS = "SELECT COUNT(acl." + COL_ACL_OWNER_ID + ") FROM "
+			+ AUTHORIZATION_SQL_TABLES
+			+ " WHERE "
+			+ AUTHORIZATION_SQL_JOIN
+			+ " AND ra."
+			+ COL_RESOURCE_ACCESS_GROUP_ID
+			+ " IN (:"
+			+ PRINCIPAL_IDS_BIND_VAR
+			+ ") AND at."
+			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
+			+ "=:"
+			+ ACCESS_TYPE_BIND_VAR
+			+ " AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
 	
 	private static final String SELECT_NON_VISIBLE_CHILDREN =
 			"SELECT N1."+COL_NODE_ID+
@@ -615,6 +627,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			return AuthorizationStatus.accessDenied(
 					String.format("You do not have %s permission for %s : %s", permission, resourceType, resourceId));
 		}
+	}
+	
+	@Override
+	public boolean hasAccess(UserInfo user, ObjectType resourceType, ACCESS_TYPE accessType) {
+		ValidateArgument.required(user, "user");
+		
+		Map<String, Object> namedParameters = Map.of(
+			PRINCIPAL_IDS_BIND_VAR, user.getGroups(),
+			RESOURCE_TYPE_BIND_VAR, resourceType.name(),
+			ACCESS_TYPE_BIND_VAR, accessType.name()
+		);
+		
+		return namedParameterJdbcTemplate.queryForObject(SELECT_COUNT_RESOURCE_ACCESS, namedParameters, Long.class) > 0;
 	}
 
 	@Override

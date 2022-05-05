@@ -32,5 +32,13 @@ public interface DataAccessAuthorizationManager {
 	 * @return The {@link AuthorizationStatus} defining the user access
 	 */
 	AuthorizationStatus canReviewAccessRequirementSubmissions(UserInfo userInfo, String accessRequirementId);
+	
+	/**
+	 * Checks if the given user is the reviewer of at least on AR.
+	 * 
+	 * @param userInfo
+	 * @return True if the user is part of the ACT or if has a REVIEW_SUBMISSION ACL assigned to at least one AR
+	 */
+	boolean isAccessRequirementReviewer(UserInfo userInfo);
 
 }
