@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,10 +16,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -49,7 +49,7 @@ import com.google.common.collect.Sets;
  * @author bhoff
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessControlListDAOImplTest {
 	
@@ -75,7 +75,7 @@ public class DBOAccessControlListDAOImplTest {
 	
 	private UserInfo userInfo;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -156,7 +156,7 @@ public class DBOAccessControlListDAOImplTest {
 		aclList.add(acl);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for (AccessControlList acl : aclList){
 			aclDAO.delete(acl.getId(), ObjectType.ENTITY);
@@ -183,19 +183,15 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(acl, aclList.iterator().next());
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetForResourceBadID() throws Exception {
 		String rid = "-598787";
-		AccessControlList acl = aclDAO.get(rid, ObjectType.ENTITY);
-		assertNull(acl);
+		
+		assertThrows(NotFoundException.class, () -> {			
+			aclDAO.get(rid, ObjectType.ENTITY);
+		});
 	}
-	
-	@Test
-	public void testNOOP() {
-	
-	}
-
-	
+		
 	/**
 	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Set, java.lang.String, org.sagebionetworks.repo.model.ObjectType, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
 	 */
@@ -281,21 +277,27 @@ public class DBOAccessControlListDAOImplTest {
 		assertTrue(results.isEmpty());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCanAccessMultipleGroupsNull() throws Exception {
 		Set<Long> gs = null;
 		Set<Long> benefactors = Sets.newHashSet(new Long(-2), new Long(-1));
-		// call under test
-		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCanAccessMultipleBenefactorsNull() throws Exception {
 		Set<Long> gs = new HashSet<Long>();
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> benefactors = null;
-		// call under test
-		aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			aclDAO.getAccessibleBenefactors(gs, benefactors, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		});
 	}
 
 	/**
@@ -314,13 +316,16 @@ public class DBOAccessControlListDAOImplTest {
 	 * Test get method with bad ownerId
 	 * @throws Exception
 	 */
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetWithBadId() throws Exception {
 		AccessControlList acl = aclList.iterator().next();
 		String id = acl.getId();
 		aclList.remove(acl);
 		aclDAO.delete(id, ObjectType.ENTITY);
-		aclDAO.get(id, ObjectType.ENTITY);
+		
+		assertThrows(NotFoundException.class, () -> {
+			aclDAO.get(id, ObjectType.ENTITY);
+		});
 	}
 
 	/**
@@ -341,24 +346,33 @@ public class DBOAccessControlListDAOImplTest {
 		}
 	}
 
-	@Test  (expected=NotFoundException.class)
+	@Test
 	public void testGetAclIdNotExists() throws Exception {
 		Long aclId = -598787L;
-		aclDAO.get(aclId);
+		
+		assertThrows(NotFoundException.class, () -> {
+			aclDAO.get(aclId);
+		});
 	}
 	
 	////////////////////
 	//getAclIds() tests
 	////////////////////
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetAclIdsNullList(){
-		aclDAO.getAclIds(null, ObjectType.ENTITY);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getAclIds(null, ObjectType.ENTITY);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetAclIdsNullObjectType(){
-		aclDAO.getAclIds(new ArrayList<Long>(), null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getAclIds(new ArrayList<Long>(), null);
+		});
 	}
 	
 	@Test 
@@ -408,10 +422,13 @@ public class DBOAccessControlListDAOImplTest {
 		}
 	}
 
-	@Test  (expected=NotFoundException.class)
+	@Test
 	public void testGetOwnerTypeWithBadAclID() throws Exception {
 		Long aclId = -598787L;
-		aclDAO.getOwnerType(aclId);
+		
+		assertThrows(NotFoundException.class, () -> {
+			aclDAO.getOwnerType(aclId);
+		});
 	}
 
 	/**
@@ -513,19 +530,25 @@ public class DBOAccessControlListDAOImplTest {
 		}
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllUserGroupsWithNullObjectId(){
-		aclDAO.getPrincipalIds(null, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getPrincipalIds(null, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllUserGroupsWithNullObjectType(){
-		aclDAO.getPrincipalIds(node.getId(), null, ACCESS_TYPE.READ);
+		assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getPrincipalIds(node.getId(), null, ACCESS_TYPE.READ);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllUserGroupsWithNullAccessType(){
-		aclDAO.getPrincipalIds(node.getId(), ObjectType.ENTITY, null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getPrincipalIds(node.getId(), ObjectType.ENTITY, null);
+		});
 	}
 
 	@Test
@@ -682,5 +705,20 @@ public class DBOAccessControlListDAOImplTest {
 		List<Long> results = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>());
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testHasAccessWithExistingACL() {
+		assertTrue(aclDAO.hasAccessToResourceOfType(userInfo, ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testHasAccessWithExistingACLAndNoPermission() {
+		assertFalse(aclDAO.hasAccessToResourceOfType(userInfo, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+	}
+	
+	@Test
+	public void testHasAccessWithNoACL() {
+		assertFalse(aclDAO.hasAccessToResourceOfType(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.CREATE));
 	}
 }

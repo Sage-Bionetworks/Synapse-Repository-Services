@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -73,6 +74,7 @@ import com.google.common.collect.Lists;
 @ExtendWith(MockitoExtension.class)
 public class UserProfileServiceTest {
 	
+	private static final int PROFILE_MASK_INCLUDE_ALL = 0xFF/*everything*/;
 	private static final Long EXTRA_USER_ID = 2398475L;
 	private static final Long NONEXISTENT_USER_ID = 827634L;
 	private static final Long OTHER_USER_ID = 2398999L;
@@ -94,6 +96,8 @@ public class UserProfileServiceTest {
 	private UserProfileManager mockUserProfileManager;
 	@Mock
 	private UserManager mockUserManager;
+	@Mock
+	private DataAccessAuthorizationManager mockDataAccessAuthManager;
 	@Mock
 	private EntityManager mockEntityManager;
 	@Mock
@@ -313,7 +317,7 @@ public class UserProfileServiceTest {
 		return userProfile;
 	}
 	
-	private void mockUserInfo(Long userId, boolean isACTMember, boolean isCertified) {
+	private void mockUserInfo(Long userId, boolean isACTMember, boolean isCertified, Boolean isARReviewer) {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		userInfo.setGroups(new HashSet<Long>(Arrays.asList(userId)));
@@ -321,6 +325,10 @@ public class UserProfileServiceTest {
 		if (isCertified) userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		
+		if (isARReviewer != null) {
+			when(mockDataAccessAuthManager.isAccessRequirementReviewer(userInfo)).thenReturn(isARReviewer);
+		}
 	}
 	
 	private void mockOrcid(Long userId, String alias) {
@@ -331,11 +339,11 @@ public class UserProfileServiceTest {
 	
 	@Test
 	public void testGetMyOwnUserBundle() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true, true);
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
 		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
-		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 63/*everything*/);
+		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, PROFILE_MASK_INCLUDE_ALL/*everything*/);
 		
 		assertEquals(EXTRA_USER_ID.toString(), result.getUserId());
 		assertEquals(userProfile, result.getUserProfile());
@@ -343,6 +351,7 @@ public class UserProfileServiceTest {
 		assertTrue(result.getIsACTMember());
 		assertTrue(result.getIsCertified());
 		assertTrue(result.getIsVerified());
+		assertTrue(result.getIsARReviewer());
 		assertEquals("http://orcid.org/foo", result.getORCID());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 	}
@@ -352,12 +361,12 @@ public class UserProfileServiceTest {
 		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 	
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false, /*isARReviewer*/ false);
 
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(EXTRA_USER_ID, VerificationStateEnum.APPROVED);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
 		mockOrcid(EXTRA_USER_ID, "http://orcid.org/foo");
-		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 63/*everything*/);
+		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, PROFILE_MASK_INCLUDE_ALL);
 		
 		assertEquals(EXTRA_USER_ID.toString(), result.getUserId());
 		assertEquals(userProfile, result.getUserProfile());
@@ -365,16 +374,17 @@ public class UserProfileServiceTest {
 		assertTrue(result.getIsACTMember());
 		assertFalse(result.getIsCertified());
 		assertTrue(result.getIsVerified());
+		assertFalse(result.getIsARReviewer());
 		assertEquals("http://orcid.org/foo", result.getORCID());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 	}
 
 	@Test
 	public void testGetMyOwnUserBundleNullRecords() throws Exception {
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false, /*isARReviewer*/ false);
 		UserProfile userProfile = mockUserProfile(EXTRA_USER_ID);
 
-		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 63/*everything*/);
+		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, PROFILE_MASK_INCLUDE_ALL/*everything*/);
 		
 		assertEquals(EXTRA_USER_ID.toString(), result.getUserId());
 		assertEquals(userProfile, result.getUserProfile());
@@ -382,6 +392,7 @@ public class UserProfileServiceTest {
 		assertFalse(result.getIsACTMember());
 		assertFalse(result.getIsCertified());
 		assertFalse(result.getIsVerified());
+		assertFalse(result.getIsARReviewer());
 		assertNull(result.getORCID());
 		assertNull(result.getVerificationSubmission());
 	}
@@ -390,7 +401,7 @@ public class UserProfileServiceTest {
 	public void testUserBundleMask() throws Exception {
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/true, /*isARReviewer*/ null);
 	
 		UserBundle result = userProfileService.getMyOwnUserBundle(EXTRA_USER_ID, 0/*nothing*/);
 		
@@ -402,6 +413,7 @@ public class UserProfileServiceTest {
 		assertNull(result.getIsVerified());
 		assertNull(result.getORCID());
 		assertNull(result.getVerificationSubmission());
+		assertNull(result.getIsARReviewer());
 	}
 	
 	// leaving off the 'isVerified' component (0x10) caused a NPE
@@ -413,6 +425,7 @@ public class UserProfileServiceTest {
 		UserBundle result = userProfileService.
 				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), /*VERIFICATION_MASK*/0x04);
 		assertNull(result.getIsACTMember());
+		assertNull(result.getIsARReviewer());
 		assertNull(result.getIsCertified());
 		assertNull(result.getIsVerified());
 		assertNull(result.getORCID());
@@ -425,20 +438,21 @@ public class UserProfileServiceTest {
 	@Test
 	public void testUserBundlePublic() throws Exception {
 		Long bundleOwner = 101L;
-		mockUserInfo(bundleOwner, /*isInACT*/false, /*isCertified*/true);
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false);
+		mockUserInfo(bundleOwner, /*isInACT*/false, /*isCertified*/true, /*isARReviewer*/true);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/false, /*isCertified*/false, /*isARReviewer*/null);
 		VerificationSubmission verificationSubmission = mockVerificationSubmission(bundleOwner, VerificationStateEnum.APPROVED);
 		mockUserProfile(bundleOwner);
 		mockOrcid(bundleOwner, "http://orcid.org/foo");
 		
 		UserBundle result = userProfileService.
-				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), 63/*get everything*/);
+				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), PROFILE_MASK_INCLUDE_ALL/*get everything*/);
 		
 		assertEquals(bundleOwner.toString(), result.getUserId());
 		assertNull(result.getUserProfile().getEmails()); // scrubbed of private info
 		assertFalse(result.getIsACTMember());
 		assertTrue(result.getIsCertified());
 		assertTrue(result.getIsVerified());
+		assertTrue(result.getIsARReviewer());
 		assertEquals("http://orcid.org/foo", result.getORCID());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 		assertNull(verificationSubmission.getEmails());
@@ -452,14 +466,14 @@ public class UserProfileServiceTest {
 		// if the verification submission was rejected then we don't get it at all
 		verificationSubmission = mockVerificationSubmission(bundleOwner, VerificationStateEnum.REJECTED);
 		result = userProfileService.
-				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), 63/*get everything*/);
+				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), PROFILE_MASK_INCLUDE_ALL/*get everything*/);
 		assertFalse(result.getIsVerified());
 		assertNull(result.getVerificationSubmission());
 		
 		// unless we're in the ACT
-		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false);
+		mockUserInfo(EXTRA_USER_ID, /*isInACT*/true, /*isCertified*/false, null);
 		result = userProfileService.
-				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), 63/*get everything*/);
+				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), PROFILE_MASK_INCLUDE_ALL/*get everything*/);
 		assertFalse(result.getIsVerified());
 		assertEquals(verificationSubmission, result.getVerificationSubmission());
 		assertNotNull(verificationSubmission.getEmails());

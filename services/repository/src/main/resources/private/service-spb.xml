@@ -71,10 +71,6 @@
 	<!-- The V2 Wiki Service -->
 	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
 	
-	<!-- The UserProfile Service -->
-	<bean id="userProfileService"
-		class="org.sagebionetworks.repo.web.service.UserProfileServiceImpl" />
-
 	<!-- The UserGroup Service -->
 	<bean id="userGroupService"
 		class="org.sagebionetworks.repo.web.service.UserGroupServiceImpl" />

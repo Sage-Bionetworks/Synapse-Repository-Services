@@ -83,5 +83,16 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 		return AuthorizationStatus.authorized();
 	}
 	
+	@Override
+	public boolean isAccessRequirementReviewer(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		
+		if (AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			return true;
+		}
+		
+		return aclDao.hasAccessToResourceOfType(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+	}
+	
 
 }

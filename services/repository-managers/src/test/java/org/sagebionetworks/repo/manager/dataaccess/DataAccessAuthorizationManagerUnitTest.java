@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
@@ -301,6 +302,44 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testIsAccessRequirementReviewer() {
+		
+		when(mockAclDao.hasAccessToResourceOfType(any(), any(), any())).thenReturn(true);
+		
+		// Call under test
+		boolean result = manager.isAccessRequirementReviewer(user);
+		
+		assertTrue(result);
+		
+		verify(mockAclDao).hasAccessToResourceOfType(user, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+	}
+	
+	@Test
+	public void testIsAccessRequirementReviewerAsACTMember() {
+		
+		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
+		
+		// Call under test
+		boolean result = manager.isAccessRequirementReviewer(user);
+		
+		assertTrue(result);
+		
+		verifyZeroInteractions(mockAclDao);
+	}
+	
+	@Test
+	public void testIsAccessRequirementReviewerWithNoUser() {
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.isAccessRequirementReviewer(null);			
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", message);
+		
 	}
 	
 	private VerificationSubmission getVerfificationSubmission(VerificationStateEnum state) {
