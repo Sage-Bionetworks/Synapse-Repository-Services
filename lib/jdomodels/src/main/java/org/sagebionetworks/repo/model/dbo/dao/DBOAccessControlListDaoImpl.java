@@ -630,7 +630,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 	
 	@Override
-	public boolean hasAccess(UserInfo user, ObjectType resourceType, ACCESS_TYPE accessType) {
+	public boolean hasAccessToResourceOfType(UserInfo user, ObjectType resourceType, ACCESS_TYPE accessType) {
 		ValidateArgument.required(user, "user");
 		
 		Map<String, Object> namedParameters = Map.of(

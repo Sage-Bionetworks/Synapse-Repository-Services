@@ -91,7 +91,7 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 			return true;
 		}
 		
-		return aclDao.hasAccess(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+		return aclDao.hasAccessToResourceOfType(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
 	
 

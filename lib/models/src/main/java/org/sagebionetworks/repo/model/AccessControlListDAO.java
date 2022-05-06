@@ -34,7 +34,7 @@ public interface AccessControlListDAO  {
 	 * @param permission
 	 * @return
 	 */
-	boolean hasAccess(UserInfo user, ObjectType resourceType, ACCESS_TYPE permission);
+	boolean hasAccessToResourceOfType(UserInfo user, ObjectType resourceType, ACCESS_TYPE permission);
 
 	/**
 	 * Create a new ACL

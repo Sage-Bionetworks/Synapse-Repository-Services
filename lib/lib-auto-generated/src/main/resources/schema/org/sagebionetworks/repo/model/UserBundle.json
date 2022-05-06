@@ -34,7 +34,7 @@
 		},
 		"isARReviewer": {
 			"type": "boolean",
-			"description": "true iff the user has permissions to review submission on at least on access requirement"
+			"description": "true iff the user has permissions to review data access submissions on at least one access requirement (This is always true for an ACT member)"
 		}
 	}
 }

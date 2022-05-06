@@ -74,7 +74,7 @@ import com.google.common.collect.Lists;
 @ExtendWith(MockitoExtension.class)
 public class UserProfileServiceTest {
 	
-	private static final int PROFILE_MASK_INCLUDE_ALL = 127/*everything*/;
+	private static final int PROFILE_MASK_INCLUDE_ALL = 0xFF/*everything*/;
 	private static final Long EXTRA_USER_ID = 2398475L;
 	private static final Long NONEXISTENT_USER_ID = 827634L;
 	private static final Long OTHER_USER_ID = 2398999L;

@@ -307,14 +307,14 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testIsAccessRequirementReviewer() {
 		
-		when(mockAclDao.hasAccess(any(), any(), any())).thenReturn(true);
+		when(mockAclDao.hasAccessToResourceOfType(any(), any(), any())).thenReturn(true);
 		
 		// Call under test
 		boolean result = manager.isAccessRequirementReviewer(user);
 		
 		assertTrue(result);
 		
-		verify(mockAclDao).hasAccess(user, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+		verify(mockAclDao).hasAccessToResourceOfType(user, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
 	}
 	
 	@Test
