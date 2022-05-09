@@ -1,0 +1,16 @@
+{
+	"description": "Response for the request to search through the access approval history",
+	"properties": {
+		"results": {
+            "type":"array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult"
+            },
+            "description":"The matching Access Approval information corresponding to the search parameters"
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a particular search query."
+        }
+	}
+}
