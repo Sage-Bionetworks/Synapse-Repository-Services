@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -36,6 +38,8 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -47,6 +51,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Sets;
@@ -64,6 +69,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private final TransactionalMessenger transactionalMessenger;
 	private final NodeDAO nodeDao;
 	
+	@Autowired
 	public AccessApprovalManagerImpl(AccessRequirementDAO accessRequirementDAO, AccessApprovalDAO accessApprovalDAO,
 			VerificationDAO verificationDao, GroupMembersDAO groupMembersDao,
 			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao) {
@@ -330,17 +336,40 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		
-		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
 		
-		long limit = nextPageToken.getLimitForQuery();
-		long offset = nextPageToken.getOffset();
+		long limit = pageToken.getLimitForQuery();
+		long offset = pageToken.getOffset();
 		
-		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, limit, offset);
+		List<AccessApprovalSearchSort> sort = request.getSort() == null || request.getSort().isEmpty() ? 
+				Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON)) : request.getSort();
 		
-		return new AccessApprovalSearchResponse()
-			.setResults(results)
-			.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(results));
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(request.getAccessorId(), request.getAccessRequirementId(), sort, limit, offset);
 		
+		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(results);
+		
+		Map<Long, String> namesMap = accessRequirementDAO.getAccessRequirementNames(
+			results.stream().map(ap -> ap.getRequirementId()).collect(Collectors.toSet())
+		);
+		
+		List<AccessApprovalSearchResult> mappedResults = results.stream().map(ap -> {
+			return new AccessApprovalSearchResult()
+				.setId(ap.getId().toString())
+				.setAccessRequirementId(ap.getRequirementId().toString())
+				.setAccessRequirementVersion(ap.getRequirementVersion().toString())
+				.setAccessRequirementName(namesMap.get(ap.getRequirementId()))
+				.setModifiedOn(ap.getModifiedOn())
+				.setExpiredOn(ap.getExpiredOn())
+				.setReviewerId(ap.getModifiedBy())
+				.setState(ap.getState())
+				.setSubmitterId(ap.getSubmitterId());
+		}).collect(Collectors.toList());
+		
+		AccessApprovalSearchResponse response = new AccessApprovalSearchResponse()
+			.setResults(mappedResults)
+			.setNextPageToken(nextPageToken);
+		
+		return response;
 	}
 	
 	private void sendUpdateChange(UserInfo user, List<Long> accessApprovalIds) {

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -178,7 +179,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " WHERE "
 			+ COL_ACCESS_APPROVAL_ID + " = ? AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
 
-	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
+	private static final RowMapper<DBOAccessApproval> DBO_ROW_MAPPER = (new DBOAccessApproval()).getTableMapping();
+	private static final RowMapper<AccessApproval> ROW_MAPPER = (ResultSet rs, int i) -> AccessApprovalUtils.copyDboToDto(DBO_ROW_MAPPER.mapRow(rs, i));
 
 	@WriteTransaction
 	@Override
@@ -203,8 +205,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		param.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
 		try {
-			DBOAccessApproval dbo =  namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, rowMapper);
-			return AccessApprovalUtils.copyDboToDto(dbo);
+			return namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, ROW_MAPPER);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(
 					"Access approval for requirement Id: '%s', requirement version: '%s', submitter: '%s', accessor '%s'  ",
@@ -275,11 +276,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
-		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, rowMapper);
-		for (DBOAccessApproval dbo : dbos) {
-			dtos.add(AccessApprovalUtils.copyDboToDto(dbo));
-		}
-		return dtos;
+		return namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, ROW_MAPPER);
 	}
 
 	@Override
@@ -497,64 +494,32 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 	
 	@Override
-	public List<AccessApprovalSearchResult> searchAccessApproval(AccessApprovalSearchRequest request, long limit, long offset) {
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getAccessorId(), "accessorId");
+	public List<AccessApproval> searchAccessApprovals(String accessorId, String accessRequirementId, List<AccessApprovalSearchSort> sort, long limit, long offset) {
+		ValidateArgument.required(accessorId, "accessorId");
+		ValidateArgument.requiredNotEmpty(sort, "sort");
 		
-		String sql = "SELECT"
-				+ " AP." + COL_ACCESS_APPROVAL_ID + ","
-				+ " AP." + COL_ACCESS_APPROVAL_SUBMITTER_ID + ","
-				+ " AP." + COL_ACCESS_APPROVAL_MODIFIED_ON + ","
-				+ " AP." + COL_ACCESS_APPROVAL_MODIFIED_BY + ","
-				+ " AP." + COL_ACCESS_APPROVAL_STATE + ","
-				+ " AP." + COL_ACCESS_APPROVAL_EXPIRED_ON + ","
-				+ " AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + ","
-				+ " AP." + COL_ACCESS_APPROVAL_REQUIREMENT_VERSION + ","
-				+ " AR." + COL_ACCESS_REQUIREMENT_NAME
-				+ " FROM " + TABLE_ACCESS_APPROVAL + " AP JOIN " + TABLE_ACCESS_REQUIREMENT 
-				+ " AR ON AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=AR." + COL_ACCESS_REQUIREMENT_ID
-				+ " WHERE AP." + COL_ACCESS_APPROVAL_ACCESSOR_ID + "=?";
+		String sql = "SELECT * FROM " + TABLE_ACCESS_APPROVAL
+				+ " WHERE " + COL_ACCESS_APPROVAL_ACCESSOR_ID + "=?";
 		
 		List<Object> queryParams = new ArrayList<>();
 		
-		queryParams.add(request.getAccessorId());
+		queryParams.add(accessorId);
 		
-		if (request.getAccessRequirementId() != null) {
-			sql += " AND AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=?";
-			queryParams.add(request.getAccessRequirementId());
+		if (accessRequirementId != null) {
+			sql += " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=?";
+			queryParams.add(accessRequirementId);
 		}
 		
-		if (request.getSort() != null && !request.getSort().isEmpty()) {
-			sql += " ORDER BY " + String.join(",", request.getSort().stream().map(sortField ->
-				sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString())
-			).collect(Collectors.toList())); 
-		}
+		sql += " ORDER BY " + String.join(",", sort.stream().map(sortField ->
+			sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString())
+		).collect(Collectors.toList()));
 		
 		sql += " LIMIT ? OFFSET ?";
 		
 		queryParams.add(limit);
 		queryParams.add(offset);
 		
-		return jdbcTemplate.query(sql, (ResultSet rs, int i) -> {
-			AccessApprovalSearchResult result = new AccessApprovalSearchResult();
-			
-			result.setId(rs.getString(COL_ACCESS_APPROVAL_ID));
-			result.setSubmitterId(rs.getString(COL_ACCESS_APPROVAL_SUBMITTER_ID));
-			result.setModifiedOn(new Date(rs.getLong(COL_ACCESS_APPROVAL_MODIFIED_ON)));
-			result.setState(ApprovalState.valueOf(rs.getString(COL_ACCESS_APPROVAL_STATE)));
-			
-			long expiredOn = rs.getLong(COL_ACCESS_APPROVAL_EXPIRED_ON);
-			
-			if (!rs.wasNull() && expiredOn != 0) {
-				result.setExpiredOn(new Date(expiredOn));
-			}
-			
-			result.setReviewerId(rs.getString(COL_ACCESS_APPROVAL_MODIFIED_BY));
-			result.setAccessRequirementId(rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_ID));
-			result.setAccessRequirementVersion(rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION));
-			result.setAccessRequirementName(rs.getString(COL_ACCESS_REQUIREMENT_NAME));
-			return result;
-		}, queryParams.toArray());
+		return jdbcTemplate.query(sql, ROW_MAPPER, queryParams.toArray());
 	}
 	
 	@Override

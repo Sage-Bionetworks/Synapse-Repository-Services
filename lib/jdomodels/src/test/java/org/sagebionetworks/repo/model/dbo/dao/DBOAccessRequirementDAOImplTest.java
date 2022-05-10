@@ -13,12 +13,15 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
@@ -66,7 +69,11 @@ public class DBOAccessRequirementDAOImplTest {
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 	
+	@Autowired
+	private AccessControlListDAO aclDao;
+	
 	private UserGroup individualGroup = null;
+	private UserGroup individualGroup2 = null;
 	private Node node = null;
 	private Node node2 = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
@@ -76,6 +83,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -84,6 +92,12 @@ public class DBOAccessRequirementDAOImplTest {
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+		
+		individualGroup2 = new UserGroup();
+		individualGroup2.setIsIndividual(true);
+		individualGroup2.setCreationDate(new Date());
+		individualGroup2.setId(userGroupDAO.create(individualGroup2).toString());
+		
 		// note: we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
@@ -97,6 +111,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
+		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -110,6 +125,9 @@ public class DBOAccessRequirementDAOImplTest {
 		}
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
+		}
+		if (individualGroup2 != null) {
+			userGroupDAO.delete(individualGroup2.getId());
 		}
 	}
 	
@@ -639,6 +657,43 @@ public class DBOAccessRequirementDAOImplTest {
 			accessRequirementDAO.update(arDup);
 		}).getMessage();
 		assertEquals("An AccessRequirement with the name: 'not unique' already exists", message);
+	}
+	
+	@Test
+	public void testGetAccessRequirementNames() {
+		AccessRequirement ar1 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		AccessRequirement ar2 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name"));
+		AccessRequirement ar3 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name2"));
+		
+		Map<Long, String> expected = Map.of(
+			ar1.getId(), ar1.getName(),
+			ar2.getId(), ar2.getName(),
+			ar3.getId(), ar3.getName()
+		);
+		
+		Map<Long, String> result = accessRequirementDAO.getAccessRequirementNames(Set.of(ar1.getId(), ar2.getId(), ar3.getId(), 0L));
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementNamesWithEmptyList() {
+		
+		Map<Long, String> expected = Collections.emptyMap();
+		
+		Map<Long, String> result = accessRequirementDAO.getAccessRequirementNames(Collections.emptySet());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementNamesWithNullList() {
+		
+		Map<Long, String> expected = Collections.emptyMap();
+		
+		Map<Long, String> result = accessRequirementDAO.getAccessRequirementNames(null);
+		
+		assertEquals(expected, result);
 	}
 
 }

@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
@@ -1135,35 +1134,14 @@ public class DBOAccessApprovalDAOImplTest {
 		ap1 = accessApprovalDAO.create(ap1);
 		ap2 = accessApprovalDAO.create(ap2);
 		ap3 = accessApprovalDAO.create(ap3);
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC));
 		
-		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
-			.setAccessorId(individualGroup.getId())
-			.setSort(Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)));
+		List<AccessApproval> expected = Arrays.asList(ap1, ap2);
 		
-		List<AccessApprovalSearchResult> expected = Arrays.asList(
-			new AccessApprovalSearchResult()
-				.setId(ap1.getId().toString())
-				.setModifiedOn(ap1.getModifiedOn())
-				.setExpiredOn(ap1.getExpiredOn())
-				.setReviewerId(ap1.getModifiedBy())
-				.setSubmitterId(ap1.getSubmitterId())
-				.setState(ap1.getState())
-				.setAccessRequirementId(accessRequirement.getId().toString())
-				.setAccessRequirementName(accessRequirement.getName())
-				.setAccessRequirementVersion(ap1.getRequirementVersion().toString()),
-			new AccessApprovalSearchResult()
-				.setId(ap2.getId().toString())
-				.setModifiedOn(ap2.getModifiedOn())
-				.setExpiredOn(ap2.getExpiredOn())
-				.setReviewerId(ap2.getModifiedBy())
-				.setSubmitterId(ap2.getSubmitterId())
-				.setState(ap2.getState())
-				.setAccessRequirementId(accessRequirement.getId().toString())
-				.setAccessRequirementName(accessRequirement.getName())
-				.setAccessRequirementVersion(ap2.getRequirementVersion().toString())
-		);
-		
-		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, 10, 0);
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
 		
 		assertEquals(expected, results);
 	}
@@ -1186,48 +1164,17 @@ public class DBOAccessApprovalDAOImplTest {
 		ap1 = accessApprovalDAO.create(ap1);
 		ap2 = accessApprovalDAO.create(ap2);
 		ap3 = accessApprovalDAO.create(ap3);
-		
-		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
-			.setAccessorId(individualGroup.getId())
-			.setSort(Arrays.asList(
-				new AccessApprovalSearchSort().setField(AccessApprovalSortField.EXPIRED_ON),
-				new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.DESC)
-			));
-		
-		List<AccessApprovalSearchResult> expected = Arrays.asList(
-			new AccessApprovalSearchResult()
-				.setId(ap3.getId().toString())
-				.setModifiedOn(ap3.getModifiedOn())
-				.setExpiredOn(ap3.getExpiredOn())
-				.setReviewerId(ap3.getModifiedBy())
-				.setSubmitterId(ap3.getSubmitterId())
-				.setState(ap3.getState())
-				.setAccessRequirementId(accessRequirement2.getId().toString())
-				.setAccessRequirementName(accessRequirement2.getName())
-				.setAccessRequirementVersion(ap3.getRequirementVersion().toString()),
-			new AccessApprovalSearchResult()
-				.setId(ap2.getId().toString())
-				.setModifiedOn(ap2.getModifiedOn())
-				.setExpiredOn(ap2.getExpiredOn())
-				.setReviewerId(ap2.getModifiedBy())
-				.setSubmitterId(ap2.getSubmitterId())
-				.setState(ap2.getState())
-				.setAccessRequirementId(accessRequirement2.getId().toString())
-				.setAccessRequirementName(accessRequirement2.getName())
-				.setAccessRequirementVersion(ap2.getRequirementVersion().toString()),
-			new AccessApprovalSearchResult()
-				.setId(ap1.getId().toString())
-				.setModifiedOn(ap1.getModifiedOn())
-				.setExpiredOn(ap1.getExpiredOn())
-				.setReviewerId(ap1.getModifiedBy())
-				.setSubmitterId(ap1.getSubmitterId())
-				.setState(ap1.getState())
-				.setAccessRequirementId(accessRequirement.getId().toString())
-				.setAccessRequirementName(accessRequirement.getName())
-				.setAccessRequirementVersion(ap1.getRequirementVersion().toString())
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.EXPIRED_ON),
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.DESC)
 		);
 		
-		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, 10, 0);
+		List<AccessApproval> expected = Arrays.asList(ap3, ap2, ap1);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
 		
 		assertEquals(expected, results);
 	}
@@ -1252,54 +1199,22 @@ public class DBOAccessApprovalDAOImplTest {
 		ap1 = accessApprovalDAO.create(ap1);
 		ap2 = accessApprovalDAO.create(ap2);
 		ap3 = accessApprovalDAO.create(ap3);
-		
-		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
-			.setAccessorId(individualGroup.getId())
-			.setSort(Arrays.asList(
-				new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)
-			));
-		
-		List<AccessApprovalSearchResult> expected = Arrays.asList(
-			new AccessApprovalSearchResult()
-				.setId(ap1.getId().toString())
-				.setModifiedOn(ap1.getModifiedOn())
-				.setExpiredOn(ap1.getExpiredOn())
-				.setReviewerId(ap1.getModifiedBy())
-				.setSubmitterId(ap1.getSubmitterId())
-				.setState(ap1.getState())
-				.setAccessRequirementId(accessRequirement.getId().toString())
-				.setAccessRequirementName(accessRequirement.getName())
-				.setAccessRequirementVersion(ap1.getRequirementVersion().toString()),
-			new AccessApprovalSearchResult()
-				.setId(ap2.getId().toString())
-				.setModifiedOn(ap2.getModifiedOn())
-				.setExpiredOn(ap2.getExpiredOn())
-				.setReviewerId(ap2.getModifiedBy())
-				.setSubmitterId(ap2.getSubmitterId())
-				.setState(ap2.getState())
-				.setAccessRequirementId(accessRequirement2.getId().toString())
-				.setAccessRequirementName(accessRequirement2.getName())
-				.setAccessRequirementVersion(ap2.getRequirementVersion().toString())
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)
 		);
 		
-		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, 2, 0);
+		List<AccessApproval> expected = Arrays.asList(ap1, ap2);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 2, 0);
 		
 		assertEquals(expected, results);
 		
-		expected = Arrays.asList(
-			new AccessApprovalSearchResult()
-				.setId(ap2.getId().toString())
-				.setModifiedOn(ap2.getModifiedOn())
-				.setExpiredOn(ap2.getExpiredOn())
-				.setReviewerId(ap2.getModifiedBy())
-				.setSubmitterId(ap2.getSubmitterId())
-				.setState(ap2.getState())
-				.setAccessRequirementId(accessRequirement2.getId().toString())
-				.setAccessRequirementName(accessRequirement2.getName())
-				.setAccessRequirementVersion(ap2.getRequirementVersion().toString())
-		);
+		expected = Arrays.asList(ap2);
 		
-		results = accessApprovalDAO.searchAccessApproval(request, 1, 1);
+		results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 1, 1);
 		
 		assertEquals(expected, results);
 		
@@ -1315,25 +1230,15 @@ public class DBOAccessApprovalDAOImplTest {
 		ap1 = accessApprovalDAO.create(ap1);
 		ap2 = accessApprovalDAO.create(ap2);
 		
-		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
-			.setAccessorId(individualGroup.getId())
-			.setAccessRequirementId(accessRequirement.getId().toString())
-			.setSort(Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)));
-		
-		List<AccessApprovalSearchResult> expected = Arrays.asList(
-			new AccessApprovalSearchResult()
-				.setId(ap1.getId().toString())
-				.setModifiedOn(ap1.getModifiedOn())
-				.setExpiredOn(ap1.getExpiredOn())
-				.setReviewerId(ap1.getModifiedBy())
-				.setSubmitterId(ap1.getSubmitterId())
-				.setState(ap1.getState())
-				.setAccessRequirementId(accessRequirement.getId().toString())
-				.setAccessRequirementName(accessRequirement.getName())
-				.setAccessRequirementVersion(ap1.getRequirementVersion().toString())
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = accessRequirement.getId().toString();
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)
 		);
 		
-		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, 10, 0);
+		List<AccessApproval> expected = Arrays.asList(ap1);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
 		
 		assertEquals(expected, results);
 	}
