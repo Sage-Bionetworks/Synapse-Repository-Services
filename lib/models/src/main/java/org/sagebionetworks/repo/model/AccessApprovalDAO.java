@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -172,7 +174,18 @@ public interface AccessApprovalDAO {
 	 */
 	List<Long> revokeBatch(Long userId, List<Long> ids);
 	
+	/**
+	 * Fetches a page of access approval matching the given request
+	 * 
+	 * @param request
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<AccessApprovalSearchResult> searchAccessApproval(AccessApprovalSearchRequest request, long limit, long offset);
+	
 	// For testing
 	
 	void clear();
+
 }

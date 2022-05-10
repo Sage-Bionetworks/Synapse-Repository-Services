@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +33,9 @@ import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -315,6 +319,28 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		} else {
 			return AuthorizationStatus.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
 		}
+	}
+	
+	@Override
+	public AccessApprovalSearchResponse searchAccessApprovals(UserInfo userInfo, AccessApprovalSearchRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		
+		long limit = nextPageToken.getLimitForQuery();
+		long offset = nextPageToken.getOffset();
+		
+		List<AccessApprovalSearchResult> results = accessApprovalDAO.searchAccessApproval(request, limit, offset);
+		
+		return new AccessApprovalSearchResponse()
+			.setResults(results)
+			.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(results));
+		
 	}
 	
 	private void sendUpdateChange(UserInfo user, List<Long> accessApprovalIds) {

@@ -12,7 +12,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,12 +27,15 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -488,6 +494,67 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		}
 		
 		return updatedIdsList;
+	}
+	
+	@Override
+	public List<AccessApprovalSearchResult> searchAccessApproval(AccessApprovalSearchRequest request, long limit, long offset) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessorId(), "accessorId");
+		
+		String sql = "SELECT"
+				+ " AP." + COL_ACCESS_APPROVAL_ID + ","
+				+ " AP." + COL_ACCESS_APPROVAL_SUBMITTER_ID + ","
+				+ " AP." + COL_ACCESS_APPROVAL_MODIFIED_ON + ","
+				+ " AP." + COL_ACCESS_APPROVAL_MODIFIED_BY + ","
+				+ " AP." + COL_ACCESS_APPROVAL_STATE + ","
+				+ " AP." + COL_ACCESS_APPROVAL_EXPIRED_ON + ","
+				+ " AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + ","
+				+ " AP." + COL_ACCESS_APPROVAL_REQUIREMENT_VERSION + ","
+				+ " AR." + COL_ACCESS_REQUIREMENT_NAME
+				+ " FROM " + TABLE_ACCESS_APPROVAL + " AP JOIN " + TABLE_ACCESS_REQUIREMENT 
+				+ " AR ON AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=AR." + COL_ACCESS_REQUIREMENT_ID
+				+ " WHERE AP." + COL_ACCESS_APPROVAL_ACCESSOR_ID + "=?";
+		
+		List<Object> queryParams = new ArrayList<>();
+		
+		queryParams.add(request.getAccessorId());
+		
+		if (request.getAccessRequirementId() != null) {
+			sql += " AND AP." + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=?";
+			queryParams.add(request.getAccessRequirementId());
+		}
+		
+		if (request.getSort() != null && !request.getSort().isEmpty()) {
+			sql += " ORDER BY " + String.join(",", request.getSort().stream().map(sortField ->
+				sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString())
+			).collect(Collectors.toList())); 
+		}
+		
+		sql += " LIMIT ? OFFSET ?";
+		
+		queryParams.add(limit);
+		queryParams.add(offset);
+		
+		return jdbcTemplate.query(sql, (ResultSet rs, int i) -> {
+			AccessApprovalSearchResult result = new AccessApprovalSearchResult();
+			
+			result.setId(rs.getString(COL_ACCESS_APPROVAL_ID));
+			result.setSubmitterId(rs.getString(COL_ACCESS_APPROVAL_SUBMITTER_ID));
+			result.setModifiedOn(new Date(rs.getLong(COL_ACCESS_APPROVAL_MODIFIED_ON)));
+			result.setState(ApprovalState.valueOf(rs.getString(COL_ACCESS_APPROVAL_STATE)));
+			
+			long expiredOn = rs.getLong(COL_ACCESS_APPROVAL_EXPIRED_ON);
+			
+			if (!rs.wasNull() && expiredOn != 0) {
+				result.setExpiredOn(new Date(expiredOn));
+			}
+			
+			result.setReviewerId(rs.getString(COL_ACCESS_APPROVAL_MODIFIED_BY));
+			result.setAccessRequirementId(rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_ID));
+			result.setAccessRequirementVersion(rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION));
+			result.setAccessRequirementName(rs.getString(COL_ACCESS_REQUIREMENT_NAME));
+			return result;
+		}, queryParams.toArray());
 	}
 	
 	@Override

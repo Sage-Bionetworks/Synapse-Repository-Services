@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -32,5 +34,7 @@ public interface AccessApprovalService {
 	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId, BatchAccessApprovalInfoRequest request);
 
 	AccessApprovalNotificationResponse listNotificationsRequest(Long userId, AccessApprovalNotificationRequest request);
+
+	AccessApprovalSearchResponse searchAccessApprovals(Long userId, AccessApprovalSearchRequest request);
 
 }

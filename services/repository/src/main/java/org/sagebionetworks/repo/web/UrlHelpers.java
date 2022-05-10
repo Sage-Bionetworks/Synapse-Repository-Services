@@ -562,6 +562,7 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL_GROUP = ACCESS_APPROVAL+"/group";
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
 	public static final String ACCESS_APPROVAL_NOTIFICATIONS = ACCESS_APPROVAL + "/notifications";
+	public static final String ACCESS_APPROVAL_SEARCH = ACCESS_APPROVAL + "/search";
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
 
