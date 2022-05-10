@@ -120,6 +120,8 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -6083,5 +6085,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void deleteAccessRequirementAcl(String accessRequirementId) throws SynapseException {
 		deleteUri(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + accessRequirementId + "/acl");		
+	}
+	
+	@Override
+	public AccessApprovalSearchResponse searchAccessApprovals(AccessApprovalSearchRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL + "/search", request, AccessApprovalSearchResponse.class);
 	}
 }

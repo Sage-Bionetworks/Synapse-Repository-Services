@@ -510,9 +510,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			queryParams.add(accessRequirementId);
 		}
 		
-		sql += " ORDER BY " + String.join(",", sort.stream().map(sortField ->
-			sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString())
-		).collect(Collectors.toList()));
+		sql += " ORDER BY " + String.join(",", sort.stream().map(sortField -> {
+			ValidateArgument.required(sortField.getField(), "sort.field");
+			return sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString());
+		}).collect(Collectors.toList()));
 		
 		sql += " LIMIT ? OFFSET ?";
 		

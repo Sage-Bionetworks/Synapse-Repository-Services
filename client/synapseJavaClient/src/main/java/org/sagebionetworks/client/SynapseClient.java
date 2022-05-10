@@ -91,6 +91,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
@@ -4059,4 +4061,13 @@ public interface SynapseClient extends BaseClient {
 	 * @param accessRequirementId
 	 */
 	void deleteAccessRequirementAcl(String accessRequirementId) throws SynapseException;
+	
+	/**
+	 * Perform a search through the history of access approvals for a given accessor
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApprovalSearchResponse searchAccessApprovals(AccessApprovalSearchRequest request) throws SynapseException;
 }
