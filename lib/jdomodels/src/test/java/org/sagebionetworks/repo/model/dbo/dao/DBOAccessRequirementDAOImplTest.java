@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
@@ -68,10 +67,7 @@ public class DBOAccessRequirementDAOImplTest {
 
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
-	
-	@Autowired
-	private AccessControlListDAO aclDao;
-	
+		
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;
 	private Node node = null;
@@ -83,7 +79,6 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -92,11 +87,6 @@ public class DBOAccessRequirementDAOImplTest {
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
-		
-		individualGroup2 = new UserGroup();
-		individualGroup2.setIsIndividual(true);
-		individualGroup2.setCreationDate(new Date());
-		individualGroup2.setId(userGroupDAO.create(individualGroup2).toString());
 		
 		// note: we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
@@ -111,7 +101,6 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
-		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -125,9 +114,6 @@ public class DBOAccessRequirementDAOImplTest {
 		}
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
-		}
-		if (individualGroup2 != null) {
-			userGroupDAO.delete(individualGroup2.getId());
 		}
 	}
 	
