@@ -1,0 +1,43 @@
+{
+	"title": "Data Access Submission Search Result Item",
+	"description": "",
+	"properties": {
+		"id": {
+			"description": "The id of the submission",
+			"type": "string"
+		},
+		"accessRequirementId": {
+			"description": "The id of the access requirement the submission is for",
+			"type": "string"
+		},
+		"accessRequirementName": {
+			"description": "The name of the access requirement",
+			"type": "string"
+		},
+		"accessRequirementReviewerIds": {
+			"description": "The list of principal ids that are allowed to review the submission",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"submitterId": {
+			"description": "The principal ID of the person who created the submission",
+			"type": "string"
+		},
+		"accessorIds": {
+			"description": "The list of principal ids that are accessors in the submission",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"state": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time"
+		}
+	}
+}

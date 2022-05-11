@@ -132,6 +132,7 @@ public interface SubmissionDAO {
 	 */
 	String getAccessRequirementId(String submissionId);
 	
+	
 	// For testing
 	void truncateAll();
 }

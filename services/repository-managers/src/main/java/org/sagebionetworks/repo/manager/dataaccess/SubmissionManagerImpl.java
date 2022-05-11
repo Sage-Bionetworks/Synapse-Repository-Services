@@ -35,6 +35,11 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -388,6 +393,37 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			return status;
 		}
+	}
+	
+	@Override
+	public SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		
+		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
+		
+		long limit = pageToken.getLimitForQuery();
+		long offset = pageToken.getOffset();
+		
+		boolean isACTMember = AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo);
+		String accessorId = request.getAccessorId();
+		String requirementId = request.getAccessRequirementId();
+		List<SubmissionSearchSort> sort = request.getSort() == null || request.getSort().isEmpty() ? List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)) : request.getSort();
+		SubmissionState state = request.getSubmissionState();
+		String reviewerId = request.getReviewerId();
+		SubmissionReviewerFilterType reviewerFilterType = request.getReviewerFilterType();
+		
+		// TODO
+		// 2 paths: 1 for ACT members (can see everything) and 1 for the rest of users, in such case we need the ACL to filter on
+		// reviewerId filter means we have to join on the ACL anyway
+		// SubmissionReviewerFilterType: 
+		//		when ALL
+		// 		when ACT_ONLY left join on the ACL with null id
+		//		when DELEGATED_ONLY join on ACL
+		// For non-ACT users SubmissionReviewerFilterType.ALL = SubmissionReviewerFilterType.DELEGATED_ONLY, SubmissionReviewerFilterType.ACT_ONLY = emptyList
+		
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
