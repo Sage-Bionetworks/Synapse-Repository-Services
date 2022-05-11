@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectTestUtils;
+import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,19 +54,22 @@ import org.springframework.transaction.IllegalTransactionStateException;
 public class DBOAccessRequirementDAOImplTest {
 
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 
 	@Autowired
-	AccessRequirementDAO accessRequirementDAO;
+	private AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 
 	@Autowired
 	private RequestDAO requestDao;
 
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
+	
+	@Autowired
+	private DaoObjectHelper<Node> nodeDaoHelper;
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -79,6 +84,9 @@ public class DBOAccessRequirementDAOImplTest {
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
+		nodeDao.truncateAll();
+		userGroupDAO.truncateAll();
+		
 		ars = new ArrayList<>();
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
@@ -100,17 +108,8 @@ public class DBOAccessRequirementDAOImplTest {
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
-		if (node!=null && nodeDao!=null) {
-			nodeDao.delete(node.getId());
-			node = null;
-		}
-		if (node2!=null && nodeDao!=null) {
-			nodeDao.delete(node2.getId());
-			node2 = null;
-		}
-		if (individualGroup != null) {
-			userGroupDAO.delete(individualGroup.getId());
-		}
+		nodeDao.truncateAll();
+		userGroupDAO.truncateAll();
 	}
 	
 	public static TermsOfUseAccessRequirement newEntityAccessRequirement(UserGroup principal, Node node, String text) throws DatastoreException {
@@ -639,6 +638,50 @@ public class DBOAccessRequirementDAOImplTest {
 			accessRequirementDAO.update(arDup);
 		}).getMessage();
 		assertEquals("An AccessRequirement with the name: 'not unique' already exists", message);
+	}
+	
+	@Test
+	public void testMapAccessRequirmentsToProject() {
+		
+		Node projectOne = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		
+		Node projectTwo = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
+		
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arThree = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+
+		
+		// call under test
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId(), arTwo.getId()}, projectOneId);
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arTwo.getId(), arThree.getId()}, projectTwoId);
+		
+		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getProjectsForAccessRequirement(arOne.getId().toString()));
+		assertEquals(Arrays.asList(projectOneId, projectTwoId), accessRequirementDAO.getProjectsForAccessRequirement(arTwo.getId().toString()));
+		assertEquals(Arrays.asList(projectTwoId), accessRequirementDAO.getProjectsForAccessRequirement(arThree.getId().toString()));
+	}
+	
+	@Test
+	public void testMapAccessRequirmentsToProjectWithDuplicate() {
+		
+		Node projectOne = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+
+		// call under test
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId()}, projectOneId);
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId()}, projectOneId);
+		
+		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getProjectsForAccessRequirement(arOne.getId().toString()));
 	}
 
 }

@@ -434,7 +434,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		if(arIds == null || arIds.length <1) {
 			return;
 		}
-		jdbcTemplate.batchUpdate("INSERT INGORE INTO " + TABLE_ACCESS_REQUIREMENT_PROJECTS + " ("
+		jdbcTemplate.batchUpdate("INSERT IGNORE INTO " + TABLE_ACCESS_REQUIREMENT_PROJECTS + " ("
 				+ COL_ACCESS_REQUIREMENT_PROJECT_AR_ID + ", " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + ") VALUES (?,?)",
 				new BatchPreparedStatementSetter() {
 
@@ -450,5 +450,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					}
 				});
 
+	}
+
+	@Override
+	public List<Long> getProjectsForAccessRequirement(String arId) {
+		ValidateArgument.required(arId, "arId");
+		return jdbcTemplate.queryForList("SELECT " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " FROM "
+				+ TABLE_ACCESS_REQUIREMENT_PROJECTS + " WHERE " + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID
+				+ " = ? ORDER BY " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " ASC", Long.class, arId);
 	}
 }
