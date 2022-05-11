@@ -70,13 +70,4 @@ public class AccessApprovalUtilsTest {
 		assertEquals(newDto, dto);
 	}
 
-	@Test
-	public void testCopyDtosToDbosNotForCreation() {
-		AccessApproval dto = createDTO();
-		List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(Arrays.asList(dto), false, null);
-		List<AccessApproval> dtos = AccessApprovalUtils.copyDbosToDtos(dbos);
-		assertNotNull(dtos);
-		assertEquals(1, dtos.size());
-		assertEquals(dtos.get(0), dto);
-	}
 }

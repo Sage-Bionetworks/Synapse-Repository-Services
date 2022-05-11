@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -306,5 +308,22 @@ public class AccessApprovalController {
 			@RequestParam(value = ServiceConstants.ACCESSOR_ID_PARAM, required = true) String accessorId)
 					throws UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessApprovalService().revokeAccessApprovals(userId, requirementId, accessorId);
+	}
+	
+	/**
+	 * Search through the history of access approvals filtering by accessor/submitter and optional by access requirement id.
+	 * The caller must be a member of the ACT.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_SEARCH, method = RequestMethod.POST)
+	public @ResponseBody AccessApprovalSearchResponse searchAccessApprovals(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessApprovalSearchRequest request) {
+		return serviceProvider.getAccessApprovalService().searchAccessApprovals(userId, request);
 	}
 }

@@ -16,11 +16,13 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -54,10 +56,16 @@ import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
@@ -851,4 +859,198 @@ public class AccessApprovalManagerImplUnitTest {
 		verifyZeroInteractions(mockVerificationDao);
 	}
 	
+	@Test
+	public void testSearchAccessApprovals() {
+		when(mockAccessApprovalDAO.searchAccessApprovals(any(), any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(
+			new AccessApproval().setId(11L).setRequirementId(1L).setRequirementVersion(1L), 
+			new AccessApproval().setId(22L).setRequirementId(2L).setRequirementVersion(1L)
+		));
+		
+		when(mockAccessRequirementDAO.getAccessRequirementNames(any())).thenReturn(Map.of(
+			1L, "name1",
+			2L, "name2"
+		));
+		
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+			.setAccessorId(userInfo.getId().toString());
+		
+		AccessApprovalSearchResponse expected = new AccessApprovalSearchResponse()
+			.setResults(Arrays.asList(
+				new AccessApprovalSearchResult()
+					.setId("11")
+					.setAccessRequirementId("1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name1"),
+				new AccessApprovalSearchResult()
+					.setId("22")
+					.setAccessRequirementId("2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name2")
+			));
+	
+		// Call under test
+		AccessApprovalSearchResponse result = manager.searchAccessApprovals(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAccessApprovalDAO).searchAccessApprovals(userInfo.getId().toString(), null, Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON)), NextPageToken.DEFAULT_LIMIT + 1, 0);
+		verify(mockAccessRequirementDAO).getAccessRequirementNames(Set.of(1L, 2L));
+	}
+
+	@Test
+	public void testSearchAccessApprovalsWithNextpageToken() {
+		when(mockAccessApprovalDAO.searchAccessApprovals(any(), any(), any(), anyLong(), anyLong())).thenReturn(new ArrayList<>(Arrays.asList(
+			new AccessApproval().setId(11L).setRequirementId(1L).setRequirementVersion(1L), 
+			new AccessApproval().setId(22L).setRequirementId(2L).setRequirementVersion(1L),
+			new AccessApproval().setId(33L).setRequirementId(2L).setRequirementVersion(1L)
+		)));
+		
+		when(mockAccessRequirementDAO.getAccessRequirementNames(any())).thenReturn(Map.of(
+			1L, "name1",
+			2L, "name2"
+		));
+		
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+			.setAccessorId(userInfo.getId().toString())
+			.setNextPageToken(new NextPageToken(2, 0).toToken());
+		
+		AccessApprovalSearchResponse expected = new AccessApprovalSearchResponse()
+			.setNextPageToken(new NextPageToken(2, 2).toToken())
+			.setResults(Arrays.asList(
+				new AccessApprovalSearchResult()
+					.setId("11")
+					.setAccessRequirementId("1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name1"),
+				new AccessApprovalSearchResult()
+					.setId("22")
+					.setAccessRequirementId("2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name2")
+			));
+	
+		// Call under test
+		AccessApprovalSearchResponse result = manager.searchAccessApprovals(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAccessApprovalDAO).searchAccessApprovals(userInfo.getId().toString(), null, Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON)), 3, 0);
+		verify(mockAccessRequirementDAO).getAccessRequirementNames(Set.of(1L, 2L));
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithRequirement() {
+		when(mockAccessApprovalDAO.searchAccessApprovals(any(), any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(
+			new AccessApproval().setId(11L).setRequirementId(1L).setRequirementVersion(1L)
+		));
+		
+		when(mockAccessRequirementDAO.getAccessRequirementNames(any())).thenReturn(Map.of(
+			1L, "name1"
+		));
+		
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+			.setAccessRequirementId("1")
+			.setAccessorId(userInfo.getId().toString());		
+		
+		AccessApprovalSearchResponse expected = new AccessApprovalSearchResponse()
+			.setResults(Arrays.asList(
+				new AccessApprovalSearchResult()
+					.setId("11")
+					.setAccessRequirementId("1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name1")
+			));
+	
+		// Call under test
+		AccessApprovalSearchResponse result = manager.searchAccessApprovals(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAccessApprovalDAO).searchAccessApprovals(userInfo.getId().toString(), "1", Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON)), NextPageToken.DEFAULT_LIMIT + 1, 0);
+		verify(mockAccessRequirementDAO).getAccessRequirementNames(Set.of(1L));
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithSort() {
+		when(mockAccessApprovalDAO.searchAccessApprovals(any(), any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(
+			new AccessApproval().setId(11L).setRequirementId(1L).setRequirementVersion(1L)
+		));
+		
+		when(mockAccessRequirementDAO.getAccessRequirementNames(any())).thenReturn(Map.of(
+			1L, "name1"
+		));
+		
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.DESC),
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.EXPIRED_ON).setDirection(SortDirection.ASC)
+		);
+		
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+			.setAccessorId(userInfo.getId().toString())
+			.setSort(sort);
+		
+		AccessApprovalSearchResponse expected = new AccessApprovalSearchResponse()
+			.setResults(Arrays.asList(
+				new AccessApprovalSearchResult()
+					.setId("11")
+					.setAccessRequirementId("1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementName("name1")
+			));
+	
+		// Call under test
+		AccessApprovalSearchResponse result = manager.searchAccessApprovals(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockAccessApprovalDAO).searchAccessApprovals(userInfo.getId().toString(), null, sort, NextPageToken.DEFAULT_LIMIT + 1, 0);
+		verify(mockAccessRequirementDAO).getAccessRequirementNames(Set.of(1L));
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithNoUser() {
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+				.setAccessorId(userInfo.getId().toString());
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.searchAccessApprovals(null, request);
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", message);
+		
+		verifyZeroInteractions(mockAccessApprovalDAO);
+		verifyZeroInteractions(mockAccessRequirementDAO);
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithNoRequest() {
+		AccessApprovalSearchRequest request = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.searchAccessApprovals(atcUser, request);
+		}).getMessage();
+		
+		assertEquals("request is required.", message);
+		
+		verifyZeroInteractions(mockAccessApprovalDAO);
+		verifyZeroInteractions(mockAccessRequirementDAO);
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithNoACT() {
+		AccessApprovalSearchRequest request = new AccessApprovalSearchRequest()
+			.setAccessorId(userInfo.getId().toString());
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.searchAccessApprovals(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("Only ACT member can perform this action.", message);
+		
+		verifyZeroInteractions(mockAccessApprovalDAO);
+		verifyZeroInteractions(mockAccessRequirementDAO);
+	}
 }

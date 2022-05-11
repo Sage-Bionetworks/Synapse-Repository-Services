@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -104,4 +106,13 @@ public interface AccessApprovalManager {
 	 */
 	AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId)
 			throws NotFoundException;
+
+	/**
+	 * Search through the history of access approvals
+	 * 
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	AccessApprovalSearchResponse searchAccessApprovals(UserInfo userInfo, AccessApprovalSearchRequest request);
 }

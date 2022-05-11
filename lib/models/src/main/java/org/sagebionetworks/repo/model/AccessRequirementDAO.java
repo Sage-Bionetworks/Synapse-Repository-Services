@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -14,7 +16,7 @@ public interface AccessRequirementDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException;
+	<T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Retrieves the object given its id
@@ -24,7 +26,7 @@ public interface AccessRequirementDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessRequirement get(String id) throws DatastoreException, NotFoundException;
+	AccessRequirement get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
@@ -32,7 +34,7 @@ public interface AccessRequirementDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	public <T extends AccessRequirement> T update(T accessRequirement) throws InvalidModelException,
+	<T extends AccessRequirement> T update(T accessRequirement) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
@@ -43,7 +45,7 @@ public interface AccessRequirementDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	void delete(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Retrieve a page of AccessRequirements.
@@ -54,7 +56,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public List<AccessRequirement> getAccessRequirementsForSubject(
+	List<AccessRequirement> getAccessRequirementsForSubject(
 			List<Long> subjectIds, RestrictableObjectType type, long limit,
 			long offset) throws DatastoreException;
 
@@ -64,7 +66,7 @@ public interface AccessRequirementDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public String getConcreteType(String accessRequirementId);
+	String getConcreteType(String accessRequirementId);
 
 	/**
 	 * Retrieve the statistic of access requirements for list of given subjectIds
@@ -74,7 +76,7 @@ public interface AccessRequirementDAO {
 	 * if type is TEAM, subjectIds should contain the teamID
 	 * @return
 	 */
-	public AccessRequirementStats getAccessRequirementStats(List<Long> subjectIds, RestrictableObjectType type);
+	AccessRequirementStats getAccessRequirementStats(List<Long> subjectIds, RestrictableObjectType type);
 
 	/**
 	 * Retrieving the subjects under a given access requirement
@@ -82,7 +84,7 @@ public interface AccessRequirementDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId);
+	List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId);
 
 	/**
 	 * Retrieve information to update an AccessRequirement.
@@ -91,7 +93,7 @@ public interface AccessRequirementDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
+	AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
 
 	/**
 	 * Returns all access requirement IDs that applies to source subjects but does not apply to destination subjects.
@@ -101,7 +103,7 @@ public interface AccessRequirementDAO {
 	 * @param type
 	 * @return
 	 */
-	public List<String> getAccessRequirementDiff(List<Long> sourceSubjects, List<Long> destSubjects,
+	List<String> getAccessRequirementDiff(List<Long> sourceSubjects, List<Long> destSubjects,
 			RestrictableObjectType type);
 
 	/**
@@ -110,7 +112,7 @@ public interface AccessRequirementDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public AccessRequirement getAccessRequirementForUpdate(String accessRequirementId);
+	AccessRequirement getAccessRequirementForUpdate(String accessRequirementId);
 
 	/**
 	 * Retrieve a page of subjects that the given accessRequirementId applies to
@@ -120,7 +122,15 @@ public interface AccessRequirementDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset);
+	List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset);
+	
+	/**
+	 * Fetch the names for the given list of access requirements
+	 *  
+	 * @param accessRequirementIds
+	 * @return
+	 */
+	Map<Long, String> getAccessRequirementNames(Set<Long> accessRequirementIds);
 	
 	// For testing
 	

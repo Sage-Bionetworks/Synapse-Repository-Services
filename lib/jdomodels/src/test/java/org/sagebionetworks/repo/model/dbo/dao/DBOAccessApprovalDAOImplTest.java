@@ -32,7 +32,11 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
+import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1112,5 +1116,130 @@ public class DBOAccessApprovalDAOImplTest {
 			accessApprovalDAO.get("-123");
 		}).getMessage();
 		assertEquals("Access approval '-123' does not exist", message);
+	}
+
+	@Test
+	public void testSearchAccessApprovals() {
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setState(ApprovalState.REVOKED);
+		
+		AccessApproval ap2 = newAccessApproval(individualGroup2, accessRequirement);
+		ap2.setAccessorId(individualGroup.getId());
+		// Sorting consistency
+		ap2.setModifiedOn(new Date(ap1.getModifiedOn().getTime() + 5_000));
+		
+		// Different accessor
+		AccessApproval ap3 = newAccessApproval(individualGroup2, accessRequirement);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		ap3 = accessApprovalDAO.create(ap3);
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC));
+		
+		List<AccessApproval> expected = Arrays.asList(ap1, ap2);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
+		
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testSearchAccessApprovalsMultiSort() {
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(new Date());
+		
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement2);
+		// Sorting consistency
+		ap2.setExpiredOn(ap1.getExpiredOn());
+		ap2.setModifiedOn(new Date(ap1.getModifiedOn().getTime() + 5_000));	
+		
+		AccessApproval ap3 = newAccessApproval(individualGroup2, accessRequirement2);
+		ap3.setAccessorId(individualGroup.getId());
+		ap3.setExpiredOn(ap1.getExpiredOn());
+		ap3.setModifiedOn(new Date(ap1.getModifiedOn().getTime() + 10_000));		
+				
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		ap3 = accessApprovalDAO.create(ap3);
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.EXPIRED_ON),
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.DESC)
+		);
+		
+		List<AccessApproval> expected = Arrays.asList(ap3, ap2, ap1);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
+		
+		assertEquals(expected, results);
+	}
+	
+
+	
+	@Test
+	public void testSearchAccessApprovalsLimitOffset() {
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setExpiredOn(new Date());
+		
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement2);
+		// Sorting consistency
+		ap2.setExpiredOn(ap1.getExpiredOn());
+		ap2.setModifiedOn(new Date(ap1.getModifiedOn().getTime() + 5_000));	
+		
+		AccessApproval ap3 = newAccessApproval(individualGroup2, accessRequirement2);
+		ap3.setAccessorId(individualGroup.getId());
+		ap3.setExpiredOn(ap1.getExpiredOn());
+		ap3.setModifiedOn(new Date(ap1.getModifiedOn().getTime() + 10_000));		
+				
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		ap3 = accessApprovalDAO.create(ap3);
+				
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = null;
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)
+		);
+		
+		List<AccessApproval> expected = Arrays.asList(ap1, ap2);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 2, 0);
+		
+		assertEquals(expected, results);
+		
+		expected = Arrays.asList(ap2);
+		
+		results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 1, 1);
+		
+		assertEquals(expected, results);
+		
+	}
+	
+	@Test
+	public void testSearchAccessApprovalsWithRequirement() {
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1.setState(ApprovalState.REVOKED);
+		
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement2);
+		
+		ap1 = accessApprovalDAO.create(ap1);
+		ap2 = accessApprovalDAO.create(ap2);
+		
+		String accessorId = individualGroup.getId();
+		String accessRequirementId = accessRequirement.getId().toString();
+		List<AccessApprovalSearchSort> sort = Arrays.asList(
+			new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON).setDirection(SortDirection.ASC)
+		);
+		
+		List<AccessApproval> expected = Arrays.asList(ap1);
+		
+		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
+		
+		assertEquals(expected, results);
 	}
 }
