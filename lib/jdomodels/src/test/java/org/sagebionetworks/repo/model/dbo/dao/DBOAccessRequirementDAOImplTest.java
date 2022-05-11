@@ -87,7 +87,6 @@ public class DBOAccessRequirementDAOImplTest {
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
 		nodeDao.truncateAll();
-		userGroupDAO.truncateAll();
 		
 		ars = new ArrayList<>();
 		individualGroup = new UserGroup();
