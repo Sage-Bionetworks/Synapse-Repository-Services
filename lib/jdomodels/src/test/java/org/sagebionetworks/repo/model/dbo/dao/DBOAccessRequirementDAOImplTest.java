@@ -74,7 +74,6 @@ public class DBOAccessRequirementDAOImplTest {
 	private DaoObjectHelper<Node> nodeDaoHelper;
 	
 	private UserGroup individualGroup = null;
-	private UserGroup individualGroup2 = null;
 	private Node node = null;
 	private Node node2 = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
@@ -113,7 +112,9 @@ public class DBOAccessRequirementDAOImplTest {
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
 		nodeDao.truncateAll();
-		userGroupDAO.truncateAll();
+		if (individualGroup != null) {
+			userGroupDAO.delete(individualGroup.getId());
+		}
 	}
 	
 	public static TermsOfUseAccessRequirement newEntityAccessRequirement(UserGroup principal, Node node, String text) throws DatastoreException {
