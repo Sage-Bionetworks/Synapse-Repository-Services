@@ -1,0 +1,24 @@
+{
+	"description": "Identifies both the field and direction for a single sort operation",
+	"properties": {
+		"field": {
+			"name": "AccessApprovalSortField",
+			"type": "string",
+            "description": "Field to sort on.",
+            "enum": [
+                {
+                    "name": "MODIFIED_ON",
+                    "description": "Modification date field"
+                },
+                {
+                    "name": "EXPIRED_ON",
+                    "description": "Expiration date field"
+                }
+            ]
+		},
+		"direction": {
+			"description": "..",
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SortDirection"
+		}
+	}
+}

@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -91,5 +93,11 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			AccessApprovalNotificationRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return notificationManager.listNotificationsRequest(user, request);
+	}
+	
+	@Override
+	public AccessApprovalSearchResponse searchAccessApprovals(Long userId, AccessApprovalSearchRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return accessApprovalManager.searchAccessApprovals(user, request);
 	}
 }

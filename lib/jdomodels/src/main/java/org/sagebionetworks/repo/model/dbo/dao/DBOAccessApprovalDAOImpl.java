@@ -12,7 +12,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,12 +27,16 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -172,7 +179,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " WHERE "
 			+ COL_ACCESS_APPROVAL_ID + " = ? AND " + COL_ACCESS_APPROVAL_STATE + " = '" + ApprovalState.APPROVED.name() + "'";
 
-	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
+	private static final RowMapper<DBOAccessApproval> DBO_ROW_MAPPER = (new DBOAccessApproval()).getTableMapping();
+	private static final RowMapper<AccessApproval> ROW_MAPPER = (ResultSet rs, int i) -> AccessApprovalUtils.copyDboToDto(DBO_ROW_MAPPER.mapRow(rs, i));
 
 	@WriteTransaction
 	@Override
@@ -197,8 +205,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		param.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
 		try {
-			DBOAccessApproval dbo =  namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, rowMapper);
-			return AccessApprovalUtils.copyDboToDto(dbo);
+			return namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, ROW_MAPPER);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(
 					"Access approval for requirement Id: '%s', requirement version: '%s', submitter: '%s', accessor '%s'  ",
@@ -269,11 +276,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
-		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, rowMapper);
-		for (DBOAccessApproval dbo : dbos) {
-			dtos.add(AccessApprovalUtils.copyDboToDto(dbo));
-		}
-		return dtos;
+		return namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, ROW_MAPPER);
 	}
 
 	@Override
@@ -488,6 +491,36 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		}
 		
 		return updatedIdsList;
+	}
+	
+	@Override
+	public List<AccessApproval> searchAccessApprovals(String accessorId, String accessRequirementId, List<AccessApprovalSearchSort> sort, long limit, long offset) {
+		ValidateArgument.required(accessorId, "accessorId");
+		ValidateArgument.requiredNotEmpty(sort, "sort");
+		
+		String sql = "SELECT * FROM " + TABLE_ACCESS_APPROVAL
+				+ " WHERE " + COL_ACCESS_APPROVAL_ACCESSOR_ID + "=?";
+		
+		List<Object> queryParams = new ArrayList<>();
+		
+		queryParams.add(accessorId);
+		
+		if (accessRequirementId != null) {
+			sql += " AND " + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "=?";
+			queryParams.add(accessRequirementId);
+		}
+		
+		sql += " ORDER BY " + String.join(",", sort.stream().map(sortField -> {
+			ValidateArgument.required(sortField.getField(), "sort.field");
+			return sortField.getField().toString() + (sortField.getDirection() == null ? "" : " " + sortField.getDirection().toString());
+		}).collect(Collectors.toList()));
+		
+		sql += " LIMIT ? OFFSET ?";
+		
+		queryParams.add(limit);
+		queryParams.add(offset);
+		
+		return jdbcTemplate.query(sql, ROW_MAPPER, queryParams.toArray());
 	}
 	
 	@Override

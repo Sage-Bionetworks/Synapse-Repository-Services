@@ -67,12 +67,4 @@ public class AccessApprovalUtils {
 		}
 		return dbos;
 	}
-
-	public static List<AccessApproval> copyDbosToDtos(List<DBOAccessApproval> dbos) {
-		List<AccessApproval> dtos = new LinkedList<AccessApproval>();
-		for (DBOAccessApproval dbo : dbos) {
-			dtos.add(copyDboToDto(dbo));
-		}
-		return dtos;
-	}
 }

@@ -1,0 +1,26 @@
+{
+	"description": "A request to search through the access approval history",
+	"properties": {
+		"accessorId": {
+            "type":"string",
+            "description": "Filter by the id of the principal that is an accessor in the approval. Note that the submitter is always part of the accessors. This field is required.",
+            "required": true
+        },
+		"accessRequirementId": {
+            "type": "string",
+            "description": "Filter by the id of the access requirement of the approvals.",
+            "required": false
+        },
+        "sort": {
+        	"type": "array",
+        	"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort"
+			}
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a request.",
+            "required": false
+        }
+	}
+}

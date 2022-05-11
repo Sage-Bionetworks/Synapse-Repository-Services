@@ -1,0 +1,15 @@
+{
+    "description": "Direction of a sort.",
+    "name": "SortDirection",
+    "type": "string",
+    "enum": [
+        {
+            "name": "ASC",
+            "description": "Ascending."
+        },
+        {
+            "name": "DESC",
+            "description": "Descending."
+        }
+    ]
+}

@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,11 +11,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +39,10 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -386,5 +390,66 @@ public class ITDataAccessTest {
 		
 		assertEquals(SubmissionState.REJECTED, submission.getState());
 	}
+	
+	@Test
+	public void testSearchAccessApprovals() throws SynapseException, JSONObjectAdapterException {
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
+		
+		rp.setInstitution("Sage");
+		rp.setProjectLead("Lead");
+		rp.setIntendedDataUseStatement("intendedDataUseStatement");
+		rp.setAccessRequirementId(managedAR.getId().toString());
+		
+		rp = synapse.createOrUpdateResearchProject(rp);
+		
+		RequestInterface request = synapse.createOrUpdateRequest(new Request()
+			.setResearchProjectId(rp.getId())
+			.setAccessRequirementId(managedAR.getId().toString())
+			.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId()),
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(synapse.getMyProfile().getOwnerId())
+			)));
+		
+		SubmissionStatus submissionStatus = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		Submission submission = adminSynapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		
+		assertEquals(SubmissionState.APPROVED, submission.getState());
+		
+		String accessorId = synapse.getMyProfile().getOwnerId();
+		
+		AccessApprovalSearchRequest searchRequest = new AccessApprovalSearchRequest()
+			.setAccessorId(accessorId)
+			.setSort(List.of(new AccessApprovalSearchSort().setField(AccessApprovalSortField.MODIFIED_ON)));
+		
+		// Only ACT can search through approvals
+		assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.searchAccessApprovals(searchRequest);
+		});
+
+		AccessApprovalSearchResponse response = adminSynapse.searchAccessApprovals(searchRequest);
+		
+		assertFalse(response.getResults().isEmpty());
+		response.getResults().forEach( r -> {
+			assertEquals(accessorId, r.getSubmitterId());
+		});
+		
+		searchRequest.setAccessRequirementId("-1");
+		
+		assertTrue(adminSynapse.searchAccessApprovals(searchRequest).getResults().isEmpty());
+		
+	}
+	
 
 }

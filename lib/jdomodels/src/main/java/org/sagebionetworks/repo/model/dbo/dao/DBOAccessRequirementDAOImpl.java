@@ -19,9 +19,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -424,6 +427,26 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
+	public Map<Long, String> getAccessRequirementNames(Set<Long> accessRequirementIds) {
+		
+		if (accessRequirementIds == null || accessRequirementIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		String sql = "SELECT " + COL_ACCESS_REQUIREMENT_ID + ", " + COL_ACCESS_REQUIREMENT_NAME
+			+ " FROM " + TABLE_ACCESS_REQUIREMENT
+			+ " WHERE " + COL_ACCESS_REQUIREMENT_ID + " IN (:" + COL_ACCESS_REQUIREMENT_ID + ")";
+				
+		return namedJdbcTemplate.query(sql, Map.of(COL_ACCESS_REQUIREMENT_ID, accessRequirementIds), rs -> {
+			Map<Long, String> namesMap = new HashMap<>(accessRequirementIds.size());
+			while (rs.next()) {
+				namesMap.put(rs.getLong(COL_ACCESS_REQUIREMENT_ID), rs.getString(COL_ACCESS_REQUIREMENT_NAME));
+			}
+			return namesMap;
+		});
+	}
+	
+	@Override
 	public void clear() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT);
 	}
@@ -459,4 +482,5 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				+ TABLE_ACCESS_REQUIREMENT_PROJECTS + " WHERE " + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID
 				+ " = ? ORDER BY " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " ASC", Long.class, arId);
 	}
+
 }

@@ -12,7 +12,7 @@ public interface AccessControlListDAO  {
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 * @throws DatastoreException 
 	 */
-	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
+	boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
 	
 	/**
 	 * Does the user have the permission to access the given resource.
@@ -23,8 +23,18 @@ public interface AccessControlListDAO  {
 	 * @param permission   The permission required for access.
 	 * @return 
 	 */
-	public AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
+	AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
 			ACCESS_TYPE permission);
+	
+	/**
+	 * Does the user have the given permission on any resource of the given type.
+	 * 
+	 * @param user
+	 * @param resourceType
+	 * @param permission
+	 * @return
+	 */
+	boolean hasAccessToResourceOfType(UserInfo user, ObjectType resourceType, ACCESS_TYPE permission);
 
 	/**
 	 * Create a new ACL
@@ -34,7 +44,7 @@ public interface AccessControlListDAO  {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException 
 	 */
-	public String create(AccessControlList dto, ObjectType ownerType) throws DatastoreException,	InvalidModelException, NotFoundException;
+	String create(AccessControlList dto, ObjectType ownerType) throws DatastoreException,	InvalidModelException, NotFoundException;
 
 	/**
 	 * Get an ACL using the Node's ID
@@ -43,7 +53,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	AccessControlList get(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the ACL's ID using ownerId and objectType
@@ -53,7 +63,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	Long getAclId(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the ACL IDs, if they exist, using ownerId and objectType
@@ -64,7 +74,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);	
+	List<Long> getAclIds(List<Long> ownerIds, ObjectType objectType);	
 	/**
 	 * Get an ACL using the ACL's ID
 	 * @param id - the id of the acl (not the ownerId)
@@ -72,7 +82,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList get(Long id) throws DatastoreException, NotFoundException;
+	AccessControlList get(Long id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the OwnerType using the ACL's ID
@@ -81,7 +91,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException;
+	ObjectType getOwnerType(Long id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update the JDO
@@ -92,7 +102,7 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public void update(AccessControlList dto, ObjectType ownerType) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
+	void update(AccessControlList dto, ObjectType ownerType) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
 
 	/**
 	 * Delete a ACL using the Node's Id.
@@ -101,7 +111,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
+	void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Deletes ACLs using a List of Node Ids.
@@ -120,7 +130,7 @@ public interface AccessControlListDAO  {
 	 * @param read
 	 * @return
 	 */
-	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
+	Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
 			ObjectType entity, ACCESS_TYPE read);
 
 	/**
@@ -131,7 +141,7 @@ public interface AccessControlListDAO  {
 	 * @param accessType
 	 * @return
 	 */
-	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
+	Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
 
 	/**
 	 * Get the projectIds that can be read by the passed principal ids.
@@ -140,7 +150,7 @@ public interface AccessControlListDAO  {
 	 * @param read
 	 * @return
 	 */
-	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
+	Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
 			ACCESS_TYPE read);
 
 	/**
@@ -151,7 +161,7 @@ public interface AccessControlListDAO  {
 	 * @param parentId
 	 * @return
 	 */
-	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
+	Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
 			String parentId);
 
 	/**
@@ -159,11 +169,11 @@ public interface AccessControlListDAO  {
 	 * entity parentIds.
 	 * @param parentIds
 	 */
-	public List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds);
+	List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds);
 	
 	/**
 	 * Truncate all data except bootstrap data.
 	 */
-	public void truncateAll();
+	void truncateAll();
 
 }
