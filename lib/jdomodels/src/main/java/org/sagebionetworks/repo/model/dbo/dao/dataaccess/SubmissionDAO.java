@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
@@ -132,6 +134,33 @@ public interface SubmissionDAO {
 	 */
 	String getAccessRequirementId(String submissionId);
 	
+	/**
+	 * Search through all the submissions that match the given criteria. This method is intented for ACT members that can access all the submissions
+	 * 
+	 * @param reviewerFilterType The type reviewer that applies to the submissions, required
+	 * @param sort The sorting criteria, required
+	 * @param accessorId Optional filter by accessor id
+	 * @param accessRequirementId Optional filter by requirement id
+	 * @param reviewerId Optional filter by a principal that is allowed to review submissions
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<Submission> searchAllSubmissions(SubmissionReviewerFilterType reviewerFilterType, List<SubmissionSearchSort> sort, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset);
+	
+	/**
+	 * Search through the submissions that the given principal is allowed to review and that match the given criteria.
+	 * 
+	 * @param principalId The principal that is allowed to review submissions, required
+	 * @param sort The sorting criteria, required
+	 * @param accessorId Optional filter by accessor id
+	 * @param accessRequirementId Optional filter by requirement id
+	 * @param reviewerId Optional filter by an additional principal that is allowed to review submissions
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<Submission> searchPrincipalReviewableSubmissions(String principalId, List<SubmissionSearchSort> sort, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset);
 	
 	// For testing
 	void truncateAll();

@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -38,6 +41,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -411,19 +415,46 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		List<SubmissionSearchSort> sort = request.getSort() == null || request.getSort().isEmpty() ? List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)) : request.getSort();
 		SubmissionState state = request.getSubmissionState();
 		String reviewerId = request.getReviewerId();
-		SubmissionReviewerFilterType reviewerFilterType = request.getReviewerFilterType();
+		SubmissionReviewerFilterType reviewerFilterType = request.getReviewerFilterType() == null ? SubmissionReviewerFilterType.ALL : request.getReviewerFilterType();
 		
-		// TODO
-		// 2 paths: 1 for ACT members (can see everything) and 1 for the rest of users, in such case we need the ACL to filter on
-		// reviewerId filter means we have to join on the ACL anyway
-		// SubmissionReviewerFilterType: 
-		//		when ALL
-		// 		when ACT_ONLY left join on the ACL with null id
-		//		when DELEGATED_ONLY join on ACL
-		// For non-ACT users SubmissionReviewerFilterType.ALL = SubmissionReviewerFilterType.DELEGATED_ONLY, SubmissionReviewerFilterType.ACT_ONLY = emptyList
+		List<Submission> submissionPage;
 		
-		// TODO Auto-generated method stub
-		return null;
+		if (isACTMember) {
+			submissionPage = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+		} else {
+			// A non-ACT user cannot see ACT_ONLY submissions
+			switch (reviewerFilterType) {
+			case ALL:
+			case DELEGATED_ONLY:
+				submissionPage = submissionDao.searchPrincipalReviewableSubmissions(userInfo.getId().toString(), sort, accessorId, requirementId, reviewerId, state, limit, offset);	
+				break;
+			default:
+				submissionPage = Collections.emptyList();
+				break;
+			}
+		}
+		
+		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(submissionPage);
+		
+		Set<Long> arIdsSet = submissionPage.stream().map(s -> Long.valueOf(s.getAccessRequirementId())).collect(Collectors.toSet());
+		Map<Long, String> arNamesMaps = accessRequirementDao.getAccessRequirementNames(arIdsSet);
+		
+		List<SubmissionSearchResult> result = submissionPage.stream().map( submission -> {
+			SubmissionSearchResult mappedResult = new SubmissionSearchResult()
+				.setId(submission.getId())
+				.setAccessRequirementId(submission.getAccessRequirementId())
+				// TODO version, reviewer Ids, accessor change
+				.setAccessRequirementName(arNamesMaps.get(Long.valueOf(submission.getAccessRequirementId())))
+				.setCreatedOn(submission.getSubmittedOn())
+				.setState(submission.getState())
+				.setSubmitterId(submission.getSubmittedBy());
+			
+			return mappedResult;
+		}).collect(Collectors.toList());
+		
+		return new SubmissionSearchResponse()
+			.setResults(result)
+			.setNextPageToken(nextPageToken);
 	}
 
 	/**
