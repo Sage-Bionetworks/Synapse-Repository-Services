@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 
@@ -23,7 +27,6 @@ public interface DataAccessAuthorizationManager {
 	 */
 	AuthorizationStatus canDownloadSubmissionFiles(UserInfo userInfo, String submissionId);
 	
-	
 	/**
 	 * Checks if the given user can review submissions for the given access requirement.
 	 * 
@@ -40,5 +43,13 @@ public interface DataAccessAuthorizationManager {
 	 * @return True if the user is part of the ACT or if has a REVIEW_SUBMISSION ACL assigned to at least one AR
 	 */
 	boolean isAccessRequirementReviewer(UserInfo userInfo);
+	
+	/**
+	 * Fetches the list of principal ids that are allowed to review for each of the access requirement in the given set
+	 * 
+	 * @param accessRequirementIds The set of access requirement ids
+	 * @return A map from the AR id to its list of assigned reviewers
+	 */
+	Map<Long, List<String>> getAccessRequirementReviewers(Set<Long> accessRequirementIds);
 
 }

@@ -15,14 +15,18 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +70,12 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -1176,6 +1186,534 @@ public class SubmissionManagerImplTest {
 		approval2.setExpiredOn(new Date(1496357698000L) /* June 1st 2017 */);
 		assertEquals(approval1.getExpiredOn(),
 				SubmissionManagerImpl.getLatestExpirationDate(Arrays.asList(approval1, approval2)));
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithAct() {
+		
+		List<Submission> submissionList = List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+			new Submission().setId("3")
+				.setAccessRequirementId("31")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+		);
+		
+		when(mockSubmissionDao.searchAllSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2",
+			31L, "ar3"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2"),
+			31L, List.of("3", "4")
+		));
+		
+		SubmissionReviewerFilterType filterType = null;
+		List<SubmissionSearchSort> sort = null;
+		String accessRequirementId = null;
+		String accessorId = null;
+		String reviewerId = null;
+		SubmissionState state = null;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+				new SubmissionSearchResult().setId("3")
+					.setAccessRequirementId("31")
+					.setAccessRequirementName("ar3")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("3", "4"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+			));
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchAllSubmissions(SubmissionReviewerFilterType.ALL, List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)), accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L, 31L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L, 31L));
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithActAndFilters() {
+		
+		List<Submission> submissionList = List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+			new Submission().setId("3")
+				.setAccessRequirementId("31")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+		);
+		
+		when(mockSubmissionDao.searchAllSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2",
+			31L, "ar3"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2"),
+			31L, List.of("3", "4")
+		));
+		
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.ACT_ONLY;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+				new SubmissionSearchResult().setId("3")
+					.setAccessRequirementId("31")
+					.setAccessRequirementName("ar3")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("3", "4"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+			));
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchAllSubmissions(filterType, sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L, 31L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L, 31L));
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithActAndPagination() {
+		
+		List<Submission> submissionList = new ArrayList<>(List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+			new Submission().setId("3")
+				.setAccessRequirementId("31")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+		));
+		
+		when(mockSubmissionDao.searchAllSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2")
+		));
+		
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.ACT_ONLY;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId)
+			.setNextPageToken(new NextPageToken(2, 0).toToken());
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+			))
+			.setNextPageToken(new NextPageToken(2, 2).toToken());
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(atcUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchAllSubmissions(filterType, sort, accessorId, accessRequirementId, reviewerId, state, 3, 0);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithNonAct() {
+		List<Submission> submissionList = List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+		);
+		
+		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2")
+		));
+		
+		SubmissionReviewerFilterType filterType = null;
+		List<SubmissionSearchSort> sort = null;
+		String accessRequirementId = null;
+		String accessorId = null;
+		String reviewerId = null;
+		SubmissionState state = null;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+			));
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(mockUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)), accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
+		
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithNonActAndFilters() {
+		List<Submission> submissionList = List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+		);
+		
+		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2")
+		));
+		
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.ALL;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+			));
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(mockUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
+		
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithNonActAndDelegatedOnly() {
+		List<Submission> submissionList = List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+		);
+		
+		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2")
+		));
+		
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.DELEGATED_ONLY;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+			));
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(mockUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
+		
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithNonActAndACTOnly() {
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.ACT_ONLY;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId);
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(Collections.emptyList());
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(mockUser, request);
+		
+		assertEquals(expected, result);
+		
+		verifyZeroInteractions(mockSubmissionDao);
+		verifyZeroInteractions(mockAccessRequirementDao);
+		verifyZeroInteractions(mockAuthManager);
+		
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithNonActAndPagination() {
+		
+		List<Submission> submissionList = new ArrayList<>(List.of(
+			new Submission().setId("1")
+				.setAccessRequirementId("11")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+			new Submission().setId("2")
+				.setAccessRequirementId("21")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2"))),
+			new Submission().setId("3")
+				.setAccessRequirementId("31")
+				.setAccessRequirementVersion(1L)
+				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
+		));
+		
+		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		
+		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
+			11L, "ar1",
+			21L, "ar2"
+		));
+		
+		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			11L, List.of("1", "2"),
+			21L, List.of("2")
+		));
+		
+		SubmissionReviewerFilterType filterType = SubmissionReviewerFilterType.ALL;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		String accessRequirementId = "21";
+		String accessorId = "2";
+		String reviewerId = "2";
+		SubmissionState state = SubmissionState.SUBMITTED;
+		
+		SubmissionSearchRequest request = new SubmissionSearchRequest()
+			.setAccessorId(accessorId)
+			.setAccessRequirementId(accessRequirementId)
+			.setReviewerFilterType(filterType)
+			.setSubmissionState(state)
+			.setSort(sort)
+			.setReviewerId(reviewerId)
+			.setNextPageToken(new NextPageToken(2, 0).toToken());
+		
+		SubmissionSearchResponse expected = new SubmissionSearchResponse()
+			.setResults(List.of(
+				new SubmissionSearchResult().setId("1")
+					.setAccessRequirementId("11")
+					.setAccessRequirementName("ar1")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("1", "2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("1"))),
+				new SubmissionSearchResult().setId("2")
+					.setAccessRequirementId("21")
+					.setAccessRequirementName("ar2")
+					.setAccessRequirementVersion("1")
+					.setAccessRequirementReviewerIds(List.of("2"))
+					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
+			))
+			.setNextPageToken(new NextPageToken(2, 2).toToken());
+		
+		SubmissionSearchResponse result = manager.searchSubmissions(mockUser, request);
+		
+		assertEquals(expected, result);
+		
+		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, 3, 0);
+		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
+		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 	}
 	
 }

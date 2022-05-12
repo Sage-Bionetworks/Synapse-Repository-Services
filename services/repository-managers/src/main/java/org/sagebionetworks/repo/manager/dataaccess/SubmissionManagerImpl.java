@@ -424,6 +424,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		} else {
 			// A non-ACT user cannot see ACT_ONLY submissions
 			switch (reviewerFilterType) {
+			// For a non-ACT user ALL=DELEGATED_ONLY
 			case ALL:
 			case DELEGATED_ONLY:
 				submissionPage = submissionDao.searchPrincipalReviewableSubmissions(userInfo.getId().toString(), sort, accessorId, requirementId, reviewerId, state, limit, offset);	
@@ -434,22 +435,31 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 		
+		if (submissionPage.isEmpty()) {
+			return new SubmissionSearchResponse()
+				.setResults(Collections.emptyList());
+		}
+		
 		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(submissionPage);
 		
 		Set<Long> arIdsSet = submissionPage.stream().map(s -> Long.valueOf(s.getAccessRequirementId())).collect(Collectors.toSet());
-		Map<Long, String> arNamesMaps = accessRequirementDao.getAccessRequirementNames(arIdsSet);
+		Map<Long, String> arNamesMap = accessRequirementDao.getAccessRequirementNames(arIdsSet);
+		Map<Long, List<String>> arReviewersMap = authorizationManager.getAccessRequirementReviewers(arIdsSet);
 		
 		List<SubmissionSearchResult> result = submissionPage.stream().map( submission -> {
-			SubmissionSearchResult mappedResult = new SubmissionSearchResult()
+			Long arId = Long.valueOf(submission.getAccessRequirementId());
+			
+			return new SubmissionSearchResult()
 				.setId(submission.getId())
 				.setAccessRequirementId(submission.getAccessRequirementId())
-				// TODO version, reviewer Ids, accessor change
-				.setAccessRequirementName(arNamesMaps.get(Long.valueOf(submission.getAccessRequirementId())))
+				.setAccessRequirementVersion(submission.getAccessRequirementVersion().toString())
+				.setAccessRequirementName(arNamesMap.get(arId))
+				.setAccessRequirementReviewerIds(arReviewersMap.get(arId))
+				.setAccessorChanges(submission.getAccessorChanges())
 				.setCreatedOn(submission.getSubmittedOn())
+				.setModifiedOn(submission.getModifiedOn())
 				.setState(submission.getState())
 				.setSubmitterId(submission.getSubmittedBy());
-			
-			return mappedResult;
 		}).collect(Collectors.toList());
 		
 		return new SubmissionSearchResponse()

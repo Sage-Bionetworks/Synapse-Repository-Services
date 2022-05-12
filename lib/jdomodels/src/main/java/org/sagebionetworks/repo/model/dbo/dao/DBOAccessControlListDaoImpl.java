@@ -24,6 +24,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -228,6 +230,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			+ COL_ACL_OWNER_TYPE + " = ?" + " AND "
 			+ TABLE_RESOURCE_ACCESS_TYPE + "."
 			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT + " = ?";
+	
+	private static final String SQL_GET_ALL_USER_GROUP_MAP = "SELECT A." + COL_ACL_OWNER_ID + ", RA." + COL_RESOURCE_ACCESS_GROUP_ID 
+			+ " FROM " + TABLE_ACCESS_CONTROL_LIST + " A, " + TABLE_RESOURCE_ACCESS + " RA, " + TABLE_RESOURCE_ACCESS_TYPE + " AT" 
+			+ " WHERE A." + COL_ACL_ID + " = RA." + COL_RESOURCE_ACCESS_OWNER 
+			+ " AND RA." + COL_RESOURCE_ACCESS_ID + " = AT." + COL_RESOURCE_ACCESS_TYPE_ID
+			+ " AND A." + COL_ACL_OWNER_ID + " IN(:" + COL_ACL_OWNER_ID + ")" 
+			+ " AND A." + COL_ACL_OWNER_TYPE + " =:" + COL_ACL_OWNER_TYPE 
+			+ " AND AT." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + " =:" + COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 
 	/**
 	 * Keep a copy of the row mapper.
@@ -569,6 +579,39 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		return results;
 	}
 
+	@Override
+	public Map<String, Set<String>> getPrincipalIdsMap(Set<String> objectIds, ObjectType objectType, ACCESS_TYPE accessType) {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(accessType, "accessType");
+
+		if (objectIds == null || objectIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		Map<String, Object> queryParams = Map.of(
+			COL_ACL_OWNER_ID, objectIds.stream().map(KeyFactory::stringToKey).collect(Collectors.toSet()),
+			COL_ACL_OWNER_TYPE, objectType.name(),
+			COL_RESOURCE_ACCESS_TYPE_ELEMENT, accessType.name()
+		);
+		
+		return namedParameterJdbcTemplate.query(SQL_GET_ALL_USER_GROUP_MAP, queryParams, (rs) -> {
+			Map<String, Set<String>> resultMap = new HashMap<>();
+			while (rs.next()) {
+				String objectId = rs.getString(COL_ACL_OWNER_ID);
+				String groupId = rs.getString(COL_RESOURCE_ACCESS_GROUP_ID);
+				
+				Set<String> principalIds = resultMap.get(objectId);
+				
+				if (principalIds == null) {
+					resultMap.put(objectId, principalIds = new HashSet<>());
+				}
+				
+				principalIds.add(groupId);
+			}
+			return resultMap;
+		});
+	}
+	
 	@Override
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
 			ACCESS_TYPE accessType) {
