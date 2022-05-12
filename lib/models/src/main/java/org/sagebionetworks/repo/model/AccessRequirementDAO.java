@@ -135,4 +135,18 @@ public interface AccessRequirementDAO {
 	// For testing
 	
 	void clear();
+
+	/**
+	 * Map the given access requirement IDs to the provided project ID.
+	 * @param arIds
+	 * @param projectId
+	 */
+	public void mapAccessRequirmentsToProject(Long[] arIds, Long projectId);
+	
+	/**
+	 * Get the projects associated with the given access requirement.
+	 * @param arId
+	 * @return
+	 */
+	public List<Long> getProjectsForAccessRequirement(String arId);
 }

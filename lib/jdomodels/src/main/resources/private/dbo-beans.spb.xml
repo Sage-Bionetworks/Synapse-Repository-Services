@@ -130,6 +130,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessNotification" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionAccessorChange" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOAccessRequirementProject" />
 				
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />

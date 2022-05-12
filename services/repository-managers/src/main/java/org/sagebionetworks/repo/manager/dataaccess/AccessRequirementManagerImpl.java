@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.nio.channels.IllegalSelectorException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,7 +9,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -22,6 +26,7 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -39,6 +44,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -52,6 +58,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AccessRequirementManagerImpl implements AccessRequirementManager {
+	
+	private static final Logger LOG = LogManager.getLogger(AccessRequirementManagerImpl.class);
+	
 	public static final Long DEFAULT_LIMIT = 50L;
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
@@ -510,6 +519,31 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
 		
 		aclDao.delete(aclArId, ObjectType.ACCESS_REQUIREMENT);
+	}
+
+	@WriteTransaction
+	@Override
+	public void mapAccessRequirementsToProject(List<String> entityIds) {
+		ValidateArgument.required(entityIds, "entityIds");
+		entityIds.stream().forEach(id -> {
+			mapAccessRequirementsToProject(id);
+		});
+	}
+
+	void mapAccessRequirementsToProject(String entityId) {
+		try {
+			List<NameIdType> path = nodeDao.getEntityPath(entityId);
+			Long projectId = path.stream()
+					.filter(e -> EntityType.project.equals(EntityTypeUtils.getEntityTypeForClassName(e.getType())))
+					.findFirst().map(e -> KeyFactory.stringToKey(e.getId())).orElseThrow(()->new IllegalStateException("No project found"));
+			List<Long> subjectIds = path.stream().map(e -> KeyFactory.stringToKey(e.getId()))
+					.collect(Collectors.toList());
+			Long[] arIds = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY)
+					.getRequirementIdSet().stream().map(s -> Long.parseLong(s)).toArray(Long[]::new);
+			accessRequirementDAO.mapAccessRequirmentsToProject(arIds, projectId);
+		} catch (Exception e) {
+			LOG.warn(String.format("Cannot map access requirement to project for: '%s' due to: '%s'", entityId, e.getMessage()));
+		}
 	}
 	
 }
