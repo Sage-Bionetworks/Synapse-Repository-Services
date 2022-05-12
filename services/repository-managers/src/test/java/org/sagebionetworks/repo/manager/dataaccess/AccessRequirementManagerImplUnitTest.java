@@ -20,7 +20,6 @@ import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManag
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +36,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -49,9 +50,9 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -69,12 +70,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class AccessRequirementManagerImplUnitTest {
@@ -1545,6 +1549,63 @@ public class AccessRequirementManagerImplUnitTest {
 			subjectIds.add(subjectId);
 		}
 		return subjectIds;
+	}
+	
+	@Test
+	public void testMapAccessRequirementsToProject() {
+		List<NameIdType> path = Arrays.asList(new NameIdType().withName("aProject")
+				.withType(EntityTypeUtils.getEntityTypeClassName(EntityType.project)).withId("syn1"),
+				new NameIdType().withName("aFolder")
+				.withType(EntityTypeUtils.getEntityTypeClassName(EntityType.folder)).withId("syn2"),
+				new NameIdType().withName("aFile")
+				.withType(EntityTypeUtils.getEntityTypeClassName(EntityType.file)).withId("syn3"));
+
+		when(nodeDao.getEntityPath(any())).thenReturn(path);
+		
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(Sets.newHashSet("4","5","6"));
+		when(accessRequirementDAO.getAccessRequirementStats(any(), any())).thenReturn(stats);
+		
+		// call under test
+		arm.mapAccessRequirementsToProject("syn3");
+		verify(nodeDao).getEntityPath("syn3");
+		verify(accessRequirementDAO).getAccessRequirementStats(Arrays.asList(1L,2L,3L), RestrictableObjectType.ENTITY);
+		verify(accessRequirementDAO).mapAccessRequirmentsToProject(new Long[] {4L,5L,6L}, 1L);
+	}
+	
+	@Test
+	public void testMapAccessRequirementsToProjectWithEntityNoProject() {
+		List<NameIdType> path = Arrays.asList(new NameIdType().withName("aFolder")
+				.withType(EntityTypeUtils.getEntityTypeClassName(EntityType.folder)).withId("syn2"),
+				new NameIdType().withName("aFile")
+				.withType(EntityTypeUtils.getEntityTypeClassName(EntityType.file)).withId("syn3"));
+
+		when(nodeDao.getEntityPath(any())).thenReturn(path);
+				
+		// call under test
+		arm.mapAccessRequirementsToProject("syn3");
+		verify(nodeDao).getEntityPath("syn3");
+		verifyZeroInteractions(accessRequirementDAO);
+	}
+	
+	@Test
+	public void tetMapAccessRequirementsToProjectMultiple() {
+		AccessRequirementManagerImpl managerSpy = Mockito.spy(arm);
+		List<String> entityIds = Arrays.asList("syn1","syn2");
+		// call under test
+		managerSpy.mapAccessRequirementsToProject(entityIds);
+		verify(managerSpy, times(2)).mapAccessRequirementsToProject(any(String.class));
+		verify(managerSpy).mapAccessRequirementsToProject("syn1");
+		verify(managerSpy).mapAccessRequirementsToProject("syn2");
+	}
+	
+	@Test
+	public void tetMapAccessRequirementsToProjectMultipleNullList() {
+		List<String> entityIds = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			arm.mapAccessRequirementsToProject(entityIds);
+		});
 	}
 
 }

@@ -121,4 +121,13 @@ public interface AccessRequirementManager {
 	 */
 	void deleteAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) throws NotFoundException, UnauthorizedException;
 	
+	
+	/**
+	 * Map the access requirements of each entity to the entity's project.
+	 * 
+	 * @param entitiesCreatedOrUpdated
+	 */
+	void mapAccessRequirementsToProject(List<String> entitiesCreatedOrUpdated);
+
+
 }

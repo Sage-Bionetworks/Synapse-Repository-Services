@@ -218,7 +218,13 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
-	public static final String DDL_FILE_ACCESS_REQUIREMENT_REVISION				= "schema/AccessRequirementRevision-ddl.sql";	
+	public static final String DDL_FILE_ACCESS_REQUIREMENT_REVISION				= "schema/AccessRequirementRevision-ddl.sql";
+	
+	public static final String TABLE_ACCESS_REQUIREMENT_PROJECTS				= "ACCESS_REQUIREMENT_PROJECT";
+	public static final String COL_ACCESS_REQUIREMENT_PROJECT_AR_ID				= "AR_ID";
+	public static final String COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID		= "PROJECT_ID";
+	public static final String COL_ACCESS_REQUIREMENT_PROJECT_SCHEMA			= "schema/AccessRequirementProject-ddl.sql";
+
 
 	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
 	// !!! Note: The table name should be SUBJECT_ACCESS_REQUIREMENT, but migration issues prevent
