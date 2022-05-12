@@ -56,27 +56,36 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SubmissionManagerImpl implements SubmissionManager{
 
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
 	private RequestManager requestManager;
-	@Autowired
 	private ResearchProjectDAO researchProjectDao;
-	@Autowired
 	private SubmissionDAO submissionDao;
-	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
-	@Autowired
 	private SubscriptionDAO subscriptionDao;
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	@Autowired
 	private AccessApprovalManager accessAprovalManager;
-	@Autowired
 	private DataAccessAuthorizationManager authorizationManager;
+	
+	@Autowired
+	public SubmissionManagerImpl(AccessRequirementDAO accessRequirementDao, RequestManager requestManager,
+			ResearchProjectDAO researchProjectDao, SubmissionDAO submissionDao, AccessApprovalDAO accessApprovalDao,
+			SubscriptionDAO subscriptionDao, TransactionalMessenger transactionalMessenger, AccessApprovalManager accessAprovalManager,
+			DataAccessAuthorizationManager authorizationManager) {
+		this.accessRequirementDao = accessRequirementDao;
+		this.requestManager = requestManager;
+		this.researchProjectDao = researchProjectDao;
+		this.submissionDao = submissionDao;
+		this.accessApprovalDao = accessApprovalDao;
+		this.subscriptionDao = subscriptionDao;
+		this.transactionalMessenger = transactionalMessenger;
+		this.accessAprovalManager = accessAprovalManager;
+		this.authorizationManager = authorizationManager;
+	}
 
 	@WriteTransaction
 	@Override

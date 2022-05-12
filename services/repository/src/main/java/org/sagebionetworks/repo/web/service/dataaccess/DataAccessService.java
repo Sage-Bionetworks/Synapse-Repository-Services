@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
@@ -42,5 +44,7 @@ public interface DataAccessService {
 	RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request);
 
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
+
+	SubmissionSearchResponse searchSubmissions(Long userId, SubmissionSearchRequest request);
 
 }

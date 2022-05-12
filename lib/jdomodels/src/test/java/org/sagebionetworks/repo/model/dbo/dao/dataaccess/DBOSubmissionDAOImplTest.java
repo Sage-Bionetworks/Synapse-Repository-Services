@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -161,7 +162,7 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete = new ArrayList<String>();
 	}
 
-	//@AfterEach
+	@AfterEach
 	public void after() {
 		aclDao.truncateAll();
 		submissionDao.truncateAll();
