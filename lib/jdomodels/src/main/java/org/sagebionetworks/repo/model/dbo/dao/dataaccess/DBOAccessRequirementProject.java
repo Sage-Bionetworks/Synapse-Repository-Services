@@ -21,40 +21,41 @@ public class DBOAccessRequirementProject implements DatabaseObject<DBOAccessRequ
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("accessRequirementId", COL_ACCESS_REQUIREMENT_PROJECT_AR_ID, true),
 			new FieldColumn("projectId", COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID, true) };
+	
+	TableMapping<DBOAccessRequirementProject> MAPPING = new TableMapping<DBOAccessRequirementProject>() {
+
+		@Override
+		public DBOAccessRequirementProject mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOAccessRequirementProject dbo = new DBOAccessRequirementProject();
+			dbo.setAccessRequirementId(rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_AR_ID));
+			dbo.setProjectId(rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return SqlConstants.TABLE_ACCESS_REQUIREMENT_PROJECTS;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_SCHEMA;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOAccessRequirementProject> getDBOClass() {
+			return DBOAccessRequirementProject.class;
+		}
+	};
 
 	@Override
 	public TableMapping<DBOAccessRequirementProject> getTableMapping() {
-
-		return new TableMapping<DBOAccessRequirementProject>() {
-
-			@Override
-			public DBOAccessRequirementProject mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOAccessRequirementProject dbo = new DBOAccessRequirementProject();
-				dbo.setAccessRequirementId(rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_AR_ID));
-				dbo.setProjectId(rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return SqlConstants.TABLE_ACCESS_REQUIREMENT_PROJECTS;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_SCHEMA;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOAccessRequirementProject> getDBOClass() {
-				return DBOAccessRequirementProject.class;
-			}
-		};
+		return MAPPING;
 	}
 
 	private Long accessRequirementId;

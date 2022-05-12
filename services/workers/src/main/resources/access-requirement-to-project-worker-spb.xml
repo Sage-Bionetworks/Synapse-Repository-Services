@@ -29,7 +29,7 @@
 								</property>
 								<property name="semaphoreLockKey" value="accessRequirementToProject" />
 								<property name="semaphoreMaxLockCount" value="1" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('ACCESS_REQUIREMENT_TO_PROJECT')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>

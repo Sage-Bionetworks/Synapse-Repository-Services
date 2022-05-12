@@ -525,9 +525,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public void mapAccessRequirementsToProject(List<String> entityIds) {
 		ValidateArgument.required(entityIds, "entityIds");
-		entityIds.stream().forEach(id -> {
-			mapAccessRequirementsToProject(id);
-		});
+		entityIds.stream().forEach(this::mapAccessRequirementsToProject);
 	}
 
 	void mapAccessRequirementsToProject(String entityId) {
