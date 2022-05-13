@@ -22,6 +22,7 @@ public class NormalizedJsonSchemaTest {
 		JsonSchema subA = new JsonSchema();
 		subA.setType(Type.string);
 		subA.setDescription("sub-a");
+		subA.set_default("someDefault");
 		
 		JsonSchema subB = new JsonSchema();
 		subB.setType(Type.number);
