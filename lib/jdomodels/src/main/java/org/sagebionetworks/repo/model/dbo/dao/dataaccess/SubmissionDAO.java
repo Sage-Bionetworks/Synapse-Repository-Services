@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -149,9 +150,9 @@ public interface SubmissionDAO {
 	List<Submission> searchAllSubmissions(SubmissionReviewerFilterType reviewerFilterType, List<SubmissionSearchSort> sort, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset);
 	
 	/**
-	 * Search through the submissions that the given principal is allowed to review and that match the given criteria.
+	 * Search through the submissions that the given set of group ids is allowed to review and that match the given criteria.
 	 * 
-	 * @param principalId The principal that is allowed to review submissions, required
+	 * @param groupIds The set of groups of a user that is allowed to review submissions, required
 	 * @param sort The sorting criteria, required
 	 * @param accessorId Optional filter by accessor id
 	 * @param accessRequirementId Optional filter by requirement id
@@ -160,7 +161,7 @@ public interface SubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	List<Submission> searchPrincipalReviewableSubmissions(String principalId, List<SubmissionSearchSort> sort, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset);
+	List<Submission> searchSubmissionsReviewableByGroups(Set<Long> groupIds, List<SubmissionSearchSort> sort, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset);
 	
 	// For testing
 	void truncateAll();

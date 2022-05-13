@@ -937,7 +937,7 @@ public class DBOSubmissionDAOImplTest {
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissions() {
+	public void testSearchSubmissionsReviewableByGroups() {
 		
 		// both users can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
@@ -956,14 +956,42 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s1, s2);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithReviewer() {
+	public void testSearchSubmissionsReviewableByGroupsWithMultipleGroups() {
+		
+		// The first user can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId()));
+		// The second user can review the 2nd AR
+		addReviewers(accessRequirement2.getId(), List.of(user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2, s3);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId()), Long.valueOf(user2.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithReviewer() {
 		
 		// both users can review the 2nd AR
 		addReviewers(accessRequirement2.getId(), List.of(user1.getId(), user2.getId()));
@@ -984,14 +1012,14 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s3);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithAccessor() {
+	public void testSearchSubmissionsReviewableByGroupsWithAccessor() {
 		
 		// 1st user can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId()));
@@ -1010,14 +1038,14 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s2);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithRequirement() {
+	public void testSearchSubmissionsReviewableByGroupsWithRequirement() {
 		
 		// both users can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
@@ -1038,14 +1066,14 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s3);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithState() {
+	public void testSearchSubmissionsReviewableByGroupsWithState() {
 		
 		// both users can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
@@ -1064,14 +1092,14 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s2);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithMultiSort() {
+	public void testSearchSubmissionsReviewableByGroupsWithMultiSort() {
 		
 		// both users can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
@@ -1095,14 +1123,14 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s2, s1);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testSearchPrincipalReviewableSubmissionsWithLimitOffset() {
+	public void testSearchSubmissionsReviewableByGroupsWithLimitOffset() {
 		
 		// both users can review the 1st AR
 		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
@@ -1121,7 +1149,7 @@ public class DBOSubmissionDAOImplTest {
 		
 		List<String> expected = List.of(s1);
 		
-		List<String> result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 			.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);
@@ -1131,7 +1159,7 @@ public class DBOSubmissionDAOImplTest {
 		
 		expected = List.of(s2);
 		
-		result = submissionDao.searchPrincipalReviewableSubmissions(user1.getId(), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+		result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
 				.stream().map( s-> s.getId()).collect(Collectors.toList());
 		
 		assertEquals(expected, result);

@@ -438,7 +438,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			// For a non-ACT user ALL=DELEGATED_ONLY
 			case ALL:
 			case DELEGATED_ONLY:
-				submissionPage = submissionDao.searchPrincipalReviewableSubmissions(userInfo.getId().toString(), sort, accessorId, requirementId, reviewerId, state, limit, offset);	
+				submissionPage = submissionDao.searchSubmissionsReviewableByGroups(userInfo.getGroups(), sort, accessorId, requirementId, reviewerId, state, limit, offset);	
 				break;
 			default:
 				submissionPage = Collections.emptyList();

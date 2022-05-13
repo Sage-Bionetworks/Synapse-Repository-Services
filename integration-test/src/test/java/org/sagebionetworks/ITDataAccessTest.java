@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -513,12 +515,30 @@ public class ITDataAccessTest {
 				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
 			));
 		
-		// Add the user to the ACL
-		adminSynapse.createAccessRequirementAcl(acl);
+		// Add the user directly to the ACL
+		acl = adminSynapse.createAccessRequirementAcl(acl);
 		
 		result = synapse.searchDataAccessSubmissions(searchRequest);
 		
 		// Now the user can see the submission
+		assertEquals(1, result.getResults().size());
+		
+		result.getResults().forEach( r -> {
+			assertEquals(submission.getId(), r.getId());
+		});
+		
+		// Now updated the ACL so that only the team of the user is a reviewer
+		Team team = synapse.createTeam(new Team().setName(UUID.randomUUID().toString()));
+		
+		acl.setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(Long.valueOf(team.getId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		adminSynapse.updateAccessRequiremenetAcl(acl);
+		
+		result = synapse.searchDataAccessSubmissions(searchRequest);
+		
+		// The user can see the submission through the team
 		assertEquals(1, result.getResults().size());
 		
 		result.getResults().forEach( r -> {

@@ -1429,7 +1429,8 @@ public class SubmissionManagerImplTest {
 				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
 		);
 		
-		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		when(mockUser.getGroups()).thenReturn(Set.of(1L, 123L));
+		when(mockSubmissionDao.searchSubmissionsReviewableByGroups(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
 		
 		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
 			11L, "ar1",
@@ -1476,7 +1477,7 @@ public class SubmissionManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)), accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockSubmissionDao).searchSubmissionsReviewableByGroups(Set.of(1L, 123L), List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)), accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
 		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 		
@@ -1495,7 +1496,8 @@ public class SubmissionManagerImplTest {
 				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
 		);
 		
-		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		when(mockUser.getGroups()).thenReturn(Set.of(1L, 123L));
+		when(mockSubmissionDao.searchSubmissionsReviewableByGroups(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
 		
 		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
 			11L, "ar1",
@@ -1542,7 +1544,7 @@ public class SubmissionManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockSubmissionDao).searchSubmissionsReviewableByGroups(Set.of(1L, 123L), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
 		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 		
@@ -1561,7 +1563,9 @@ public class SubmissionManagerImplTest {
 				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("2")))
 		);
 		
-		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		when(mockUser.getGroups()).thenReturn(Set.of(1L, 123L));
+		
+		when(mockSubmissionDao.searchSubmissionsReviewableByGroups(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
 		
 		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
 			11L, "ar1",
@@ -1608,7 +1612,7 @@ public class SubmissionManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockSubmissionDao).searchSubmissionsReviewableByGroups(Set.of(1L, 123L), sort, accessorId, accessRequirementId, reviewerId, state, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
 		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
 		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 		
@@ -1662,7 +1666,8 @@ public class SubmissionManagerImplTest {
 				.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
 		));
 		
-		when(mockSubmissionDao.searchPrincipalReviewableSubmissions(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
+		when(mockUser.getGroups()).thenReturn(Set.of(1L, 123L));
+		when(mockSubmissionDao.searchSubmissionsReviewableByGroups(any(), any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(submissionList);
 		
 		when(mockAccessRequirementDao.getAccessRequirementNames(any())).thenReturn(Map.of(
 			11L, "ar1",
@@ -1711,7 +1716,7 @@ public class SubmissionManagerImplTest {
 		
 		assertEquals(expected, result);
 		
-		verify(mockSubmissionDao).searchPrincipalReviewableSubmissions(mockUser.getId().toString(), sort, accessorId, accessRequirementId, reviewerId, state, 3, 0);
+		verify(mockSubmissionDao).searchSubmissionsReviewableByGroups(Set.of(1L, 123L), sort, accessorId, accessRequirementId, reviewerId, state, 3, 0);
 		verify(mockAccessRequirementDao).getAccessRequirementNames(Set.of(11L, 21L));
 		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 	}
