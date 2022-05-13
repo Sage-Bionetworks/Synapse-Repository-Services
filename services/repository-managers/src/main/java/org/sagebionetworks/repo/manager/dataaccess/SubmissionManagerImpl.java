@@ -58,7 +58,9 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-@Service
+// Note that the "dataAccessSubmissionManager" qualifier is needed so that it does not conflict with the existing SubmissionManager for the evaluations:
+// Spring by default assigns the name of the class to each autowired bean, so we need a unique name in the same context in order for it to be injected automatically
+@Service("dataAccessSubmissionManager")
 public class SubmissionManagerImpl implements SubmissionManager{
 
 	private AccessRequirementDAO accessRequirementDao;
