@@ -376,10 +376,7 @@
 	<bean id="requestManager"
 		class="org.sagebionetworks.repo.manager.dataaccess.RequestManagerImpl"
 		scope="singleton" />
-	<bean id="dataAccessSubmissionManager"
-		class="org.sagebionetworks.repo.manager.dataaccess.SubmissionManagerImpl"
-		scope="singleton" />
-
+	
 	<bean id="bulkDownloadManager"
 		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
 		scope="singleton" />

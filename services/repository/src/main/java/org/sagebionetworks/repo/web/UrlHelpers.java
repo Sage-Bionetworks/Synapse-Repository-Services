@@ -1124,6 +1124,7 @@ public class UrlHelpers {
 	public static final String RESTRICTION_INFORMATION = "/restrictionInformation";
 	public static final String DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS = DATA_ACCESS_SUBMISSION+"/openSubmissions";
 	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
+	public static final String DATA_ACCESS_SUBMISSION_SEARCH = DATA_ACCESS_SUBMISSION + "/search";
 	
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";

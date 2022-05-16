@@ -10,10 +10,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -570,7 +572,7 @@ public class DBOAccessControlListDAOImplTest {
 	public void testGetAllUserGroupsForNoAcl(){
 		assertEquals(new HashSet<String>(), aclDAO.getPrincipalIds("-1", ObjectType.ENTITY, ACCESS_TYPE.READ));
 	}
-	
+		
 	@Test
 	public void testGetAccessibleProjectIds(){
 		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(group.getId()), Long.parseLong(group.getId()));
@@ -720,5 +722,92 @@ public class DBOAccessControlListDAOImplTest {
 	@Test
 	public void testHasAccessWithNoACL() {
 		assertFalse(aclDAO.hasAccessToResourceOfType(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.CREATE));
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMap() {
+		
+		Node node2 = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("node2", createdById, modifiedById, node.getId()));
+		
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(node2.getId(), new UserInfo(false, group2.getId()), new Date());
+		acl2.getResourceAccess().add(new ResourceAccess().setPrincipalId(Long.valueOf(group.getId())).setAccessType(Set.of(ACCESS_TYPE.READ)));
+		createAcl(acl2, ObjectType.ENTITY);
+		
+		Map<String, Set<String>> expected = Map.of(
+			KeyFactory.stringToKey(node.getId()).toString(), Set.of(group.getId()),
+			KeyFactory.stringToKey(node2.getId()).toString(), Set.of(group.getId(), group2.getId())
+		);
+		
+		Map<String, Set<String>> result = aclDAO.getPrincipalIdsMap(Set.of(node.getId(), node2.getId()), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapNoACL() {
+		Map<String, Set<String>> expected = Collections.emptyMap();
+		
+		Map<String, Set<String>> result = aclDAO.getPrincipalIdsMap(Set.of("-1"), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+
+	@Test
+	public void testGetPrincipalIdsMapNoAccess() {
+		Map<String, Set<String>> expected = Collections.emptyMap();
+		
+		Map<String, Set<String>> result = aclDAO.getPrincipalIdsMap(Set.of(node.getId()), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapWrongType() {
+		Map<String, Set<String>> expected = Collections.emptyMap();
+		
+		Map<String, Set<String>> result = aclDAO.getPrincipalIdsMap(Set.of(node.getId()), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.READ);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapNoObjectType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getPrincipalIdsMap(Set.of(node.getId()), null, ACCESS_TYPE.READ);
+		}).getMessage();
+		
+		assertEquals("objectType is required.", message);
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapNoAccessType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			aclDAO.getPrincipalIdsMap(Set.of(node.getId()), ObjectType.ENTITY, null);
+		}).getMessage();
+		
+		assertEquals("accessType is required.", message);
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapNoIds() {
+		Map<String, Set<String>> expected = Collections.emptyMap();
+			
+		Map<String, Set<String>> result =aclDAO.getPrincipalIdsMap(null, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetPrincipalIdsMapEmptyIds() {
+		Map<String, Set<String>> expected = Collections.emptyMap();
+			
+		Map<String, Set<String>> result =aclDAO.getPrincipalIdsMap(Collections.emptySet(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		
+		assertEquals(expected, result);
 	}
 }

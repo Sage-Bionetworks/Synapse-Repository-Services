@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -61,6 +63,8 @@ import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -448,6 +452,98 @@ public class ITDataAccessTest {
 		searchRequest.setAccessRequirementId("-1");
 		
 		assertTrue(adminSynapse.searchAccessApprovals(searchRequest).getResults().isEmpty());
+		
+	}
+	
+	@Test
+	public void testSearchSubmissions() throws SynapseException, JSONObjectAdapterException {
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
+		
+		rp.setInstitution("Sage");
+		rp.setProjectLead("Lead");
+		rp.setIntendedDataUseStatement("intendedDataUseStatement");
+		rp.setAccessRequirementId(managedAR.getId().toString());
+		
+		rp = synapse.createOrUpdateResearchProject(rp);
+		
+		RequestInterface request = synapse.createOrUpdateRequest(new Request()
+			.setResearchProjectId(rp.getId())
+			.setAccessRequirementId(managedAR.getId().toString())
+			.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId()),
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(synapse.getMyProfile().getOwnerId())
+			)));
+		
+		SubmissionStatus submissionStatus = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		Submission submission = adminSynapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
+		
+		assertEquals(SubmissionState.APPROVED, submission.getState());
+
+		SubmissionSearchRequest searchRequest = new SubmissionSearchRequest()
+			.setAccessRequirementId(managedAR.getId().toString())
+			.setSubmissionState(SubmissionState.APPROVED);
+		
+		SubmissionSearchResponse result = synapse.searchDataAccessSubmissions(searchRequest);
+		
+		// The user cannot review any submission yet
+		assertTrue(result.getResults().isEmpty());
+		
+		result = adminSynapse.searchDataAccessSubmissions(searchRequest);
+		
+		// The ACT user can see everything
+		assertEquals(1, result.getResults().size());
+		
+		result.getResults().forEach( r -> {
+			assertEquals(submission.getId(), r.getId());
+		});
+		
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		// Add the user directly to the ACL
+		acl = adminSynapse.createAccessRequirementAcl(acl);
+		
+		result = synapse.searchDataAccessSubmissions(searchRequest);
+		
+		// Now the user can see the submission
+		assertEquals(1, result.getResults().size());
+		
+		result.getResults().forEach( r -> {
+			assertEquals(submission.getId(), r.getId());
+		});
+		
+		// Now updated the ACL so that only the team of the user is a reviewer
+		Team team = synapse.createTeam(new Team().setName(UUID.randomUUID().toString()));
+		
+		acl.setResourceAccess(Set.of(
+			new ResourceAccess().setPrincipalId(Long.valueOf(team.getId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+		));
+		
+		adminSynapse.updateAccessRequiremenetAcl(acl);
+		
+		result = synapse.searchDataAccessSubmissions(searchRequest);
+		
+		// The user can see the submission through the team
+		assertEquals(1, result.getResults().size());
+		
+		result.getResults().forEach( r -> {
+			assertEquals(submission.getId(), r.getId());
+		});
 		
 	}
 	

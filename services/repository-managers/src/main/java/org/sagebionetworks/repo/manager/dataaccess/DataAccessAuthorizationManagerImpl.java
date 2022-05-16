@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.repo.manager.verification.VerificationHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -92,6 +98,15 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 		}
 		
 		return aclDao.hasAccessToResourceOfType(userInfo, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+	}
+	
+	@Override
+	public Map<Long, List<String>> getAccessRequirementReviewers(Set<Long> accessRequirementIds) {
+		ValidateArgument.required(accessRequirementIds, "accessRequirementIds");
+		// The ACL dao works with string object ids, we need to convert to a more convinient Long map
+		return aclDao.getPrincipalIdsMap(accessRequirementIds.stream().map(String::valueOf).collect(Collectors.toSet()), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS)
+			.entrySet().stream()
+			.collect(Collectors.toMap(entry -> Long.valueOf(entry.getKey()), entry -> new ArrayList<>(entry.getValue())));
 	}
 	
 

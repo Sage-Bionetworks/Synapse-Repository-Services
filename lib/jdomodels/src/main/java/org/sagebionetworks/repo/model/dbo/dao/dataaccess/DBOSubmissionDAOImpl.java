@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
@@ -19,28 +22,44 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -48,6 +67,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -136,6 +156,8 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 			+ " FROM " + TABLE_DATA_ACCESS_SUBMISSION
 			+ " WHERE " + COL_DATA_ACCESS_SUBMISSION_ID + " = ?";
 
+	
+	
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String DESCENDING = "DESC";
 	private static final String LIMIT = "LIMIT";
@@ -403,6 +425,129 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		} else {
 			return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER_WITHOUT_ACCESSOR_CHANGES);
 		}
+	}
+	
+	private static final String SQL_SELECT_SUBMISSION_DATA_AND_ACL_ID = "SELECT S.*,"
+			// Pull in data about the submission status too
+			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_STATE + ","
+			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON + ","
+			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY + ","
+			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_REASON + ","
+			// Note that this needs an ACL table join
+			+ " A." + COL_ACL_ID + " AS ACL_ID"
+			+ " FROM " + TABLE_DATA_ACCESS_SUBMISSION + " S JOIN "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS + " SS"
+			+ " ON S." + COL_DATA_ACCESS_SUBMISSION_ID + " = SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID;
+
+	@Override
+	public List<Submission> searchAllSubmissions(SubmissionReviewerFilterType reviewerFilterType, List<SubmissionSearchSort> sort,
+			String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset) {
+		ValidateArgument.required(reviewerFilterType, "reviewerType");
+		ValidateArgument.requiredNotEmpty(sort, "sort");
+	
+		List<Object> queryParams = new ArrayList<>();
+		List<String> additionalFilters = new ArrayList<>();
+		
+		String visibleSubmissionsQuery = SQL_SELECT_SUBMISSION_DATA_AND_ACL_ID  
+			// Left join on the ACL table on the AR so that we can filter by "assigned acl" or not
+			+ " LEFT JOIN " + TABLE_ACCESS_CONTROL_LIST + " A ON S." + COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID + " = A." + COL_ACL_OWNER_ID + " AND " +COL_ACL_OWNER_TYPE + "='" + ObjectType.ACCESS_REQUIREMENT.name() + "'";
+		
+		// This needs to go in the where clause as we are left joining on the ACL
+		switch (reviewerFilterType) {
+		case ALL:
+			// ACT can access everything, no need to filter on the ACL
+			break;
+		case ACT_ONLY:
+			// Only submissions that do not have any ACL assigned to the AR
+			additionalFilters.add("A." + COL_ACL_ID + " IS NULL");
+			break;
+		case DELEGATED_ONLY:
+			// Only submissions that have at least on ACL assigned to the AR
+			additionalFilters.add("A." + COL_ACL_ID + " IS NOT NULL");
+		default:
+			break;
+		}
+		
+		visibleSubmissionsQuery = addAdditionalSubmissionSearchFilters(visibleSubmissionsQuery, queryParams, additionalFilters, accessorId, accessRequirementId, reviewerId, state, sort, limit, offset);
+		
+		return jdbcTemplate.query(visibleSubmissionsQuery, SUBMISSION_MAPPER, queryParams.toArray());
+	}
+	
+	@Override
+	public List<Submission> searchSubmissionsReviewableByGroups(Set<Long> groupIds, List<SubmissionSearchSort> sort, String accessorId,
+			String accessRequirementId, String reviewerId, SubmissionState state, long limit, long offset) {
+		ValidateArgument.requiredNotEmpty(groupIds, "groupIds");
+		ValidateArgument.requiredNotEmpty(sort, "sort");
+		
+		List<Object> queryParams = new ArrayList<>();
+		List<String> additionalFilters = new ArrayList<>();
+		
+		/* 
+		 * Join on the resource access and filter by the group, this will ensure that we do not step the boundaries of what the principal can review
+		 * 
+		 * SELECT S.*, SS.STATE, SS.MODIFIED_ON, SS.MODIFIED_BY, SS.REASON, A.ID AS ACL_ID 
+		 * FROM DATA_ACCESS_SUBMISSION S JOIN DATA_ACCESS_SUBMISSION_STATUS SS ON S.ID = SS.SUBMISSION_ID 
+		 * JOIN ACL A ON S.ACCESS_REQUIREMENT_ID = A.OWNER_ID AND A.OWNER_TYPE='ACCESS_REQUIREMENT' 
+		 * 	AND A.ID = (
+		 * 		SELECT RA.OWNER_ID FROM JDORESOURCEACCESS RA  
+		 * 		JOIN JDORESOURCEACCESS_ACCESSTYPE AT ON RA.ID = AT.ID_OID AND AT.STRING_ELE = 'REVIEW_SUBMISSIONS' 
+		 * 		WHERE RA.OWNER_ID = A.ID AND RA.GROUP_ID IN (?) LIMIT 1
+		 * )
+		*/
+		String visibleSubmissionsQuery = SQL_SELECT_SUBMISSION_DATA_AND_ACL_ID 
+			+ " JOIN " + TABLE_ACCESS_CONTROL_LIST + " A ON S." + COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID + " = A." + COL_ACL_OWNER_ID + " AND A." + COL_ACL_OWNER_TYPE + "='" + ObjectType.ACCESS_REQUIREMENT.name() + "'"
+			// Limit to the ACL id for the given set of groups
+			+ " AND A." + COL_ACL_ID + " = (SELECT RA." + COL_RESOURCE_ACCESS_OWNER + " FROM " + TABLE_RESOURCE_ACCESS + " RA "
+			+ " JOIN " + TABLE_RESOURCE_ACCESS_TYPE + " AT ON RA." + COL_RESOURCE_ACCESS_ID + " = AT." + COL_RESOURCE_ACCESS_TYPE_ID + " AND AT." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + " = '" + ACCESS_TYPE.REVIEW_SUBMISSIONS + "'"
+			+ " WHERE RA." + COL_RESOURCE_ACCESS_OWNER + " = A." + COL_ACL_ID + " AND RA." + COL_RESOURCE_ACCESS_GROUP_ID + " IN (" + String.join(",", Collections.nCopies(groupIds.size(), "?")) + ") LIMIT 1)";
+				
+		queryParams.addAll(groupIds);
+			
+		visibleSubmissionsQuery = addAdditionalSubmissionSearchFilters(visibleSubmissionsQuery, queryParams, additionalFilters, accessorId, accessRequirementId, reviewerId, state, sort, limit, offset);
+		
+		return jdbcTemplate.query(visibleSubmissionsQuery, SUBMISSION_MAPPER, queryParams.toArray());
+	}
+	
+	private String addAdditionalSubmissionSearchFilters(String visibleSubmissionsQuery, List<Object> queryParams, List<String> additionalFilters, String accessorId, String accessRequirementId, String reviewerId, SubmissionState state, List<SubmissionSearchSort> sort, long limit, long offset) {
+		
+		if (accessorId != null) {
+			visibleSubmissionsQuery += " JOIN " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + " SA ON S." + COL_DATA_ACCESS_SUBMISSION_ID + " = SA." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
+			additionalFilters.add("SA." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID + " = ?");
+			queryParams.add(accessorId);
+		}
+		
+		if (accessRequirementId != null) {
+			additionalFilters.add("S." + COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID + " = ?");
+			queryParams.add(accessRequirementId);
+		}
+		
+		if (state != null) {
+			additionalFilters.add("SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_STATE + " = ?");
+			queryParams.add(state.name());
+		}
+		
+		if (!additionalFilters.isEmpty()) {
+			visibleSubmissionsQuery += " WHERE " + String.join(" AND ", additionalFilters);
+		}
+		
+		// To filter by a specific reviewer we wrap the original query (that might have been filtered already by the principal itself)
+		// so that we can filter on another potential reviewer
+		if (reviewerId != null) {
+			visibleSubmissionsQuery = "WITH VISIBLE_SUBMISSIONS AS (" + visibleSubmissionsQuery + ") SELECT * FROM VISIBLE_SUBMISSIONS S JOIN " + TABLE_RESOURCE_ACCESS + " RA ON S.ACL_ID = RA." + COL_RESOURCE_ACCESS_OWNER + " AND RA." + COL_RESOURCE_ACCESS_GROUP_ID + " = ?"
+					+ " JOIN " + TABLE_RESOURCE_ACCESS_TYPE + " AT ON RA." + COL_RESOURCE_ACCESS_ID + " = AT." + COL_RESOURCE_ACCESS_TYPE_ID + " AND AT." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + " = '" + ACCESS_TYPE.REVIEW_SUBMISSIONS + "'";
+			queryParams.add(reviewerId);
+		}
+		
+		visibleSubmissionsQuery += " ORDER BY " + String.join(",", sort.stream().map(s-> {
+			ValidateArgument.required(s.getField(), "sort.field");
+			return s.getField().name() + (s.getDirection() == null ? "" : " " + s.getDirection().name());
+		}).collect(Collectors.toList()));
+		
+		visibleSubmissionsQuery += " LIMIT ? OFFSET ?";
+			
+		queryParams.add(limit);
+		queryParams.add(offset);
+		
+		return visibleSubmissionsQuery;
 	}
 
 	/**

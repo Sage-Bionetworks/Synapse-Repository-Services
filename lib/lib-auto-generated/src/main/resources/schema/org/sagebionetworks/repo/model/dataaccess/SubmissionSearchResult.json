@@ -1,0 +1,51 @@
+{
+	"title": "Data Access Submission Search Result Item",
+	"description": "",
+	"properties": {
+		"id": {
+			"description": "The id of the submission",
+			"type": "string"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"accessRequirementId": {
+			"description": "The id of the access requirement the submission is for",
+			"type": "string"
+		},
+		"accessRequirementVersion": {
+			"description": "The version of the requirement that the submission refers to",
+			"type": "string"
+		},
+		"accessRequirementName": {
+			"description": "The name of the access requirement",
+			"type": "string"
+		},
+		"accessRequirementReviewerIds": {
+			"description": "The list of principal ids that are allowed to review the submission",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"submitterId": {
+			"description": "The principal ID of the person who created the submission",
+			"type": "string"
+		},
+		"accessorChanges": {
+			"type": "array",
+			"description": "List of user changes. A user can gain access, renew access or have access revoked.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessorChange"
+			}
+		},
+		"state": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+		}
+	}
+}

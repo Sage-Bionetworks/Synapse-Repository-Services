@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -284,5 +286,28 @@ public class DataAccessController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
+	}
+	
+	/**
+	 * Performs a search through access submissions that are reviewable by the user and that match the criteria in the given request.
+	 * 
+	 * An ACT user can see all the submissions, while a non-ACT user can only see the submissions whose access requirement has an ACL with REVIEW_SUBMISSION for the user.
+	 * 
+	 * An ACT user can limit the type of submissions to only see those that have an ACL assigned (e.g. delegated submissions) or those that DO NOT have any ACL (e.g. ACT only) using the reviewerFilterType
+	 * parameter in the request.
+	 * 
+	 * For a non-ACT user reviewerFilterType.ALL is the same as reviewerFilterType.DELEGATED_ONLY and using reviewerFilterType.ACT_ONLY will produce an empty result.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_SEARCH, method = RequestMethod.POST)
+	public @ResponseBody SubmissionSearchResponse searchSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody SubmissionSearchRequest request) {
+		return serviceProvider.getDataAccessService().searchSubmissions(userId, request);
 	}
 }

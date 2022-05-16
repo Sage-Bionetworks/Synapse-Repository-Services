@@ -104,6 +104,8 @@ import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -4070,4 +4072,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	AccessApprovalSearchResponse searchAccessApprovals(AccessApprovalSearchRequest request) throws SynapseException;
+	
+	/**
+	 * Performs a search through the data access submissions visible by the user. An ACT user can always see all the submissions, a non-ACT
+	 * user can only see the submissions for which their access requirement has an ACL with REVIEW_SUBMISSIONS for the user.
+	 *  
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	SubmissionSearchResponse searchDataAccessSubmissions(SubmissionSearchRequest request) throws SynapseException;
 }
