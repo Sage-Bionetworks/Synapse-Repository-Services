@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
@@ -21,7 +23,7 @@ public interface SubmissionManager {
 	 * @param request
 	 * @return
 	 */
-	public SubmissionStatus create(UserInfo userInfo, CreateSubmissionRequest request);
+	SubmissionStatus create(UserInfo userInfo, CreateSubmissionRequest request);
 
 	/**
 	 * Cancel a submission.
@@ -30,7 +32,7 @@ public interface SubmissionManager {
 	 * @param submissionId
 	 * @return
 	 */
-	public SubmissionStatus cancel(UserInfo userInfo, String submissionId);
+	SubmissionStatus cancel(UserInfo userInfo, String submissionId);
 
 	/**
 	 * Update the state of a submission.
@@ -39,7 +41,7 @@ public interface SubmissionManager {
 	 * @param request
 	 * @return
 	 */
-	public Submission updateStatus(UserInfo userInfo, SubmissionStateChangeRequest request);
+	Submission updateStatus(UserInfo userInfo, SubmissionStateChangeRequest request);
 
 	/**
 	 * List a page of submissions for a given access requirement.
@@ -48,7 +50,7 @@ public interface SubmissionManager {
 	 * @param request
 	 * @return
 	 */
-	public SubmissionPage listSubmission(UserInfo userInfo, SubmissionPageRequest request);
+	SubmissionPage listSubmission(UserInfo userInfo, SubmissionPageRequest request);
 
 	/**
 	 * Delete a submission.
@@ -56,7 +58,7 @@ public interface SubmissionManager {
 	 * @param userInfo
 	 * @param submissionId
 	 */
-	public void deleteSubmission(UserInfo userInfo, String submissionId);
+	void deleteSubmission(UserInfo userInfo, String submissionId);
 
 	/**
 	 * List the submission info for approved submissions.
@@ -65,7 +67,7 @@ public interface SubmissionManager {
 	 * @param request
 	 * @return
 	 */
-	public SubmissionInfoPage listInfoForApprovedSubmissions(UserInfo user, SubmissionInfoPageRequest request);
+	SubmissionInfoPage listInfoForApprovedSubmissions(UserInfo user, SubmissionInfoPageRequest request);
 
 	/**
 	 * Retrieve the status of a user meeting an access requirement
@@ -74,7 +76,7 @@ public interface SubmissionManager {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId);
+	AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId);
 
 	/**
 	 * Retrieve information about submitted Submissions.
@@ -83,6 +85,16 @@ public interface SubmissionManager {
 	 * @param nextPageToken
 	 * @return
 	 */
-	public OpenSubmissionPage getOpenSubmissions(UserInfo userInfo, String nextPageToken);
+	OpenSubmissionPage getOpenSubmissions(UserInfo userInfo, String nextPageToken);
+	
+	/**
+	 * Search through submissions visible to the user, if the user is part of ACT they can see any submission. Otherwise only those submissions 
+	 * whose user is a reviewer for their access requirement will be returned.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request);
 
 }

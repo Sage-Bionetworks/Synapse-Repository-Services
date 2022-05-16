@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -142,7 +143,17 @@ public interface AccessControlListDAO  {
 	 * @return
 	 */
 	Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
-
+	
+	/**
+	 * Fetches all the user groups that have the given access type for the given set of object ids of the given type
+	 * 
+	 * @param objectIds
+	 * @param objectType
+	 * @param accessType
+	 * @return
+	 */
+	Map<String, Set<String>> getPrincipalIdsMap(Set<String> objectIds, ObjectType objectType, ACCESS_TYPE accessType);
+	
 	/**
 	 * Get the projectIds that can be read by the passed principal ids.
 	 * 

@@ -15,17 +15,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -34,9 +39,13 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
@@ -77,6 +86,9 @@ public class DBOSubmissionDAOImplTest {
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
+	
+	@Autowired
+	private AccessControlListDAO aclDao;
 
 	private UserGroup user1 = null;
 	private UserGroup user2 = null;
@@ -104,6 +116,8 @@ public class DBOSubmissionDAOImplTest {
 
 	@BeforeEach
 	public void before() {
+		aclDao.truncateAll();
+		submissionDao.truncateAll();
 		// create a user
 		user1 = new UserGroup();
 		user1.setIsIndividual(true);
@@ -150,9 +164,8 @@ public class DBOSubmissionDAOImplTest {
 
 	@AfterEach
 	public void after() {
-		for (String id: dtosToDelete) {
-			submissionDao.delete(id);
-		}
+		aclDao.truncateAll();
+		submissionDao.truncateAll();
 		if (request != null) {
 			requestDao.delete(request.getId());
 		}
@@ -607,6 +620,563 @@ public class DBOSubmissionDAOImplTest {
 		}).getMessage();
 		
 		assertEquals("Submission: '-123' does not exist", message);
+	}
+	
+	@Test
+	public void testSearchAllSubmissions() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2, s3);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithACTOnly() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ACT_ONLY;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s3);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsWithDelegatedOnly() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.DELEGATED_ONLY;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithReviewer() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = user2.getId();
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithACTOnlyAndReviewer() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = user2.getId();
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ACT_ONLY;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = Collections.emptyList();
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithDelegatedOnlyAndReviewer() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = user2.getId();
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.DELEGATED_ONLY;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithAccessor() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = user1.getId();
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithRequirement() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = accessRequirement2.getId().toString();
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s3);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithState() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId()).setState(SubmissionState.REJECTED)).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = SubmissionState.REJECTED;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s2);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithMultiSort() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		Date createdOn = new Date();
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		
+		List<SubmissionSearchSort> sort = List.of(
+			new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON),
+			new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON).setDirection(SortDirection.DESC)
+		);
+		
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s3, s2, s1);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAllSubmissionsWithLimitOffset() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ALL;
+		long limit = 2;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2);
+		
+		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+		
+		limit = 2;
+		offset = 1;
+		
+		expected = List.of(s2, s3);
+		
+		result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroups() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithMultipleGroups() {
+		
+		// The first user can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId()));
+		// The second user can review the 2nd AR
+		addReviewers(accessRequirement2.getId(), List.of(user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1, s2, s3);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId()), Long.valueOf(user2.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithReviewer() {
+		
+		// both users can review the 2nd AR
+		addReviewers(accessRequirement2.getId(), List.of(user1.getId(), user2.getId()));
+		// The first user can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = user2.getId();
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s3);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithAccessor() {
+		
+		// 1st user can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = user2.getId();
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s2);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithRequirement() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		// 1st user can review the 2nd AR
+		addReviewers(accessRequirement2.getId(), List.of(user1.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = accessRequirement2.getId().toString();
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s3);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithState() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId()).setState(SubmissionState.REJECTED)).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = SubmissionState.REJECTED;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s2);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithMultiSort() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+		
+		Date createdOn = new Date();
+		
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId()).setSubmittedOn(createdOn)).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(
+			new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON),
+			new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON).setDirection(SortDirection.DESC)
+		);
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+		
+		List<String> expected = List.of(s2, s1);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchSubmissionsReviewableByGroupsWithLimitOffset() {
+		
+		// both users can review the 1st AR
+		addReviewers(accessRequirement.getId(), List.of(user1.getId(), user2.getId()));
+				
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+		String s3 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 2000, user2.getId())).getSubmissionId();
+		
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 1;
+		long offset = 0;
+		
+		List<String> expected = List.of(s1);
+		
+		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+		
+		limit = 1;
+		offset = 1;
+		
+		expected = List.of(s2);
+		
+		result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
+				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+	}
+	
+	private void addReviewers(Long arId, List<String> reviewerIds) {
+		AccessControlList acl = new AccessControlList()
+			.setId(arId.toString())
+			.setCreationDate(new Date())
+			.setCreatedBy(user1.getId())
+			.setModifiedBy(user1.getId())
+			.setModifiedOn(new Date())
+			.setResourceAccess(reviewerIds.stream().map(reviewerId -> 
+				new ResourceAccess().setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)).setPrincipalId(Long.valueOf(reviewerId))
+			).collect(Collectors.toSet()));
+		
+		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);
 	}
 	
 }

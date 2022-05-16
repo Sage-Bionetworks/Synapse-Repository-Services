@@ -11,6 +11,10 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -340,6 +344,43 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("userInfo is required.", message);
 		
+	}
+	
+	@Test
+	public void testGetAccessRequirementReviewers() {
+		
+		when(mockAclDao.getPrincipalIdsMap(any(), any(), any())).thenReturn(Map.of(
+			"1", Set.of("11", "12"),
+			"2", Set.of("21")		
+		));
+		
+		Set<Long> arIds = Set.of(1L, 2L, 3L);
+		
+		Map<Long, List<String>> expected = Map.of(
+			1L, List.copyOf(Set.of("11", "12")),
+			2L, List.copyOf(Set.of("21"))			
+		);		
+			
+		// Call under test
+		Map<Long, List<String>> result = manager.getAccessRequirementReviewers(arIds);
+		
+		verify(mockAclDao).getPrincipalIdsMap(arIds.stream().map(String::valueOf).collect(Collectors.toSet()), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.REVIEW_SUBMISSIONS);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementReviewersWithNoArIds() {
+		Set<Long> arIds = null;
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.getAccessRequirementReviewers(arIds);
+		}).getMessage();
+		
+		assertEquals("accessRequirementIds is required.", message);
+		
+		verifyZeroInteractions(mockAclDao);
 	}
 	
 	private VerificationSubmission getVerfificationSubmission(VerificationStateEnum state) {

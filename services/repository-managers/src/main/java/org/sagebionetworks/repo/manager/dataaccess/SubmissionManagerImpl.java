@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -35,6 +38,12 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionReviewerFilterType;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
@@ -47,27 +56,38 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+// Note that the "dataAccessSubmissionManager" qualifier is needed so that it does not conflict with the existing SubmissionManager for the evaluations:
+// Spring by default assigns the name of the class to each autowired bean, so we need a unique name in the same context in order for it to be injected automatically
+@Service("dataAccessSubmissionManager")
 public class SubmissionManagerImpl implements SubmissionManager{
 
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
 	private RequestManager requestManager;
-	@Autowired
 	private ResearchProjectDAO researchProjectDao;
-	@Autowired
 	private SubmissionDAO submissionDao;
-	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
-	@Autowired
 	private SubscriptionDAO subscriptionDao;
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	@Autowired
 	private AccessApprovalManager accessAprovalManager;
-	@Autowired
 	private DataAccessAuthorizationManager authorizationManager;
+	
+	@Autowired
+	public SubmissionManagerImpl(AccessRequirementDAO accessRequirementDao, RequestManager requestManager,
+			ResearchProjectDAO researchProjectDao, SubmissionDAO submissionDao, AccessApprovalDAO accessApprovalDao,
+			SubscriptionDAO subscriptionDao, TransactionalMessenger transactionalMessenger, AccessApprovalManager accessAprovalManager,
+			DataAccessAuthorizationManager authorizationManager) {
+		this.accessRequirementDao = accessRequirementDao;
+		this.requestManager = requestManager;
+		this.researchProjectDao = researchProjectDao;
+		this.submissionDao = submissionDao;
+		this.accessApprovalDao = accessApprovalDao;
+		this.subscriptionDao = subscriptionDao;
+		this.transactionalMessenger = transactionalMessenger;
+		this.accessAprovalManager = accessAprovalManager;
+		this.authorizationManager = authorizationManager;
+	}
 
 	@WriteTransaction
 	@Override
@@ -388,6 +408,74 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			return status;
 		}
+	}
+	
+	@Override
+	public SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		
+		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
+		
+		long limit = pageToken.getLimitForQuery();
+		long offset = pageToken.getOffset();
+		
+		boolean isACTMember = AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo);
+		String accessorId = request.getAccessorId();
+		String requirementId = request.getAccessRequirementId();
+		List<SubmissionSearchSort> sort = request.getSort() == null || request.getSort().isEmpty() ? List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON)) : request.getSort();
+		SubmissionState state = request.getSubmissionState();
+		String reviewerId = request.getReviewerId();
+		SubmissionReviewerFilterType reviewerFilterType = request.getReviewerFilterType() == null ? SubmissionReviewerFilterType.ALL : request.getReviewerFilterType();
+		
+		List<Submission> submissionPage;
+		
+		if (isACTMember) {
+			submissionPage = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+		} else {
+			// A non-ACT user cannot see ACT_ONLY submissions
+			switch (reviewerFilterType) {
+			// For a non-ACT user ALL=DELEGATED_ONLY
+			case ALL:
+			case DELEGATED_ONLY:
+				submissionPage = submissionDao.searchSubmissionsReviewableByGroups(userInfo.getGroups(), sort, accessorId, requirementId, reviewerId, state, limit, offset);	
+				break;
+			default:
+				submissionPage = Collections.emptyList();
+				break;
+			}
+		}
+		
+		if (submissionPage.isEmpty()) {
+			return new SubmissionSearchResponse()
+				.setResults(Collections.emptyList());
+		}
+		
+		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(submissionPage);
+		
+		Set<Long> arIdsSet = submissionPage.stream().map(s -> Long.valueOf(s.getAccessRequirementId())).collect(Collectors.toSet());
+		Map<Long, String> arNamesMap = accessRequirementDao.getAccessRequirementNames(arIdsSet);
+		Map<Long, List<String>> arReviewersMap = authorizationManager.getAccessRequirementReviewers(arIdsSet);
+		
+		List<SubmissionSearchResult> result = submissionPage.stream().map( submission -> {
+			Long arId = Long.valueOf(submission.getAccessRequirementId());
+			
+			return new SubmissionSearchResult()
+				.setId(submission.getId())
+				.setAccessRequirementId(submission.getAccessRequirementId())
+				.setAccessRequirementVersion(submission.getAccessRequirementVersion().toString())
+				.setAccessRequirementName(arNamesMap.get(arId))
+				.setAccessRequirementReviewerIds(arReviewersMap.get(arId))
+				.setAccessorChanges(submission.getAccessorChanges())
+				.setCreatedOn(submission.getSubmittedOn())
+				.setModifiedOn(submission.getModifiedOn())
+				.setState(submission.getState())
+				.setSubmitterId(submission.getSubmittedBy());
+		}).collect(Collectors.toList());
+		
+		return new SubmissionSearchResponse()
+			.setResults(result)
+			.setNextPageToken(nextPageToken);
 	}
 
 	/**

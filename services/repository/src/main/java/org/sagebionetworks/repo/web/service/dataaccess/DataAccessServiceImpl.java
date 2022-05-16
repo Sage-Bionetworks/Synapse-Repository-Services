@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,5 +115,11 @@ public class DataAccessServiceImpl implements DataAccessService {
 	public OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getOpenSubmissions(user, nextPageToken);
+	}
+	
+	@Override
+	public SubmissionSearchResponse searchSubmissions(Long userId, SubmissionSearchRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.searchSubmissions(user, request);
 	}
 }

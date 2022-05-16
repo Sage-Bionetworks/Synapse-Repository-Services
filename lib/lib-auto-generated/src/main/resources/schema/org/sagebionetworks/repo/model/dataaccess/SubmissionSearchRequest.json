@@ -1,0 +1,49 @@
+{
+	"description": "A request to search through the data access submissions",
+	"properties": {
+		"accessorId": {
+            "type":"string",
+            "description": "Filter by the id of the principal that is an accessor in the submissions."
+        },
+		"accessRequirementId": {
+            "type": "string",
+            "description": "Filter by the id of the access requirement of the submissions."
+        },
+        "submissionState": {
+        	"description": "Filter by the state of the submissions",
+        	"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+        },
+        "reviewerId": {
+            "type":"string",
+            "description":"A principal ID used to filter submissions whose access requirements can be reviewed by the specific reviewer."
+        },
+        "reviewerFilterType": {
+        	"name": "SubmissionReviewerFilterType",
+        	"type": "string",
+        	"enum": [
+                {
+                    "name": "ALL",
+                    "description": "All submissions visible to the user"
+                },
+                {
+                    "name": "ACT_ONLY",
+                    "description": "Only submissions that can be reviewed by ACT specifically (excludes submissions that are delegated)"
+                },
+                {
+                    "name": "DELEGATED_ONLY",
+                    "description": "Only submissions that are specifically delegated to users other than ACT"
+                }
+            ]
+        },
+        "sort": {
+        	"type": "array",
+        	"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort"
+			}
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a request."
+        }
+	}
+}

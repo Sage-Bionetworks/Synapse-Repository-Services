@@ -1,0 +1,16 @@
+{
+	"description": "Response for the request to search through the data access submissions",
+	"properties": {
+		"results": {
+            "type":"array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResult"
+            },
+            "description":"The matching submissions information corresponding to the search parameters"
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a particular search query."
+        }
+	}
+}

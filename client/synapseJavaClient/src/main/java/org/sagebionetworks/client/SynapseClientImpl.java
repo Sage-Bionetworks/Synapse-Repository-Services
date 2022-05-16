@@ -137,6 +137,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -6090,5 +6092,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AccessApprovalSearchResponse searchAccessApprovals(AccessApprovalSearchRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL + "/search", request, AccessApprovalSearchResponse.class);
+	}
+	
+	@Override
+	public SubmissionSearchResponse searchDataAccessSubmissions(SubmissionSearchRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_SUBMISSION + "/search", request, SubmissionSearchResponse.class);
 	}
 }
