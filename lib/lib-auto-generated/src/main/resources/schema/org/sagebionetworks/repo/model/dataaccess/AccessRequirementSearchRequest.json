@@ -1,0 +1,32 @@
+{
+    "title":"Access Requirement Search Request",
+    "description":"Describes the parameters for searching Access Requirements",
+    "properties": {
+        "nameContains": {
+            "description":"Optional substring used to filter Access Requirements by name",
+            "type":"string"
+        },
+        "relatedProjectId": {
+            "description":"Optional id used to filter Access Requirements to retrieve only those that have been applied within a particular project.",
+            "type":"string"
+        },
+        "reviewerId": {
+            "description":"Optional principal ID used to filter Access Requirements to retrieve only those that can be reviewed by the specific reviewer.",
+            "type":"string"
+        },
+        "accessType": {
+        	"description":"Optional filter by type of access",
+        	"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
+        },
+        "sort": {
+        	"type": "array",
+        	"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort"
+			}
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a particular search query."
+        }
+    }
+}
