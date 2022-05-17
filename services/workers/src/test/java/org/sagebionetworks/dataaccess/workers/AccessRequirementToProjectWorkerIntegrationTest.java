@@ -2,6 +2,7 @@ package org.sagebionetworks.dataaccess.workers;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,12 +68,9 @@ public class AccessRequirementToProjectWorkerIntegrationTest {
 		
 		TimeUtils.waitFor(WORKER_TIMEOUT, 1000L, () -> {
 			
-			List<Long> projects = accessRequirementDAO.getProjectsForAccessRequirement(ar.getId().toString());
-			if(expectedProjects.equals(projects)) {
-				return new Pair<>(true, null);
-			}else {
-				return new Pair<>(false, null);
-			}
+			List<Long> projects = accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(ar.getId())).get(ar.getId());
+			
+			return new Pair<>(expectedProjects.equals(projects), null);
 		});
 	}
 }

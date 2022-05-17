@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementDAO {
@@ -141,12 +142,29 @@ public interface AccessRequirementDAO {
 	 * @param arIds
 	 * @param projectId
 	 */
-	public void mapAccessRequirmentsToProject(Long[] arIds, Long projectId);
+	void mapAccessRequirmentsToProject(Long[] arIds, Long projectId);
 	
 	/**
-	 * Get the projects associated with the given access requirement.
-	 * @param arId
+	 * Returns a map of the projects ids mapped to each of the ARs in the given set
+	 * 
+	 * @param arIds
 	 * @return
 	 */
-	public List<Long> getProjectsForAccessRequirement(String arId);
+	Map<Long, List<Long>> getAccessRequirementProjectsMap(Set<Long> arIds);
+
+	/**
+	 * Fetch a page of access requirements that mett the given criteria
+	 * 
+	 * @param sort Sort specification, required
+	 * @param nameContains Optional filter for a name substring
+	 * @param reviewerId Optional filter for an assigned reviewer
+	 * @param projectId Optional filter for AR project
+	 * @param accessType Optional filter for the type of access
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, String reviewerId,
+			Long projectId, ACCESS_TYPE accessType, long limit, long offset);
+	
 }
