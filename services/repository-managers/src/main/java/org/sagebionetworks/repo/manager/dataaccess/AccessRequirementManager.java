@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementManager {
@@ -128,6 +130,14 @@ public interface AccessRequirementManager {
 	 * @param entitiesCreatedOrUpdated
 	 */
 	void mapAccessRequirementsToProject(List<String> entitiesCreatedOrUpdated);
+	
+	/**
+	 * Search through the available access requirements that match the criteria in the given request
+	 * 
+	 * @param request
+	 * @return
+	 */
+	AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request);
 
 
 }

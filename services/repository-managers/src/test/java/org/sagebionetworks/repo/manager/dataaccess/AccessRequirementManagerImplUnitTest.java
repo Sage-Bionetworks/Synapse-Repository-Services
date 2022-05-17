@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,6 +21,7 @@ import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManag
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +39,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -70,6 +71,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -101,6 +107,8 @@ public class AccessRequirementManagerImplUnitTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private AccessControlListDAO mockAclDao;
+	@Mock
+	private DataAccessAuthorizationManager mockDaAuthManager;
 
 	@InjectMocks
 	private AccessRequirementManagerImpl arm;
@@ -1606,6 +1614,164 @@ public class AccessRequirementManagerImplUnitTest {
 			// call under test
 			arm.mapAccessRequirementsToProject(entityIds);
 		});
+	}
+	
+	@Test
+	public void testSearchAccessRequirements() {
+		
+		List<AccessRequirement> arList = List.of(
+			new ManagedACTAccessRequirement().setId(1L).setName("one"),
+			new ManagedACTAccessRequirement().setId(2L).setName("two")
+		);
+		
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
+			1L, List.of(1L, 2L),
+			2L, List.of(1L)
+		));
+		
+		when(mockDaAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			1L, List.of("11", "22")	
+		));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		String projectId = null;
+		ACCESS_TYPE accessType = null;
+		List<AccessRequirementSearchSort> sort = null;
+				
+		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
+			.setNameContains(nameSubs)
+			.setReviewerId(reviewerId)
+			.setRelatedProjectId(projectId)
+			.setAccessType(accessType)
+			.setSort(sort);
+		
+		AccessRequirementSearchResponse expected = new AccessRequirementSearchResponse().setResults(List.of(
+			new AccessRequirementSearchResult().setId("1").setName("one").setRelatedProjectIds(List.of("syn1", "syn2")).setReviewerIds(List.of("11", "22")),
+			new AccessRequirementSearchResult().setId("2").setName("two").setRelatedProjectIds(List.of("syn1")).setReviewerIds(Collections.emptyList())
+		));
+		
+		// Call under test
+		AccessRequirementSearchResponse result = arm.searchAccessRequirements(request);
+		
+		assertEquals(expected, result);
+		
+		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), projectId, reviewerId, null, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
+		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
+		
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithFilters() {
+		
+		List<AccessRequirement> arList = List.of(
+			new ManagedACTAccessRequirement().setId(1L).setName("one"),
+			new ManagedACTAccessRequirement().setId(2L).setName("two")
+		);
+		
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
+			1L, List.of(1L, 2L),
+			2L, List.of(1L)
+		));
+		
+		when(mockDaAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			1L, List.of("11", "22")	
+		));
+		
+		String nameSubs = "name";
+		String reviewerId = "2";
+		String projectId = "syn3";
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+				
+		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
+			.setNameContains(nameSubs)
+			.setReviewerId(reviewerId)
+			.setRelatedProjectId(projectId)
+			.setAccessType(accessType)
+			.setSort(sort);
+		
+		AccessRequirementSearchResponse expected = new AccessRequirementSearchResponse().setResults(List.of(
+			new AccessRequirementSearchResult().setId("1").setName("one").setRelatedProjectIds(List.of("syn1", "syn2")).setReviewerIds(List.of("11", "22")),
+			new AccessRequirementSearchResult().setId("2").setName("two").setRelatedProjectIds(List.of("syn1")).setReviewerIds(Collections.emptyList())
+		));
+		
+		// Call under test
+		AccessRequirementSearchResponse result = arm.searchAccessRequirements(request);
+		
+		assertEquals(expected, result);
+		
+		verify(accessRequirementDAO).searchAccessRequirements(sort, nameSubs, reviewerId, 3L, accessType, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_OFFSET);
+		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
+		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
+		
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithNextPageToken() {
+		
+		List<AccessRequirement> arList = new ArrayList<>(List.of(
+				new ManagedACTAccessRequirement().setId(1L).setName("one"),
+				new ManagedACTAccessRequirement().setId(2L).setName("two"),
+				new ManagedACTAccessRequirement().setId(3L).setName("three")
+		));
+		
+		when(accessRequirementDAO.searchAccessRequirements(any(), any(), any(), any(), any(), anyLong(), anyLong())).thenReturn(arList);
+		when(accessRequirementDAO.getAccessRequirementProjectsMap(any())).thenReturn(Map.of(
+			1L, List.of(1L, 2L),
+			2L, List.of(1L)
+		));
+		
+		when(mockDaAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
+			1L, List.of("11", "22")	
+		));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		String projectId = null;
+		ACCESS_TYPE accessType = null;
+		List<AccessRequirementSearchSort> sort = null;
+				
+		AccessRequirementSearchRequest request = new AccessRequirementSearchRequest()
+			.setNameContains(nameSubs)
+			.setReviewerId(reviewerId)
+			.setRelatedProjectId(projectId)
+			.setAccessType(accessType)
+			.setSort(sort)
+			.setNextPageToken(new NextPageToken(2, 0).toToken());
+		
+		AccessRequirementSearchResponse expected = new AccessRequirementSearchResponse().setResults(List.of(
+			new AccessRequirementSearchResult().setId("1").setName("one").setRelatedProjectIds(List.of("syn1", "syn2")).setReviewerIds(List.of("11", "22")),
+			new AccessRequirementSearchResult().setId("2").setName("two").setRelatedProjectIds(List.of("syn1")).setReviewerIds(Collections.emptyList())
+		)).setNextPageToken(new NextPageToken(2, 2).toToken());
+		
+		// Call under test
+		AccessRequirementSearchResponse result = arm.searchAccessRequirements(request);
+		
+		assertEquals(expected, result);
+		
+		verify(accessRequirementDAO).searchAccessRequirements(List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)), projectId, reviewerId, null, accessType, 3, 0);
+		verify(accessRequirementDAO).getAccessRequirementProjectsMap(Set.of(1L, 2L));
+		verify(mockDaAuthManager).getAccessRequirementReviewers(Set.of(1L, 2L));
+		
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithnoRequest() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			arm.searchAccessRequirements(null);
+		}).getMessage();
+		
+		assertEquals("request is required.", result);
+		
+		verifyZeroInteractions(accessRequirementDAO);
+		verifyZeroInteractions(mockDaAuthManager);
+		
 	}
 
 }
