@@ -1631,7 +1631,7 @@ public class AccessRequirementManagerImplUnitTest {
 		));
 		
 		when(mockDaAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
-			1L, List.of("11", "22")	
+			1L, List.of("11", "22")
 		));
 		
 		String nameSubs = null;
