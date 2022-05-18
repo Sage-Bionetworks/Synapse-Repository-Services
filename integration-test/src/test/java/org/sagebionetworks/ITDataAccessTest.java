@@ -46,6 +46,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
@@ -545,6 +547,51 @@ public class ITDataAccessTest {
 			assertEquals(submission.getId(), r.getId());
 		});
 		
+	}
+	
+	@Test
+	public void testSearchAccessRequirements() throws SynapseException, JSONObjectAdapterException {
+		
+		String name = "Test AR " + UUID.randomUUID().toString();
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setName(name)
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		AccessRequirementSearchRequest searchRequest = new AccessRequirementSearchRequest()
+			.setNameContains(name.substring(name.length() - 5, name.length() - 1))
+			.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		
+		AccessRequirementSearchResponse result = synapse.searchAccessRequirements(searchRequest);
+		
+		assertFalse(result.getResults().isEmpty());
+		assertEquals(managedAR.getId().toString(), result.getResults().get(0).getId());
+		
+		// Add filter by the reviewer
+		searchRequest.setReviewerId(synapse.getMyProfile().getOwnerId());
+		
+		result = synapse.searchAccessRequirements(searchRequest);
+		
+		// No reviewers yet, so empty list
+		assertTrue(result.getResults().isEmpty());
+		
+		// Add a reviewer to the AR
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		// Add the user directly to the ACL
+		acl = adminSynapse.createAccessRequirementAcl(acl);
+		
+		result = synapse.searchAccessRequirements(searchRequest);
+		
+		assertFalse(result.getResults().isEmpty());
+		assertEquals(managedAR.getId().toString(), result.getResults().get(0).getId());
 	}
 	
 

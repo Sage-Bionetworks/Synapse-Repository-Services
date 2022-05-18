@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,6 +115,10 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		accessRequirementManager.deleteAccessRequirementAcl(userInfo, requirementId);
 	}
 	
-	
+	@Override
+	public AccessRequirementSearchResponse searchAccessRequirements(Long userId, AccessRequirementSearchRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.searchAccessRequirements(request);
+	}
 
 }

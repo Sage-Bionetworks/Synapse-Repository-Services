@@ -94,6 +94,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRespo
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -4082,4 +4084,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	SubmissionSearchResponse searchDataAccessSubmissions(SubmissionSearchRequest request) throws SynapseException;
+	
+	/**
+	 * Performs a search through the available access requirements matching the criteria in the given request.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) throws SynapseException;
 }

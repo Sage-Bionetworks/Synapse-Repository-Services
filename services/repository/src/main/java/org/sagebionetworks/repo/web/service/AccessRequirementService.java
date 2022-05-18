@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementService {
@@ -45,5 +47,7 @@ public interface AccessRequirementService {
 	AccessControlList updateAccessRequirementAcl(Long userId, String requirementId, AccessControlList acl);
 	
 	void deleteAccessRequirementAcl(Long userId, String requirementId);
+
+	AccessRequirementSearchResponse searchAccessRequirements(Long userId, AccessRequirementSearchRequest request);
 
 }
