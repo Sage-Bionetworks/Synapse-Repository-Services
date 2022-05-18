@@ -550,6 +550,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+ACCESS_REQUIREMENT_ID;
 	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 	public static final String ACCESS_REQUIREMENT_ACL = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/acl";
+	public static final String ACCESS_REQUIREMENT_SEARCH = ACCESS_REQUIREMENT + "/search";
 
 	public static final String ACCESS_REQUIREMENT_CONVERSION = ACCESS_REQUIREMENT+"/conversion";
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";

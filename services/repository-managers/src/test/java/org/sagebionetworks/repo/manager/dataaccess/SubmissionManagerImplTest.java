@@ -1216,8 +1216,7 @@ public class SubmissionManagerImplTest {
 		
 		when(mockAuthManager.getAccessRequirementReviewers(any())).thenReturn(Map.of(
 			11L, List.of("1", "2"),
-			21L, List.of("2"),
-			31L, List.of("3", "4")
+			21L, List.of("2")
 		));
 		
 		SubmissionReviewerFilterType filterType = null;
@@ -1253,7 +1252,7 @@ public class SubmissionManagerImplTest {
 					.setAccessRequirementId("31")
 					.setAccessRequirementName("ar3")
 					.setAccessRequirementVersion("1")
-					.setAccessRequirementReviewerIds(List.of("3", "4"))
+					.setAccessRequirementReviewerIds(Collections.emptyList())
 					.setAccessorChanges(List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId("3")))
 			));
 		

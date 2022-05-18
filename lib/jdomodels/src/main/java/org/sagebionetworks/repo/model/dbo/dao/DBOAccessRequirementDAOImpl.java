@@ -1,18 +1,32 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_AR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT_PROJECTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT_REVISION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
@@ -27,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -40,10 +55,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
@@ -474,13 +491,88 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				});
 
 	}
-
+	
 	@Override
-	public List<Long> getProjectsForAccessRequirement(String arId) {
-		ValidateArgument.required(arId, "arId");
-		return jdbcTemplate.queryForList("SELECT " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " FROM "
-				+ TABLE_ACCESS_REQUIREMENT_PROJECTS + " WHERE " + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID
-				+ " = ? ORDER BY " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " ASC", Long.class, arId);
+	public Map<Long, List<Long>> getAccessRequirementProjectsMap(Set<Long> arIds) {
+		if (arIds == null || arIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		String sql = "SELECT " + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID + ", " + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID 
+				+ " FROM " + TABLE_ACCESS_REQUIREMENT_PROJECTS 
+				+ " WHERE " + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID + " IN (" + String.join(",", Collections.nCopies(arIds.size(), "?")) + ")";
+		
+		return jdbcTemplate.query(sql, (ResultSet rs) -> {
+			Map<Long, List<Long>> projectsMap = new HashMap<>(arIds.size());
+			
+			while(rs.next()) {
+				Long id = rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_AR_ID);
+				Long projectId = rs.getLong(COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID);
+				
+				List<Long> projects = projectsMap.get(id);
+				
+				if (projects == null) {
+					projectsMap.put(id, projects = new ArrayList<>());
+				}
+				
+				projects.add(projectId);
+			}
+			
+			return projectsMap;
+		}, arIds.toArray());
+	}
+	
+	@Override
+	public List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, String reviewerId,
+			Long projectId, ACCESS_TYPE accessType, long limit, long offset) {
+		ValidateArgument.required(sort, "sort");
+		
+		String sqlQuery = "SELECT AR.*, R.*" + " FROM " + TABLE_ACCESS_REQUIREMENT
+				+ " AR JOIN " + TABLE_ACCESS_REQUIREMENT_REVISION + " R ON (AR." + COL_ACCESS_REQUIREMENT_ID
+				+ " = R." + COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID + " AND AR." + COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER + " = R." + COL_ACCESS_REQUIREMENT_REVISION_NUMBER + ")";
+		
+		List<Object> queryParams = new ArrayList<>();
+		
+		if (projectId != null) {
+			sqlQuery += " JOIN " + TABLE_ACCESS_REQUIREMENT_PROJECTS + " P ON AR." + COL_ACCESS_REQUIREMENT_ID + " = P." + COL_ACCESS_REQUIREMENT_PROJECT_AR_ID
+				+ " AND P." + COL_ACCESS_REQUIREMENT_PROJECT_PROJECT_ID + " = ?";
+			queryParams.add(projectId);
+		}
+		
+		if (reviewerId != null) {
+			sqlQuery += " JOIN " + TABLE_ACCESS_CONTROL_LIST + " A ON AR." + COL_ACCESS_REQUIREMENT_ID + " = A." + COL_ACL_OWNER_ID + " AND A." + COL_ACL_OWNER_TYPE + " = '" + ObjectType.ACCESS_REQUIREMENT.name() + "'"
+				+ " JOIN " + TABLE_RESOURCE_ACCESS + " RA ON RA." + COL_RESOURCE_ACCESS_OWNER + " = A." + COL_ACL_ID + " AND RA." + COL_RESOURCE_ACCESS_GROUP_ID + " = ?"
+				+ " JOIN " + TABLE_RESOURCE_ACCESS_TYPE + " AT ON RA." + COL_RESOURCE_ACCESS_ID + " = AT." + COL_RESOURCE_ACCESS_TYPE_ID + " AND AT." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + " = '" + ACCESS_TYPE.REVIEW_SUBMISSIONS + "'";
+			queryParams.add(reviewerId);
+		}
+		
+		List<String> filters = new ArrayList<>();
+		
+		if (nameContains != null) {
+			filters.add("AR." + COL_ACCESS_REQUIREMENT_NAME + " LIKE ?");
+			queryParams.add("%" + nameContains + "%");
+		}
+		
+		if (accessType != null) {
+			filters.add("AR." + COL_ACCESS_REQUIREMENT_ACCESS_TYPE + " = ?");
+			queryParams.add(accessType.name());
+		}
+		
+		if (!filters.isEmpty()) {
+			sqlQuery += " WHERE " + String.join(" AND ", filters);
+		}
+		
+		sqlQuery += " ORDER BY " + String.join(",", sort.stream().map(s-> {
+			ValidateArgument.required(s.getField(), "sort.field");
+			return s.getField().name() + (s.getDirection() == null ? "" : " " + s.getDirection().name());
+		}).collect(Collectors.toList()));
+		
+		sqlQuery += " LIMIT ? OFFSET ?";
+			
+		queryParams.add(limit);
+		queryParams.add(offset);
+		
+		return jdbcTemplate.query(sqlQuery, requirementMapper, queryParams.toArray());
 	}
 
 }

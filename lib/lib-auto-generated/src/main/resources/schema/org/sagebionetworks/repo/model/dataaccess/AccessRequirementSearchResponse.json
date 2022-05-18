@@ -1,0 +1,17 @@
+{
+    "title":"Access Requirement Search Response",
+    "description":"Describes the response object for an Access Requirement search",
+    "properties": {
+        "results":{
+        	"description":"The results of an access requirement search",
+            "type":"array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult"
+            }
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "A token used to get the next page of a particular search query."
+        }
+    }
+}

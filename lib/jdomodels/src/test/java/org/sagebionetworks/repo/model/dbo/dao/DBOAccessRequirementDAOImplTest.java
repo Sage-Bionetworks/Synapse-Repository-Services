@@ -15,12 +15,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
@@ -30,14 +33,19 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -73,6 +81,9 @@ public class DBOAccessRequirementDAOImplTest {
 	@Autowired
 	private DaoObjectHelper<Node> nodeDaoHelper;
 	
+	@Autowired
+	private AccessControlListDAO aclDao;
+	
 	private UserGroup individualGroup = null;
 	private Node node = null;
 	private Node node2 = null;
@@ -83,6 +94,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -107,6 +119,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@AfterEach
 	public void tearDown() throws Exception{
+		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.clear();
@@ -703,9 +716,9 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId(), arTwo.getId()}, projectOneId);
 		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arTwo.getId(), arThree.getId()}, projectTwoId);
 		
-		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getProjectsForAccessRequirement(arOne.getId().toString()));
-		assertEquals(Arrays.asList(projectOneId, projectTwoId), accessRequirementDAO.getProjectsForAccessRequirement(arTwo.getId().toString()));
-		assertEquals(Arrays.asList(projectTwoId), accessRequirementDAO.getProjectsForAccessRequirement(arThree.getId().toString()));
+		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(arOne.getId())).get(arOne.getId()));
+		assertEquals(Arrays.asList(projectOneId, projectTwoId), accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(arTwo.getId())).get(arTwo.getId()));
+		assertEquals(Arrays.asList(projectTwoId), accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(arThree.getId())).get(arThree.getId()));
 	}
 	
 	@Test
@@ -722,7 +735,291 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId()}, projectOneId);
 		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId()}, projectOneId);
 		
-		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getProjectsForAccessRequirement(arOne.getId().toString()));
+		assertEquals(Arrays.asList(projectOneId), accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(arOne.getId())).get(arOne.getId()));
+	}
+	
+	@Test
+	public void testGetAccessRequirementProjectsMap() {
+		Node projectOne = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		
+		Node projectTwo = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
+		
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId(), arTwo.getId()}, projectOneId);
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arTwo.getId()}, projectTwoId);
+		
+		Map<Long, List<Long>> expected = Map.of(
+			arOne.getId(), List.of(projectOneId),
+			arTwo.getId(), List.of(projectOneId, projectTwoId)
+		);
+		
+		Map<Long, List<Long>> result = accessRequirementDAO.getAccessRequirementProjectsMap(Set.of(arOne.getId(), arTwo.getId(), -1L));
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementProjectsMapWithNullSet() {
+		Map<Long, List<Long>> expected = Collections.emptyMap();
+		
+		Map<Long, List<Long>> result = accessRequirementDAO.getAccessRequirementProjectsMap(null);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementProjectsMapWithEmptySet() {
+		Map<Long, List<Long>> expected = Collections.emptyMap();
+		
+		Map<Long, List<Long>> result = accessRequirementDAO.getAccessRequirementProjectsMap(Collections.emptySet());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirements() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo1"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo2"));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arOne, arTwo);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithMultiSort() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo1"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo2").setCreatedOn(arOne.getCreatedOn()));
+		
+		List<AccessRequirementSearchSort> sort = List.of(
+			new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON),
+			new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME).setDirection(SortDirection.DESC)
+		);
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arTwo, arOne);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithLimitoffset() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo1"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo2"));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 1;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arOne);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+		
+		limit = 1;
+		offset = 1;
+		
+		expected = List.of(arTwo);
+		
+		result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithNameContains() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name one"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name two"));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = "one";
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arOne);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithAccessType() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setAccessType(ACCESS_TYPE.PARTICIPATE));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		Long projectId = null;
+		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arTwo);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithReviewerId() {
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		addReviewers(arTwo.getId(), List.of(individualGroup.getId()));
+		
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = individualGroup.getId();
+		Long projectId = null;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arTwo);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithProjectId() {
+		Node projectOne = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		
+		Node projectTwo = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
+		
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId(), arTwo.getId()}, projectOneId);
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arTwo.getId()}, projectTwoId);
+				
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = null;
+		Long projectId = projectOneId;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arOne, arTwo);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testSearchAccessRequirementsWithProjectIdAndReviewerId() {
+		Node projectOne = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		
+		Node projectTwo = nodeDaoHelper.create((n)->{
+			n.setNodeType(EntityType.project);
+		});
+		
+		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
+		
+		TermsOfUseAccessRequirement arOne = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		TermsOfUseAccessRequirement arTwo = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		
+		addReviewers(arTwo.getId(), List.of(individualGroup.getId()));
+		
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arOne.getId(), arTwo.getId()}, projectOneId);
+		accessRequirementDAO.mapAccessRequirmentsToProject(new Long[] {arTwo.getId()}, projectTwoId);
+				
+		List<AccessRequirementSearchSort> sort = List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.NAME));
+		
+		String nameSubs = null;
+		String reviewerId = individualGroup.getId();
+		Long projectId = projectTwoId;
+		ACCESS_TYPE accessType = null;
+		
+		long limit = 10;
+		long offset = 0;
+		
+		List<AccessRequirement> expected = List.of(arTwo);
+		
+		List<AccessRequirement> result = accessRequirementDAO.searchAccessRequirements(sort, nameSubs, reviewerId, projectId, accessType, limit, offset);
+		
+		assertEquals(expected, result);
+	}
+	
+	private void addReviewers(Long arId, List<String> reviewerIds) {
+		AccessControlList acl = new AccessControlList()
+			.setId(arId.toString())
+			.setCreationDate(new Date())
+			.setCreatedBy(individualGroup.getId())
+			.setModifiedBy(individualGroup.getId())
+			.setModifiedOn(new Date())
+			.setResourceAccess(reviewerIds.stream().map(reviewerId -> 
+				new ResourceAccess().setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)).setPrincipalId(Long.valueOf(reviewerId))
+			).collect(Collectors.toSet()));
+		
+		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);
 	}
 
 }

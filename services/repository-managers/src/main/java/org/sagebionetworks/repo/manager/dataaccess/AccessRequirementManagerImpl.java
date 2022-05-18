@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.nio.channels.IllegalSelectorException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,6 +43,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -83,10 +89,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	private AccessControlListDAO aclDao;
 	
+	private DataAccessAuthorizationManager daAuthManager;
+	
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
-			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao) {
+			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao,
+			DataAccessAuthorizationManager daAuthManager) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
 		this.nodeDao = nodeDao;
@@ -95,6 +104,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.projectSettingsManager = projectSettingsManager;
 		this.transactionalMessenger = transactionalMessenger;
 		this.aclDao = aclDao;
+		this.daAuthManager = daAuthManager;
 	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
@@ -507,7 +517,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	@WriteTransaction
 	public void deleteAccessRequirementAcl(UserInfo userInfo, String accessRequirementId) {
-		ValidateArgument.required(userInfo, "userInfo");		
+		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		
 		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
@@ -526,6 +536,45 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public void mapAccessRequirementsToProject(List<String> entityIds) {
 		ValidateArgument.required(entityIds, "entityIds");
 		entityIds.stream().forEach(this::mapAccessRequirementsToProject);
+	}
+	
+	@Override
+	public AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) {
+		ValidateArgument.required(request, "request");
+		
+		NextPageToken pageToken = new NextPageToken(request.getNextPageToken());
+		
+		String nameContains = request.getNameContains();
+		String reviewerId = request.getReviewerId();
+		Long projectId = request.getRelatedProjectId() == null ? null : KeyFactory.stringToKey(request.getRelatedProjectId());
+		ACCESS_TYPE accessType = request.getAccessType();
+		List<AccessRequirementSearchSort> sort = request.getSort() == null ? List.of(new AccessRequirementSearchSort().setField(AccessRequirementSortField.CREATED_ON)) : request.getSort();
+		long limit = pageToken.getLimitForQuery();
+		long offset = pageToken.getOffset();
+		
+		List<AccessRequirement> results = accessRequirementDAO.searchAccessRequirements(sort, nameContains, reviewerId, projectId, accessType, limit, offset);
+		
+		String nextPageToken = pageToken.getNextPageTokenForCurrentResults(results);
+				
+		Set<Long> arIds = results.stream().map(AccessRequirement::getId).collect(Collectors.toSet());
+		
+		Map<Long, List<String>> reviewersMap = daAuthManager.getAccessRequirementReviewers(arIds);
+		Map<Long, List<Long>> projectsMap = accessRequirementDAO.getAccessRequirementProjectsMap(arIds);
+		
+		List<AccessRequirementSearchResult> mappedResults = results.stream().map( ar -> 
+			new AccessRequirementSearchResult()
+				.setId(ar.getId().toString())
+				.setCreatedOn(ar.getCreatedOn())
+				.setModifiedOn(ar.getModifiedOn())
+				.setName(ar.getName())
+				.setVersion(ar.getVersionNumber() == null ? null : ar.getVersionNumber().toString())
+				.setReviewerIds(reviewersMap.getOrDefault(ar.getId(), Collections.emptyList()))
+				.setRelatedProjectIds(projectsMap.getOrDefault(ar.getId(), Collections.emptyList()).stream().map(KeyFactory::keyToString).collect(Collectors.toList()))
+		).collect(Collectors.toList());
+
+		return new AccessRequirementSearchResponse()
+			.setResults(mappedResults)
+			.setNextPageToken(nextPageToken);
 	}
 
 	void mapAccessRequirementsToProject(String entityId) {

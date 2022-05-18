@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -338,5 +340,21 @@ public class AccessRequirementController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId) throws NotFoundException, UnauthorizedException {
 		serviceProvider.getAccessRequirementService().deleteAccessRequirementAcl(userId, requirementId);
+	}
+	
+	/**
+	 * Performs a search through the available access requirements matching the criteria in the given request
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_SEARCH, method = RequestMethod.POST)
+	public @ResponseBody AccessRequirementSearchResponse searchAccessRequirements(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessRequirementSearchRequest request) {
+		return serviceProvider.getAccessRequirementService().searchAccessRequirements(userId, request);
 	}
 }

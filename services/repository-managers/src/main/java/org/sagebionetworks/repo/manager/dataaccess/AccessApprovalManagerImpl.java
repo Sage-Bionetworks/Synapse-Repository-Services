@@ -356,7 +356,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			return new AccessApprovalSearchResult()
 				.setId(ap.getId().toString())
 				.setAccessRequirementId(ap.getRequirementId().toString())
-				.setAccessRequirementVersion(ap.getRequirementVersion().toString())
+				.setAccessRequirementVersion(ap.getRequirementVersion() == null ? null : ap.getRequirementVersion().toString())
 				.setAccessRequirementName(namesMap.get(ap.getRequirementId()))
 				.setModifiedOn(ap.getModifiedOn())
 				.setExpiredOn(ap.getExpiredOn())

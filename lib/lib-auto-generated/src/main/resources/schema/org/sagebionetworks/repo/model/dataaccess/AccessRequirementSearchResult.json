@@ -1,0 +1,42 @@
+{
+    "title":"Access Requirement Search Result Item",
+    "description":"Result item of an Access Requirement search",
+    "properties": {
+        "id":{
+        	"description":"The id of the AR",
+            "type": "string"
+        },
+        "createdOn": {
+        	"description":"The creation date of the AR",
+			"type": "string",
+			"format": "date-time"
+		},
+		"modifiedOn": {
+			"description":"The last modification date of the AR",
+			"type": "string",
+			"format": "date-time"
+		},
+        "name": {
+        	"description":"The name of the AR",
+            "type": "string"
+        },
+        "version": {
+        	"description":"The current revision of the AR",
+        	"type": "string"
+        },
+        "relatedProjectIds":{
+            "description": "List of project ids which the AR is direclty or inderectly applied to",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+        },
+        "reviewerIds":{
+           "type": "array",
+           "description": "List of principal ids that are allowed to review the AR submissions",
+           "items": {
+              "type": "string"
+           }
+        }
+    }
+}
