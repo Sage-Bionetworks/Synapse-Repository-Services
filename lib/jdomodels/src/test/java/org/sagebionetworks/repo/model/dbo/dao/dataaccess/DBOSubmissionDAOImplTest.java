@@ -641,10 +641,13 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2, s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2),
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -668,10 +671,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -695,10 +699,12 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -722,10 +728,12 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -749,10 +757,9 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = Collections.emptyList();
+		List<Submission> expected = Collections.emptyList();
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -776,10 +783,12 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -803,10 +812,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -830,10 +840,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -857,10 +868,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -891,10 +903,13 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s3, s2, s1);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s3),
+			submissionDao.getSubmission(s2),
+			submissionDao.getSubmission(s1)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -918,20 +933,24 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 2;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 		
 		limit = 2;
 		offset = 1;
 		
-		expected = List.of(s2, s3);
+		expected = List.of(
+			submissionDao.getSubmission(s2),
+			submissionDao.getSubmission(s3)
+		);
 		
-		result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -954,10 +973,12 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -982,10 +1003,13 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1, s2, s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2),
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId()), Long.valueOf(user2.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId()), Long.valueOf(user2.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1010,10 +1034,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1036,10 +1061,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1064,10 +1090,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s3);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s3)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1090,10 +1117,11 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s2);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1121,10 +1149,12 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 10;
 		long offset = 0;
 		
-		List<String> expected = List.of(s2, s1);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2),
+			submissionDao.getSubmission(s1)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
@@ -1147,20 +1177,22 @@ public class DBOSubmissionDAOImplTest {
 		long limit = 1;
 		long offset = 0;
 		
-		List<String> expected = List.of(s1);
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1)
+		);
 		
-		List<String> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-			.stream().map( s-> s.getId()).collect(Collectors.toList());
+		List<Submission> result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 		
 		limit = 1;
 		offset = 1;
 		
-		expected = List.of(s2);
+		expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
 		
-		result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset)
-				.stream().map( s-> s.getId()).collect(Collectors.toList());
+		result = submissionDao.searchSubmissionsReviewableByGroups(Set.of(Long.valueOf(user1.getId())), sort, accessorId, requirementId, reviewerId, state, limit, offset);
 		
 		assertEquals(expected, result);
 	}
