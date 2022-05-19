@@ -116,8 +116,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	@Override
-	public AccessRequirementSearchResponse searchAccessRequirements(Long userId, AccessRequirementSearchRequest request) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) {
 		return accessRequirementManager.searchAccessRequirements(request);
 	}
 
