@@ -81,6 +81,7 @@ public class ITDataAccessTest {
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
 	private Long userTwoId;
+	private String submissionId;
 	
 	public ITDataAccessTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -111,6 +112,9 @@ public class ITDataAccessTest {
 			try {
 				adminSynapse.deleteUser(userTwoId);
 			} catch (SynapseException e) {}
+		}
+		if (submissionId != null) {
+			adminSynapse.deleteDataAccessSubmission(submissionId);
 		}
 	}
 
@@ -181,6 +185,8 @@ public class ITDataAccessTest {
 		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
 		SubmissionStatus status = synapse.submitRequest(csRequest);
 		assertNotNull(status);
+		
+		submissionId = status.getSubmissionId();
 
 		AccessRequirementStatus arStatus = synapse.getAccessRequirementStatus(managedAR.getId().toString());
 		assertNotNull(arStatus);
@@ -233,8 +239,6 @@ public class ITDataAccessTest {
 		assertNotNull(synapse.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
 		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
-		
-		adminSynapse.deleteDataAccessSubmission(status.getSubmissionId());
 	}
 	
 	// This test is used solely to verify the controller integration
@@ -335,6 +339,8 @@ public class ITDataAccessTest {
 				.setSubjectId(project.getId())
 				.setSubjectType(RestrictableObjectType.ENTITY));
 		
+		submissionId = submissionStatus.getSubmissionId();
+		
 		// The first user is not validated
 		String errorMessage = assertThrows(SynapseForbiddenException.class, () -> {			
 			synapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
@@ -429,6 +435,8 @@ public class ITDataAccessTest {
 				.setSubjectId(project.getId())
 				.setSubjectType(RestrictableObjectType.ENTITY));
 		
+		submissionId = submissionStatus.getSubmissionId();
+		
 		Submission submission = adminSynapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
 		
 		assertEquals(SubmissionState.APPROVED, submission.getState());
@@ -488,6 +496,8 @@ public class ITDataAccessTest {
 				.setRequestEtag(request.getEtag())
 				.setSubjectId(project.getId())
 				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		submissionId = submissionStatus.getSubmissionId();
 		
 		Submission submission = adminSynapse.updateSubmissionState(submissionStatus.getSubmissionId(), SubmissionState.APPROVED, "Approving the request");
 		
@@ -628,6 +638,8 @@ public class ITDataAccessTest {
 				.setRequestEtag(request.getEtag())
 				.setSubjectId(project.getId())
 				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		submissionId = submissionStatus.getSubmissionId();
 		
 		// ACT is able to fetch the submission
 		Submission submission = adminSynapse.getDataAccessSubmission(submissionStatus.getSubmissionId());
