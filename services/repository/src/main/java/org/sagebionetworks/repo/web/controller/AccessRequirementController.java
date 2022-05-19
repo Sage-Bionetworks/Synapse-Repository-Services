@@ -345,7 +345,6 @@ public class AccessRequirementController {
 	/**
 	 * Performs a search through the available access requirements matching the criteria in the given request
 	 * 
-	 * @param userId
 	 * @param request
 	 * @return
 	 */
@@ -353,8 +352,7 @@ public class AccessRequirementController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_SEARCH, method = RequestMethod.POST)
 	public @ResponseBody AccessRequirementSearchResponse searchAccessRequirements(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessRequirementSearchRequest request) {
-		return serviceProvider.getAccessRequirementService().searchAccessRequirements(userId, request);
+		return serviceProvider.getAccessRequirementService().searchAccessRequirements(request);
 	}
 }

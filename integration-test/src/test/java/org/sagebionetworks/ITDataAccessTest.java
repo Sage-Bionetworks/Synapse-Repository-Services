@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -592,6 +593,45 @@ public class ITDataAccessTest {
 		
 		assertFalse(result.getResults().isEmpty());
 		assertEquals(managedAR.getId().toString(), result.getResults().get(0).getId());
+	}
+	
+	@Test
+	public void testGetUserBundleIsArReviewer() throws SynapseException, JSONObjectAdapterException {
+		// Creates a new fresh user
+		SynapseClient synapseTwo = new SynapseClientImpl();
+		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
+		
+		UserBundle userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
+		
+		assertFalse(userBundle.getIsARReviewer());
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		// Add the user as a reviewer to the AR
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapseTwo.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		// Add the user directly to the ACL
+		acl = adminSynapse.createAccessRequirementAcl(acl);
+		
+		userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
+		
+		assertTrue(userBundle.getIsARReviewer());
+		
+		// Deleting the AR should remove its ACL (See https://sagebionetworks.jira.com/browse/PLFM-7317)
+		
+		adminSynapse.deleteAccessRequirement(managedAR.getId());
+		
+		userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
+		
+		assertFalse(userBundle.getIsARReviewer());
 	}
 	
 

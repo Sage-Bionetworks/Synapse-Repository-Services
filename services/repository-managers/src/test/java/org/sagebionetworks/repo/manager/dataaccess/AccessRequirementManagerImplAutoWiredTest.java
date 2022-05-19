@@ -364,7 +364,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		});
 		assertEquals(expectedMessage, exception.getMessage());
 	}
-		
+			
 	@Test
 	public void testGetAccessRequirementACL() {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, newEntityAccessRequirement(entityId));

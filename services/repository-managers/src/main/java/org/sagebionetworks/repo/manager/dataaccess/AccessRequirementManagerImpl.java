@@ -349,6 +349,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			return;
 		}
 		signalSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
+		aclDao.delete(accessRequirementId, ObjectType.ACCESS_REQUIREMENT);
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 

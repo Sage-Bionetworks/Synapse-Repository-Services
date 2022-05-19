@@ -525,7 +525,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Override
 	public List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, String reviewerId,
 			Long projectId, ACCESS_TYPE accessType, long limit, long offset) {
-		ValidateArgument.required(sort, "sort");
+		ValidateArgument.requiredNotEmpty(sort, "sort");
 		
 		String sqlQuery = "SELECT AR.*, R.*" + " FROM " + TABLE_ACCESS_REQUIREMENT
 				+ " AR JOIN " + TABLE_ACCESS_REQUIREMENT_REVISION + " R ON (AR." + COL_ACCESS_REQUIREMENT_ID
