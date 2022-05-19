@@ -594,5 +594,83 @@ public class ITDataAccessTest {
 		assertEquals(managedAR.getId().toString(), result.getResults().get(0).getId());
 	}
 	
+	@Test
+	public void testGetSubmission() throws SynapseException, JSONObjectAdapterException {
+		// A validated user
+		SynapseClient synapseTwo = new SynapseClientImpl();
+		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
+		
+		managedAR = new ManagedACTAccessRequirement()
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+			
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		ResearchProject rp = synapse.getResearchProjectForUpdate(managedAR.getId().toString());
+		
+		rp.setInstitution("Sage");
+		rp.setProjectLead("Lead");
+		rp.setIntendedDataUseStatement("intendedDataUseStatement");
+		rp.setAccessRequirementId(managedAR.getId().toString());
+		
+		rp = synapse.createOrUpdateResearchProject(rp);
+		
+		RequestInterface request = synapse.createOrUpdateRequest(new Request()
+			.setResearchProjectId(rp.getId())
+			.setAccessRequirementId(managedAR.getId().toString())
+			.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(adminSynapse.getMyProfile().getOwnerId()),
+				new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(synapse.getMyProfile().getOwnerId())
+			)));
+		
+		SubmissionStatus submissionStatus = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+		
+		// ACT is able to fetch the submission
+		Submission submission = adminSynapse.getDataAccessSubmission(submissionStatus.getSubmissionId());
+		
+		assertEquals(submissionStatus.getSubmissionId(), submission.getId());
+		
+		// A normal non-reviewer user cannot access the submission
+		String message = assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.getDataAccessSubmission(submissionStatus.getSubmissionId());	
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", message);
+		
+		// A validated user cannot access the submission unless they are reviewers
+		message = assertThrows(SynapseForbiddenException.class, () -> {
+			synapseTwo.getDataAccessSubmission(submissionStatus.getSubmissionId());	
+		}).getMessage();
+		
+		assertEquals("The user does not have permissions to review data access submissions for access requirement " + managedAR.getId() + ".", message);
+		
+		// Add both user as reviewers
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapseTwo.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+			));
+		
+		// Add the user directly to the ACL
+		acl = adminSynapse.createAccessRequirementAcl(acl);
+		
+		// Now the validated user can fetch the submission
+		submission = synapseTwo.getDataAccessSubmission(submissionStatus.getSubmissionId());
+		
+		assertEquals(submissionStatus.getSubmissionId(), submission.getId());
+		
+		// The first user is still not validated
+		message = assertThrows(SynapseForbiddenException.class, () -> {
+			synapse.getDataAccessSubmission(submissionStatus.getSubmissionId());	
+		}).getMessage();
+		
+		assertEquals("The user must be validated in order to review data access submissions.", message);
+	}
+	
 
 }

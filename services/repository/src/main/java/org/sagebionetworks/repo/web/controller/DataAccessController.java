@@ -310,4 +310,22 @@ public class DataAccessController {
 			@RequestBody SubmissionSearchRequest request) {
 		return serviceProvider.getDataAccessService().searchSubmissions(userId, request);
 	}
+	
+	/**
+	 * Fetch a submission by its id. If the user is a not part of the ACT they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
+	 * 
+	 * @param userId
+	 * @param submissionId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.GET)
+	public @ResponseBody Submission getSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String submissionId) {
+		return serviceProvider.getDataAccessService().getSubmission(userId, submissionId);
+	}
 }

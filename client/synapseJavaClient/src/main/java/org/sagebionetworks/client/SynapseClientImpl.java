@@ -5503,6 +5503,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId;
 		return putJSONEntity(getRepoEndpoint(), url, request, org.sagebionetworks.repo.model.dataaccess.Submission.class);
 	}
+	
+	@Override
+	public org.sagebionetworks.repo.model.dataaccess.Submission getDataAccessSubmission(String submissionId) throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		return getJSONEntity(getRepoEndpoint(), DATA_ACCESS_SUBMISSION+"/"+submissionId, org.sagebionetworks.repo.model.dataaccess.Submission.class);
+	}
 
 	@Override
 	public SubmissionPage listSubmissions(String requirementId, String nextPageToken,

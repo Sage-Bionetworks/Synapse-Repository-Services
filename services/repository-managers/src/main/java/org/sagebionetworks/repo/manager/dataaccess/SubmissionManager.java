@@ -97,4 +97,13 @@ public interface SubmissionManager {
 	 */
 	SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request);
 
+	/**
+	 * Fetch a submission by its id, if the user is not part of ACT they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @return
+	 */
+	Submission getSubmission(UserInfo userInfo, String submissionId);
+
 }

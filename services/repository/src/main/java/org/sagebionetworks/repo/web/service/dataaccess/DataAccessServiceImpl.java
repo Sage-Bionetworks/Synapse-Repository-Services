@@ -122,4 +122,10 @@ public class DataAccessServiceImpl implements DataAccessService {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.searchSubmissions(user, request);
 	}
+	
+	@Override
+	public Submission getSubmission(Long userId, String submissionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getSubmission(user, submissionId);
+	}
 }
