@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -666,22 +667,61 @@ public class ITDataAccessTest {
 			.setResourceAccess(Set.of(
 				new ResourceAccess().setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS)),
 				new ResourceAccess().setPrincipalId(Long.valueOf(synapseTwo.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
+					));
+				
+				// Add the user directly to the ACL
+				acl = adminSynapse.createAccessRequirementAcl(acl);
+				
+				// Now the validated user can fetch the submission
+				submission = synapseTwo.getDataAccessSubmission(submissionStatus.getSubmissionId());
+				
+				assertEquals(submissionStatus.getSubmissionId(), submission.getId());
+				
+				// The first user is still not validated
+				message = assertThrows(SynapseForbiddenException.class, () -> {
+					synapse.getDataAccessSubmission(submissionStatus.getSubmissionId());	
+				}).getMessage();
+				
+				assertEquals("The user must be validated in order to review data access submissions.", message);
+	}
+	
+	@Test
+	public void testGetUserBundleIsArReviewer() throws SynapseException, JSONObjectAdapterException {
+		// Creates a new fresh user
+		SynapseClient synapseTwo = new SynapseClientImpl();
+		userTwoId = SynapseClientHelper.createUser(adminSynapse, synapseTwo, true, true);
+		
+		UserBundle userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
+		
+		assertFalse(userBundle.getIsARReviewer());
+		
+		managedAR = new ManagedACTAccessRequirement()
+			.setAccessType(ACCESS_TYPE.DOWNLOAD)
+			.setSubjectIds(Collections.singletonList(new RestrictableObjectDescriptor().setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
+		
+		// Add the user as a reviewer to the AR
+		AccessControlList acl = new AccessControlList()
+			.setId(managedAR.getId().toString())
+			.setResourceAccess(Set.of(
+				new ResourceAccess().setPrincipalId(Long.valueOf(synapseTwo.getMyProfile().getOwnerId())).setAccessType(Collections.singleton(ACCESS_TYPE.REVIEW_SUBMISSIONS))
 			));
 		
 		// Add the user directly to the ACL
 		acl = adminSynapse.createAccessRequirementAcl(acl);
 		
-		// Now the validated user can fetch the submission
-		submission = synapseTwo.getDataAccessSubmission(submissionStatus.getSubmissionId());
+		userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
 		
-		assertEquals(submissionStatus.getSubmissionId(), submission.getId());
+		assertTrue(userBundle.getIsARReviewer());
 		
-		// The first user is still not validated
-		message = assertThrows(SynapseForbiddenException.class, () -> {
-			synapse.getDataAccessSubmission(submissionStatus.getSubmissionId());	
-		}).getMessage();
+		// Deleting the AR should remove its ACL (See https://sagebionetworks.jira.com/browse/PLFM-7317)
 		
-		assertEquals("The user must be validated in order to review data access submissions.", message);
+		adminSynapse.deleteAccessRequirement(managedAR.getId());
+		
+		userBundle = synapseTwo.getMyOwnUserBundle(0xFF);
+		
+		assertFalse(userBundle.getIsARReviewer());
 	}
 	
 

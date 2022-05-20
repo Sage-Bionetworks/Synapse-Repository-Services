@@ -48,6 +48,6 @@ public interface AccessRequirementService {
 	
 	void deleteAccessRequirementAcl(Long userId, String requirementId);
 
-	AccessRequirementSearchResponse searchAccessRequirements(Long userId, AccessRequirementSearchRequest request);
+	AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request);
 
 }

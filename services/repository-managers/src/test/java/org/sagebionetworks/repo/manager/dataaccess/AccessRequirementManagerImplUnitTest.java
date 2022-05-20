@@ -761,6 +761,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(accessRequirementDAO.get("1")).thenReturn(expectedAr);
 		arm.deleteAccessRequirement(userInfo, "1");
+		verify(mockAclDao).delete("1", ObjectType.ACCESS_REQUIREMENT);
 		verify(accessRequirementDAO).delete("1");
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(TEST_ENTITY_ID, ObjectType.ENTITY, ChangeType.UPDATE);
 	}
