@@ -1720,4 +1720,63 @@ public class SubmissionManagerImplTest {
 		verify(mockAuthManager).getAccessRequirementReviewers(Set.of(11L, 21L));
 	}
 	
+	@Test
+	public void testGetSubmission() {
+		
+		when(mockSubmissionDao.getSubmission(any())).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		// Call under test
+		Submission result = manager.getSubmission(atcUser, submissionId);
+		
+		assertEquals(submission, result);
+		
+		verify(mockSubmissionDao).getSubmission(submissionId);
+		verify(mockAuthManager).canReviewAccessRequirementSubmissions(atcUser, accessRequirementId);
+	}
+	
+	@Test
+	public void testGetSubmissionWithUnauthorized() {
+		
+		when(mockSubmissionDao.getSubmission(any())).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.accessDenied("nope"));
+		
+		String result = assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.getSubmission(mockUser, submissionId);
+		}).getMessage();
+		
+		assertEquals("nope", result);
+		
+		verify(mockSubmissionDao).getSubmission(submissionId);
+		verify(mockAuthManager).canReviewAccessRequirementSubmissions(mockUser, accessRequirementId);
+	}
+	
+	@Test
+	public void testGetSubmissionWithNoUser() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getSubmission(null, submissionId);
+		}).getMessage();
+		
+		assertEquals("userInfo is required.", result);
+		
+		verifyZeroInteractions(mockSubmissionDao);
+		verifyZeroInteractions(mockAuthManager);
+	}
+	
+	@Test
+	public void testGetSubmissionWithNoSubmissionId() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getSubmission(mockUser, null);
+		}).getMessage();
+		
+		assertEquals("submissionId is required.", result);
+		
+		verifyZeroInteractions(mockSubmissionDao);
+		verifyZeroInteractions(mockAuthManager);
+	}
 }

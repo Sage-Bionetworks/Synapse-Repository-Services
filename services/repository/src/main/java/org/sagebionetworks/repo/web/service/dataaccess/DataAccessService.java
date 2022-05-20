@@ -47,4 +47,6 @@ public interface DataAccessService {
 
 	SubmissionSearchResponse searchSubmissions(Long userId, SubmissionSearchRequest request);
 
+	Submission getSubmission(Long userId, String submissionId);
+
 }

@@ -411,6 +411,19 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	}
 	
 	@Override
+	public Submission getSubmission(UserInfo userInfo, String submissionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(submissionId, "submissionId");
+		
+		Submission submission = submissionDao.getSubmission(submissionId);
+		
+		authorizationManager.canReviewAccessRequirementSubmissions(userInfo, submission.getAccessRequirementId())
+			.checkAuthorizationOrElseThrow();
+
+		return submission;
+	}
+	
+	@Override
 	public SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");

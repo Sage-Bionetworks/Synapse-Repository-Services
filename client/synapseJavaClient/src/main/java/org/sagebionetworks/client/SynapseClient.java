@@ -3273,6 +3273,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	org.sagebionetworks.repo.model.dataaccess.Submission updateSubmissionState(String submissionId, SubmissionState newState, String reason) throws SynapseException;
+	
+	/**
+	 * Fetch a submission by its id. If the user is not part of the ACT they must be validated and assigned as the AR submission reviewers in order to fetch the submission
+	 * 
+	 * @param submissionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	org.sagebionetworks.repo.model.dataaccess.Submission getDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Retrieve a page of submissions.
