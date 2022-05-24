@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.replication;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -36,9 +37,10 @@ public interface ReplicationManager {
 	/**
 	 * Reconcile the truth with the replication for the objects in the given view.
 	 * 
-	 * @param idAndVersion
+	 * @param viewId The Id of the view.
+	 * @param viewType The type of the view.
 	 */
-	void reconcile(IdAndVersion idAndVersion);
+	void reconcile(IdAndVersion viewId, ObjectType viewType);
 
 	/**
 	 * Is the reconciliation synchronized for the objects in the given view?

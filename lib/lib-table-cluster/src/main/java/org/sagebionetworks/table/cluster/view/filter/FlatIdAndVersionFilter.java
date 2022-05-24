@@ -2,9 +2,11 @@ package org.sagebionetworks.table.cluster.view.filter;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
@@ -106,6 +108,12 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 			return new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		}
 		
+	}
+
+
+	@Override
+	public Optional<List<ChangeMessage>> getSubViews() {
+		return Optional.empty();
 	}
 
 }

@@ -72,15 +72,32 @@ public class ObjectReplicationReconciliationWorkerTest {
 	
 	
 	@Test
-	public void testRun(){
+	public void testRunWithEntityView(){
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
 				.thenReturn(ObjectReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+		message.setObjectType(ObjectType.ENTITY_VIEW);
 		
 		// call under test
 		worker.run(mockProgressCallback, message);
 		
 		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
-		verify(mockReplicationManager).reconcile(viewId);
+		verify(mockReplicationManager).reconcile(viewId, ObjectType.ENTITY_VIEW);
+		
+		// no exceptions should occur.
+		verifyZeroInteractions(mockWorkerLog);
+	}
+	
+	@Test
+	public void testRunWithEntityContainer(){
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+				.thenReturn(ObjectReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+		message.setObjectType(ObjectType.ENTITY_CONTAINER);
+		
+		// call under test
+		worker.run(mockProgressCallback, message);
+		
+		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
+		verify(mockReplicationManager).reconcile(viewId, ObjectType.ENTITY_CONTAINER);
 		
 		// no exceptions should occur.
 		verifyZeroInteractions(mockWorkerLog);
@@ -109,7 +126,7 @@ public class ObjectReplicationReconciliationWorkerTest {
 		
 		Exception exception = new RuntimeException("Something went wrong");
 		
-		doThrow(exception).when(mockReplicationManager).reconcile(any());
+		doThrow(exception).when(mockReplicationManager).reconcile(any(), any());
 		
 		// call under test
 		worker.run(mockProgressCallback, message);

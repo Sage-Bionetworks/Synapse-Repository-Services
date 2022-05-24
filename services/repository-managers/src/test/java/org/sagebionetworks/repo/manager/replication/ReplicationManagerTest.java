@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +21,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
@@ -81,6 +85,10 @@ public class ReplicationManagerTest {
 	private LoggerProvider mockLoggerProvider;
 	@Mock
 	private Logger mockLogger;
+	@Mock
+	private ViewFilter mockFilter;
+	@Mock
+	private Random mockRandom;
 
 	private ReplicationManagerImpl manager;
 
@@ -107,7 +115,7 @@ public class ReplicationManagerTest {
 		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
 		manager = new ReplicationManagerImpl(mockObjectDataProviderFactory, mockTableManagerSupport,
 				mockReplicationMessageManager, mockIndexConnectionFactory, mockIndexProviderFactory,
-				mockLoggerProvider);
+				mockLoggerProvider, mockRandom);
 		managerSpy = Mockito.spy(manager);
 		ChangeMessage update = new ChangeMessage();
 		update.setChangeType(ChangeType.UPDATE);
@@ -244,37 +252,41 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testReconcileWithLockNotExpired() {
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockTableIndexManager.isViewSynchronizeLockExpired(any(), any())).thenReturn(false);
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 
 		// call under test
-		managerSpy.reconcile(viewId);
+		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
 		verify(mockLogger).info("Synchronize lock for view: 'syn123' has not expired.  Will not synchronize.");
-		verify(mockTableManagerSupport).getViewScopeType(viewId);
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
-		verify(managerSpy, never()).createReconcileIterator(any(), any(), any());
+		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
+		verify(managerSpy, never()).createReconcileIterator(any());
 		verify(mockTableIndexManager, never()).resetViewSynchronizeLock(any(), any());
 		verifyZeroInteractions(mockReplicationMessageManager);
 	}
 
 	@Test
 	public void testReconcileWithLockExpired() {
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+	
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockTableIndexManager.isViewSynchronizeLockExpired(any(), any())).thenReturn(true);
-		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any(), any(), any());
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
+		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any());
+		
+		when(mockFilter.getSubViews()).thenReturn(Optional.empty());
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 
 		// call under test
-		managerSpy.reconcile(viewId);
+		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
-		verify(mockTableManagerSupport).getViewScopeType(viewId);
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
-		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewScopeType.getObjectType(),
-				viewId.getId());
+		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
+		verify(managerSpy).createReconcileIterator(mockFilter);
 
 		verify(mockLogger).info("Found 3 objects out-of-synch between truth and replication for view: 'syn123'.");
 
@@ -286,22 +298,23 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testReconcileWithLockExpiredAndMultiplePages() {
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockTableIndexManager.isViewSynchronizeLockExpired(any(), any())).thenReturn(true);
+		
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
+		when(mockFilter.getSubViews()).thenReturn(Optional.empty());
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 
 		int count = ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE + 1;
 		List<ChangeMessage> changes = createChangeMessages(count);
-		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any(), any(), any());
+		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any());
 
 		// call under test
-		managerSpy.reconcile(viewId);
+		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
-		verify(mockTableManagerSupport).getViewScopeType(viewId);
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
-		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewScopeType.getObjectType(),
-				viewId.getId());
+		verify(managerSpy).createReconcileIterator(mockFilter);
 
 		verify(mockLogger).info("Found 1000 objects out-of-synch between truth and replication for view: 'syn123'.");
 		verify(mockLogger).info("Found 1 objects out-of-synch between truth and replication for view: 'syn123'.");
@@ -317,26 +330,55 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testReconcileWithLockExpiredAndNoChanges() {
-		when(mockTableManagerSupport.getViewScopeType(viewId)).thenReturn(viewScopeType);
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockTableIndexManager.isViewSynchronizeLockExpired(any(), any())).thenReturn(true);
+		
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
+		when(mockFilter.getSubViews()).thenReturn(Optional.empty());
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 
 		List<ChangeMessage> changes = Collections.emptyList();
-		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any(), any(), any());
+		doReturn(changes.iterator()).when(managerSpy).createReconcileIterator(any());
 
 		// call under test
-		managerSpy.reconcile(viewId);
+		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
-		verify(mockTableManagerSupport).getViewScopeType(viewId);
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
-		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewScopeType.getObjectType(),
-				viewId.getId());
+		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
+		verify(managerSpy).createReconcileIterator(mockFilter);
 
 		verifyZeroInteractions(mockReplicationMessageManager);
 
 		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
 	}
+	
+	@Test
+	public void testReconcileWithSubViews() {
+	
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.isViewSynchronizeLockExpired(any(), any())).thenReturn(true);
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
+		
+		ObjectType type = ObjectType.ENTITY_CONTAINER;
+		
+		List<ChangeMessage> subMessages = Arrays.asList(new ChangeMessage().setObjectId("syn444").setObjectType(type));
+		when(mockFilter.getSubViews()).thenReturn(Optional.of(subMessages));
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
+
+		// call under test
+		managerSpy.reconcile(viewId, type);
+
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
+		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
+		verify(managerSpy).pushSubviewsBackToQueue(viewId, subMessages);
+		verify(mockReplicationMessageManager).pushChangeMessagesToReconciliationQueue(subMessages);
+		verify(managerSpy, never()).reconcileView(any(), any());
+
+		verify(mockLogger).info("Pushing 1 sub-view messages back to the reconciliation queue for view: 'syn123'.");
+		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+	}
+
 
 	@Test
 	public void testReconcileWitNullId() {
@@ -344,7 +386,7 @@ public class ReplicationManagerTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			managerSpy.reconcile(viewId);
+			managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 		}).getMessage();
 		assertEquals("idAndVersion is required.", message);
 	}
@@ -450,25 +492,22 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testCreateReconcileIterator() {
-		when(mockIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
-
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> scope = Sets.newHashSet(99L);
-		ViewFilter filter = new FlatIdsFilter(ReplicationType.ENTITY, subTypes, scope);
-		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(filter);
+		long salt = 1235L;
+		when(mockRandom.nextLong()).thenReturn(salt);
 
 		Iterator<IdAndChecksum> truthStream = Arrays.asList(new IdAndChecksum().withId(1L).withChecksum(0L)).iterator();
 		doReturn(truthStream).when(managerSpy).createTruthStream(any(), any());
+		
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
+		
+		when(mockFilter.getReplicationType()).thenReturn(ReplicationType.ENTITY);
 
 		Iterator<IdAndChecksum> replicationStream = Arrays.asList(new IdAndChecksum().withId(1L).withChecksum(11L))
 				.iterator();
 		when(mockTableIndexManager.streamOverIdsAndChecksums(any(), any())).thenReturn(replicationStream);
 
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
-		Long viewId = 123L;
 		// call under test
-		Iterator<ChangeMessage> result = managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType,
-				viewId);
+		Iterator<ChangeMessage> result = managerSpy.createReconcileIterator(mockFilter);
 		assertNotNull(result);
 		assertTrue(result.hasNext());
 		ChangeMessage expecedMessage = new ChangeMessage().setObjectId("1").setObjectType(ObjectType.ENTITY)
@@ -476,69 +515,47 @@ public class ReplicationManagerTest {
 		assertEquals(expecedMessage, result.next());
 		assertFalse(result.hasNext());
 
-		verify(mockIndexProviderFactory).getMetadataIndexProvider(viewObjectType);
-		verify(managerSpy).createTruthStream(any(), eq(filter));
-		verify(mockTableIndexManager).streamOverIdsAndChecksums(any(), eq(filter));
+		verify(managerSpy).createTruthStream(salt, mockFilter);
+		verify(mockIndexConnectionFactory).connectToFirstIndex();
+		verify(mockTableIndexManager).streamOverIdsAndChecksums(salt, mockFilter);
 	}
 
 	@Test
-	public void testCreateReconcileIteratorWithNullManager() {
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
-		mockTableIndexManager = null;
-		Long viewId = 123L;
+	public void testCreateReconcileIteratorWithNullFilter() {
+		mockFilter = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
+			managerSpy.createReconcileIterator(mockFilter);
 		}).getMessage();
-		assertEquals("indexManager is required.", message);
+		assertEquals("filter is required.", message);
 	}	
 	
-	@Test
-	public void testCreateReconcileIteratorWithNulType() {
-		ViewObjectType viewObjectType = null;
-		Long viewId = 123L;
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
-		}).getMessage();
-		assertEquals("viewObjectType is required.", message);
-	}	
-	
-	@Test
-	public void testCreateReconcileIteratorWithNulId() {
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
-		Long viewId = null;
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			managerSpy.createReconcileIterator(mockTableIndexManager, viewObjectType, viewId);
-		}).getMessage();
-		assertEquals("viewId is required.", message);
-	}	
 
 	@Test
 	public void testIsReplicationSynchronizedForViewWithEmpty() {
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
 		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		Iterator<ChangeMessage> it = Collections.emptyIterator();
-		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
+		doReturn(it).when(managerSpy).createReconcileIterator(any());
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 		
 		// call under test
 		assertTrue(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
-		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
+		verify(managerSpy).getFilter(viewId, viewObjectType.getObjectType());
+		verify(managerSpy).createReconcileIterator(mockFilter);
 	}
 	
 	@Test
 	public void testIsReplicationSynchronizedForViewWithChanges() {
-		when(mockIndexConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
 		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		Iterator<ChangeMessage> it = changes.iterator();
-		doReturn(it).when(managerSpy).createReconcileIterator(any(), any(), any());
+		doReturn(it).when(managerSpy).createReconcileIterator(any());
+		
+		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 		
 		// call under test
 		assertFalse(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
-		verify(mockIndexConnectionFactory).connectToTableIndex(viewId);
-		verify(managerSpy).createReconcileIterator(mockTableIndexManager, viewObjectType, viewId.getId());
+		verify(managerSpy).getFilter(viewId, viewObjectType.getObjectType());
+		verify(managerSpy).createReconcileIterator(mockFilter);
 	}
 	
 	/**

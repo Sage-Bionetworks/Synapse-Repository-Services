@@ -51,7 +51,8 @@ public class ObjectReplicationReconciliationWorker implements ChangeMessageDrive
 	@Override
 	public void run(ProgressCallback progressCallback, ChangeMessage message) {
 		try {
-			if(!ObjectType.ENTITY_VIEW.equals(message.getObjectType())){
+			if (!ObjectType.ENTITY_VIEW.equals(message.getObjectType())
+					&& !ObjectType.ENTITY_CONTAINER.equals(message.getObjectType())) {
 				// ignore non-view messages
 				return;
 			}
@@ -73,7 +74,7 @@ public class ObjectReplicationReconciliationWorker implements ChangeMessageDrive
 			// Get all of the containers for the given view.
 			IdAndVersion idAndVersion = IdAndVersion.parse(message.getObjectId());
 			
-			replicationManager.reconcile(idAndVersion);
+			replicationManager.reconcile(idAndVersion, message.getObjectType());
 
 		} catch (Throwable cause) {
 			log.error("Failed:", cause);

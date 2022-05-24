@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 
@@ -61,4 +63,11 @@ public interface ViewFilter {
 	 * @return
 	 */
 	Set<SubType> getSubTypes();
+	
+	/**
+	 * If this view can be represented by the union of multiple sub-view, return a
+	 * change message to represent each sub-view.  Else return #Optional.empty().
+	 * @return
+	 */
+	Optional<List<ChangeMessage>> getSubViews();
 }

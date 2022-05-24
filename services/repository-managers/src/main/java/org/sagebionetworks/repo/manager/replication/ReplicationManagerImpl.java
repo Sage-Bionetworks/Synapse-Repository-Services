@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.replication;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
@@ -16,12 +19,14 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFact
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProvider;
 import org.sagebionetworks.repo.manager.table.metadata.ObjectDataProviderFactory;
 import org.sagebionetworks.repo.model.IdAndChecksum;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -36,6 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 
 @Service
 public class ReplicationManagerImpl implements ReplicationManager {
@@ -46,8 +52,6 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	
 	public static final int MAX_MESSAGE_PAGE_SIZE = 1000;
 	
-	private static final Random RANDOM = new Random();
-
 	final private ObjectDataProviderFactory objectDataProviderFactory;
 	final private MetadataIndexProviderFactory indexProviderFactory;
 
@@ -56,6 +60,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	final private ReplicationMessageManager replicationMessageManager;
 	
 	final private TableIndexConnectionFactory indexConnectionFactory;
+	
+	final private Random random;
 
 	@Autowired
 	public ReplicationManagerImpl(
@@ -63,13 +69,15 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			TableManagerSupport tableManagerSupport,
 			ReplicationMessageManager replicationMessageManager, 
 			TableIndexConnectionFactory indexConnectionFactory,
-			MetadataIndexProviderFactory indexProviderFactory, LoggerProvider logProvider) {
+			MetadataIndexProviderFactory indexProviderFactory, LoggerProvider logProvider,
+			Random random) {
 		this.objectDataProviderFactory = objectDataProviderFactory;
 		this.tableManagerSupport = tableManagerSupport;
 		this.replicationMessageManager = replicationMessageManager;
 		this.indexConnectionFactory = indexConnectionFactory;
 		this.indexProviderFactory = indexProviderFactory;
 		this.log = logProvider.getLogger(ReplicationManagerImpl.class.getName());
+		this.random = random;
 	}
 
 	/**
@@ -176,30 +184,72 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param pageSize
 	 */
 	@Override
-	public void reconcile(IdAndVersion idAndVersion) {
+	public void reconcile(IdAndVersion idAndVersion, ObjectType type) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-
-		ViewScopeType viewScopeType = tableManagerSupport.getViewScopeType(idAndVersion);
-		ViewObjectType viewObjectType = viewScopeType.getObjectType();
-		ReplicationType replicationType = viewObjectType.getMainType();
-		TableIndexManager indexManager = indexConnectionFactory.connectToTableIndex(idAndVersion);
+		ValidateArgument.required(type, "type");
 		
-		if (!indexManager.isViewSynchronizeLockExpired(replicationType, idAndVersion)) {
+		ViewFilter filter = getFilter(idAndVersion, type);
+		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
+		
+		if (!indexManager.isViewSynchronizeLockExpired(filter.getReplicationType(), idAndVersion)) {
 			log.info(String.format("Synchronize lock for view: '%s' has not expired.  Will not synchronize.",
 					idAndVersion.toString()));
 			return;
 		}
+		
 
-		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, idAndVersion.getId());
-
+		Optional<List<ChangeMessage>> subViews = filter.getSubViews();
+		if(subViews.isPresent()) {
+			/*
+			 * Since this view can be represented as the union of multiple sub-views,
+			 * we will push each sub-view back to queue to be processed individually.
+			 * This allows us to process large views as many small concurrent blocks. 
+			 */
+			pushSubviewsBackToQueue(idAndVersion, subViews.get());
+		}else {
+			/*
+			 *This view cannot be represented as sub-views, so the entire view must be processed. 
+			 */
+			reconcileView(idAndVersion, filter);
+		}
+		indexManager.resetViewSynchronizeLock(filter.getReplicationType(), idAndVersion);
+		log.info(String.format("Finished reconcile for view: '%s'.", idAndVersion.toString()));
+	}
+	
+	void pushSubviewsBackToQueue(IdAndVersion idAndVersion, List<ChangeMessage> toPush) {
+		log.info(String.format("Pushing %d sub-view messages back to the reconciliation queue for view: '%s'.",
+				toPush.size(), idAndVersion.toString()));
+		replicationMessageManager.pushChangeMessagesToReconciliationQueue(toPush);
+	}
+	
+	void reconcileView(IdAndVersion idAndVersion, ViewFilter filter) {
+		Iterator<ChangeMessage> it = createReconcileIterator(filter);
 		Iterators.partition(it, MAX_MESSAGE_PAGE_SIZE).forEachRemaining(page -> {
 			log.info(String.format("Found %d objects out-of-synch between truth and replication for view: '%s'.",
 					page.size(), idAndVersion.toString()));
 			replicationMessageManager.pushChangeMessagesToReplicationQueue(page);
 		});
-
-		indexManager.resetViewSynchronizeLock(replicationType, idAndVersion);
-		log.info(String.format("Finished reconcile for view: '%s'.", idAndVersion.toString()));
+	}
+	
+	/**
+	 * 
+	 * @param idAndVersion
+	 * @param type
+	 * @return
+	 */
+	ViewFilter getFilter(IdAndVersion idAndVersion, ObjectType type) {
+		switch (type) {
+		case ENTITY_VIEW:
+			ViewScopeType viewScopeType = tableManagerSupport.getViewScopeType(idAndVersion);
+			MetadataIndexProvider metadataProvider = indexProviderFactory
+					.getMetadataIndexProvider(viewScopeType.getObjectType());
+			return metadataProvider.getViewFilter(idAndVersion.getId());
+		case ENTITY_CONTAINER:
+			return new HierarchicaFilter(ReplicationType.ENTITY,
+					Arrays.stream(SubType.values()).collect(Collectors.toSet()), Sets.newHashSet(idAndVersion.getId()));
+		default:
+			throw new IllegalStateException("Unknown type: " + type);
+		}
 	}
 
 	/**
@@ -234,23 +284,19 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param replication
 	 * @return
 	 */
-	Iterator<ChangeMessage> createReconcileIterator(TableIndexManager indexManager, ViewObjectType viewObjectType,
-			Long viewId) {
-		ValidateArgument.required(indexManager, "indexManager");
-		ValidateArgument.required(viewObjectType, "viewObjectType");
-		ValidateArgument.required(viewId, "viewId");
-		long salt = RANDOM.nextLong();
-		MetadataIndexProvider metadataProvider = indexProviderFactory.getMetadataIndexProvider(viewObjectType);
-		ViewFilter filter = metadataProvider.getViewFilter(viewId);
+	Iterator<ChangeMessage> createReconcileIterator(ViewFilter filter) {
+		ValidateArgument.required(filter, "filter");
+		long salt = random.nextLong();
 		Iterator<IdAndChecksum> truthStream = createTruthStream(salt, filter);
+		TableIndexManager indexManager = indexConnectionFactory.connectToFirstIndex();
 		Iterator<IdAndChecksum> replicationStream = indexManager.streamOverIdsAndChecksums(salt, filter);
-		return new ReconcileIterator(viewObjectType.getObjectType(), truthStream, replicationStream);
+		return new ReconcileIterator(filter.getReplicationType().getObjectType(), truthStream, replicationStream);
 	}
 	
 	@Override
 	public boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId) {
-		TableIndexManager indexManager = indexConnectionFactory.connectToTableIndex(viewId);
-		Iterator<ChangeMessage> it = createReconcileIterator(indexManager, viewObjectType, viewId.getId());
+		ViewFilter filter = getFilter(viewId, viewObjectType.getObjectType());
+		Iterator<ChangeMessage> it = createReconcileIterator(filter);
 		return !it.hasNext();
 	}
 

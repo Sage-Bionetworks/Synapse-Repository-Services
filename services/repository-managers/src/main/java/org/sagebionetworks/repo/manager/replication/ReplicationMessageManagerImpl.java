@@ -28,13 +28,6 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 	static final String REPLICATION_QUEUE_NAME = "TABLE_ENTITY_REPLICATION";
 	static final String RECONCILIATION_QUEUE_NAME = "ENTITY_REPLICATION_RECONCILIATION";
 	
-	/**
-	 * The maximum number of container ID that will be pushed to a single
-	 * reconciliation message. Note: This limit was lowered from 1000 to 10 as part
-	 * of the fix for PLFM-5101 and PLFM-5051.
-	 */
-	static final int MAX_CONTAINERS_IDS_PER_RECONCILIATION_MESSAGE = 10;
-
 	private AmazonSQS sqsClient;
 	
 	private StackConfiguration config;
@@ -78,6 +71,16 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 	 */
 	@Override
 	public void pushChangeMessagesToReplicationQueue(List<ChangeMessage> toPush) {
+		pushToQueue(replicationQueueUrl, toPush);
+	}
+	
+	@Override
+	public void pushChangeMessagesToReconciliationQueue(List<ChangeMessage> toPush) {
+		pushToQueue(reconciliationQueueUrl, toPush);
+	}
+	
+	void pushToQueue(String queueUrl, List<ChangeMessage> toPush) {
+		ValidateArgument.required(queueUrl, "queueUrl");
 		ValidateArgument.required(toPush, "toPush");
 		if (toPush.isEmpty()) {
 			// nothing to do.
@@ -90,10 +93,9 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 			ChangeMessages messages = new ChangeMessages();
 			messages.setList(batch);
 			String messageBody = createMessageBodyJSON(messages);
-			sqsClient.sendMessage(new SendMessageRequest(replicationQueueUrl, messageBody));
+			sqsClient.sendMessage(new SendMessageRequest(queueUrl, messageBody));
 		}
 	}
-
 	/**
 	 * Helper to create a message body from JSONEntity without a checked exception.
 	 * 

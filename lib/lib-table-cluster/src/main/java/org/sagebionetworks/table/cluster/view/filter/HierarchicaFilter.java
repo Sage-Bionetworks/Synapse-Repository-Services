@@ -1,9 +1,14 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
-
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
@@ -14,15 +19,14 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class HierarchicaFilter extends AbstractViewFilter {
 
-	
 	protected final Set<Long> parentIds;
-	
+
 	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
 		this(mainType, subTypes, null, null, scope);
 	}
 
-	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
-			Set<Long> scope) {
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
+			Set<String> excludeKeys, Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys);
 		ValidateArgument.required(scope, "scope");
 		this.parentIds = scope;
@@ -36,15 +40,15 @@ public class HierarchicaFilter extends AbstractViewFilter {
 
 	@Override
 	public String getFilterSql() {
-		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
+		return super.getFilterSql() + " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION";
 	}
-	
+
 	@Override
 	public String getObjectIdFilterSql() {
 		// this filter includes all versions of each object.
-		return super.getFilterSql()+ " AND R.PARENT_ID IN (:parentIds)";
+		return super.getFilterSql() + " AND R.PARENT_ID IN (:parentIds)";
 	}
-	
+
 	public Set<Long> getParentIds() {
 		return parentIds;
 	}
@@ -53,7 +57,17 @@ public class HierarchicaFilter extends AbstractViewFilter {
 	public Builder newBuilder() {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds);
 	}
-	
+
+	@Override
+	public Optional<List<ChangeMessage>> getSubViews() {
+		if (ReplicationType.ENTITY.equals(mainType) && parentIds.size() > 1) {
+			return Optional.of(parentIds.stream().map(p -> new ChangeMessage().setObjectId(KeyFactory.keyToString(p))
+					.setObjectType(ObjectType.ENTITY_CONTAINER)).collect(Collectors.toList()));
+		} else {
+			return Optional.empty();
+		}
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -77,20 +91,18 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		return Objects.equals(parentIds, other.parentIds);
 	}
 
-
 	@Override
 	public String toString() {
 		return "HierarchyFilter [scope=" + parentIds + ", mainType=" + mainType + ", subTypes=" + subTypes
 				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
 	}
 
-
 	public static class Builder extends AbstractBuilder {
-		
-		 Set<Long> scope;
+
+		Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys,  Set<Long> scope) {
+				Set<String> excludeKeys, Set<Long> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys);
 			this.scope = scope;
 		}
@@ -99,7 +111,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		public ViewFilter build() {
 			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
 		}
-		
+
 	}
-	
+
 }
