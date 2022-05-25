@@ -17,6 +17,8 @@
 
 	<import resource="classpath:upload-dao.spb.xml" />
 	<import resource="classpath:search-import.xml" />
+	
+	<bean id="random" class="java.util.Random" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />

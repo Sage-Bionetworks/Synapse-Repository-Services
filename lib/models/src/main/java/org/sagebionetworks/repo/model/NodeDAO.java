@@ -673,7 +673,7 @@ public interface NodeDAO {
 	 * @param subTypes
 	 * @return
 	 */
-	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Long parentId, Set<SubType> subTypes);
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes);
 	
 	/**
 	 * Get a single page of IdAndChecksums for the given objectIds.

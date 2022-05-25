@@ -42,14 +42,7 @@ public class EntityObjectProvider implements ObjectDataProvider {
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds,
 			Set<SubType> subTypes) {
-		if(parentIds.isEmpty()) {
-			return Collections.emptyIterator();
-		}
-		if(parentIds.size() > 1) {
-			throw new IllegalArgumentException("Expected only only parent Id");
-		}
-		Long parentId= parentIds.stream().findFirst().get();
-		return  nodeDao.getIdsAndChecksumsForChildren(salt, parentId, subTypes).iterator();
+		return  nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes).iterator();
 	}
 
 	@Override

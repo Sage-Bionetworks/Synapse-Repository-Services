@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -4942,20 +4943,15 @@ public class NodeDAOImplTest {
 		});
 		
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
+		Set<Long> parentIds = Sets.newHashSet(KeyFactory.stringToKey(projectOne.getId()),KeyFactory.stringToKey(projectTwo.getId()));
 		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
 		Long salt = 123L;
 		
 		// call under test
-		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, projectOneId, subTypes);
-		List<IdAndChecksum> expected = nodeDao.getIdsAndChecksumsForObjects(salt, idsInOne.stream().collect(Collectors.toSet()));
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
+		List<IdAndChecksum> expected = nodeDao.getIdsAndChecksumsForObjects(salt,
+				Stream.concat(idsInOne.stream(), idsInTwo.stream()).collect(Collectors.toSet()));
 		assertEquals(expected, results);
-
-		// call under test
-		results = nodeDao.getIdsAndChecksumsForChildren(salt, projectTwoId, subTypes);
-		expected = nodeDao.getIdsAndChecksumsForObjects(salt, idsInTwo.stream().collect(Collectors.toSet()));
-		assertEquals(expected, results);
-		
 	}
 	
 	@Test
@@ -4987,41 +4983,47 @@ public class NodeDAOImplTest {
 		);
 		
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Long projectOneId = KeyFactory.stringToKey(projectOne.getId());
-		Long projectTwoId = KeyFactory.stringToKey(projectTwo.getId());
+		Set<Long> parentIds = Sets.newHashSet(KeyFactory.stringToKey(projectOne.getId()),KeyFactory.stringToKey(projectTwo.getId()));
 		Long salt = 123L;
 		
 		// call under test
-		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, projectOneId, subTypes);
-		List<IdAndChecksum> expected = Collections.emptyList();
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
+		List<IdAndChecksum> expected = nodeDao.getIdsAndChecksumsForObjects(salt,
+				idsInTwo.stream().collect(Collectors.toSet()));
 		assertEquals(expected, results);
 
-		// call under test
-		results = nodeDao.getIdsAndChecksumsForChildren(salt, projectTwoId, subTypes);
-		expected = nodeDao.getIdsAndChecksumsForObjects(salt, idsInTwo.stream().collect(Collectors.toSet()));
-		assertEquals(expected, results);
 	}
 	
 	@Test
-	public void testGetIdsAndChecksumsForChildrenWithNullParentId() throws Exception {
+	public void testGetIdsAndChecksumsForChildrenWithEmptyParentIds() throws Exception {
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Long parentId = null;
+		Set<Long> parentIds = Collections.emptySet();
+		Long salt = 123L;
+		// call under test
+		List<IdAndChecksum> results = nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
+		assertEquals(Collections.emptyList(), results);
+	}
+	
+	@Test
+	public void testGetIdsAndChecksumsForChildrenWithNullParentIds() throws Exception {
+		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
+		Set<Long> parentIds = null;
 		Long salt = 123L;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getIdsAndChecksumsForChildren(salt, parentId, subTypes);
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
 		}).getMessage();
-		assertEquals("parentId is required.", message);
+		assertEquals("parentIds is required.", message);
 	}
 	
 	@Test
 	public void testGetViewIdsAndChecksumWithHierachyFilterWithEmptySubTypes() throws Exception {
 		Set<SubType> subTypes = Collections.emptySet();
-		Long parentId = 222L;
+		Set<Long> parentIds = Sets.newHashSet(1L,2L);
 		Long salt = 123L;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getIdsAndChecksumsForChildren(salt, parentId, subTypes);
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
 		}).getMessage();
 		assertEquals("Must provide at least one sub-type", message);
 	}
@@ -5029,11 +5031,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetViewIdsAndChecksumWithHierachyFilterWithNullSalt() throws Exception {
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Long parentId = 222L;
+		Set<Long> parentIds = Sets.newHashSet(1L,2L);
 		Long salt = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getIdsAndChecksumsForChildren(salt, parentId, subTypes);
+			nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes);
 		}).getMessage();
 		assertEquals("salt is required.", message);
 	}

@@ -45,9 +45,9 @@ public interface ReplicationManager {
 	/**
 	 * Is the reconciliation synchronized for the objects in the given view?
 	 * Note: This call will be O(n) when the reconciliation is synchronized for objects in this view..
-	 * @param viewObjectType - The type of view.
+	 * @param viewObjectType - {@link ObjectType.ENTITY_VIEW} or {@link ObjectType.ENTITY_CONTAINER}
 	 * @param viewId
 	 * @return
 	 */
-	boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId);
+	boolean isReplicationSynchronizedForView(ObjectType viewObjectType, IdAndVersion viewId);
 }

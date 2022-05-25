@@ -161,7 +161,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			.loadSQLFromClasspath("sql/GetIdAndChecksumTemplate.sql");
 	
 	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = String.format(SQL_SELECT_ID_AND_CHCKSUM_TEMPLATE,
-			"N.PARENT_ID = :parentId AND N.NODE_TYPE IN (:subTypes)");
+			"N.PARENT_ID IN (:parentIds) AND N.NODE_TYPE IN (:subTypes)");
 	
 	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = String.format(SQL_SELECT_ID_AND_CHCKSUM_TEMPLATE,
 			"N.ID IN (:objectIds)");
@@ -2154,18 +2154,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Long parentId, Set<SubType> subTypes) {
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes) {
 		ValidateArgument.required(salt, "salt");
-		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(parentIds, "parentIds");
 		ValidateArgument.required(subTypes, "subTypes");
 		if(subTypes.isEmpty()) {
 			throw new IllegalArgumentException("Must provide at least one sub-type");
+		}
+		if(parentIds.isEmpty()) {
+			return Collections.emptyList();
 		}
 		
 		String sql = SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID;
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("salt", salt);
-		params.addValue("parentId", parentId);
+		params.addValue("parentIds", parentIds);
 		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
 		params.addValue("trashId", TRASH_FOLDER_ID);
 		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH);

@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
@@ -294,8 +293,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	}
 	
 	@Override
-	public boolean isReplicationSynchronizedForView(ViewObjectType viewObjectType, IdAndVersion viewId) {
-		ViewFilter filter = getFilter(viewId, viewObjectType.getObjectType());
+	public boolean isReplicationSynchronizedForView(ObjectType viewObjectType, IdAndVersion viewId) {
+		ViewFilter filter = getFilter(viewId, viewObjectType);
 		Iterator<ChangeMessage> it = createReconcileIterator(filter);
 		return !it.hasNext();
 	}

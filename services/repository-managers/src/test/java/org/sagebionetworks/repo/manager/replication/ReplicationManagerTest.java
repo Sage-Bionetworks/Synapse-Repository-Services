@@ -586,20 +586,20 @@ public class ReplicationManagerTest {
 
 	@Test
 	public void testIsReplicationSynchronizedForViewWithEmpty() {
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		ObjectType viewObjectType = ObjectType.ENTITY_VIEW;
 		Iterator<ChangeMessage> it = Collections.emptyIterator();
 		doReturn(it).when(managerSpy).createReconcileIterator(any());
 		doReturn(mockFilter).when(managerSpy).getFilter(any(), any());
 		
 		// call under test
 		assertTrue(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
-		verify(managerSpy).getFilter(viewId, viewObjectType.getObjectType());
+		verify(managerSpy).getFilter(viewId, viewObjectType);
 		verify(managerSpy).createReconcileIterator(mockFilter);
 	}
 	
 	@Test
 	public void testIsReplicationSynchronizedForViewWithChanges() {
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
+		ObjectType viewObjectType = ObjectType.ENTITY_VIEW;
 		Iterator<ChangeMessage> it = changes.iterator();
 		doReturn(it).when(managerSpy).createReconcileIterator(any());
 		
@@ -607,7 +607,7 @@ public class ReplicationManagerTest {
 		
 		// call under test
 		assertFalse(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
-		verify(managerSpy).getFilter(viewId, viewObjectType.getObjectType());
+		verify(managerSpy).getFilter(viewId, viewObjectType);
 		verify(managerSpy).createReconcileIterator(mockFilter);
 	}
 	
