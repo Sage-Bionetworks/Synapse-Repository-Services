@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -71,7 +69,7 @@ public class EntityObjectProviderTest {
 	public void testStreamOverIdsAndChecksumsWithParentIds() {
 		Long salt = 123L;
 		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> parentId = Sets.newHashSet(1L);
+		Set<Long> parentId = Sets.newHashSet(1L,2L,3L);
 
 		List<IdAndChecksum> all = buildIdsAndChecksum(4);
 
@@ -84,37 +82,7 @@ public class EntityObjectProviderTest {
 		resultsIt.forEachRemaining(i -> allResults.add(i));
 		assertEquals(all, allResults);
 		
-		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(1L), eq(subTypes));
-	}
-	
-	@Test
-	public void testStreamOverIdsAndChecksumsWithEmptyParentIds() {
-		Long salt = 123L;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> parentId = Collections.emptySet();
-
-		List<IdAndChecksum> all = Collections.emptyList();
-
-		// call under test
-		Iterator<IdAndChecksum> resultsIt = provider.streamOverIdsAndChecksumsForChildren(salt, parentId, subTypes);
-		List<IdAndChecksum> allResults = new ArrayList<IdAndChecksum>();
-		resultsIt.forEachRemaining(i -> allResults.add(i));
-		assertEquals(all, allResults);
-		
-		verifyZeroInteractions(mockNodeDao);
-	}
-	
-	@Test
-	public void testStreamOverIdsAndChecksumsWithMultipleParentIds() {
-		Long salt = 123L;
-		Set<SubType> subTypes = Sets.newHashSet(SubType.file);
-		Set<Long> parentId = Sets.newHashSet(1L, 2L, 3L);
-		
-		String message  = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			provider.streamOverIdsAndChecksumsForChildren(salt, parentId, subTypes);
-		}).getMessage();
-		assertEquals("Expected only only parent Id", message);
+		verify(mockNodeDao).getIdsAndChecksumsForChildren(eq(salt), eq(parentId), eq(subTypes));
 	}
 	
 	@Test
