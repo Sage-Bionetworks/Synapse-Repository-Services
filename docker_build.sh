@@ -82,7 +82,7 @@ docker run --user "$(id -u):$(id -g)" -i --rm --name ${build_container_name} \
 -v ${m2_cache_parent_folder}/.m2:/tmp/.m2 \
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
--e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m -XX:MaxJavaStackTraceDepth=-1" \
+-e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m -XX:MaxJavaStackTraceDepth=1073741823" \
 -w /repo \
 maven:3-amazoncorretto-11 \
 bash -c "mvn clean ${MVN_GOAL} ${EXTRA_ARGS} -U \
