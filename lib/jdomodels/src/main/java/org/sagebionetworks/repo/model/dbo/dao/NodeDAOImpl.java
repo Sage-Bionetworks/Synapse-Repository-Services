@@ -157,11 +157,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final String SQL_SELECT_ENTITY_DTO = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetEntityDTOs.sql");
 	
-	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = DDLUtilsImpl
-			.loadSQLFromClasspath("sql/GetIdAndChecksumParentId.sql");
+	public static final String SQL_SELECT_ID_AND_CHCKSUM_TEMPLATE = DDLUtilsImpl
+			.loadSQLFromClasspath("sql/GetIdAndChecksumTemplate.sql");
 	
-	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = DDLUtilsImpl
-			.loadSQLFromClasspath("sql/GetIdAndChecksumObjectIds.sql");
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID = String.format(SQL_SELECT_ID_AND_CHCKSUM_TEMPLATE,
+			"N.PARENT_ID = :parentId AND N.NODE_TYPE IN (:subTypes)");
+	
+	public static final String SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID = String.format(SQL_SELECT_ID_AND_CHCKSUM_TEMPLATE,
+			"N.ID IN (:objectIds)");
 	
 	public static final String SQL_GET_ALL_CONTAINER_IDS = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/GetAllContainerIds.sql");
@@ -2151,51 +2154,40 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit,
-			Long offset) {
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Long parentId, Set<SubType> subTypes) {
 		ValidateArgument.required(salt, "salt");
-		ValidateArgument.required(parentIds, "parentIds");
+		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(subTypes, "subTypes");
 		if(subTypes.isEmpty()) {
 			throw new IllegalArgumentException("Must provide at least one sub-type");
 		}
-		if(parentIds.isEmpty()) {
-			return Collections.emptyList();
-		}
-		ValidateArgument.required(limit, "limit");
-		ValidateArgument.required(offset, "offset");
 		
 		String sql = SQL_SELECT_ID_AND_CHECKSUM_PARENT_ID;
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("salt", salt);
-		params.addValue("parentIds", parentIds);
+		params.addValue("parentId", parentId);
 		params.addValue("subTypes", subTypes.stream().map(t->t.name()).collect(Collectors.toList()));
 		params.addValue("trashId", TRASH_FOLDER_ID);
-		params.addValue("limit", limit);
-		params.addValue("offset", offset);
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH);
 		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
 	}
 
 	@Override
-	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit,
-			Long offset) {
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds) {
 		ValidateArgument.required(salt, "salt");
 		ValidateArgument.required(objectIds, "objectIds");
 		if(objectIds.isEmpty()) {
 			return Collections.emptyList();
 		}
-		ValidateArgument.required(limit, "limit");
-		ValidateArgument.required(offset, "offset");
 		
 		String sql = SQL_SELECT_ID_AND_CHECKSUM_OBJECTT_ID;
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("salt", salt);
 		params.addValue("objectIds", objectIds);
 		params.addValue("trashId", TRASH_FOLDER_ID);
-		params.addValue("limit", limit);
-		params.addValue("offset", offset);
+		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH);
 		return namedParameterJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});

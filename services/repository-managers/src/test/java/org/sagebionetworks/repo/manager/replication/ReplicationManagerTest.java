@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
@@ -312,6 +313,7 @@ public class ReplicationManagerTest {
 		// call under test
 		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
+		verify(managerSpy).getFilter(viewId, ObjectType.ENTITY_VIEW);
 		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
 		verify(managerSpy).createReconcileIterator(mockFilter);
@@ -343,6 +345,7 @@ public class ReplicationManagerTest {
 		// call under test
 		managerSpy.reconcile(viewId, ObjectType.ENTITY_VIEW);
 
+		verify(managerSpy).getFilter(viewId, ObjectType.ENTITY_VIEW);
 		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
 		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
@@ -368,7 +371,8 @@ public class ReplicationManagerTest {
 
 		// call under test
 		managerSpy.reconcile(viewId, type);
-
+		
+		verify(managerSpy).getFilter(viewId, type);
 		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockTableIndexManager).isViewSynchronizeLockExpired(ReplicationType.ENTITY, viewId);
 		verify(managerSpy).pushSubviewsBackToQueue(viewId, subMessages);
@@ -377,6 +381,55 @@ public class ReplicationManagerTest {
 
 		verify(mockLogger).info("Pushing 1 sub-view messages back to the reconciliation queue for view: 'syn123'.");
 		verify(mockLogger).info("Finished reconcile for view: 'syn123'.");
+	}
+	
+	@Test
+	public void testGetFilterWithEntityView() {
+		
+		ObjectType type = ObjectType.ENTITY_VIEW;
+		
+		ViewScopeType viewScopeType = new ViewScopeType(ViewObjectType.ENTITY, 0L);
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(viewScopeType);
+		when(mockIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+		
+		// call under test
+		ViewFilter filter = managerSpy.getFilter(viewId, type);
+		assertEquals(mockFilter, filter);
+		verify(mockTableManagerSupport).getViewScopeType(viewId);
+		verify(mockIndexProviderFactory).getMetadataIndexProvider(viewScopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getViewFilter(viewId.getId());
+	}
+	
+	@Test
+	public void testGetFilterWithEntityContainer() {
+		
+		ObjectType type = ObjectType.ENTITY_CONTAINER;
+	
+		Set<SubType> expectedSubTypes = Arrays.stream(SubType.values()).collect(Collectors.toSet());
+		assertEquals(SubType.values().length, expectedSubTypes.size());
+		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, expectedSubTypes
+				, Sets.newHashSet(viewId.getId()));
+		// call under test
+		ViewFilter filter = managerSpy.getFilter(viewId, type);
+		assertEquals(expected, filter);
+		verifyZeroInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockIndexProviderFactory);
+		verifyZeroInteractions(mockMetadataIndexProvider);
+	}
+	
+	@Test
+	public void testGetFilterWithUnknownType() {
+		ObjectType type = ObjectType.ACCESS_CONTROL_LIST;
+	
+		String message = assertThrows(IllegalStateException.class, ()->{
+			// call under test
+			managerSpy.getFilter(viewId, type);
+		}).getMessage();
+		assertEquals("Unknown type: ACCESS_CONTROL_LIST", message);
+		verifyZeroInteractions(mockTableManagerSupport);
+		verifyZeroInteractions(mockIndexProviderFactory);
+		verifyZeroInteractions(mockMetadataIndexProvider);
 	}
 
 

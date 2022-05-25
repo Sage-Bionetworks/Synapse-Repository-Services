@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.metadata.providers;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -41,16 +42,19 @@ public class EntityObjectProvider implements ObjectDataProvider {
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds,
 			Set<SubType> subTypes) {
-		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
-			return nodeDao.getIdsAndChecksumsForChildren(salt, parentIds, subTypes, limit, offset);
-		}, PAGE_SIZE);
+		if(parentIds.isEmpty()) {
+			return Collections.emptyIterator();
+		}
+		if(parentIds.size() > 1) {
+			throw new IllegalArgumentException("Expected only only parent Id");
+		}
+		Long parentId= parentIds.stream().findFirst().get();
+		return  nodeDao.getIdsAndChecksumsForChildren(salt, parentId, subTypes).iterator();
 	}
 
 	@Override
 	public Iterator<IdAndChecksum> streamOverIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds) {
-		return new PaginationIterator<IdAndChecksum>((long limit, long offset) -> {
-			return nodeDao.getIdsAndChecksumsForObjects(salt, objectIds, limit, offset);
-		}, PAGE_SIZE);
+		return nodeDao.getIdsAndChecksumsForObjects(salt, objectIds).iterator();
 	}
 
 }

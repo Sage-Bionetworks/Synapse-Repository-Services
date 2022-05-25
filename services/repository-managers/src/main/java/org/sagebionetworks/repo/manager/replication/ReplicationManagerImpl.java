@@ -197,7 +197,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 			return;
 		}
 		
-
+		// Can this view be represented by sub-views?
 		Optional<List<ChangeMessage>> subViews = filter.getSubViews();
 		if(subViews.isPresent()) {
 			/*
