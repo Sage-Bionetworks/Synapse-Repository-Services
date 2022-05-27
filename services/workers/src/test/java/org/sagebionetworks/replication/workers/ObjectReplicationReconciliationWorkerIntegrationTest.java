@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -137,10 +138,9 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		// wait for reconciliation to restore the deleted data.
 		waitForEntityDto(type, folder.getId());
 
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		// the replication must be synchronized at this point.
-		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
+		assertTrue(replicationManager.isReplicationSynchronizedForView(ObjectType.ENTITY_VIEW, viewId));
 	}
 
 	@Test
@@ -173,10 +173,9 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		// wait for reconciliation to restore the deleted data.
 		waitForEntityDto(type, submission.getId());
 
-		ViewObjectType viewObjectType = ViewObjectType.SUBMISSION;
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		// the replication must be synchronized at this point.
-		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
+		assertTrue(replicationManager.isReplicationSynchronizedForView(ObjectType.ENTITY_VIEW, viewId));
 	}
 
 	@Test
@@ -208,10 +207,9 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		// wait for reconciliation to restore the deleted data.
 		waitForEntityDto(type, fileId);
 
-		ViewObjectType viewObjectType = ViewObjectType.DATASET;
 		IdAndVersion viewId = IdAndVersion.parse(dataset.getId());
 		// the replication must be synchronized at this point.
-		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
+		assertTrue(replicationManager.isReplicationSynchronizedForView(ObjectType.ENTITY_VIEW, viewId));
 	}
 
 	/**
@@ -248,10 +246,9 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		Long expectedBenefactor = projectIdLong;
 		waitForEntityDto(type, folder.getId(), expectedBenefactor);
 
-		ViewObjectType viewObjectType = ViewObjectType.ENTITY;
 		IdAndVersion viewId = IdAndVersion.parse(view.getId());
 		// the replication must be synchronized at this point.
-		assertTrue(replicationManager.isReplicationSynchronizedForView(viewObjectType, viewId));
+		assertTrue(replicationManager.isReplicationSynchronizedForView(ObjectType.ENTITY_VIEW, viewId));
 	}
 
 	EntityView createEntityView(List<String> scopeIds, long viewTypeMask) {

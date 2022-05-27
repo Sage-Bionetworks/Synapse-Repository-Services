@@ -15,9 +15,11 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
@@ -114,5 +116,14 @@ public class FlatIdAndVersionFilterTest {
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
+	}
+	
+	@Test
+	public void testGetSubViews() {
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		// call under test
+		Optional<List<ChangeMessage>> results = filter.getSubViews();
+		Optional<List<ChangeMessage>> expected = Optional.empty();
+		assertEquals(expected, results);
 	}
 }

@@ -22,6 +22,12 @@ public interface ReplicationMessageManager {
 	void pushChangeMessagesToReplicationQueue(List<ChangeMessage> toPush);
 	
 	/**
+	 * Push the provided change messages back to the reconciliation queue.
+	 * @param toPush
+	 */
+	void pushChangeMessagesToReconciliationQueue(List<ChangeMessage> toPush);
+	
+	/**
 	 * Get the approximate age of the oldest message on the queue.
 	 * @return
 	 */
