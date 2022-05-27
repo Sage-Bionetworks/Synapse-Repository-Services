@@ -28,7 +28,7 @@
 									<bean class="org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="objectReplicationReconciliationWorker" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('ENTITY_REPLICATION_RECONCILIATION')}"/>
 								<property name="gate">

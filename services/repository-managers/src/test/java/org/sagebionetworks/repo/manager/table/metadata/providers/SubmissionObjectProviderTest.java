@@ -84,7 +84,7 @@ public class SubmissionObjectProviderTest {
 		resultsIt.forEachRemaining(i -> allResults.add(i));
 		assertEquals(all, allResults);
 		
-		long pageSize = EntityObjectProvider.PAGE_SIZE;
+		long pageSize = SubmissionObjectProvider.PAGE_SIZE;
 		verify(mockSubmissionDao, times(2)).getIdAndChecksumsPage(any(), any(), any(), any());
 		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(pageSize), eq(0L));
 		verify(mockSubmissionDao).getIdAndChecksumsPage(eq(salt), eq(parentId), eq(pageSize), eq(pageSize));

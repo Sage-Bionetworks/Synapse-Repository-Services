@@ -668,14 +668,12 @@ public interface NodeDAO {
 	public List<DatasetItem> getDatasetItems(Long datasetId);
 
 	/**
-	 * Get a single page of IdAndChecksums for children of the given parents.
-	 * @param parentIds
+	 * Get all of the IdAndChecksums for children of the given parent.
+	 * @param parentId
 	 * @param subTypes
-	 * @param limit
-	 * @param offset
 	 * @return
 	 */
-	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes, Long limit, Long offset);
+	public List<IdAndChecksum> getIdsAndChecksumsForChildren(Long salt, Set<Long> parentIds, Set<SubType> subTypes);
 	
 	/**
 	 * Get a single page of IdAndChecksums for the given objectIds.
@@ -685,7 +683,7 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds, Long limit, Long offset);
+	public List<IdAndChecksum> getIdsAndChecksumsForObjects(Long salt, Set<Long> objectIds);
 	
 
 

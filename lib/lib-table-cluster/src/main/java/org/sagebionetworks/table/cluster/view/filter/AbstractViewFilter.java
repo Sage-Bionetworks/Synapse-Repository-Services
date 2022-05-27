@@ -1,12 +1,14 @@
 package org.sagebionetworks.table.cluster.view.filter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.util.ValidateArgument;
@@ -75,6 +77,11 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	@Override
 	public ReplicationType getReplicationType() {
 		return mainType;
+	}
+	
+	@Override
+	public Optional<List<ChangeMessage>> getSubViews() {
+		return Optional.empty();
 	}
 
 	@Override
