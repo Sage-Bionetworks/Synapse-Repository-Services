@@ -35,7 +35,7 @@ class DBUserHelperTest {
 		dbUserHelper.createDbReadOnlyUser(mockTemplate);
 
 		verify(mockTemplate).update("CREATE USER IF NOT EXISTS 'userName'@'%' IDENTIFIED BY 'userPassword'");
-		verify(mockTemplate).update("GRANT SELECT ON *.* TO 'userName'@'%'");
+		verify(mockTemplate).update("GRANT PROCESS, SELECT ON *.* TO 'userName'@'%'");
 		verify(mockTemplate).update("GRANT EXECUTE ON dev101.* TO 'userName'@'%'");
 	}
 }

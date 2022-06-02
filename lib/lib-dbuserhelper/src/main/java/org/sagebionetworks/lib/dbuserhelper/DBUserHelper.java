@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DBUserHelper {
 	private static final String CREATE_USER = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'";
-	private static final String GRANT_SELECT_USER = "GRANT SELECT ON *.* TO '%s'@'%%'";
+	private static final String GRANT_PROCESS_SELECT_USER = "GRANT PROCESS, SELECT ON *.* TO '%s'@'%%'";
 	public static final String GRANT_EXECUTE_USER = "GRANT EXECUTE ON %s.* TO '%s'@'%%'";
 
 	private final StackConfiguration stackConfiguration;
@@ -27,7 +27,7 @@ public class DBUserHelper {
 	public void createReadOnlyUser(JdbcTemplate template, String userName, String password) {
 		String sqlCreateUSer = String.format(CREATE_USER, userName, password);
 		template.update(sqlCreateUSer);
-		String sqlGrantUser = String.format(GRANT_SELECT_USER, userName);
+		String sqlGrantUser = String.format(GRANT_PROCESS_SELECT_USER, userName);
 		template.update(sqlGrantUser);
 		String stack = stackConfiguration.getStack();
 		String stackInstance = stackConfiguration.getStackInstance();
