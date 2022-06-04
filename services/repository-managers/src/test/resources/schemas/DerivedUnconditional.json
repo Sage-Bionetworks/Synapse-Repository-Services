@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "unconditionalDerived",
+	"description": "Unconditional derived",
+	"properties": {
+		"noDefault": {
+			"type": "string"
+		},
+		"defaultString": {
+			"type": "string",
+			"default": "foo"
+		},
+		"defaultLong": {
+			"default": 123456
+		},
+		"defaultDouble": {
+			"default": 1.23456e-2
+		},
+		"defaultTimestamp": {
+			"default": "1969-12-31T16:00:00.222-08:00"
+		},
+		"defaultBoolean": {
+			"default": true
+		},
+		"someConst": {
+			"type": "integer",
+			"const": 123
+		}
+	}
+}
