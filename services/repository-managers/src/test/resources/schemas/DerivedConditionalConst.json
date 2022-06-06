@@ -1,0 +1,68 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "derivedConditionalConst",
+	"type": "object",
+	"properties": {
+		"someBoolean": {
+			"type": "boolean"
+		},
+		"secondBoolean": {
+			"type": "boolean"
+		},
+		"someUnconditionalConst": {
+			"const": 456
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": true
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"someConditional": {
+						"const": "someBoolean was true"
+					},
+					"conditionalLong": {
+						"const": 999
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"someConditional": {
+						"const": "someBoolean was false"
+					}
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"secondBoolean": {
+						"const": false
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"secondConditional": {
+						"const": "secondBoolean was false"
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"secondConditional": {
+						"const": "secondBoolean was true"
+					}
+				}
+			}
+		}
+	]
+}

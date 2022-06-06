@@ -733,8 +733,8 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 
 	@Test
-	public void testCalculateDerivedAnnotationsWithDefaults() throws Exception {
-		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditional.json");
+	public void testCalculateDerivedAnnotationsWithUnconditionalDefaults() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
 		assertNotNull(schema.getProperties());
 
 		JSONObject subject = new JSONObject();
@@ -751,8 +751,8 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testCalculateDerivedAnnotationsWithExistingKey() throws Exception {
-		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditional.json");
+	public void testCalculateDerivedAnnotationsWithUnconditionalDefaultsAndExistingKey() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
 		assertNotNull(schema.getProperties());
 
 		JSONObject subject = new JSONObject();
@@ -771,7 +771,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	
 	@Test
 	public void testCalculateDerivedAnnotationsWithInvalidSubject() throws Exception {
-		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditional.json");
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
 		assertNotNull(schema.getProperties());
 
 		JSONObject subject = new JSONObject();
@@ -781,6 +781,117 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		// call under test
 		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
 		assertEquals(Optional.empty(), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalDefaults() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+		subject.put("secondBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someUnconditionalDefault", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalDefaultsFlipped() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		subject.put("secondBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someUnconditionalDefault", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		System.out.println(subject.toString(5));
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "constString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constLong", "123456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constDouble", "0.0123456", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalConstAndExistingKey() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		// since these values exist in the subject, they should not be derived.
+		subject.put("constString", "foo");
+		subject.put("constLong", 123456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "constDouble", "0.0123456", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+		subject.put("secondBoolean", true);
+		subject.put("someUnconditionalConst", 456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalConstSwitched() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		subject.put("secondBoolean", false);
+		subject.put("someUnconditionalConst", 456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "conditionalLong", "999", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
 	}
 
 	/**

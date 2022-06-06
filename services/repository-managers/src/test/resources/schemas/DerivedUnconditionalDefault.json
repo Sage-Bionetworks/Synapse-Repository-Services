@@ -1,7 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "unconditionalDerived",
-	"description": "Unconditional derived",
+	"$id": "unconditionalDefaultDerived",
 	"properties": {
 		"noDefault": {
 			"type": "string"
