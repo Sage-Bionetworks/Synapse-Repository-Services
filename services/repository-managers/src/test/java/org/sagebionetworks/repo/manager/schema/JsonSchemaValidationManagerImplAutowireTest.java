@@ -893,6 +893,83 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
 		assertEquals(Optional.of(expected), annos);
 	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithCondionalAndNoThen() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalNoThen.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithCondionalAndNoElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalNoElse.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalReferences() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalReferences.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("refToString", "I am a string");
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "refToConstString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "anotherRefToConstString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "refToDefaultLong", "123456", AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalRefOfRef() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalRefOfRef.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "refOfRef", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "ref", "foo", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+
 
 	/**
 	 * Helper to build a stack trace for the given exception.

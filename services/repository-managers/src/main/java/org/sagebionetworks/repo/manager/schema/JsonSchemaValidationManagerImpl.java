@@ -66,7 +66,7 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 	@Override
 	public Optional<Annotations> calculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject) {
 		try {
-			return Optional.of(doCalculateDerivedAnnotations(jsonSchema, subject));
+			return doCalculateDerivedAnnotations(jsonSchema, subject);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		} catch(org.everit.json.schema.ValidationException e) {
@@ -75,7 +75,7 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 		}
 	}
 	
-	Annotations doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject) throws JSONObjectAdapterException {
+	Optional<Annotations> doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject) throws JSONObjectAdapterException {
 		boolean useDefautls = true;
 		Schema schemaValidator = loadSchema(jsonSchema, useDefautls);
 		DerivedAnnotationVistor listener = listenerProvider.createNewVisitor(schemaValidator, subject);
