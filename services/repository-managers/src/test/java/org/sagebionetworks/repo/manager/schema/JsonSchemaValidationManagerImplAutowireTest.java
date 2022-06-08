@@ -10,26 +10,32 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.schema.SchemaTestUtils.loadSchemaFromClasspath;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationException;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@ExtendWith(MockitoExtension.class)
-public class JsonSchemaValidationManagerImplTest {
-
-	@InjectMocks
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
+public class JsonSchemaValidationManagerImplAutowireTest {
+	
+	@Autowired
 	JsonSchemaValidationManagerImpl manager;
 
 	String objectId;
@@ -389,46 +395,47 @@ public class JsonSchemaValidationManagerImplTest {
 	@Test
 	public void testIfThenElse() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
-		
+
 		// this case hits the else
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("skyColor", "red");
 		subject.toJson().put("timeOfDay", "night");
 		subject.toJson().put("sailors", "delight");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
-		
+
 		// this case hits the then
 		subject = setupSubject();
 		subject.toJson().put("skyColor", "red");
 		subject.toJson().put("timeOfDay", "morning");
 		subject.toJson().put("sailors", "warning");
-		
+
 		// call under test
 		result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
-		
+
 		// this case is invalid
 		subject = setupSubject();
 		subject.toJson().put("skyColor", "red");
 		subject.toJson().put("timeOfDay", "morning");
 		subject.toJson().put("sailors", "delight");
-		
+
 		// call under test
 		result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 	}
-	
+
 	/**
-	 * This test uses a schema containing if/then/else which was added to JSON schema
-	 * in draft-07.  The validation library we are using silently ignores all features
-	 * added after draft-04 when the provided JSON schema has a null value for the
-	 * $schema field.  This causes unexpected validation results. 
+	 * This test uses a schema containing if/then/else which was added to JSON
+	 * schema in draft-07. The validation library we are using silently ignores all
+	 * features added after draft-04 when the provided JSON schema has a null value
+	 * for the $schema field. This causes unexpected validation results.
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -437,38 +444,37 @@ public class JsonSchemaValidationManagerImplTest {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
 		// when the $schema is null we want to default to draft-07
 		schema.set$schema(null);
-		
-		// Draft-07 is required to detect that this case is invalid. 
+
+		// Draft-07 is required to detect that this case is invalid.
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("skyColor", "red");
 		subject.toJson().put("timeOfDay", "morning");
 		subject.toJson().put("sailors", "delight");
-		
-		// call under test
-		ValidationResults result = manager.validate(schema, subject);
-		assertNotNull(result);
-		assertFalse(result.getIsValid());
-	}
-	
-	@Test
-	public void testEmpty$Schema() throws Exception {
-		// This schema uses if/then/else which was added in JSON schema draft-07.
-		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
-		// when the $schema is empty we want to default to draft-07
-		schema.set$schema("");
-		
-		// Draft-07 is required to detect that this case is invalid. 
-		JsonSubject subject = setupSubject();
-		subject.toJson().put("skyColor", "red");
-		subject.toJson().put("timeOfDay", "morning");
-		subject.toJson().put("sailors", "delight");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 	}
 
+	@Test
+	public void testEmpty$Schema() throws Exception {
+		// This schema uses if/then/else which was added in JSON schema draft-07.
+		JsonSchema schema = loadSchemaFromClasspath("schemas/IfThenElse.json");
+		// when the $schema is empty we want to default to draft-07
+		schema.set$schema("");
+
+		// Draft-07 is required to detect that this case is invalid.
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("skyColor", "red");
+		subject.toJson().put("timeOfDay", "morning");
+		subject.toJson().put("sailors", "delight");
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+	}
 
 	/**
 	 * Test added for JSON schema conditional logic (if, then, else) PLFM-6315. This
@@ -539,7 +545,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertFalse(result.getIsValid());
 		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
 	}
-	
+
 	@Test
 	public void testHasMinAndMax() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/HasMinMax.json");
@@ -566,7 +572,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("11 is not less or equal to 10", result.getValidationErrorMessage());
-		
+
 		// under min
 		subject = setupSubject();
 		subject.toJson().put("greaterThanOrEqualToTwenty", 19);
@@ -576,7 +582,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("19 is not greater or equal to 20", result.getValidationErrorMessage());
-		
+
 		// over forty
 		subject = setupSubject();
 		subject.toJson().put("betweenThirtyAndForty", 41);
@@ -586,7 +592,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("41 is not less or equal to 40", result.getValidationErrorMessage());
-		
+
 		// under thirty
 		subject = setupSubject();
 		subject.toJson().put("betweenThirtyAndForty", 29);
@@ -597,13 +603,13 @@ public class JsonSchemaValidationManagerImplTest {
 		assertFalse(result.getIsValid());
 		assertEquals("29 is not greater or equal to 30", result.getValidationErrorMessage());
 	}
-	
+
 	@Test
 	public void testHasNot() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/HasNot.json");
 		assertNotNull(schema.getProperties());
 		assertEquals(2, schema.getProperties().size());
-		
+
 		// red is primary
 		JsonSubject subject = setupSubject();
 		subject.toJson().put("color", "red");
@@ -613,7 +619,7 @@ public class JsonSchemaValidationManagerImplTest {
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
-		
+
 		// red is primary
 		subject = setupSubject();
 		subject.toJson().put("color", "red");
@@ -624,7 +630,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
-		
+
 		// orange is not primary
 		subject = setupSubject();
 		subject.toJson().put("color", "orange");
@@ -635,7 +641,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertFalse(result.getIsValid());
 		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
-		
+
 		// orange is not primary
 		subject = setupSubject();
 		subject.toJson().put("color", "orange");
@@ -646,7 +652,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 	}
-	
+
 	/**
 	 * This is a test for PLFM-6701.
 	 */
@@ -654,12 +660,12 @@ public class JsonSchemaValidationManagerImplTest {
 	public void testValidateWithBooleanCondition() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/BooleanCondition.json");
 		assertNotNull(schema.getProperties());
-		
+
 		JsonSubject subject = setupSubject();
 		// when isMultiSpecimen=true then assay is required.
 		subject.toJson().put("isMultiSpecimen", true);
 		subject.toJson().remove("assay");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
@@ -668,7 +674,7 @@ public class JsonSchemaValidationManagerImplTest {
 		assertTrue(stackTrace.contains("input is invalid against the \"then\" schema"));
 		assertTrue(stackTrace.contains("required key [assay] not found"));
 	}
-	
+
 	/**
 	 * This is a test for PLFM-6701.
 	 */
@@ -676,18 +682,18 @@ public class JsonSchemaValidationManagerImplTest {
 	public void testValidateWithBooleanConditionWithFalse() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/BooleanCondition.json");
 		assertNotNull(schema.getProperties());
-		
+
 		JsonSubject subject = setupSubject();
 		// when isMultiSpecimen=false then assay is not required.
 		subject.toJson().put("isMultiSpecimen", false);
 		subject.toJson().remove("assay");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 	}
-	
+
 	/**
 	 * This is a test for PLFM-6701.
 	 */
@@ -695,12 +701,12 @@ public class JsonSchemaValidationManagerImplTest {
 	public void testValidateWithEnumCondition() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/EnumCondition.json");
 		assertNotNull(schema.getProperties());
-		
+
 		JsonSubject subject = setupSubject();
 		// when other=1,2,or3 then assay is required.
 		subject.toJson().put("other", 3);
 		subject.toJson().remove("assay");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
@@ -709,25 +715,289 @@ public class JsonSchemaValidationManagerImplTest {
 		assertTrue(stackTrace.contains("input is invalid against the \"then\" schema"));
 		assertTrue(stackTrace.contains("required key [assay] not found"));
 	}
-	
+
 	@Test
 	public void testValidateWithEnumConditionWithNoMatch() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/EnumCondition.json");
 		assertNotNull(schema.getProperties());
-		
+
 		JsonSubject subject = setupSubject();
 		// when other=1,2,or3 then assay is required.
 		subject.toJson().put("other", 4);
 		subject.toJson().remove("assay");
-		
+
 		// call under test
 		ValidationResults result = manager.validate(schema, subject);
 		assertNotNull(result);
 		assertTrue(result.getIsValid());
 	}
+
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalDefaults() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultLong", "123456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultDouble", "0.0123456", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
 	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalDefaultsAndExistingKey() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		// since these values exist in the subject, they should not be derived.
+		subject.put("defaultString", "bar");
+		subject.put("defaultDouble", 1.9);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultLong", "123456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithInvalidSubject() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		// since the value is not a string this subject will be invalid against the schema.
+		subject.put("defaultString", 123);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalDefaults() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+		subject.put("secondBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someUnconditionalDefault", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalDefaultsFlipped() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalDefault.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		subject.put("secondBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someUnconditionalDefault", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		System.out.println(subject.toString(5));
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "constString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constLong", "123456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constDouble", "0.0123456", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalConstAndExistingKey() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		// since these values exist in the subject, they should not be derived.
+		subject.put("constString", "foo");
+		subject.put("constLong", 123456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "constDouble", "0.0123456", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(expected, "constBoolean", "true", AnnotationsValueType.BOOLEAN);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+		subject.put("secondBoolean", true);
+		subject.put("someUnconditionalConst", 456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalConstSwitched() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		subject.put("secondBoolean", false);
+		subject.put("someUnconditionalConst", 456L);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "conditionalLong", "999", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithCondionalAndNoThen() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalNoThen.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithCondionalAndNoElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalNoElse.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		assertEquals(Optional.empty(), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalReferences() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalReferences.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("refToString", "I am a string");
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "refToConstString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "anotherRefToConstString", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "refToDefaultLong", "123456", AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalRefOfRef() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedUnconditionalRefOfRef.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "refOfRef", "foo", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "ref", "foo", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalReferences() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalReference.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", false);
+		
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+
+
 	/**
 	 * Helper to build a stack trace for the given exception.
+	 * 
 	 * @param validationException
 	 * @return
 	 */
@@ -736,16 +1006,17 @@ public class JsonSchemaValidationManagerImplTest {
 		buildStackTrackRecursive(builder, validationException);
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Recursive method to build a stack trace from a ValidationException
+	 * 
 	 * @param builder
 	 * @param validationException
 	 */
 	void buildStackTrackRecursive(StringBuilder builder, ValidationException validationException) {
 		builder.append(validationException.getMessage()).append("\n");
-		if(validationException.getCausingExceptions() != null) {
-			for(ValidationException e: validationException.getCausingExceptions()) {
+		if (validationException.getCausingExceptions() != null) {
+			for (ValidationException e : validationException.getCausingExceptions()) {
 				buildStackTrackRecursive(builder, e);
 			}
 		}
@@ -765,6 +1036,5 @@ public class JsonSchemaValidationManagerImplTest {
 
 		return subject;
 	}
-
 
 }

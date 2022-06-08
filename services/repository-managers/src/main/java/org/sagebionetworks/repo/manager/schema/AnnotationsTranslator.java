@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.schema;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 
 public interface AnnotationsTranslator {
@@ -25,5 +26,13 @@ public interface AnnotationsTranslator {
 	 * @return
 	 */
 	Annotations readFromJsonObject(Class<? extends Entity> entityClass, JSONObject jsonObject);
+
+	/**
+	 * Translate the given key and JSONObject into an AnnotationsValue
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject value);
 
 }

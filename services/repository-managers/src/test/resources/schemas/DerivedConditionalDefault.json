@@ -1,0 +1,65 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "derivedConditionalDefault",
+	"type": "object",
+	"properties": {
+		"someBoolean": {
+			"type": "boolean"
+		},
+		"secondBoolean": {
+			"type": "boolean"
+		},
+		"someUnconditionalDefault": {
+			"default": 456
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": true
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"someConditional": {
+						"default": "someBoolean was true"
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"someConditional": {
+						"default": "someBoolean was false"
+					}
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"secondBoolean": {
+						"const": false
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"secondConditional": {
+						"default": "secondBoolean was false"
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"secondConditional": {
+						"default": "secondBoolean was true"
+					}
+				}
+			}
+		}
+	]
+}

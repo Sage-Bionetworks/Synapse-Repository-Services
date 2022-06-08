@@ -94,7 +94,8 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	 * @param jsonObject
 	 * @return
 	 */
-	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
+	@Override
+	public AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject jsonObject) {
 		// @formatter:off
 		return Stream
 				.of(

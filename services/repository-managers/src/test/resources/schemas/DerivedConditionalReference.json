@@ -1,0 +1,50 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "derivedConditionalRef",
+	"type": "object",
+	"properties": {
+		"someBoolean": {
+			"type": "boolean"
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"$ref": "#/definitions/org-simple.ifRef"
+			},
+			"then": {
+				"$ref": "#/definitions/org-simple.thenRef"
+			},
+			"else": {
+				"$ref": "#/definitions/org-simple.elseRefOfRef"
+			}
+		}
+	],
+	"definitions": {
+		"org-simple.ifRef": {
+			"properties": {
+				"someBoolean": {
+					"const": true
+				}
+			}
+		},
+		"org-simple.thenRef": {
+			"properties": {
+				"someConditional": {
+					"const": "someBoolean was true"
+				}
+			}
+		},
+		"org-simple.elseRefOfRef": {
+			"$ref": "#/definitions/org-simple.elseRef"
+		},
+		"org-simple.elseRef": {
+			"properties": {
+				"someConditional": {
+					"const": "someBoolean was false"
+				}
+			}
+		}
+	}
+}
