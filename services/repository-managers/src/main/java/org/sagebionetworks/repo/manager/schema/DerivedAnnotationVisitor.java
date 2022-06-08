@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
  * Note: A visitor is stateful, so a new visitor must be created for each case.
  *
  */
-public interface DerivedAnnotationVistor extends ValidationListener {
+public interface DerivedAnnotationVisitor extends ValidationListener {
 
 	/**
 	 * The derived {@link Annotations} that were captured during the validation of

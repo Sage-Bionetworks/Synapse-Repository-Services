@@ -12,5 +12,5 @@ public interface ValidationListenerProvider {
 	 * @param subjectJson
 	 * @return
 	 */
-	DerivedAnnotationVistor createNewVisitor(Schema schema, JSONObject subjectJson);
+	DerivedAnnotationVisitor createNewVisitor(Schema schema, JSONObject subjectJson);
 }

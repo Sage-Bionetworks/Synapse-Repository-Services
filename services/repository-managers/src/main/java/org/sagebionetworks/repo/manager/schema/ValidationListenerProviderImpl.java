@@ -16,8 +16,8 @@ public class ValidationListenerProviderImpl implements ValidationListenerProvide
 	}
 
 	@Override
-	public DerivedAnnotationVistor createNewVisitor(Schema schema, JSONObject subjectJson) {
-		return new DerivedAnnotationVistorImpl(annotationsTranslator, schema, subjectJson);
+	public DerivedAnnotationVisitor createNewVisitor(Schema schema, JSONObject subjectJson) {
+		return new DerivedAnnotationVisitorImpl(annotationsTranslator, schema, subjectJson);
 	}
 
 }

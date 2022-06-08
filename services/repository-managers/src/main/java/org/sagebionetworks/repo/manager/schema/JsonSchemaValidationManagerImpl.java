@@ -43,8 +43,8 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 
 	ValidationResults doValidate(JsonSchema jsonSchema, JsonSubject subject) throws JSONObjectAdapterException {
 		ValidateArgument.required(subject, "subject");
-		boolean useDefautls = false;
-		Schema schemaValidator = loadSchema(jsonSchema, useDefautls);
+		boolean useDefaults= false;
+		Schema schemaValidator = loadSchema(jsonSchema, useDefaults);
 		ValidationResults result = new ValidationResults();
 		result.setObjectId(subject.getObjectId());
 		result.setObjectType(subject.getObjectType());
@@ -78,9 +78,9 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 
 	Optional<Annotations> doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject)
 			throws JSONObjectAdapterException {
-		boolean useDefautls = true;
-		Schema schemaValidator = loadSchema(jsonSchema, useDefautls);
-		DerivedAnnotationVistor listener = listenerProvider.createNewVisitor(schemaValidator, subject);
+		boolean useDefaults= true;
+		Schema schemaValidator = loadSchema(jsonSchema, useDefaults);
+		DerivedAnnotationVisitor listener = listenerProvider.createNewVisitor(schemaValidator, subject);
 		Validator validator = Validator.builder().withListener(listener).build();
 		validator.performValidation(schemaValidator, subject);
 		return listener.getDerivedAnnotations();

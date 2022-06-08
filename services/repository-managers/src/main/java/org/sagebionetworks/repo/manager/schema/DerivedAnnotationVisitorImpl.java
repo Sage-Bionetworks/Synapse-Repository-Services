@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 
-public class DerivedAnnotationVistorImpl implements DerivedAnnotationVistor {
+public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 
 	private final AnnotationsTranslator translator;
 	private final Annotations annotations;
@@ -41,7 +41,7 @@ public class DerivedAnnotationVistorImpl implements DerivedAnnotationVistor {
 	 * @param subjectJson The subject is a {@link JSONObject} representation of the
 	 *                    existing existing annotations on an {@link Entity}
 	 */
-	public DerivedAnnotationVistorImpl(AnnotationsTranslator translator, Schema schema, JSONObject subjectJson) {
+	public DerivedAnnotationVisitorImpl(AnnotationsTranslator translator, Schema schema, JSONObject subjectJson) {
 		this.translator = translator;
 		this.annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
 		this.keysPresentAtStart = new HashSet<>(subjectJson.keySet());
