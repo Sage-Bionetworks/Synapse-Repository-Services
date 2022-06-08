@@ -22,11 +22,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationManager {
-	
+
 	public static final String DRAFT_07 = "http://json-schema.org/draft-07/schema";
-	
+
 	private final ValidationListenerProvider listenerProvider;
-	
+
 	@Autowired
 	public JsonSchemaValidationManagerImpl(ValidationListenerProvider listenerProvider) {
 		this.listenerProvider = listenerProvider;
@@ -69,23 +69,33 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 			return doCalculateDerivedAnnotations(jsonSchema, subject);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
-		} catch(org.everit.json.schema.ValidationException e) {
-			// If the subject is not valid against the schema, then there are no derived annotations.
+		} catch (org.everit.json.schema.ValidationException e) {
+			// If the subject is not valid against the schema, then there are no derived
+			// annotations.
 			return Optional.empty();
 		}
 	}
-	
-	Optional<Annotations> doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject) throws JSONObjectAdapterException {
+
+	Optional<Annotations> doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject)
+			throws JSONObjectAdapterException {
 		boolean useDefautls = true;
 		Schema schemaValidator = loadSchema(jsonSchema, useDefautls);
 		DerivedAnnotationVistor listener = listenerProvider.createNewVisitor(schemaValidator, subject);
-		Validator validator = Validator.builder()
-				.withListener(listener)
-				.build();
-			validator.performValidation(schemaValidator, subject);
+		Validator validator = Validator.builder().withListener(listener).build();
+		validator.performValidation(schemaValidator, subject);
 		return listener.getDerivedAnnotations();
 	}
-	
+
+	/**
+	 * Load the provide {@link JsonSchema} into the library {@link Schema}.
+	 * 
+	 * @param jsonSchema
+	 * @param useDefaults When set to true, default values will be added to the
+	 *                    provide subject and default values are made available to
+	 *                    visitors.
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
 	Schema loadSchema(JsonSchema jsonSchema, boolean useDefaults) throws JSONObjectAdapterException {
 		ValidateArgument.required(jsonSchema, "jsonSchema");
 		if (StringUtils.isBlank(jsonSchema.get$schema())) {
@@ -98,12 +108,9 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 			jsonSchema.set$schema(DRAFT_07);
 		}
 		String validationSchemaJson = EntityFactory.createJSONStringForEntity(jsonSchema);
-        SchemaLoader loader = SchemaLoader.builder()
-                .schemaJson(new JSONObject(validationSchemaJson))
-                .schemaClient(new DefaultSchemaClient())
-                .useDefaults(useDefaults)
-                .build();
-        return loader.load().build();
+		SchemaLoader loader = SchemaLoader.builder().schemaJson(new JSONObject(validationSchemaJson))
+				.schemaClient(new DefaultSchemaClient()).useDefaults(useDefaults).build();
+		return loader.load().build();
 	}
 
 }

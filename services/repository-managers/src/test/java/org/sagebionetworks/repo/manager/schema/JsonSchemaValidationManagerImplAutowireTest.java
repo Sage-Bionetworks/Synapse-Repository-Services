@@ -969,6 +969,30 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "ref", "foo", AnnotationsValueType.STRING);
 		assertEquals(Optional.of(expected), annos);
 	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalReferences() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalReference.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+		
+		subject = new JSONObject();
+		subject.put("someBoolean", false);
+		
+		// call under test
+		annos = manager.calculateDerivedAnnotations(schema, subject);
+		expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
 
 
 	/**

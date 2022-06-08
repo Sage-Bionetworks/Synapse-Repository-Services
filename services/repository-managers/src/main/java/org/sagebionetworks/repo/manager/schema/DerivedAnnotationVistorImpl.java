@@ -11,7 +11,6 @@ import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.event.ConditionalSchemaMatchEvent;
-import org.everit.json.schema.event.SchemaReferencedEvent;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -50,15 +49,6 @@ public class DerivedAnnotationVistorImpl implements DerivedAnnotationVistor {
 		addMatchingSchema(schema);
 	}
 	
-	
-
-	@Override
-	public void schemaReferenced(SchemaReferencedEvent event) {
-		System.out.println(event);
-	}
-
-
-
 	/**
 	 * Triggered when the schema validation library detects an 'if' block that
 	 * validates to 'valid'. The provided {@link ConditionalSchemaMatchEvent}
@@ -110,6 +100,9 @@ public class DerivedAnnotationVistorImpl implements DerivedAnnotationVistor {
 			addMatchingObjectSchema((ObjectSchema) schema);
 		} else if (schema instanceof CombinedSchema) {
 			addMatchingCombinedSchema((CombinedSchema) schema);
+		}else if (schema instanceof ReferenceSchema) {
+			// recursive follow the $ref to the referenced schema.
+			addMatchingSchema(((ReferenceSchema)schema).getReferredSchema());
 		}
 	}
 
