@@ -672,17 +672,13 @@ public class SQLQueryTest {
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( `a` )", translator.getOutputSQL());
 	}
 
-	/**
-	 * We should be throwing 'column a not found' for this case.
-	 * 
-	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
-	 * @throws Exception
-	 */
 	@Test
 	public void testPLFM_3867() throws ParseException {
-		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo = \"a\"",
-				schemaProvider(tableSchema), userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = `a`", translator.getOutputSQL());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			 new SqlQueryBuilder("select foo from syn123 where foo = \"a\"",
+					schemaProvider(tableSchema), userId).indexDescription(new TableIndexDescription(idAndVersion)).build();
+		}).getMessage();
+		assertEquals("Column does not exist: a", message);
 	}
 
 	@Test
