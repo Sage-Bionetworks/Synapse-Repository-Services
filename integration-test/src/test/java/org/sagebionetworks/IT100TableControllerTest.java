@@ -29,6 +29,7 @@ import org.sagebionetworks.AsyncJobHelper.AsyncJobResponse;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -907,7 +908,7 @@ public class IT100TableControllerTest {
 				.setName(UUID.randomUUID().toString())
 				.setParentId(table.getParentId());
 		
-		String message = assertThrows(SynapseClientException.class, ()->{
+		String message = assertThrows(SynapseBadRequestException.class, ()->{
 			synapse.createEntity(materialized);
 		}).getMessage();
 		assertEquals("Column does not exist: b.wrong", message);
