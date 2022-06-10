@@ -608,6 +608,11 @@ public class SQLTranslatorUtils {
 		
 		ColumnType columnType = getColumnType(mapper, predicate.getLeftHandSide());	
 		
+		predicate.getRightHandSideColumn().ifPresent((rhs)->{
+			// The right=hand-side is a ColumnReference so validate that it exists.
+			getColumnType(mapper, rhs);
+		});
+		
 		// handle the right-hand-side values
 		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 		

@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.Optional;
+
 /**
  * This matches &ltcomparison predicate&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -50,5 +52,16 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	public Iterable<UnsignedLiteral> getRightHandSideValues() {	
 		return rowValueConstructorRHS.createIterable(UnsignedLiteral.class);
 	}
+
+	@Override
+	public Optional<ColumnReference> getRightHandSideColumn() {
+		ColumnReference columnRef = null;
+		if(rowValueConstructorRHS != null) {
+			columnRef = rowValueConstructorRHS.getFirstElementOfType(ColumnReference.class);
+		}
+		return Optional.ofNullable(columnRef);
+	}
+	
+	
 
 }
