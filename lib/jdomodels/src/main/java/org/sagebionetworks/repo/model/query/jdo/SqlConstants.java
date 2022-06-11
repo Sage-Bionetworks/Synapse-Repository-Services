@@ -186,6 +186,13 @@ public class SqlConstants {
 	public static final String COL_VALIDATION_JSON_SCHEMA 				= "VALIDATION_SCHEMA";
 	public static final String DDL_FILE_VALIDATION_JSON_SCHEMA_INDEX	= "schema/ValidationJsonSchemaIndex-ddl.sql";
 	
+	// Derived annotations
+	public static final String TABLE_DEERIVED_ANNOTATIONS		= "DERIVED_ANNOTATIONS";
+	public static final String COL_DEERIVED_ANNOTATIONS_ID		= "OBJECT_ID";
+	public static final String COL_DEERIVED_ANNOTATIONS_KEYS	= "ANNO_KEYS";
+	public static final String COL_DEERIVED_ANNOTATIONS_ANNOS	= "ANNOTATIONS";
+	public static final String DDL_FILE_DEERIVED_ANNOTATIONS	= "schema/DerivedAnnoations-ddl.sql";
+	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";

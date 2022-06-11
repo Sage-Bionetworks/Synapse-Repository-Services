@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 

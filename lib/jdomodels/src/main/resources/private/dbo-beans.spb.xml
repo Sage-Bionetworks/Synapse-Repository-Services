@@ -145,6 +145,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOJsonSchemaBindObject" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOSchemaValidationResults" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOValidationJsonSchemaIndex" />
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBODerivedAnnotations" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />

@@ -1,0 +1,13 @@
+{
+	"description": "Arrary of annotation keys",
+	"properties": {
+		"keys": {
+			"description": "Arrary of annotation keys",
+			"type": "array",
+			"items": {
+				"type":"string"
+			},
+			"required": true
+		}
+	}
+}

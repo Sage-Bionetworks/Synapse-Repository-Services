@@ -6,6 +6,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
@@ -32,6 +37,8 @@ public class EntitySchemaValidatorImplTest {
 	private JsonSchemaValidationManager mockJsonSchemaValidationManager;
 	@Mock
 	private SchemaValidationResultDao mockSchemaValidationResultDao;
+	@Mock
+	private DerivedAnnotationDao mockDerivedAnnotationDao;
 
 	@InjectMocks
 	private EntitySchemaValidator manager;
@@ -63,6 +70,10 @@ public class EntitySchemaValidatorImplTest {
 		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
+		JSONObject subject = new JSONObject();
+		when(mockEntitySubject.toJson()).thenReturn(subject);
+		Annotations derivedAnnotations = new Annotations().setId(entityId);
+		when(mockJsonSchemaValidationManager.calculateDerivedAnnotations(any(), any())).thenReturn(Optional.of(derivedAnnotations));
 		// call under test
 		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
@@ -71,6 +82,32 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockEntityManger).getEntityJsonSubject(entityId);
 		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
+		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
+		verify(mockDerivedAnnotationDao).saveDerivedAnnotations(entityId, derivedAnnotations);
+		verify(mockDerivedAnnotationDao, never()).clearDerivedAnnotations(any());
+	}
+	
+	@Test
+	public void testValidateObjectWithNoAnnotations() {
+		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
+		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
+		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
+		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
+				.thenReturn(mockValidationResults);
+		JSONObject subject = new JSONObject();
+		when(mockEntitySubject.toJson()).thenReturn(subject);
+		when(mockJsonSchemaValidationManager.calculateDerivedAnnotations(any(), any())).thenReturn(Optional.empty());
+		// call under test
+		manager.validateObject(entityId);
+		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
+		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
+		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId);
+		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
+		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
+		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
+		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(any());
 	}
 	
 	@Test
@@ -81,6 +118,8 @@ public class EntitySchemaValidatorImplTest {
 		manager.validateObject(entityId);
 		verify(mockSchemaValidationResultDao, never()).createOrUpdateResults(any());
 		verify(mockSchemaValidationResultDao).clearResults(entityId, ObjectType.entity);
+		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
 	}
 	
 	@Test
