@@ -11,9 +11,11 @@ import static org.mockito.Mockito.when;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.commons.io.IOUtils;
@@ -36,6 +38,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -66,22 +72,25 @@ public class JsonSchemaWorkerIntegrationTest {
 	public static final long MAX_WAIT_MS = 1000 * 80;
 
 	@Autowired
-	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
+	private AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 
 	@Autowired
-	JsonSchemaManager jsonSchemaManager;
+	private JsonSchemaManager jsonSchemaManager;
 
 	@Autowired
 	private SynapseSchemaBootstrap schemaBootstrap;
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 
 	@Autowired
-	JsonSchemaValidationManager jsonSchemaValidationManager;
+	private JsonSchemaValidationManager jsonSchemaValidationManager;
 
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
+	
+	@Autowired
+	DerivedAnnotationDao derivedAnnotationsDao;
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -683,6 +692,42 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
 	}
 	
+	@Test
+	public void testDerivedAnnotations() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create the schema
+		String fileName = "schema/DerivedConditionalConst.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		folderJson.put("hasBoolean", "true");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+			
+		Annotations expected = new Annotations().setAnnotations(new LinkedHashMap<>());
+		AnnotationsV2TestUtils.putAnnotations(expected, "unconditionalDefault", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "conditionalLong", "999", AnnotationsValueType.LONG);
+
+		// wait for the derived annotations to be created.
+		waitForDerivedAnnotations(adminUserInfo, folderId, (Optional<Annotations> t) -> {
+			assertEquals(Optional.of(expected), t);
+		});
+	}
+	
 	/**
 	 * Wait for the validation results
 	 * 
@@ -700,6 +745,31 @@ public class JsonSchemaWorkerIntegrationTest {
 					return new Pair<>(Boolean.TRUE, validationResults);
 				} catch (Throwable e) {
 					System.out.println("Waiting for expected ValidationResults..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Helper to wait for the expected derived annotations result.
+	 * @param user
+	 * @param entityId
+	 * @param consumer
+	 * @return
+	 */
+	public Optional<Annotations> waitForDerivedAnnotations(UserInfo user, String entityId,
+			Consumer<Optional<Annotations>> consumer) {
+		try {
+			return TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					Optional<Annotations> optoinalAnnos = derivedAnnotationsDao.getDerivedAnnotations(entityId);
+					consumer.accept(optoinalAnnos);
+					return new Pair<>(Boolean.TRUE, optoinalAnnos);
+				} catch (Throwable e) {
+					System.out.println("Waiting for expected derived annotations..." + e.getMessage());
 					return new Pair<>(Boolean.FALSE, null);
 				}
 			});

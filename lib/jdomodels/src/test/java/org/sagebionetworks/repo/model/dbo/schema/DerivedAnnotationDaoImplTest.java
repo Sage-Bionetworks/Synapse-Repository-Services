@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -95,5 +96,99 @@ public class DerivedAnnotationDaoImplTest {
 		assertEquals(Optional.of(updated), derivedAnnotationsDao.getDerivedAnnotations(entityOne));
 
 	}
+	
+	@Test
+	public void testGetDerivedAnnotationsDoesNotExist() {
+		String entityOne = "syn123";
+		
+		// call under test
+		assertEquals(Optional.empty(), derivedAnnotationsDao.getDerivedAnnotations(entityOne));
+	}
 
+	@Test
+	public void testGetDerivedAnnotationKeys() {
+		String entityOne = "syn123";
+		
+		// call under test
+		assertEquals(Optional.empty(), derivedAnnotationsDao.getDerivedAnnotationKeys(entityOne));
+	}
+	
+	@Test
+	public void testSaveDerivedAnnotationsWithEntityIdNull() {
+		String entityOne = null;
+		Annotations annosOne = new Annotations().setAnnotations(new LinkedHashMap<>());
+		AnnotationsV2TestUtils.putAnnotations(annosOne, "aLong", "123456", AnnotationsValueType.LONG);
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.saveDerivedAnnotations(entityOne, annosOne);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testSaveDerivedAnnotationsWithAnnotationsNull() {
+		String entityOne = "syn123";
+		Annotations annosOne = null;
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.saveDerivedAnnotations(entityOne, annosOne);
+		}).getMessage();
+		assertEquals("annotations is required.", message);
+	}
+	
+	@Test
+	public void testSaveDerivedAnnotationsWithAnnotationsMapNull() {
+		String entityOne = "syn123";
+		Annotations annosOne = new Annotations().setAnnotations(null);
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.saveDerivedAnnotations(entityOne, annosOne);
+		}).getMessage();
+		assertEquals("annotations.map is required.", message);
+	}
+	
+	@Test
+	public void testSaveDerivedAnnotationsWithAnnotationsEmpty() {
+		String entityOne = "syn123";
+		Annotations annosOne = new Annotations().setAnnotations(new LinkedHashMap<>());
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.saveDerivedAnnotations(entityOne, annosOne);
+		}).getMessage();
+		assertEquals("Annotations must include at least one annotation.", message);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationKeysWithNull() {
+		String entityOne = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.getDerivedAnnotationKeys(entityOne);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationsWithNull() {
+		String entityOne = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.getDerivedAnnotations(entityOne);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
+	
+	@Test
+	public void testClearDerivedAnnotationsWithNull() {
+		String entityOne = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			derivedAnnotationsDao.clearDerivedAnnotations(entityOne);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
+	}
 }

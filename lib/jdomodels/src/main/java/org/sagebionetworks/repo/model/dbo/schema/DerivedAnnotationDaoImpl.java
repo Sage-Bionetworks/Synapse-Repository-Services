@@ -30,7 +30,7 @@ public class DerivedAnnotationDaoImpl implements DerivedAnnotationDao {
 	public void saveDerivedAnnotations(String entityId, Annotations annotations) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(annotations, "annotations");
-		ValidateArgument.required(annotations.getAnnotations(), "annotations");
+		ValidateArgument.required(annotations.getAnnotations(), "annotations.map");
 		if (annotations.getAnnotations().size() < 1) {
 			throw new IllegalArgumentException("Annotations must include at least one annotation.");
 		}

@@ -1,0 +1,42 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "my.organization-ConditionalDerived",
+	"type": "object",
+	"properties": {
+		"someBoolean": {
+			"type": "boolean"
+		},
+		"unconditionalDefault": {
+			"default": 456
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": true
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"someConditional": {
+						"const": "someBoolean was true"
+					},
+					"conditionalLong": {
+						"const": 999
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"someConditional": {
+						"const": "someBoolean was false"
+					}
+				}
+			}
+		}
+	]
+}
