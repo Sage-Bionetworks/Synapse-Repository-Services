@@ -27,14 +27,14 @@ import com.google.common.collect.Lists;
 public class SchemaValidationWorkerTest {
 
 	@Mock
-	EntitySchemaValidator mockEntitySchemaManager;
+	private EntitySchemaValidator mockEntitySchemaManager;
 	@Mock
-	WorkerLogger mockWorkerLogger;
+	private WorkerLogger mockWorkerLogger;
 	@Mock
-	ProgressCallback mockProgressCallback;
-
+	private ProgressCallback mockProgressCallback;
+	
 	@InjectMocks
-	SchemaValidationWorker worker;
+	private SchemaValidationWorker worker;
 
 	String entityIdOne;
 	String nonEntityId;

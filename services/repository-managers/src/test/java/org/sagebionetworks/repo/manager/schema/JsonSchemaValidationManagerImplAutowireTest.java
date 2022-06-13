@@ -1021,12 +1021,17 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 			}
 		}
 	}
-
-	public JsonSubject setupSubject() {
+	
+	public JSONObject setupJsonObject() {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("objectId", objectId);
 		jsonObject.put("objectType", objectType);
 		jsonObject.put("objectEtag", objectEtag);
+		return jsonObject;
+	}
+
+	public JsonSubject setupSubject() {
+		JSONObject jsonObject = setupJsonObject();
 
 		JsonSubject subject = Mockito.mock(JsonSubject.class);
 		when(subject.getObjectId()).thenReturn(objectId);

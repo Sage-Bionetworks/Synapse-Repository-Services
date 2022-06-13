@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
@@ -15,20 +19,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class EntitySchemaValidator implements ObjectSchemaValidator {
 
-	private EntityManager entityManger;
-	private JsonSchemaManager jsonSchemaManager;
-	private JsonSchemaValidationManager jsonSchemaValidationManager;
-	private SchemaValidationResultDao schemaValidationResultDao;
+	private final EntityManager entityManger;
+	private final JsonSchemaManager jsonSchemaManager;
+	private final JsonSchemaValidationManager jsonSchemaValidationManager;
+	private final SchemaValidationResultDao schemaValidationResultDao;
+	private final DerivedAnnotationDao derivedAnnotationDao;
 
 	@Autowired
 	public EntitySchemaValidator(EntityManager entityManger, JsonSchemaManager jsonSchemaManager,
 			JsonSchemaValidationManager jsonSchemaValidationManager,
-			SchemaValidationResultDao schemaValidationResultDao) {
+			SchemaValidationResultDao schemaValidationResultDao, DerivedAnnotationDao derivedAnnotationDao) {
 		super();
 		this.entityManger = entityManger;
 		this.jsonSchemaManager = jsonSchemaManager;
 		this.jsonSchemaValidationManager = jsonSchemaValidationManager;
 		this.schemaValidationResultDao = schemaValidationResultDao;
+		this.derivedAnnotationDao = derivedAnnotationDao;
 	}
 
 	@WriteTransaction
@@ -42,8 +48,16 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 					.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
 			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
 			schemaValidationResultDao.createOrUpdateResults(results);
+			
+			Optional<Annotations> annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema, entitySubject.toJson());
+			if(annoOption.isPresent()) {
+				derivedAnnotationDao.saveDerivedAnnotations(entityId, annoOption.get());
+			}else {
+				derivedAnnotationDao.clearDerivedAnnotations(entityId);
+			}
 		} catch (NotFoundException e) {
 			schemaValidationResultDao.clearResults(entityId, ObjectType.entity);
+			derivedAnnotationDao.clearDerivedAnnotations(entityId);
 		}
 	}
 
