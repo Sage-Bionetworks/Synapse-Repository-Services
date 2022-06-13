@@ -1,8 +1,8 @@
 {
-	"description": "Arrary of annotation keys",
+	"description": "Array of annotation keys",
 	"properties": {
 		"keys": {
-			"description": "Arrary of annotation keys",
+			"description": "Array of annotation keys",
 			"type": "array",
 			"items": {
 				"type":"string"

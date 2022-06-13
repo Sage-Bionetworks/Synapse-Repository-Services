@@ -191,7 +191,7 @@ public class SqlConstants {
 	public static final String COL_DEERIVED_ANNOTATIONS_ID		= "OBJECT_ID";
 	public static final String COL_DEERIVED_ANNOTATIONS_KEYS	= "ANNO_KEYS";
 	public static final String COL_DEERIVED_ANNOTATIONS_ANNOS	= "ANNOTATIONS";
-	public static final String DDL_FILE_DEERIVED_ANNOTATIONS	= "schema/DerivedAnnoations-ddl.sql";
+	public static final String DDL_FILE_DEERIVED_ANNOTATIONS	= "schema/DerivedAnnotations-ddl.sql";
 	
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

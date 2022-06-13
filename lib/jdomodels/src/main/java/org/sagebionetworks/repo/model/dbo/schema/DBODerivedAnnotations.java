@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBODerivedAnnotations implements DatabaseObject<DBODerivedAnnotations> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("objectId", COL_DEERIVED_ANNOTATIONS_ID, true).withIsBackupId(true),
+			new FieldColumn("objectId", COL_DEERIVED_ANNOTATIONS_ID, true),
 			new FieldColumn("keys", COL_DEERIVED_ANNOTATIONS_KEYS),
 			new FieldColumn("annotations", COL_DEERIVED_ANNOTATIONS_ANNOS),
 	};
