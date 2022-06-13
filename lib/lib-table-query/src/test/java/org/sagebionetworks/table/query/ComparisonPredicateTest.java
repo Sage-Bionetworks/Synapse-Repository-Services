@@ -2,9 +2,11 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -49,5 +51,21 @@ public class ComparisonPredicateTest {
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
 		assertEquals(Arrays.asList(new ReplaceableBox<ColumnReference>(element.getLeftHandSide()),
 				element.getRowValueConstructorRHS()), children);
+	}
+	
+	@Test
+	public void testGetRightHandSideColumnWithoutColumn() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo > 12").predicate();
+		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
+		assertEquals(Optional.empty(), element.getRightHandSideColumn());
+	}
+	
+	@Test
+	public void testGetRightHandSideColumnWithColumn() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo > bar").predicate();
+		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
+		Optional<ColumnReference> optional = element.getRightHandSideColumn();
+		assertTrue(optional.isPresent());
+		assertEquals("bar", optional.get().toSql());
 	}
 }

@@ -29,6 +29,8 @@ import org.sagebionetworks.AsyncJobHelper.AsyncJobResponse;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -882,6 +884,35 @@ public class IT100TableControllerTest {
 			assertEquals(1, newQueryResults.getRows().size());
 			assertEquals("0", newQueryResults.getRows().get(0).getValues().get(0));
 		});
+	}
+	
+	/**
+	 * Test added for PLFM-7240.
+	 * @throws Exception
+	 */
+	@Test
+	public void testCreateMaterializedViewWithJoinUnknownColumn() throws Exception {
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
+
+		// Join the table on itself
+		String definingSql = String.format("select * from %s a join %s b on a.aString = b.wrong", table.getId(), table.getId());
+		MaterializedView materialized = new MaterializedView()
+				.setDefiningSQL(definingSql)
+				.setName(UUID.randomUUID().toString())
+				.setParentId(table.getParentId());
+		
+		String message = assertThrows(SynapseBadRequestException.class, ()->{
+			synapse.createEntity(materialized);
+		}).getMessage();
+		assertEquals("Column does not exist: b.wrong", message);
+
 	}
 	
 	

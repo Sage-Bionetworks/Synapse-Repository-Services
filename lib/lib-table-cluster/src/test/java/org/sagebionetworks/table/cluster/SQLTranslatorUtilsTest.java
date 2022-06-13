@@ -1802,6 +1802,18 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateModelWithUnknownJoinColumnOnRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 a join syn123 b on (a.id = b.wrong)").querySpecification();
+		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		}).getMessage();
+		assertEquals("Column does not exist: b.wrong", message);
+	}
+	
+	@Test
 	public void testTranslateModelSimple() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select foo from syn123").querySpecification();
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
@@ -2038,8 +2050,10 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = notReference",element.toSql());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		}).getMessage();
+		assertEquals("Column does not exist: notReference", message);
 	}
 	
 	/**
@@ -2068,19 +2082,15 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_+_C111_",element.toSql());
 	}
 	
-	/**
-	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a 
-	 * column reference in backticks. See: PLFM-3867.
-	 * 
-	 * @throws ParseException
-	 */
 	@Test
 	public void testTranslateModelDelemitedIdentiferRightHandSideNotColumnReference() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, schemaProvider);
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ = `notReference`",element.toSql());
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
+		}).getMessage();
+		assertEquals("Column does not exist: notReference", message);
 	}
 	
 	@Test

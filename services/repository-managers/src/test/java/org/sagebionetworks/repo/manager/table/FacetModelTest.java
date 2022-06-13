@@ -1,9 +1,20 @@
 package org.sagebionetworks.repo.manager.table;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -18,17 +29,8 @@ import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class FacetModelTest {
 	FacetModel facetModel;
@@ -56,7 +58,7 @@ public class FacetModelTest {
 	Long userId;
 	SqlQuery query;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		tableId = "syn123";
 		supportedFacetColumns = new HashSet<>();
@@ -82,8 +84,13 @@ public class FacetModelTest {
 		facetColumnModel2.setMaximumSize(50L);
 		facetColumnModel2.setFacetType(FacetType.enumeration);
 		
+		ColumnModel cm = new ColumnModel();
+		cm.setName("ayy");
+		cm.setId("099");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(50L);
 		
-		facetSchema = Lists.newArrayList(facetColumnModel, facetColumnModel2);
+		facetSchema = Lists.newArrayList(facetColumnModel, facetColumnModel2,cm);
 		
 		selectedValue = "someValue";
 		min = 23L;
@@ -146,22 +153,26 @@ public class FacetModelTest {
 	///////////////////////////////
 	// createValidatedFacetsList()
 	///////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateValidatedFacetsListNullSchema(){
 		boolean returnFacets = true;
-		FacetModel.createValidatedFacetsList(selectedFacets , null, returnFacets);
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.createValidatedFacetsList(selectedFacets , null, returnFacets);
+		});
 	}
 	
-	@Test (expected = InvalidTableQueryFacetColumnRequestException.class)
+	@Test
 	public void testCreateValidatedFacetsListUnsupportedColumnName(){
 		boolean returnFacets = true;
 		//remove one column from schema
 		facetSchema.remove(0);
 		
-		assertEquals(1, facetSchema.size()); //only 1 column in schema now
-		assertEquals(2, selectedFacets.size()); //but filter on 2 facet columns
+		assertEquals(2, facetSchema.size()); //only 1 column in schema now
+		assertEquals(2, selectedFacets.size()); //but fil158r on 2 facet columns
 		
-		FacetModel.createValidatedFacetsList(selectedFacets , facetSchema, returnFacets);		
+		assertThrows(InvalidTableQueryFacetColumnRequestException.class, ()->{
+			FacetModel.createValidatedFacetsList(selectedFacets , facetSchema, returnFacets);
+		});		
 	}
 	
 	@Test
@@ -191,7 +202,7 @@ public class FacetModelTest {
 		assertEquals(0, map.size());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateColumnNameToFacetColumnMapDuplicateName() {
 		// setup
 		FacetColumnRequest facetRequest1 = new FacetColumnRangeRequest();
@@ -199,8 +210,9 @@ public class FacetModelTest {
 		facetRequest1.setColumnName(sameName);
 		FacetColumnRequest facetRequest2 = new FacetColumnRangeRequest();
 		facetRequest2.setColumnName(sameName);
-
-		FacetModel.createColumnNameToFacetColumnMap(Lists.newArrayList(facetRequest1, facetRequest2));
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.createColumnNameToFacetColumnMap(Lists.newArrayList(facetRequest1, facetRequest2));
+		});
 	}
 
 	@Test
@@ -275,13 +287,17 @@ public class FacetModelTest {
 	///////////////////////////////////////
 	// generateFacetFilteredQuery() Tests
 	///////////////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGenerateFacetFilteredQueryNullQuery() {
-		FacetModel.generateFacetFilteredQuery(null, validatedQueryFacetColumns);
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.generateFacetFilteredQuery(null, validatedQueryFacetColumns);
+		});
 	}
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGenerateFacetFilteredQueryNullList() {
-		FacetModel.generateFacetFilteredQuery(simpleQuery, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.generateFacetFilteredQuery(simpleQuery, null);
+		});
 	}
 	
 	@Test
@@ -303,7 +319,7 @@ public class FacetModelTest {
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 
 		SqlQuery modifiedQuery = FacetModel.generateFacetFilteredQuery(query, validatedQueryFacetColumns);
-		String expectedTransformedQuery = "SELECT _C890_, _C098_, ROW_ID, ROW_VERSION FROM T123"
+		String expectedTransformedQuery = "SELECT _C890_, _C098_, _C099_, ROW_ID, ROW_VERSION FROM T123"
 				+ " WHERE ( _C890_ <> :b0 AND _C890_ < :b1 )"
 				+ " AND ( ( ( _C890_ BETWEEN :b2 AND :b3 ) ) )";
 		assertEquals(expectedTransformedQuery, modifiedQuery.getOutputSQL());
@@ -318,14 +334,18 @@ public class FacetModelTest {
 	///////////////////////////////////////////
 	// generateFacetQueryTransformers() tests
 	///////////////////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
+	@Test 
 	public void testGenerateFacetQueryTransformersNullQuery() {
-		FacetModel.generateFacetQueryTransformers(null, validatedQueryFacetColumns);
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.generateFacetQueryTransformers(null, validatedQueryFacetColumns);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test//(expected = IllegalArgumentException.class)
 	public void testGenerateFacetQueryTransformersNullList() {
-		FacetModel.generateFacetQueryTransformers(simpleQuery, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			FacetModel.generateFacetQueryTransformers(simpleQuery, null);
+		});
 	}
 	
 	@Test
