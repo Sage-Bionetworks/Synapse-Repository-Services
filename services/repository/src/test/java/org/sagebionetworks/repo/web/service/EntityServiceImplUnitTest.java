@@ -191,6 +191,9 @@ public class EntityServiceImplUnitTest {
 
 	@Test
 	public void testHasAccessNullAccessType() {
-		entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, null);
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, null);
+		});
+		assertEquals("AccessType cannot be null", thrown.getMessage());
 	}
 }
