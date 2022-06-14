@@ -191,7 +191,7 @@ public class SendRawEmailRequestBuilder {
 			msg.setContent(multipart);
 			msg.writeTo(out);
 		} catch (AddressException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException("Invalid format for email address", e);
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
