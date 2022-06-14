@@ -318,17 +318,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return userId;
 	}
 	
-	void addClaimToMap(final String userId, Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim, Map<OIDCClaimName,Object> result) {
-		Object claimValue = null;
-		OIDCClaimProvider claimProvider = claimProviders.get(claim.getKey());
-		if (claimProvider!=null) {
-			claimValue = claimProvider.getClaim(userId, claim.getValue());
-		}
-		// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-		// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
-		// representing the Claims; it SHOULD NOT be present with a null or empty string value."
-		if (claimValue!=null) {
-			result.put(claim.getKey(), claimValue);
+	void addClaimsToMap(final String userId, Map<OIDCClaimName, OIDCClaimsRequestDetails> claims, Map<OIDCClaimName,Object> result) {
+		for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : claims.entrySet()) {
+			Object claimValue = null;
+			OIDCClaimProvider claimProvider = claimProviders.get(claim.getKey());
+			if (claimProvider!=null) {
+				claimValue = claimProvider.getClaim(userId, claim.getValue());
+			}
+			// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+			// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
+			// representing the Claims; it SHOULD NOT be present with a null or empty string value."
+			if (claimValue!=null) {
+				result.put(claim.getKey(), claimValue);
+			}
 		}
 	}
 	
@@ -344,20 +346,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (!scopes.contains(OAuthScope.openid)) return result;
 
-		for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : oidcClaims.entrySet()) {
-			addClaimToMap(userId, claim, result);
-		}
-		
+		addClaimsToMap(userId, oidcClaims, result);
+
 		// 'email' and 'profile' scopes map to specific user claims
 		if (scopes.contains(OAuthScope.email)) {
-			for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : EMAIL_CLAIMS.entrySet()) {
-				addClaimToMap(userId, claim, result);
-			}
+			addClaimsToMap(userId, EMAIL_CLAIMS, result);
 		}
 		if (scopes.contains(OAuthScope.profile)) {
-			for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : PROFILE_CLAIMS.entrySet()) {
-				addClaimToMap(userId, claim, result);
-			}
+			addClaimsToMap(userId, PROFILE_CLAIMS, result);
 		}
 		return result;
 	}
