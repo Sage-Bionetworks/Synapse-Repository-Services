@@ -196,4 +196,12 @@ public class EntityServiceImplUnitTest {
 		});
 		assertEquals("AccessType cannot be null", thrown.getMessage());
 	}
+
+	@Test
+	public void testHasAccessInvalidAccessType() {
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, "invalidAccessType");
+		});
+		assertEquals("No enum constant org.sagebionetworks.repo.model.ACCESS_TYPE.invalidAccessType", thrown.getMessage());
+	}
 }
