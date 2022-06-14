@@ -188,4 +188,9 @@ public class EntityServiceImplUnitTest {
 		assertSame(managerResult, serviceResult);
 		verify(mockStsManager).getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only);
 	}
+
+	@Test
+	public void testHasAccessNullAccessType() {
+		entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, null);
+	}
 }
