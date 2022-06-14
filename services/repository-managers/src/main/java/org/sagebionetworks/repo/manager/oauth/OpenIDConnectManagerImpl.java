@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -62,6 +63,22 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	// token_type=Bearer, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	private static final String TOKEN_TYPE_BEARER = "Bearer";
+
+	private static final Map<OIDCClaimName, OIDCClaimsRequestDetails> EMAIL_CLAIMS;
+	static {
+		EMAIL_CLAIMS = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		EMAIL_CLAIMS.put(OIDCClaimName.email, null);
+		EMAIL_CLAIMS.put(OIDCClaimName.email_verified, null);
+	}
+
+	private static final Map<OIDCClaimName, OIDCClaimsRequestDetails> PROFILE_CLAIMS;
+	static {
+		PROFILE_CLAIMS = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		PROFILE_CLAIMS.put(OIDCClaimName.family_name, null);
+		PROFILE_CLAIMS.put(OIDCClaimName.given_name, null);
+		PROFILE_CLAIMS.put(OIDCClaimName.company, null);
+		PROFILE_CLAIMS.put(OIDCClaimName.user_name, null);
+	}
 
 	@Autowired
 	private StackEncrypter stackEncrypter;
@@ -300,28 +317,46 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return userId;
 	}
-
+	
+	void addClaimToMap(final String userId, Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim, Map<OIDCClaimName,Object> result) {
+		Object claimValue = null;
+		OIDCClaimProvider claimProvider = claimProviders.get(claim.getKey());
+		if (claimProvider!=null) {
+			claimValue = claimProvider.getClaim(userId, claim.getValue());
+		}
+		// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+		// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
+		// representing the Claims; it SHOULD NOT be present with a null or empty string value."
+		if (claimValue!=null) {
+			result.put(claim.getKey(), claimValue);
+		}
+	}
+	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
 	 */
-	public Map<OIDCClaimName,Object> getUserInfo(final String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
+	public Map<OIDCClaimName,Object> getUserInfo(final String userId, List<OAuthScope> scopes, 
+			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
 		Map<OIDCClaimName,Object> result = new HashMap<OIDCClaimName,Object>();
-		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
+		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by
+		// Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (!scopes.contains(OAuthScope.openid)) return result;
 
-		for (OIDCClaimName claimName : oidcClaims.keySet()) {
-			Object claimValue = null;
-			OIDCClaimProvider claimProvider = claimProviders.get(claimName);
-			if (claimProvider!=null) {
-				claimValue = claimProvider.getClaim(userId, oidcClaims.get(claimName));
+		for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : oidcClaims.entrySet()) {
+			addClaimToMap(userId, claim, result);
+		}
+		
+		// 'email' and 'profile' scopes map to specific user claims
+		if (scopes.contains(OAuthScope.email)) {
+			for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : EMAIL_CLAIMS.entrySet()) {
+				addClaimToMap(userId, claim, result);
 			}
-			// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-			// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
-			// representing the Claims; it SHOULD NOT be present with a null or empty string value."
-			if (claimValue!=null) {
-				result.put(claimName, claimValue);
+		}
+		if (scopes.contains(OAuthScope.profile)) {
+			for (Entry<OIDCClaimName, OIDCClaimsRequestDetails> claim : PROFILE_CLAIMS.entrySet()) {
+				addClaimToMap(userId, claim, result);
 			}
 		}
 		return result;

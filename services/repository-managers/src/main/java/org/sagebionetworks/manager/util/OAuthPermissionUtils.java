@@ -7,6 +7,10 @@ public class OAuthPermissionUtils {
 		switch (scope) {
 		case openid:
 			return "To see your identity";
+		case email:
+			return "To see your email address";
+		case profile:
+			return "To see your user profile";
 		case view:
 			return "To view the content which you can view";
 		case modify:

@@ -7,6 +7,14 @@
       "description": "Required scope for OpenID Connect"
     },
     {
+      "name": "email",
+      "description": "When used with 'openid' return 'email' and 'email_verified' claims in ID token"
+    },
+    {
+      "name": "profile",
+      "description": "When used with 'openid' return user profile information in ID token"
+    },
+    {
       "name": "view",
       "description": "Read object metadata"
     },
