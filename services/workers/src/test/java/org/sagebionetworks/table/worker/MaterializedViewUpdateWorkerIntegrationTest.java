@@ -303,6 +303,58 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 
 	}
+
+	/*
+	 * This test is added to reproduce and fix PLFM-7321.
+	 * */
+	
+	@Test
+	public void testMaterializedViewWithLeftJoinViews() throws Exception {
+		int numberOfFiles = 5;
+		final List<Entity> leftEntities = createProjectHierachy(numberOfFiles);
+		final String projectId = leftEntities.get(0).getId();
+		final List<String> fileIds = leftEntities.stream()
+				.filter((e) -> e instanceof FileEntity)
+				.map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		
+		final List<PatientData> patientDataLeft = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final List<Entity> rightEntities = createProjectHierachy(2);
+		final List<PatientData> patientDataRight = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(333L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final IdAndVersion viewId = createFileViewWithPatientIds(leftEntities, patientDataLeft);
+
+		final IdAndVersion tableId = createFileViewWithPatientIds(rightEntities, patientDataRight);
+
+		final String definingSql = String.format(
+				"select v.id, v.patientId, p.patientId from %s v left join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		final IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		final String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
+		
+		final List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", null)),
+				new Row().setRowId(2L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(1), "222", "222")),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", null)),
+				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "222")),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", null))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
 	
 	// Reproduce updates not propagating from source changes (See https://sagebionetworks.jira.com/browse/PLFM-6977)
 	@Test
@@ -857,7 +909,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 	
 	private String createProject() {
-		return entityManager.createEntity(adminUserInfo, new Project().setName("A Project"), null);
+		return entityManager.createEntity(adminUserInfo, new Project().setName(null), null);
 	}
 	
 	private IdAndVersion createTable(String parentId, List<String> columnIds) {

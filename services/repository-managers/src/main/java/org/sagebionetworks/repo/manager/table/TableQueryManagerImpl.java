@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -683,58 +685,110 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		return resultQuery;
 	}
 
-	/**
-	 * Build a new query with a benefactor filter applied to the SQL from the passed
-	 * query.
-	 * 
-	 * @param originalQuery
-	 * @param accessibleBenefactors
-	 * @return
-	 * @throws EmptyResultException
-	 */
-	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery,
-			Set<Long> accessibleBenefactors, String benefactorColumnName) {
-		ValidateArgument.required(originalQuery, "originalQuery");
-		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
-		if (accessibleBenefactors.isEmpty()) {
-			// There are no negative benefactorIds so this set would create a filter that
-			// matches no rows
-			accessibleBenefactors = Collections.singleton(-1L);
+    /**
+     * Build a new query with a benefactor filter applied to the SQL from the passed
+     * query.
+     *
+     * @param originalQuery
+     * @param accessibleBenefactors
+     * @return
+     * @throws EmptyResultException
+     */
+    public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery,
+                                                           Set<Long> accessibleBenefactors,
+                                                           String benefactorColumnName) {
+        ValidateArgument.required(originalQuery, "originalQuery");
+        ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
+        if (accessibleBenefactors.isEmpty()) {
+            // There are no negative benefactorIds so this set would create a filter that
+            // matches no rows
+            accessibleBenefactors = Collections.singleton(-1L);
+        }
+        // copy the original model
+        try {
+            QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
+            WhereClause where = originalQuery.getTableExpression().getWhereClause();
+            StringBuilder filterBuilder = new StringBuilder();
+            filterBuilder.append("WHERE ");
+            if (where != null) {
+                filterBuilder.append("(");
+                filterBuilder.append(where.getSearchCondition().toSql());
+                filterBuilder.append(") ");
+            }
+
+            addBenefactorsColumn(filterBuilder, accessibleBenefactors, benefactorColumnName, where);
+
+            // create the new where
+            where = new TableQueryParser(filterBuilder.toString()).whereClause();
+            modelCopy.getTableExpression().replaceWhere(where);
+            // return a copy
+            return modelCopy;
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+	private static void addBenefactorsColumn(final StringBuilder filterBuilder, final Set<Long> accessibleBenefactors,
+											 final String benefactorColumnName, final WhereClause where) {
+		final Set<Long> nonNullBenefactors = accessibleBenefactors.stream()
+				.filter(benefactorId -> benefactorId != null)
+				.collect(Collectors.toSet());
+		String inClause = null;
+		String nullClause = null;
+
+		if (nonNullBenefactors.size() > 0) {
+			inClause = addNonNullBenefactors(benefactorColumnName, nonNullBenefactors);
 		}
-		// copy the original model
-		try {
-			QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
-			WhereClause where = originalQuery.getTableExpression().getWhereClause();
-			StringBuilder filterBuilder = new StringBuilder();
-			filterBuilder.append("WHERE ");
-			if (where != null) {
-				filterBuilder.append("(");
-				filterBuilder.append(where.getSearchCondition().toSql());
-				filterBuilder.append(") AND ");
+
+		if (accessibleBenefactors.stream().anyMatch(Objects::isNull)) {
+			nullClause = addNullBenefactors(benefactorColumnName);
+		}
+
+		if (where != null) {
+			filterBuilder.append(" AND ");
+		}
+
+		if (inClause != null && nullClause != null) {
+			filterBuilder.append(" ( ");
+		}
+
+		if (inClause != null) {
+			filterBuilder.append(inClause);
+		}
+
+		if (nullClause != null) {
+			if (inClause != null) {
+				filterBuilder.append(" OR ");
 			}
-			filterBuilder.append(benefactorColumnName);
-			filterBuilder.append(" IN (");
-			boolean isFirst = true;
-			for (Long id : accessibleBenefactors) {
-				if (!isFirst) {
-					filterBuilder.append(",");
-				}
-				filterBuilder.append(id);
-				isFirst = false;
-			}
-			filterBuilder.append(")");
-			// create the new where
-			where = new TableQueryParser(filterBuilder.toString()).whereClause();
-			modelCopy.getTableExpression().replaceWhere(where);
-			// return a copy
-			return modelCopy;
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
+
+			filterBuilder.append(nullClause);
+		}
+
+		if (inClause != null && nullClause != null) {
+			filterBuilder.append(" ) ");
 		}
 	}
 
-	@Override
-	public EntityType getTableEntityType(IdAndVersion idAndVersion) {
-		return tableManagerSupport.getTableEntityType(idAndVersion);
+	private static String addNonNullBenefactors(final String benefactorColumnName,
+												final Set<Long> nonNullBenefactors) {
+		final StringBuilder filterBuilder = new StringBuilder();
+
+		filterBuilder.append(benefactorColumnName + " IN (");
+
+		filterBuilder.append(nonNullBenefactors.stream()
+				.map(String::valueOf)
+				.collect(Collectors.joining(",")));
+		filterBuilder.append(")");
+
+		return filterBuilder.toString();
 	}
+
+	private static String addNullBenefactors(final String benefactorColumnName) {
+		return benefactorColumnName + " is null ";
+	}
+
+    @Override
+    public EntityType getTableEntityType(IdAndVersion idAndVersion) {
+        return tableManagerSupport.getTableEntityType(idAndVersion);
+    }
 }
