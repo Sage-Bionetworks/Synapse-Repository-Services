@@ -330,17 +330,17 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				new PatientData().withCode("def").withPatientId(222L)
 		);
 
-		final IdAndVersion viewId = createFileViewWithPatientIds(leftEntities, patientDataLeft);
+		final IdAndVersion leftId = createFileViewWithPatientIds(leftEntities, patientDataLeft);
 
-		final IdAndVersion tableId = createFileViewWithPatientIds(rightEntities, patientDataRight);
+		final IdAndVersion rightId = createFileViewWithPatientIds(rightEntities, patientDataRight);
 
 		final String definingSql = String.format(
-				"select v.id, v.patientId, p.patientId from %s v left join %s p on (v.patientId = p.patientId)",
-				viewId.toString(), tableId.toString());
+				"select l.id, l.patientId, r.patientId from %s l left join %s r on (l.patientId = r.patientId) order by l.ROW_ID",
+				leftId.toString(), rightId.toString());
 		
 		final IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
 
-		final String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"v.id\" asc";
+		final String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"l.id\" asc";
 		
 		final List<Row> expectedRows = Arrays.asList(
 				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", null)),
