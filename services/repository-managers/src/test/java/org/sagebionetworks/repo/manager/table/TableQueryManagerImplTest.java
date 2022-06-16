@@ -1672,7 +1672,85 @@ public class TableQueryManagerImplTest {
 		// should filter by benefactorId
 		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
 	}
-	
+
+	@Test
+	public void testBuildBenefactorFilterWithOneNull() throws ParseException {
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		benefactorIds.add(null);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ( ROW_BENEFACTOR IN ( 456, 123 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+	}
+
+	@Test
+	public void testBuildBenefactorFilterWithMultipleNull() throws ParseException {
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(null);
+		benefactorIds.add(456L);
+		benefactorIds.add(null);
+		benefactorIds.add(null);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ( ROW_BENEFACTOR IN ( 456 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+	}
+
+	@Test
+	public void testBuildBenefactorFilterWithAllNull() throws ParseException, EmptyResultException{
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(null);
+		benefactorIds.add(null);
+		benefactorIds.add(null);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IS NULL", filtered.toSql());
+	}
+
+	@Test
+	public void testBuildBenefactorFilterWithoutWhereClauseAndWithNull() throws ParseException, EmptyResultException{
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(null);
+		benefactorIds.add(123L);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ( ROW_BENEFACTOR IN ( 123 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+	}
+
+	@Test
+	public void testBuildBenefactorFilterWithoutWhereClause() throws ParseException, EmptyResultException{
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 456, 123 )", filtered.toSql());
+	}
+
+	@Test
+	public void testBuildBenefactorFilterWithoutWhereClauseAndNoBenefactors() throws ParseException, EmptyResultException{
+		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
+		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(null);
+		benefactorIds.add(null);
+		benefactorIds.add(null);
+
+		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
+		assertNotNull(filtered);
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IS NULL", filtered.toSql());
+	}
+
+
 	@Test
 	public void testBuildBenefactorFilterWithOtherBenefactorColumnName() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
