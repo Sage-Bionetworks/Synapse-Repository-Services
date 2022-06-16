@@ -784,7 +784,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	private static String addNullBenefactors(final String benefactorColumnName) {
-		return benefactorColumnName + " is null ";
+		return benefactorColumnName + " IS NULL ";
 	}
 
     @Override
