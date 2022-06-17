@@ -46,4 +46,6 @@ public interface ResearchProjectManager {
 	 * @return
 	 */
 	public ResearchProject createOrUpdate(UserInfo user, ResearchProject toCreateOrUpdate);
+
+	public void truncateAll();
 }

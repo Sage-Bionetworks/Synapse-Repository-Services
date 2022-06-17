@@ -214,4 +214,9 @@ public class RequestManagerImpl implements RequestManager{
 		return requestDao.get(requestId);
 	}
 
+	@Override
+	public void truncateAll() {
+		requestDao.truncateAll();
+	}
+
 }

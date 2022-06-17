@@ -45,7 +45,7 @@ public class LockAccessRequirementObjectHelper implements DaoObjectHelper<LockAc
 
 	@Override
 	public void truncateAll() {
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 
 }

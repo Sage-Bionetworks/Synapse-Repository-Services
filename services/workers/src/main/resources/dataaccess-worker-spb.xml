@@ -116,6 +116,7 @@
 		<property name="repeatInterval" value="60000" />
 	</bean>
 	
+	<!-- This worker sends notification emails after the create/update of data access requests. -->
 	<bean id="dataAccessRequestNotificationTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">

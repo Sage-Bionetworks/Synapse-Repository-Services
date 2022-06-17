@@ -98,7 +98,7 @@ public class AccessSubmissionFileScannerIntegrationTest {
 			submissionDao.truncateAll();
 			requestDao.truncateAll();
 			researchProjectDao.truncateAll();
-			arDao.clear();
+			arDao.truncateAll();
 			fileHandleDao.truncateTable();
 			
 			
@@ -120,7 +120,7 @@ public class AccessSubmissionFileScannerIntegrationTest {
 			submissionDao.truncateAll();
 			requestDao.truncateAll();
 			researchProjectDao.truncateAll();
-			arDao.clear();
+			arDao.truncateAll();
 			fileHandleDao.truncateTable();
 			
 			usersToDelete.forEach(userGroupDao::delete);

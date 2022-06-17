@@ -117,7 +117,7 @@ public class EntityAuthorizationManagerAutowireTest {
 	@AfterEach
 	public void after() {
 		accessApprovalDAO.clear();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		aclDao.truncateAll();
 		dataTypeDao.truncateAllData();
 		nodeDao.truncateAll();

@@ -41,13 +41,13 @@ public class AccessRequirementMigrationTest {
 
 	@BeforeEach
 	public void before() {
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		migration = new AccessRequirementMigration(jdbcTemplate);
 	}
 	
 	@AfterEach
 	public void after() {
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 
 	@Test

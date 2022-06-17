@@ -55,7 +55,7 @@ public class ManagedACTAccessRequirementObjectHelper implements DaoObjectHelper<
 
 	@Override
 	public void truncateAll() {
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 
 }

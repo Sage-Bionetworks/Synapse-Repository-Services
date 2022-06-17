@@ -44,4 +44,6 @@ public interface RequestManager {
 	 * @return
 	 */
 	public RequestInterface getRequestForSubmission(String requestId);
+
+	public void truncateAll();
 }

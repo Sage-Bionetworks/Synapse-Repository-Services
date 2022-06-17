@@ -23,7 +23,7 @@ public class DataAccessTestHelper {
 	
 	public void cleanUp() {
 		accessApprovalDao.clear();
-		accessRequirementDao.clear();
+		accessRequirementDao.truncateAll();
 	}
 	
 	public AccessApproval getApproval(Long id) {

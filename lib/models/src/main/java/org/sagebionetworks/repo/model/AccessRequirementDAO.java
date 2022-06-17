@@ -135,7 +135,7 @@ public interface AccessRequirementDAO {
 	
 	// For testing
 	
-	void clear();
+	void truncateAll();
 
 	/**
 	 * Map the given access requirement IDs to the provided project ID.

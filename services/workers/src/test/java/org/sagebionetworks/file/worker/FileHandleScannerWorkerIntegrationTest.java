@@ -75,7 +75,7 @@ public class FileHandleScannerWorkerIntegrationTest {
 	public void before() throws SchedulerException {
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		dao.truncateAll();
 		tableChangeDao.truncateAllRowData();
@@ -100,7 +100,7 @@ public class FileHandleScannerWorkerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		dao.truncateAll();
 	}
