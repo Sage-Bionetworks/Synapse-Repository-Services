@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,16 +42,21 @@ import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
+import org.sagebionetworks.repo.manager.oauth.claimprovider.CompanyClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailVerifiedClaimProvider;
+import org.sagebionetworks.repo.manager.oauth.claimprovider.FamilyNameClaimProvider;
+import org.sagebionetworks.repo.manager.oauth.claimprovider.GivenNameClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
+import org.sagebionetworks.repo.manager.oauth.claimprovider.UserNameClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
@@ -72,6 +76,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -80,8 +85,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
@@ -100,6 +103,10 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final String OAUTH_CLIENT_ID = "123";
 	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String EMAIL = "me@domain.com";
+	private static final String LAST_NAME = "last-name";
+	private static final String FIRST_NAME = "first-name";
+	private static final String COMPANY = "company";
+	private static final String USER_NAME = "user-name";
 	private static final long EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	private String ppid;
 
@@ -114,6 +121,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private AuthenticationDAO mockAuthDao;
+
+	@Mock
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 
 	@Mock
 	private OIDCTokenHelper oidcTokenHelper;
@@ -155,6 +165,18 @@ public class OpenIDConnectManagerImplUnitTest {
 	private EmailClaimProvider mockEmailClaimProvider;
 
 	@InjectMocks
+	private FamilyNameClaimProvider mockFamilyNameClaimProvider;
+
+	@InjectMocks
+	private CompanyClaimProvider mockCompanyClaimProvider;
+
+	@InjectMocks
+	private GivenNameClaimProvider mockGivenNameClaimProvider;
+
+	@InjectMocks
+	private UserNameClaimProvider mockUserNameClaimProvider;
+
+	@InjectMocks
 	private EmailVerifiedClaimProvider mockEmailVerifiedClaimProvider;
 
 	@InjectMocks
@@ -190,6 +212,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private String clientSpecificEncodingSecret;
 	private OAuthClient oauthClient;
 	private Map<OIDCClaimName, OIDCClaimProvider> mockClaimProviders;
+	private UserProfile userProfile;
 	private VerificationSubmission verificationSubmission;
 	
 	@BeforeEach
@@ -216,11 +239,18 @@ public class OpenIDConnectManagerImplUnitTest {
 		mockClaimProviders = new HashMap<OIDCClaimName, OIDCClaimProvider>();
 
 		mockClaimProviders.put(OIDCClaimName.email, mockEmailClaimProvider);
-		
 		mockClaimProviders.put(OIDCClaimName.email_verified, mockEmailVerifiedClaimProvider);
-		
 		mockClaimProviders.put(OIDCClaimName.userid, mockUserIdClaimProvider);
+		mockClaimProviders.put(OIDCClaimName.family_name, mockFamilyNameClaimProvider);
+		mockClaimProviders.put(OIDCClaimName.given_name, mockGivenNameClaimProvider);
+		mockClaimProviders.put(OIDCClaimName.company, mockCompanyClaimProvider);
+		mockClaimProviders.put(OIDCClaimName.user_name, mockUserNameClaimProvider);
 		
+		userProfile = new UserProfile();
+		userProfile.setCompany(COMPANY);
+		userProfile.setFirstName(FIRST_NAME);
+		userProfile.setLastName(LAST_NAME);
+
 		VerificationState verificationState = new VerificationState();
 		verificationState.setState(VerificationStateEnum.APPROVED);
 		verificationState.setCreatedOn(now);
@@ -656,6 +686,28 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(Collections.singletonList("101"), result.get(OIDCClaimName.team));
 	}
 
+	@Test
+	public void testGetUserInfo_internal_email_and_profile_scope() {
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		
+		// no claims (empty map)
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.openid, OAuthScope.email, OAuthScope.profile);
+		
+		// method under test
+		Map<OIDCClaimName, Object> result=openIDConnectManagerImpl.getUserInfo(USER_ID, scopes, oidcClaims);
+
+		assertEquals(EMAIL, result.get(OIDCClaimName.email));
+		assertTrue((Boolean)result.get(OIDCClaimName.email_verified));
+		
+		assertEquals(LAST_NAME, result.get(OIDCClaimName.family_name));
+		assertEquals(FIRST_NAME, result.get(OIDCClaimName.given_name));
+		assertEquals(COMPANY, result.get(OIDCClaimName.company));
+		assertEquals(USER_NAME, result.get(OIDCClaimName.user_name));
+	}
+
 	// make sure we correctly handle when information is unavailable
 	@Test
 	public void testGetUserInfo_internal_missing_info() {
@@ -692,7 +744,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
 
 		boolean includeIdToken = true;
 		boolean includeUserInfo = true;
@@ -758,8 +812,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
-
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		
 		boolean includeIdToken = true;
 		boolean includeUserInfo = true;
 
@@ -998,9 +1054,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1130,9 +1188,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		Date authenticationTime = new Date(now.getTime()-1000L*3600*24*7); // we logged in a week ago
 		when(mockAuthDao.getAuthenticatedOn(USER_ID_LONG)).thenReturn(authenticationTime);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
 
 		// This will be the new token and metadata
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
@@ -1214,6 +1274,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		mockAccessToken(OAUTH_CLIENT_ID);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		
 		// if the client omits a signing algorithm it means it wants the UserInfo as json
 		oauthClient.setUserinfo_signed_response_alg(null);
 		
@@ -1239,6 +1302,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		mockAccessToken(OAUTH_CLIENT_ID);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 
 		// if the client sets a signing algorithm it means it wants the UserInfo json
 		// to be encoded as a JWT and signed
@@ -1263,6 +1328,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfoDefaultClient() {
 		mockAccessToken(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 
 		// method under test
 		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)
