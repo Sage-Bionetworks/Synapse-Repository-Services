@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
@@ -62,6 +63,8 @@ public class EntityTypeUtils {
 				buildMetadata(EntityType.submissionview, Arrays.asList(Project.class.getName(), Folder.class.getName()), SubmissionView.class, "Submission View"),
 				// dataset
 				buildMetadata(EntityType.dataset, Arrays.asList(Project.class.getName(), Folder.class.getName()), Dataset.class, "Dataset"),
+				// dataset collection
+				buildMetadata(EntityType.datasetcollection, Arrays.asList(Project.class.getName(), Folder.class.getName()), DatasetCollection.class, "Dataset Collection"),
 				// materialized view
 				buildMetadata(EntityType.materializedview, Arrays.asList(Project.class.getName(), Folder.class.getName()), MaterializedView.class, "Materialized View")
 		};
@@ -76,6 +79,7 @@ public class EntityTypeUtils {
 		className.put(DockerRepository.class.getName(), DockerRepository.class);
 		className.put(SubmissionView.class.getName(), SubmissionView.class);
 		className.put(Dataset.class.getName(), Dataset.class);
+		className.put(DatasetCollection.class.getName(), DatasetCollection.class);
 		className.put(MaterializedView.class.getName(), MaterializedView.class);
 	}
 

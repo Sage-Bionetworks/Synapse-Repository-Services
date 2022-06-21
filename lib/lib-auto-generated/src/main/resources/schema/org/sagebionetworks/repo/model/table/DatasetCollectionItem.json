@@ -1,0 +1,13 @@
+{
+	"description": "Represents a single item of a dataset collection.",
+	"properties": {
+		"entityId": {
+			"description": "The 'syn' identifier of the dataset. Required.",
+			"type": "string"
+		},
+		"versionNumber": {
+			"description": "Indicates a specific version of the dataset. Required.",
+			"type": "integer"
+		}
+	}
+}
