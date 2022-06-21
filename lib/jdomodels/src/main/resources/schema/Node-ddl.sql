@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS `JDONODE` (
   `MAX_REV_NUM` BIGINT NOT NULL,
   `ETAG` char(36) NOT NULL,
   `NAME` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','entityview','dockerrepo','submissionview', 'dataset', 'materializedview') NOT NULL,
+  `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','entityview','dockerrepo','submissionview', 'dataset', 'datasetcollection', 'materializedview') NOT NULL,
   `PARENT_ID` BIGINT DEFAULT NULL,
   `ALIAS` varchar(64) CHARACTER SET latin1 COLLATE latin1_general_ci DEFAULT NULL,
   PRIMARY KEY (`ID`),
