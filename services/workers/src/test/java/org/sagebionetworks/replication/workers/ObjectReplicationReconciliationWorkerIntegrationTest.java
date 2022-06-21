@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -38,7 +39,6 @@ import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
@@ -201,7 +201,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		// ensure a sycn can occur.
 		indexDao.truncateReplicationSyncExpiration();
 
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(fileId).setVersionNumber(1L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId(fileId).setVersionNumber(1L));
 		Dataset dataset = createDataset(items);
 
 		// wait for reconciliation to restore the deleted data.
@@ -260,7 +260,7 @@ public class ObjectReplicationReconciliationWorkerIntegrationTest {
 		return createView(ViewObjectType.ENTITY, view, scopeIds, viewTypeMask);
 	}
 	
-	Dataset createDataset(List<DatasetItem> items) {
+	Dataset createDataset(List<EntityRef> items) {
 		Dataset dataset = new Dataset();
 		dataset.setName(UUID.randomUUID().toString());
 		dataset.setParentId(projectId);

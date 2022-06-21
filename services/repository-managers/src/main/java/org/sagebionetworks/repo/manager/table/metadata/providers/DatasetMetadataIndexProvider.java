@@ -8,13 +8,13 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -86,7 +86,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public ViewFilter getViewFilter(Long viewId) {
-		List<DatasetItem> items = nodeDao.getDatasetItems(viewId);
+		List<EntityRef> items = nodeDao.getNodeItems(viewId);
 		Set<IdVersionPair> scope = items.stream().map(i -> new IdVersionPair()
 				.setId(KeyFactory.stringToKey(i.getEntityId())).setVersion(i.getVersionNumber()))
 				.collect(Collectors.toSet());

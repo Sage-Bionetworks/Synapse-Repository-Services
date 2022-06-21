@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -20,7 +21,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -99,27 +99,27 @@ public class NodeUtils {
 	}
 	
 	/**
-	 * Read the given JSON into a list of dataset items.
+	 * Read the given JSON into a list of EntityRef items.
 	 * @param json
 	 * @return
 	 */
-	public static List<DatasetItem> readJsonToItems(String json){
+	public static List<EntityRef> readJsonToItems(String json){
 		if(json == null) {
 			return null;
 		}
 		try {
-			return EntityFactory.readFromJSONArrayString(json, DatasetItem.class);
+			return EntityFactory.readFromJSONArrayString(json, EntityRef.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException(e);
 		}
 	}
 	
 	/**
-	 * Write the given list of dataset items to JSON.
+	 * Write the given list of entity reference items to JSON.
 	 * @param items
 	 * @return
 	 */
-	public static String writeItemsToJson(List<DatasetItem> items) {
+	public static String writeItemsToJson(List<EntityRef> items) {
 		if(items == null) {
 			return null;
 		}

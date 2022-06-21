@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -72,7 +73,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -404,7 +404,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		entityAuthorizationManager.hasAccess(userInfo, parentId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		Long parentIdKey = KeyFactory.stringToKey(parentId);
 		if (nodeDao.getNodeTypeById(parentId).equals(EntityType.dataset)) {
-			List<DatasetItem> items = nodeDao.getDatasetItems(parentIdKey);
+			List<EntityRef> items = nodeDao.getNodeItems(parentIdKey);
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(this.downloadListDao
 					.addDatasetItemsToDownloadList(userInfo.getId(), items, limit));
 		} else {

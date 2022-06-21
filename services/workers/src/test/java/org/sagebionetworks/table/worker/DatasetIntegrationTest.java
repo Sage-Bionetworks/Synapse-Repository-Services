@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.download.DownloadListManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,7 +45,6 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -145,10 +145,10 @@ public class DatasetIntegrationTest {
 				fileThree.getEtag(), MAX_WAIT);
 
 		// add one version from each file
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L),
-				new DatasetItem().setEntityId(fileThree.getId()).setVersionNumber(3L)
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L),
+				new EntityRef().setEntityId(fileThree.getId()).setVersionNumber(3L)
 				);
 
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
@@ -188,9 +188,9 @@ public class DatasetIntegrationTest {
 				fileTwo.getEtag(), MAX_WAIT);
 		
 		// add one version from each file
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L)
 		);
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset().setParentId(project.getId())
@@ -232,9 +232,9 @@ public class DatasetIntegrationTest {
 				fileTwo.getEtag(), MAX_WAIT);
 		
 		// add one version from each file
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L)
 		);
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset()
@@ -273,7 +273,7 @@ public class DatasetIntegrationTest {
 			List<DownloadListItemResult> downloadListItems = ((AvailableFilesResponse)response.getResponseDetails()).getPage();
 			assertEquals(items.size(), downloadListItems.size());
 			for (int i=0; i<items.size(); i++) {
-				DatasetItem item = items.get(i);
+				EntityRef item = items.get(i);
 				DownloadListItemResult downloadItem = downloadListItems.get(i);
 				assertEquals(item.getEntityId(), downloadItem.getFileEntityId());
 				assertEquals(item.getVersionNumber(), downloadItem.getVersionNumber());
@@ -294,9 +294,9 @@ public class DatasetIntegrationTest {
 				fileTwo.getEtag(), MAX_WAIT);
 		
 		// add one version from each file
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L),
-				new DatasetItem().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
+				new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L)
 		);
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset()
@@ -335,7 +335,7 @@ public class DatasetIntegrationTest {
 			List<DownloadListItemResult> downloadListItems = ((AvailableFilesResponse)response.getResponseDetails()).getPage();
 			assertEquals(items.size(), downloadListItems.size());
 			for (int i=0; i<items.size(); i++) {
-				DatasetItem item = items.get(i);
+				EntityRef item = items.get(i);
 				DownloadListItemResult downloadItem = downloadListItems.get(i);
 				assertEquals(item.getEntityId(), downloadItem.getFileEntityId());
 				assertNull(downloadItem.getVersionNumber());
@@ -402,8 +402,8 @@ public class DatasetIntegrationTest {
 	@Test
 	public void testSchemaUpdateTransaction() throws AssertionError, AsynchJobFailedException, DatastoreException, InterruptedException {
 		FileEntity fileOne = createFileWithMultipleVersions(1, stringColumn.getName(), 1);
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(fileOne.getId()).setVersionNumber(1L)
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L)
 		);
 
 		asyncHelper.waitForObjectReplication(ReplicationType.ENTITY, KeyFactory.stringToKey(fileOne.getId()),
@@ -450,7 +450,7 @@ public class DatasetIntegrationTest {
 	@Test
 	public void testQueryDatasetWithNoItems() throws AssertionError, AsynchJobFailedException {
 		
-		List<DatasetItem> items = null;
+		List<EntityRef> items = null;
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, 
 			new Dataset().setParentId(project.getId())
@@ -475,7 +475,7 @@ public class DatasetIntegrationTest {
 	@Test
 	public void testDatasetSnapshotWithNoItems() throws AssertionError, AsynchJobFailedException {
 		
-		List<DatasetItem> items = null;
+		List<EntityRef> items = null;
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, 
 			new Dataset().setParentId(project.getId())

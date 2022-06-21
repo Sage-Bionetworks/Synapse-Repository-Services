@@ -7,10 +7,10 @@
 	],
 	"properties": {
 		"items": {
-			"description": "The flat list of datasets that define this collection.  Limit: 30K items.",
+			"description": "The flat list of dataset entity references that define this collection.  Limit: 30K items.",
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.table.DatasetCollectionItem"
+				"$ref": "org.sagebionetworks.repo.model.EntityRef"
 			}
 		}
 	}

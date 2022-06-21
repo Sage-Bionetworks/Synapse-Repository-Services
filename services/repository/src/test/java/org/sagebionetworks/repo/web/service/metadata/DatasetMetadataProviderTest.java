@@ -18,12 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
@@ -48,8 +48,8 @@ public class DatasetMetadataProviderTest {
 
 	@BeforeEach
 	public void before() {
-		dataset = new Dataset().setItems(Lists.newArrayList(new DatasetItem().setEntityId("syn111").setVersionNumber(2L),
-				new DatasetItem().setEntityId("syn222").setVersionNumber(4L)));
+		dataset = new Dataset().setItems(Lists.newArrayList(new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(4L)));
 		event = new EntityEvent();
 		user = new UserInfo(false, 44L);
 	}
@@ -125,7 +125,7 @@ public class DatasetMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityId() {
-		dataset.getItems().add(new DatasetItem().setEntityId("syn111").setVersionNumber(3L));
+		dataset.getItems().add(new EntityRef().setEntityId("syn111").setVersionNumber(3L));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -139,7 +139,7 @@ public class DatasetMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityIdNoSyn() {
-		dataset.getItems().add(new DatasetItem().setEntityId("111").setVersionNumber(3L));
+		dataset.getItems().add(new EntityRef().setEntityId("111").setVersionNumber(3L));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

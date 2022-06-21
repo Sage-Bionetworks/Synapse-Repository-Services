@@ -20,12 +20,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
-import org.sagebionetworks.repo.model.table.DatasetCollectionItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
@@ -48,8 +48,8 @@ public class DatasetCollectionMetadataProviderTest {
 	@BeforeEach
 	public void before() {
 		datasetCollection = new DatasetCollection().setItems(List.of(
-			new DatasetCollectionItem().setEntityId("syn111").setVersionNumber(2L),
-			new DatasetCollectionItem().setEntityId("syn222").setVersionNumber(4L))
+			new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+			new EntityRef().setEntityId("syn222").setVersionNumber(4L))
 		);
 		event = new EntityEvent();
 		user = new UserInfo(false, 44L);
@@ -133,9 +133,9 @@ public class DatasetCollectionMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityId() {
-		List<DatasetCollectionItem> items = new ArrayList<>(datasetCollection.getItems());
+		List<EntityRef> items = new ArrayList<>(datasetCollection.getItems());
 		
-		items.add(new DatasetCollectionItem().setEntityId("syn111").setVersionNumber(3L));
+		items.add(new EntityRef().setEntityId("syn111").setVersionNumber(3L));
 		
 		datasetCollection.setItems(items);
 
@@ -151,9 +151,9 @@ public class DatasetCollectionMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityIdNoSyn() {
-		List<DatasetCollectionItem> items = new ArrayList<>(datasetCollection.getItems());
+		List<EntityRef> items = new ArrayList<>(datasetCollection.getItems());
 		
-		items.add(new DatasetCollectionItem().setEntityId("111").setVersionNumber(3L));
+		items.add(new EntityRef().setEntityId("111").setVersionNumber(3L));
 		
 		datasetCollection.setItems(items);
 		

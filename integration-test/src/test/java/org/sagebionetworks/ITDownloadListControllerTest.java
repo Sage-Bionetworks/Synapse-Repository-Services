@@ -21,6 +21,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
@@ -43,7 +44,6 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -243,7 +243,7 @@ public class ITDownloadListControllerTest {
 		List<String> columnIds = synapse.getDefaultColumnsForView(ViewType.file).stream().map(c -> c.getId())
 				.collect(Collectors.toList());
 		Dataset dataset = synapse.createEntity(new Dataset().setParentId(file.getParentId())
-				.setItems(Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber())))
+				.setItems(Arrays.asList(new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber())))
 				.setColumnIds(columnIds));
 		Query query = new Query().setSql("select * from " + dataset.getId());
 		// Wait for the view to contain the file

@@ -343,4 +343,6 @@ public class TableConstants {
 	
 	public static final String MAXIMUM_OF_ITEMS_IN_A_DATASET_EXCEEDED = "Maximum of %,d items in a dataset exceeded.";
 	
+	public static final String MAXIMUM_OF_ITEMS_IN_A_DATASET_COLLECTION_EXCEEDED = "Maximum of %,d items in a dataset collection exceeded.";
+	
 }

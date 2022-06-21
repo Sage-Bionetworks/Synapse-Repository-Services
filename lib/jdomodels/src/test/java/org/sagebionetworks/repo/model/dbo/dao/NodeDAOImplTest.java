@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -101,7 +102,6 @@ import org.sagebionetworks.repo.model.schema.BoundObjectType;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -4654,7 +4654,7 @@ public class NodeDAOImplTest {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
 		});
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(4L));
 		toDelete.add(project.getId());
 		// call under test
 		Node dataset = nodeDaoHelper.create(n -> {
@@ -4676,7 +4676,7 @@ public class NodeDAOImplTest {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
 		});
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(4L));
 		toDelete.add(project.getId());
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -4700,13 +4700,13 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetDatasetItems() {
+	public void testGetNodeItems() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
 		});
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
-				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(4L),
+				new EntityRef().setEntityId("syn456").setVersionNumber(6L));
 		toDelete.add(project.getId());
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -4717,18 +4717,18 @@ public class NodeDAOImplTest {
 		});
 		assertEquals(items, dataset.getItems());
 		// Call under test
-		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> fetched = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(items, fetched);
 	}
 	
 	@Test
-	public void testGetDatasetItemsWithMultipleVersion() {
+	public void testGetNodeItemsWithMultipleVersion() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
 		});
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(4L),
-				new DatasetItem().setEntityId("syn456").setVersionNumber(6L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(4L),
+				new EntityRef().setEntityId("syn456").setVersionNumber(6L));
 		toDelete.add(project.getId());
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -4738,8 +4738,8 @@ public class NodeDAOImplTest {
 			n.setItems(items);
 		});
 		// v2
-		List<DatasetItem> itemsV2 = Arrays.asList(new DatasetItem().setEntityId("syn333").setVersionNumber(4L),
-				new DatasetItem().setEntityId("syn444").setVersionNumber(6L));
+		List<EntityRef> itemsV2 = Arrays.asList(new EntityRef().setEntityId("syn333").setVersionNumber(4L),
+				new EntityRef().setEntityId("syn444").setVersionNumber(6L));
 		dataset.setVersionNumber(2L);
 		dataset.setVersionComment("v2");
 		dataset.setVersionLabel("v2");
@@ -4747,17 +4747,17 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(dataset);
 
 		// Call under test
-		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> fetched = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(itemsV2, fetched);
 	}
 	
 	@Test
-	public void testGetDatasetItemsWithNoItems() {
+	public void testGetNodeItemsWithNoItems() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
 			n.setCreatedByPrincipalId(creatorUserGroupId);
 		});
-		List<DatasetItem> items = null;
+		List<EntityRef> items = null;
 		toDelete.add(project.getId());
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -4768,7 +4768,7 @@ public class NodeDAOImplTest {
 		});
 		assertEquals(items, dataset.getItems());
 		// Call under test
-		List<DatasetItem> fetched = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> fetched = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		assertEquals(Collections.emptyList(), fetched);
 	}
 
@@ -4830,7 +4830,7 @@ public class NodeDAOImplTest {
 		Long datasetId = -1L;
 		String message = assertThrows(NotFoundException.class, ()->{
 			// call under test
-			nodeDao.getDatasetItems(datasetId);
+			nodeDao.getNodeItems(datasetId);
 		}).getMessage();
 		assertEquals("View '-1' not found", message);
 	}
@@ -4840,7 +4840,7 @@ public class NodeDAOImplTest {
 		Long datasetId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			nodeDao.getDatasetItems(datasetId);
+			nodeDao.getNodeItems(datasetId);
 		});
 	}
 	

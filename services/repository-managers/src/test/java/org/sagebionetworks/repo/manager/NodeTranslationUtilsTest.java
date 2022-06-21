@@ -13,10 +13,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
+
+import com.google.common.collect.Lists;
 
 public class NodeTranslationUtilsTest {
 
@@ -183,11 +185,23 @@ public class NodeTranslationUtilsTest {
 		Dataset dataset = new Dataset();
 		dataset.setName("a-dataset");
 		dataset.setColumnIds(Arrays.asList("123", "456"));
-		dataset.setItems(Arrays.asList(new DatasetItem().setEntityId("syn111").setVersionNumber(1L),
-				new DatasetItem().setEntityId("syn222").setVersionNumber(2L)));
+		dataset.setItems(Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(1L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(2L)));
 		
 		Dataset clone = cloneUsingNodeTranslation(dataset);
 		assertEquals(dataset, clone);
+	}
+	
+	@Test
+	public void testDatasetCollectionTranslation() throws InstantiationException, IllegalAccessException {
+		DatasetCollection datasetCollection = new DatasetCollection();
+		datasetCollection.setName("a-dataset-collection");
+		datasetCollection.setColumnIds(Arrays.asList("123", "456"));
+		datasetCollection.setItems(Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(1L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(2L)));
+		
+		DatasetCollection clone = cloneUsingNodeTranslation(datasetCollection);
+		assertEquals(datasetCollection, clone);
 	}
 	
 	@Test

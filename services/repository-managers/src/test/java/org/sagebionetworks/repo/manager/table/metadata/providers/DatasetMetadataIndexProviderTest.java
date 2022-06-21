@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.DatasetItem;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -43,7 +43,7 @@ public class DatasetMetadataIndexProviderTest {
 	private DatasetMetadataIndexProvider provider;
 
 	private Long viewId;
-	private List<DatasetItem> items;
+	private List<EntityRef> items;
 	private Set<IdVersionPair> scope;
 	private Set<SubType> subTypes;
 	private ViewScopeType viewScopeType;
@@ -52,8 +52,8 @@ public class DatasetMetadataIndexProviderTest {
 	@BeforeEach
 	public void before() {
 		viewId = 123L;
-		items = Arrays.asList(new DatasetItem().setEntityId("syn11").setVersionNumber(2L),
-				new DatasetItem().setEntityId("syn22").setVersionNumber(3L));
+		items = Arrays.asList(new EntityRef().setEntityId("syn11").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn22").setVersionNumber(3L));
 
 		scope = items.stream().map(i -> new IdVersionPair().setId(KeyFactory.stringToKey(i.getEntityId()))
 				.setVersion(i.getVersionNumber())).collect(Collectors.toSet());
@@ -77,7 +77,7 @@ public class DatasetMetadataIndexProviderTest {
 
 	@Test
 	public void testGetViewFilter() {
-		when(mockNodeDao.getDatasetItems(viewId)).thenReturn(items);
+		when(mockNodeDao.getNodeItems(viewId)).thenReturn(items);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewId);
 		ViewFilter expected = new FlatIdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);

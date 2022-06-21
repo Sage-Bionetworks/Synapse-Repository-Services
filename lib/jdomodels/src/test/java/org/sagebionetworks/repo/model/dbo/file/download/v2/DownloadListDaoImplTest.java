@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -66,7 +67,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.helper.FileHandleObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -2079,10 +2079,10 @@ public class DownloadListDaoImplTest {
 		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
 		assertEquals(3, files.size());
 		// add the first 2 of 3 files to the dataset
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(files.get(0).getId())
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(files.get(0).getId())
 				.setVersionNumber(files.get(0).getVersionNumber()),
-				new DatasetItem().setEntityId(files.get(1).getId())
+				new EntityRef().setEntityId(files.get(1).getId())
 				.setVersionNumber(files.get(1).getVersionNumber()));
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -2090,7 +2090,7 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.dataset);
 			n.setItems(items);
 		});
-		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> toAdd = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
 		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(2L, count);
@@ -2113,10 +2113,10 @@ public class DownloadListDaoImplTest {
 		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
 		assertEquals(3, files.size());
 		// add the first 2 of 3 files to the dataset
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(files.get(0).getId())
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(files.get(0).getId())
 				.setVersionNumber(files.get(0).getVersionNumber()),
-				new DatasetItem().setEntityId(files.get(1).getId())
+				new EntityRef().setEntityId(files.get(1).getId())
 				.setVersionNumber(files.get(1).getVersionNumber()));
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -2124,7 +2124,7 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.dataset);
 			n.setItems(items);
 		});
-		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> toAdd = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
 		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(1L, count);
@@ -2149,10 +2149,10 @@ public class DownloadListDaoImplTest {
 		);
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
 		// add all files (2) to the dataset
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(files.get(0).getId())
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(files.get(0).getId())
 				.setVersionNumber(files.get(0).getVersionNumber()),
-				new DatasetItem().setEntityId(files.get(1).getId())
+				new EntityRef().setEntityId(files.get(1).getId())
 				.setVersionNumber(files.get(1).getVersionNumber()));
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -2160,7 +2160,7 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.dataset);
 			n.setItems(items);
 		});
-		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> toAdd = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
 		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		// only adds 1 now because the other file was already there
@@ -2187,10 +2187,10 @@ public class DownloadListDaoImplTest {
 		);
 		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, alreadyOnList);
 		// add all files (2) to the dataset
-		List<DatasetItem> items = Arrays.asList(
-				new DatasetItem().setEntityId(files.get(0).getId())
+		List<EntityRef> items = Arrays.asList(
+				new EntityRef().setEntityId(files.get(0).getId())
 				.setVersionNumber(files.get(0).getVersionNumber()),
-				new DatasetItem().setEntityId(files.get(1).getId())
+				new EntityRef().setEntityId(files.get(1).getId())
 				.setVersionNumber(files.get(1).getVersionNumber()));
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
@@ -2198,7 +2198,7 @@ public class DownloadListDaoImplTest {
 			n.setNodeType(EntityType.dataset);
 			n.setItems(items);
 		});
-		List<DatasetItem> toAdd = nodeDao.getDatasetItems(KeyFactory.stringToKey(dataset.getId()));
+		List<EntityRef> toAdd = nodeDao.getNodeItems(KeyFactory.stringToKey(dataset.getId()));
 		// call under test
 		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);
 		assertEquals(2L, count);
@@ -2214,7 +2214,7 @@ public class DownloadListDaoImplTest {
 	
 	@Test
 	public void testAddDatasetItemsToDownloadListWithEmpty() {
-		List<DatasetItem> toAdd = Collections.emptyList();
+		List<EntityRef> toAdd = Collections.emptyList();
 		
 		// call under test
 		Long count = downloadListDao.addDatasetItemsToDownloadList(userOneIdLong, toAdd, limit);

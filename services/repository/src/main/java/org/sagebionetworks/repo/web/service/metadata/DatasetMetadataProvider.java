@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -16,7 +17,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -40,7 +40,7 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 		if (entity.getItems() != null) {
 			
 			Set<Long> uniqueIds = new HashSet<>(entity.getItems().size());
-			for(DatasetItem item: entity.getItems()) {
+			for(EntityRef item: entity.getItems()) {
 				if(item.getEntityId() == null) {
 					throw new IllegalArgumentException("Each dataset item must have a non-null entity ID.");
 				}

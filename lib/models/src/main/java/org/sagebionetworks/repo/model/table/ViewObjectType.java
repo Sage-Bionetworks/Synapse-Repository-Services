@@ -17,7 +17,8 @@ public enum ViewObjectType {
 
 	ENTITY(ViewEntityType.entityview, ReplicationType.ENTITY),
 	SUBMISSION(ViewEntityType.submissionview, ReplicationType.SUBMISSION),
-	DATASET(ViewEntityType.dataset, ReplicationType.ENTITY);
+	DATASET(ViewEntityType.dataset, ReplicationType.ENTITY),
+	DATASET_COLLECTION(ViewEntityType.datasetcollection, ReplicationType.ENTITY);
 
 	private ViewEntityType viewEntityType;
 	private ReplicationType mainType;

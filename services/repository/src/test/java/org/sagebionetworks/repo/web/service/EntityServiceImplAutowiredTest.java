@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -39,12 +40,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
@@ -518,7 +517,7 @@ public class EntityServiceImplAutowiredTest  {
 		one = columnModelManager.createColumnModel(adminUserInfo, one);
 		List<String> schema = Arrays.asList(one.getId());
 		
-		List<DatasetItem> scope = Arrays.asList(new DatasetItem().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()));
+		List<EntityRef> scope = Arrays.asList(new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()));
 
 		boolean newVersion = false;
 		String activityId = null;
@@ -549,9 +548,9 @@ public class EntityServiceImplAutowiredTest  {
 		one = columnModelManager.createColumnModel(adminUserInfo, one);
 		List<String> schema = Arrays.asList(one.getId());
 		
-		List<DatasetItem> scope = new ArrayList<>(TableConstants.MAX_CONTAINERS_PER_VIEW+1);
+		List<EntityRef> scope = new ArrayList<>(TableConstants.MAX_CONTAINERS_PER_VIEW+1);
 		for(int i=0; i<TableConstants.MAX_CONTAINERS_PER_VIEW+1; i++) {
-			scope.add(new DatasetItem().setEntityId("syn"+(i+100_100_000)).setVersionNumber((long)i));
+			scope.add(new EntityRef().setEntityId("syn"+(i+100_100_000)).setVersionNumber((long)i));
 		}
 
 		String activityId = null;
