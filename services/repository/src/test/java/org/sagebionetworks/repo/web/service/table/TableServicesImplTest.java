@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -263,6 +264,15 @@ public class TableServicesImplTest {
 		assertEquals(expectedUrl, url);
 		
 		
+	}
+
+	@Test( expected = InvalidModelException.class)
+	public void testGetFileHandlesNullHeadersPlfm7341() throws IOException {
+		RowReferenceSet rowReferenceSet = new RowReferenceSet();
+		rowReferenceSet.setTableId(tableId);
+		rowReferenceSet.setHeaders(null);
+		// Call under test
+		TableFileHandleResults results = tableService.getFileHandles(userInfo.getId(), rowReferenceSet);
 	}
 	
 }
