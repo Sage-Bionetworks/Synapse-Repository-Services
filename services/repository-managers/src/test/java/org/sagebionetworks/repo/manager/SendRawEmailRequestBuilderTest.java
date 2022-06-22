@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -16,8 +22,6 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
@@ -34,8 +38,8 @@ public class SendRawEmailRequestBuilderTest {
 	
 	StackConfiguration config;
 	
-	@Before
-	public void before() {
+	@BeforeEach
+	public void beforeEach() {
 		config = StackConfigurationSingleton.singleton();
 	}
 
@@ -74,7 +78,8 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(1, content.getCount());
 		assertTrue(content.getContentType().startsWith("multipart/related"));
 		BodyPart bodyPart = content.getBodyPart(0);
-		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain"));
+		assertNotNull(bodyPart.getContentType());
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
@@ -119,7 +124,8 @@ public class SendRawEmailRequestBuilderTest {
 		assertEquals(1, content.getCount());
 		assertTrue(content.getContentType().startsWith("multipart/related"));
 		BodyPart bodyPart = content.getBodyPart(0);
-		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().startsWith("text/plain"));
+		assertNotNull(bodyPart.getContentType());
+		assertTrue(bodyPart.getContentType().startsWith("text/plain"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 		assertTrue(bodyContent.indexOf(UNSUBSCRIBE_ENDPOINT)>0);
@@ -153,7 +159,8 @@ public class SendRawEmailRequestBuilderTest {
 
 		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
 		BodyPart bodyPart = content.getBodyPart(0);
-		assertTrue(bodyPart.getContentType(), bodyPart.getContentType().equals("text/plain; charset=UTF-8"));
+		assertNotNull(bodyPart.getContentType());
+		assertTrue(bodyPart.getContentType().equals("text/plain; charset=UTF-8"));
 		String bodyContent = ((String)bodyPart.getContent());
 		assertTrue(bodyContent.startsWith(body));
 	}
@@ -428,12 +435,38 @@ public class SendRawEmailRequestBuilderTest {
 		BodyPart attachmentPart = mm.getBodyPart(1);
 		String attachmentString = new String((byte[])attachmentPart.getContent());
 		assertEquals(content, attachmentString);
-		assertTrue(attachmentPart.getContentType(), attachmentPart.getContentType().startsWith("image/jpeg"));
+		assertNotNull(attachmentPart.getContentType());
+		assertTrue(attachmentPart.getContentType().startsWith("image/jpeg"));
 		assertEquals(attachmentPart.getContentType(), attachmentPart.getHeader("Content-Type")[0]);
 		assertEquals("foo; filename=\"bar bar.jpg\"", attachmentPart.getHeader("Content-Disposition")[0]);
 		assertEquals("101", attachmentPart.getHeader("Content-ID")[0]);
 		assertEquals("1000", attachmentPart.getHeader("size")[0]);
 		assertEquals("http://foo.bar.com", attachmentPart.getHeader("url")[0]);
 	}
-	
+
+	@Test
+	public void testCreateRawNotificationEmailRequestInvalidRecipientFormat() throws Exception {
+		String body = "this is the message body";
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+				SendRawEmailRequest request = (new SendRawEmailRequestBuilder())
+					.withRecipientEmail("foo@bar.com.")
+					.withSubject("subject")
+					.withBody(body, SendRawEmailRequestBuilder.BodyType.JSON)
+					.withSenderUserName("foobar")
+					.withSenderDisplayName("Foo Bar")
+					.withNotificationUnsubscribeEndpoint(UNSUBSCRIBE_ENDPOINT)
+					.withUnsubscribeLink(true)
+					.withUserProfileSettingEndpoint(PROFILE_SETTING_ENDPOINT)
+					.withProfileSettingLink(true)
+					.withIsNotificationMessage(true)
+					.withUserId("101")
+					.withTo("TO <to@foo.bar>")
+					.withCc("Cc <cc@foo.bar>")
+					.withBcc("Bcc <bcc@foo.bar>")
+					.build();
+			});
+		assertEquals("Invalid format for email address", thrown.getMessage());
+
+	}
+
 }
