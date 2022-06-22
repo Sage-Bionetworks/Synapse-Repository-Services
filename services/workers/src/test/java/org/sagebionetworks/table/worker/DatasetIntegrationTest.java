@@ -295,15 +295,15 @@ public class DatasetIntegrationTest {
 		
 		// add one version from each file
 		List<EntityRef> items = Arrays.asList(
-				new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
-				new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L)
+			new EntityRef().setEntityId(fileOne.getId()).setVersionNumber(1L),
+			new EntityRef().setEntityId(fileTwo.getId()).setVersionNumber(2L)
 		);
 		
 		Dataset dataset = asyncHelper.createDataset(userInfo, new Dataset()
-				.setParentId(project.getId())
-				.setName("aDataset")
-				.setColumnIds(Arrays.asList(stringColumn.getId()))
-				.setItems(items));
+			.setParentId(project.getId())
+			.setName("aDataset")
+			.setColumnIds(Arrays.asList(stringColumn.getId()))
+			.setItems(items));
 		
 		
 		// Query the dataset

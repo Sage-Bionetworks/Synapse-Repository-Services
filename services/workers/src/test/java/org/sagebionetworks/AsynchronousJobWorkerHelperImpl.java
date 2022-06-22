@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -404,6 +406,25 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		Long typeMask = 0L;
 		String viewId = entityManager.createEntity(user, dataset, null);
 		dataset = entityManager.getEntity(user, viewId, Dataset.class);
+
+		ViewScope viewScope = new ViewScope();
+		viewScope.setViewEntityType(entityType);
+		if (dataset.getItems() != null) {
+			viewScope.setScope(dataset.getItems().stream().map(i->i.getEntityId()).collect(Collectors.toList()));
+		}
+		viewScope.setViewTypeMask(typeMask);
+
+		tableViewManager.setViewSchemaAndScope(user, dataset.getColumnIds(), viewScope, viewId);
+
+		return dataset;
+	}
+	
+	@Override
+	public DatasetCollection createDatasetCollection(UserInfo user, DatasetCollection dataset) {
+		ViewEntityType entityType = ViewEntityType.datasetcollection;
+		Long typeMask = ViewTypeMask.Dataset.getMask();
+		String viewId = entityManager.createEntity(user, dataset, null);
+		dataset = entityManager.getEntity(user, viewId, DatasetCollection.class);
 
 		ViewScope viewScope = new ViewScope();
 		viewScope.setViewEntityType(entityType);
