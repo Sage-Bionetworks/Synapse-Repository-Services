@@ -25,6 +25,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory {
 			ExternalDockerRepoValidator dockerProvider,
 			SubmissionViewMetadataProvider submissionViewProvider, 
 			DatasetMetadataProvider datasetProvider,
+			DatasetCollectionMetadataProvider datasetCollectionProvider,
 			MaterializedViewMetadataProvider materializedViewProvider) {
 		metadataProviders = new HashMap<EntityType, List<EntityProvider<? extends Entity>>>();
 		metadataProviders.put(EntityType.project, Collections.singletonList(projectProvider));
@@ -35,6 +36,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory {
 		metadataProviders.put(EntityType.dockerrepo, Collections.singletonList(dockerProvider));
 		metadataProviders.put(EntityType.submissionview, Collections.singletonList(submissionViewProvider));
 		metadataProviders.put(EntityType.dataset, Collections.singletonList(datasetProvider));
+		metadataProviders.put(EntityType.datasetcollection, Collections.singletonList(datasetCollectionProvider));
 		metadataProviders.put(EntityType.materializedview, Collections.singletonList(materializedViewProvider));
 	}
 

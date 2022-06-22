@@ -101,6 +101,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href=
  * "${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a></li>
  * <li><a href=
+ * "${org.sagebionetworks.repo.model.table.DatasetCollection}">DatasetCollection</a></li>
+ * <li><a href=
  * "${org.sagebionetworks.repo.model.table.MaterializedView}">MaterializedView</a></li>
  * </ul>
  * </p>

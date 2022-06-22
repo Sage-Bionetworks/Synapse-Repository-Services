@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -156,7 +157,7 @@ public class DatasetMetadataProviderTest {
 		// call under test
 		ViewScope scope = provider.createViewScope(user, dataset);
 		ViewScope expected = new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
-				.setViewEntityType(ViewEntityType.dataset).setViewTypeMask(0L);
+				.setViewEntityType(ViewEntityType.dataset).setViewTypeMask(ViewTypeMask.File.getMask());
 		assertEquals(expected, scope);
 	}
 
@@ -166,7 +167,7 @@ public class DatasetMetadataProviderTest {
 		// call under test
 		ViewScope scope = provider.createViewScope(user, dataset);
 		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.dataset)
-				.setViewTypeMask(0L);
+				.setViewTypeMask(ViewTypeMask.File.getMask());
 		assertEquals(expected, scope);
 	}
 }

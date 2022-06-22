@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
 @ExtendWith(MockitoExtension.class)
 public class DatasetCollectionMetadataProviderTest {
@@ -172,7 +173,7 @@ public class DatasetCollectionMetadataProviderTest {
 		// call under test
 		ViewScope scope = provider.createViewScope(user, datasetCollection);
 		ViewScope expected = new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
-				.setViewEntityType(ViewEntityType.datasetcollection).setViewTypeMask(0L);
+				.setViewEntityType(ViewEntityType.datasetcollection).setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);
 	}
 
@@ -182,7 +183,7 @@ public class DatasetCollectionMetadataProviderTest {
 		// call under test
 		ViewScope scope = provider.createViewScope(user, datasetCollection);
 		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.datasetcollection)
-				.setViewTypeMask(0L);
+				.setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);
 	}
 }

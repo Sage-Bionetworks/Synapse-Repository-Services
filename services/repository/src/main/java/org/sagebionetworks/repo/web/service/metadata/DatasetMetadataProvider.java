@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,7 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 		if (dataset.getItems() != null) {
 			scope.setScope(dataset.getItems().stream().map(i -> i.getEntityId()).collect(Collectors.toList()));
 		}
-		scope.setViewTypeMask(0L);
+		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		return scope;
 	}
 

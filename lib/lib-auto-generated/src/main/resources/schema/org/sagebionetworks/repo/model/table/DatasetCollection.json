@@ -2,7 +2,7 @@
 	"description": "A dataset collection is a type of view defined by a flat list of datasets.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.table.View"
+			"$ref": "org.sagebionetworks.repo.model.table.EntityRefCollectionView"
 		}
 	],
 	"properties": {

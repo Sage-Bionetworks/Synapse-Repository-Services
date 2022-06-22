@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,8 +52,6 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 					throw new IllegalArgumentException("Each dataset collection item must have a unique entity ID.  Duplicate: "+item.getEntityId());
 				}
 			}
-
-			
 			// Only allow datasets
 			List<EntityHeader> headers = nodeDao.getEntityHeader(entity.getItems().stream()
 					.map(i -> KeyFactory.stringToKey(i.getEntityId())).collect(Collectors.toSet()));
@@ -72,9 +71,9 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(ViewEntityType.datasetcollection);
 		if (view.getItems() != null) {
-			scope.setScope(view.getItems().stream().map(i -> i.getEntityId()).collect(Collectors.toList()));
+			scope.setScope(view.getItems().stream().map(EntityRef::getEntityId).collect(Collectors.toList()));
 		}
-		scope.setViewTypeMask(0L);
+		scope.setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		return scope;
 	}
 
