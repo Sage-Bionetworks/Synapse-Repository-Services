@@ -120,6 +120,7 @@ public class TableServicesImpl implements TableServices {
 	public TableFileHandleResults getFileHandles(Long userId, RowReferenceSet fileHandlesToFind) throws IOException, NotFoundException {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
+		Validate.required(fileHandlesToFind.getHeaders(), "fileHandlesToFind.headers");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<ColumnModel> columns = columnModelManager.getCurrentColumns(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
 		for (ColumnModel cm : columns) {
@@ -206,7 +207,7 @@ public class TableServicesImpl implements TableServices {
 	/**
 	 * Get the file handle ID for a given table cell.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param tableId
 	 * @param rowRef
 	 * @param columnId
