@@ -12,6 +12,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.message.UserNameProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -44,7 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Sets;
 
-public class UserProfileManagerImpl implements UserProfileManager {
+public class UserProfileManagerImpl implements UserProfileManager, UserNameProvider {
 
 	
 	@Autowired
@@ -369,6 +370,18 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				.withAssociation(FileHandleAssociateType.UserProfileAttachment, userId);
 		
 		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
+	}
+
+	@Override
+	public String getPrincipalDisplayName(Long principalId) {
+		final UserProfile profile = getUserProfile(principalId.toString());
+		return EmailUtils.getDisplayNameOrUsername(profile);
+	}
+
+	@Override
+	public String getPrincipaleName(Long principalId) {
+		return principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME).stream()
+				.findFirst().get().getAlias();
 	}
 
 }

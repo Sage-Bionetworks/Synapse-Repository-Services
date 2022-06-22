@@ -38,7 +38,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.DATA_ACCESS_REQUEST).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager).dataAccessRequestCreatedOrUpdated("123");
+		verify(mockManager).sendNotificationToReviewers("123");
 	}
 	
 	@Test
@@ -48,7 +48,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.DATA_ACCESS_REQUEST).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager).dataAccessRequestCreatedOrUpdated("123");
+		verify(mockManager).sendNotificationToReviewers("123");
 	}
 	
 	@Test
@@ -58,7 +58,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.DATA_ACCESS_REQUEST).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager, never()).dataAccessRequestCreatedOrUpdated(any());
+		verify(mockManager, never()).sendNotificationToReviewers(any());
 	}
 	
 	@Test
@@ -68,7 +68,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.DATA_ACCESS_REQUEST).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager).dataAccessRequestCreatedOrUpdated("123");
+		verify(mockManager).sendNotificationToReviewers("123");
 	}
 	
 	@Test
@@ -78,7 +78,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.DATA_ACCESS_REQUEST).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager, never()).dataAccessRequestCreatedOrUpdated(any());
+		verify(mockManager, never()).sendNotificationToReviewers(any());
 	}
 	
 	@Test
@@ -88,7 +88,7 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 				.setObjectType(ObjectType.ACTIVITY).setObjectId("123").setTimestamp(timeStamp);
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockManager, never()).dataAccessRequestCreatedOrUpdated(any());
+		verify(mockManager, never()).sendNotificationToReviewers(any());
 	}
 
 }

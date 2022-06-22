@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_G
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -42,7 +44,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
-	public static final long START_OF_USER_IDS = 3318977l;
+	public static final long START_OF_USER_IDS = Arrays.stream(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.values())
+			.map(b -> b.getPrincipalId()).max(Long::compare).get() + 1L;
 
 	private static final String SQL_SELECT_ALL = "SELECT * FROM "+TABLE_USER_GROUP;
 

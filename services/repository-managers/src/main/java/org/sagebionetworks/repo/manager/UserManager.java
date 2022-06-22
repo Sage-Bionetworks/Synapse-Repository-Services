@@ -78,6 +78,11 @@ public interface UserManager {
 	 * @param limit Limit the number of results.
 	 */
 	public Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
+
+	/**
+	 * Clear all user
+	 */
+	public void truncateAll();
 	
 	
 }

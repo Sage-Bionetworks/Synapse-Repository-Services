@@ -39,7 +39,7 @@ public class DataAccessRequestNotificationWorker implements ChangeMessageDrivenR
 			if (ChangeType.CREATE.equals(message.getChangeType())
 					|| ChangeType.UPDATE.equals(message.getChangeType())) {
 				if (message.getTimestamp().toInstant().isBefore(Instant.now().plus(1, ChronoUnit.HOURS))) {
-					manager.dataAccessRequestCreatedOrUpdated(message.getObjectId());
+					manager.sendNotificationToReviewers(message.getObjectId());
 				} else {
 					LOG.info("Ignoring old message: " + message);
 				}

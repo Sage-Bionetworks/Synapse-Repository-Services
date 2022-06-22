@@ -3,10 +3,11 @@ package org.sagebionetworks.repo.manager.dataaccess;
 public interface DataAccessRequestNotificationManager {
 
 	/**
-	 * Called after the given data access request is created or updated.
+	 * Send an email notification to all non-ACT reviewers of the given data access
+	 * request.
 	 * 
 	 * @param dataAccessRequestId
 	 */
-	void dataAccessRequestCreatedOrUpdated(String dataAccessRequestId);
+	void sendNotificationToReviewers(String dataAccessRequestId);
 
 }
