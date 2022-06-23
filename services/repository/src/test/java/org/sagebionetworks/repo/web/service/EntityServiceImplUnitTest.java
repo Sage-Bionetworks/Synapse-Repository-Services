@@ -188,4 +188,20 @@ public class EntityServiceImplUnitTest {
 		assertSame(managerResult, serviceResult);
 		verify(mockStsManager).getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only);
 	}
+
+	@Test
+	public void testHasAccessNullAccessType() {
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, null);
+		});
+		assertEquals("AccessType cannot be null", thrown.getMessage());
+	}
+
+	@Test
+	public void testHasAccessInvalidAccessType() {
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.hasAccess(ENTITY_ID, PRINCIPAL_ID, "invalidAccessType");
+		});
+		assertEquals("No enum constant org.sagebionetworks.repo.model.ACCESS_TYPE.invalidAccessType", thrown.getMessage());
+	}
 }
