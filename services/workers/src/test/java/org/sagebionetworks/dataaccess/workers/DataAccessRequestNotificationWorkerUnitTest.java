@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestNotification
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class DataAccessRequestNotificationWorkerUnitTest {
@@ -89,6 +90,10 @@ public class DataAccessRequestNotificationWorkerUnitTest {
 		// call under test
 		worker.run(mockCallback, message);
 		verify(mockManager, never()).sendNotificationToReviewers(any());
+		
+		System.out.println(EntityFactory.createJSONStringForEntity(new ChangeMessage().setChangeType(ChangeType.UPDATE).setObjectId("3451154").setObjectType(ObjectType.PRINCIPAL)));
+		
 	}
+	
 
 }
