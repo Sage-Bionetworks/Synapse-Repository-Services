@@ -789,7 +789,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<execute />
+										<execute/>
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -819,7 +819,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<execute />
+										<execute/>
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -832,7 +832,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<execute />
+										<execute/>
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -845,7 +845,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore />
+										<ignore/>
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
@@ -1054,7 +1054,7 @@
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>
 		<mockito.version>2.27.0</mockito.version>
-		<com.google.cloud.version>1.77.0</com.google.cloud.version>
+		<com.google.cloud.version>1.118.1</com.google.cloud.version>
 		<jsoup.version>1.14.2</jsoup.version>
 		<bouncycastle.version>1.67</bouncycastle.version>
 		<jjwt.version>0.11.2</jjwt.version>
