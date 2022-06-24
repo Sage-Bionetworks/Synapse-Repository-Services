@@ -26,8 +26,6 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Sets;
-
 @Service
 public class DatasetCollectionMetadataIndexProvider implements MetadataIndexProvider {
 
@@ -100,7 +98,7 @@ public class DatasetCollectionMetadataIndexProvider implements MetadataIndexProv
 
 	Set<SubType> getSubTypes() {
 		// currently only datasets are supported.
-		return Sets.newHashSet(SubType.dataset);
+		return Set.of(SubType.dataset);
 	}
 
 	@Override

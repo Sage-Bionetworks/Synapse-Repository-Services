@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -57,13 +57,13 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 			// Only allow files
 			List<EntityHeader> headers = nodeDao.getEntityHeader(entity.getItems().stream()
 					.map(i -> KeyFactory.stringToKey(i.getEntityId())).collect(Collectors.toSet()));
-			Optional<EntityHeader> firstNonFile = headers.stream()
-					.filter(h -> !FileEntity.class.getName().equals(h.getType())).findFirst();
-			if (firstNonFile.isPresent()) {
-				throw new IllegalArgumentException(
-						String.format("Currently, only files can be included in a dataset. %s is '%s'",
-								firstNonFile.get().getId(), firstNonFile.get().getType()));
-			}
+			
+			headers.stream()
+				.filter(Predicate.not(h -> FileEntity.class.getName().equals(h.getType())))
+				.findFirst()
+				.ifPresent(firstNonFile -> {
+					throw new IllegalArgumentException(String.format("Currently, only files can be included in a dataset. %s is '%s'", firstNonFile.getId(), firstNonFile.getType()));	
+				});
 		}
 	}
 
@@ -72,7 +72,7 @@ public class DatasetMetadataProvider extends ViewMetadataProvider<Dataset> imple
 		ViewScope scope = new ViewScope();
 		scope.setViewEntityType(ViewEntityType.dataset);
 		if (dataset.getItems() != null) {
-			scope.setScope(dataset.getItems().stream().map(i -> i.getEntityId()).collect(Collectors.toList()));
+			scope.setScope(dataset.getItems().stream().map(EntityRef::getEntityId).collect(Collectors.toList()));
 		}
 		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		return scope;

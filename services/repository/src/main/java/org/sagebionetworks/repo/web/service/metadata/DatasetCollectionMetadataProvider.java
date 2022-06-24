@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.service.metadata;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -55,13 +55,14 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 			// Only allow datasets
 			List<EntityHeader> headers = nodeDao.getEntityHeader(entity.getItems().stream()
 					.map(i -> KeyFactory.stringToKey(i.getEntityId())).collect(Collectors.toSet()));
-			Optional<EntityHeader> firstNonDataset = headers.stream()
-					.filter(h -> !Dataset.class.getName().equals(h.getType())).findFirst();
-			if (firstNonDataset.isPresent()) {
-				throw new IllegalArgumentException(
-						String.format("Only dataset entities can be included in a dataset collection. %s is '%s'",
-								firstNonDataset.get().getId(), firstNonDataset.get().getType()));
-			}
+			
+			headers.stream()
+				.filter(Predicate.not(h -> Dataset.class.getName().equals(h.getType())))
+				.findFirst()
+				.ifPresent(firstNonDataset -> {
+					throw new IllegalArgumentException(String.format("Only dataset entities can be included in a dataset collection. %s is '%s'", firstNonDataset.getId(), firstNonDataset.getType()));	
+				});
+			
 		}
 		
 	}

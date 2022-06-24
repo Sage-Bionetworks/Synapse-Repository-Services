@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,7 +82,7 @@ public class DatasetCollectionIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(userInfo, stringColumn);
 	}
 
-	//@AfterEach
+	@AfterEach
 	public void after() {
 
 		tableRowTruthDao.truncateAllRowData();
