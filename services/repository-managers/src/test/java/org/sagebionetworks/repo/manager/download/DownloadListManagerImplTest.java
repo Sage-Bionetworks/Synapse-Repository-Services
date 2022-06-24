@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -108,7 +109,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -1104,10 +1104,10 @@ public class DownloadListManagerImplTest {
 		Long count = 2L;
 		String parentId = "syn123";
 		long limit = 100L;
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("123"),
-				new DatasetItem().setEntityId("234"));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("123"),
+				new EntityRef().setEntityId("234"));
 		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.dataset);
-		when(mockNodeDao.getDatasetItems(any())).thenReturn(items);
+		when(mockNodeDao.getNodeItems(any())).thenReturn(items);
 		when(mockDownloadListDao.addDatasetItemsToDownloadList(any(), any(), anyLong()))
 				.thenReturn(count);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
@@ -1116,7 +1116,7 @@ public class DownloadListManagerImplTest {
 		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, true, limit);
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
-		verify(mockNodeDao).getDatasetItems(123L);
+		verify(mockNodeDao).getNodeItems(123L);
 		verify(mockDownloadListDao).addDatasetItemsToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}

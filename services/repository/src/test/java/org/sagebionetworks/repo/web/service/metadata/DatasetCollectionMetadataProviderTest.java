@@ -7,8 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,20 +21,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityRef;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
 @ExtendWith(MockitoExtension.class)
-public class DatasetMetadataProviderTest {
+public class DatasetCollectionMetadataProviderTest {
 
 	@Mock
 	private NodeDAO mockNodeDao;
@@ -41,113 +40,130 @@ public class DatasetMetadataProviderTest {
 	private TableViewManager mockTableViewManger;
 
 	@InjectMocks
-	private DatasetMetadataProvider provider;
+	private DatasetCollectionMetadataProvider provider;
 
-	private Dataset dataset;
+	private DatasetCollection datasetCollection;
 	private EntityEvent event;
 	private UserInfo user;
 
 	@BeforeEach
 	public void before() {
-		dataset = new Dataset().setItems(Lists.newArrayList(new EntityRef().setEntityId("syn111").setVersionNumber(2L),
-				new EntityRef().setEntityId("syn222").setVersionNumber(4L)));
+		datasetCollection = new DatasetCollection().setItems(List.of(
+			new EntityRef().setEntityId("syn111").setVersionNumber(2L),
+			new EntityRef().setEntityId("syn222").setVersionNumber(4L))
+		);
 		event = new EntityEvent();
 		user = new UserInfo(false, 44L);
 	}
 
 	@Test
 	public void testValidateEntity() {
-		String fileType = FileEntity.class.getName();
-		List<EntityHeader> header = Arrays.asList(new EntityHeader().setId("syn111").setType(fileType),
-				new EntityHeader().setId("syn222").setType(fileType));
+		String datasetType = Dataset.class.getName();
+		
+		List<EntityHeader> header = List.of(
+			new EntityHeader().setId("syn111").setType(datasetType),
+			new EntityHeader().setId("syn222").setType(datasetType)
+		);
+		
 		when(mockNodeDao.getEntityHeader(anySet())).thenReturn(header);
+		
 		// call under test
-		provider.validateEntity(dataset, event);
+		provider.validateEntity(datasetCollection, event);
 
-		verify(mockNodeDao).getEntityHeader(Sets.newHashSet(111L, 222L));
+		verify(mockNodeDao).getEntityHeader(Set.of(111L, 222L));
 	}
 
 	@Test
 	public void testValidateEntityWithNullItems() {
-		dataset.setItems(null);
+		datasetCollection.setItems(null);
 		// call under test
-		provider.validateEntity(dataset, event);
+		provider.validateEntity(datasetCollection, event);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}
 
 	@Test
-	public void testValidateEntityWithNonFile() {
-		String fileType = FileEntity.class.getName();
+	public void testValidateEntityWithNonDataset() {
+		String datasetType = Dataset.class.getName();
 		String folderType = Folder.class.getName();
-		List<EntityHeader> header = Arrays.asList(new EntityHeader().setId("syn111").setType(fileType),
-				new EntityHeader().setId("syn222").setType(folderType));
+		
+		List<EntityHeader> header = List.of(
+			new EntityHeader().setId("syn111").setType(datasetType),
+			new EntityHeader().setId("syn222").setType(folderType)
+		);
+		
 		when(mockNodeDao.getEntityHeader(anySet())).thenReturn(header);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			provider.validateEntity(dataset, event);
+			provider.validateEntity(datasetCollection, event);
 		}).getMessage();
 
-		assertEquals(
-				"Currently, only files can be included in a dataset. syn222 is 'org.sagebionetworks.repo.model.Folder'",
-				message);
+		assertEquals("Only dataset entities can be included in a dataset collection. syn222 is 'org.sagebionetworks.repo.model.Folder'", message);
 
-		verify(mockNodeDao).getEntityHeader(Sets.newHashSet(111L, 222L));
+		verify(mockNodeDao).getEntityHeader(Set.of(111L, 222L));
 	}
 	
 	@Test
 	public void testValidateEntityWithNullEntityId() {
-		dataset.getItems().get(0).setEntityId(null);
+		datasetCollection.getItems().get(0).setEntityId(null);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			provider.validateEntity(dataset, event);
+			provider.validateEntity(datasetCollection, event);
 		}).getMessage();
 
-		assertEquals("Each dataset item must have a non-null entity ID.", message);
+		assertEquals("Each dataset collection item must have a non-null entity ID.", message);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}
 	
 	@Test
 	public void testValidateEntityWithNullVersion() {
-		dataset.getItems().get(0).setVersionNumber(null);
+		datasetCollection.getItems().get(0).setVersionNumber(null);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			provider.validateEntity(dataset, event);
+			provider.validateEntity(datasetCollection, event);
 		}).getMessage();
 
-		assertEquals("Each dataset item must have a non-null version number", message);
+		assertEquals("Each dataset collection item must have a non-null version number", message);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityId() {
-		dataset.getItems().add(new EntityRef().setEntityId("syn111").setVersionNumber(3L));
+		List<EntityRef> items = new ArrayList<>(datasetCollection.getItems());
+		
+		items.add(new EntityRef().setEntityId("syn111").setVersionNumber(3L));
+		
+		datasetCollection.setItems(items);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			provider.validateEntity(dataset, event);
+			provider.validateEntity(datasetCollection, event);
 		}).getMessage();
 
-		assertEquals("Each dataset item must have a unique entity ID.  Duplicate: syn111", message);
+		assertEquals("Each dataset collection item must have a unique entity ID.  Duplicate: syn111", message);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}
 	
 	@Test
 	public void testValidateEntityWithDuplicateEntityIdNoSyn() {
-		dataset.getItems().add(new EntityRef().setEntityId("111").setVersionNumber(3L));
-
+		List<EntityRef> items = new ArrayList<>(datasetCollection.getItems());
+		
+		items.add(new EntityRef().setEntityId("111").setVersionNumber(3L));
+		
+		datasetCollection.setItems(items);
+		
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			provider.validateEntity(dataset, event);
+			provider.validateEntity(datasetCollection, event);
 		}).getMessage();
 
-		assertEquals("Each dataset item must have a unique entity ID.  Duplicate: 111", message);
+		assertEquals("Each dataset collection item must have a unique entity ID.  Duplicate: 111", message);
 
 		verify(mockNodeDao, never()).getEntityHeader(anySet());
 	}
@@ -155,19 +171,19 @@ public class DatasetMetadataProviderTest {
 	@Test
 	public void testCreateViewScope() {
 		// call under test
-		ViewScope scope = provider.createViewScope(user, dataset);
+		ViewScope scope = provider.createViewScope(user, datasetCollection);
 		ViewScope expected = new ViewScope().setScope(Arrays.asList("syn111", "syn222"))
-				.setViewEntityType(ViewEntityType.dataset).setViewTypeMask(ViewTypeMask.File.getMask());
+				.setViewEntityType(ViewEntityType.datasetcollection).setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);
 	}
 
 	@Test
 	public void testCreateViewScopeWithNullItems() {
-		dataset.setItems(null);
+		datasetCollection.setItems(null);
 		// call under test
-		ViewScope scope = provider.createViewScope(user, dataset);
-		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.dataset)
-				.setViewTypeMask(ViewTypeMask.File.getMask());
+		ViewScope scope = provider.createViewScope(user, datasetCollection);
+		ViewScope expected = new ViewScope().setScope(null).setViewEntityType(ViewEntityType.datasetcollection)
+				.setViewTypeMask(ViewTypeMask.Dataset.getMask());
 		assertEquals(expected, scope);
 	}
 }

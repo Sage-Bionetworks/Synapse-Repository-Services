@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -173,6 +174,15 @@ public interface AsynchronousJobWorkerHelper {
 	Dataset createDataset(UserInfo user, Dataset dataset);
 	
 	/**
+	 * Creates a dataset collection
+	 * 
+	 * @param user
+	 * @param dataset
+	 * @return
+	 */
+	DatasetCollection createDatasetCollection(UserInfo user, DatasetCollection dataset);
+	
+	/**
 	 * Creates a table with the given columns.
 	 * 
 	 * @param user
@@ -215,6 +225,7 @@ public interface AsynchronousJobWorkerHelper {
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
 
 	void emptyAllQueues();
+
 
 
 }

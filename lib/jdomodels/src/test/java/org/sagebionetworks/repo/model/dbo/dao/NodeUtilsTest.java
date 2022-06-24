@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 
 import com.google.common.collect.Lists;
 
@@ -66,7 +66,7 @@ public class NodeUtilsTest {
 		columnIds.add("1");
 		node.setColumnModelIds(columnIds);
 		node.setScopeIds(Lists.newArrayList("8","9"));
-		node.setItems(Arrays.asList(new DatasetItem().setEntityId("syn123").setVersionNumber(6L)));
+		node.setItems(Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(6L)));
 		node.setIsSearchEnabled(true);
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
@@ -393,13 +393,13 @@ public class NodeUtilsTest {
 	
 	@Test
 	public void testWriteAndReadJsonToItems() {
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId("syn111").setVersionNumber(1L),
-				new DatasetItem().setEntityId("syn222").setVersionNumber(2L));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(1L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(2L));
 		// Call under test
 		String json = NodeUtils.writeItemsToJson(items);
 		assertNotNull(json);
 		// call under test
-		List<DatasetItem> clone = NodeUtils.readJsonToItems(json);
+		List<EntityRef> clone = NodeUtils.readJsonToItems(json);
 		assertEquals(items, clone);
 	}
 	
@@ -427,8 +427,8 @@ public class NodeUtilsTest {
 		node.setAlias("");
 		node.setColumnModelIds(Lists.newArrayList("111","222"));
 		node.setScopeIds(Lists.newArrayList(Lists.newArrayList("333","444")));
-		node.setItems(Lists.newArrayList(new DatasetItem().setEntityId("syn555").setVersionNumber(2L),
-				new DatasetItem().setEntityId("syn777").setVersionNumber(4L)));
+		node.setItems(Lists.newArrayList(new EntityRef().setEntityId("syn555").setVersionNumber(2L),
+				new EntityRef().setEntityId("syn777").setVersionNumber(4L)));
 		node.setCreatedByPrincipalId(11L);
 		node.setCreatedOn(new Date(555L));
 		node.setETag("etag");

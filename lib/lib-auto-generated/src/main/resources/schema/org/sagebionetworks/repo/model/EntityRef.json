@@ -1,5 +1,5 @@
 {
-	"description": "Represents a single item  of a dataset.",
+	"description": "Represents a reference to the id and version of an entity to be used in collections.",
 	"properties": {
 		"entityId": {
 			"description": "The 'syn' identifier of the entity. Required.",

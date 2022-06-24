@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
@@ -51,6 +53,20 @@ public class MetadataProviderFactoryTest {
 	@Test
 	public void testGetMaterializedViewMetadataProvider() {
 		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(MaterializedView.class));
+		assertNotNull(providers);
+		assertEquals(1, providers.size());		
+	}
+	
+	@Test
+	public void testGetDatasetMetadataProvider() {
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(Dataset.class));
+		assertNotNull(providers);
+		assertEquals(1, providers.size());		
+	}
+	
+	@Test
+	public void testGetDatasetCollectionMetadataProvider() {
+		List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(DatasetCollection.class));
 		assertNotNull(providers);
 		assertEquals(1, providers.size());		
 	}

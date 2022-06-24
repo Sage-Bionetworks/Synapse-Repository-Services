@@ -434,7 +434,8 @@ public class TableController {
 	 *                       Not required for a submission view. For an entity view
 	 *                       following are the possible types: (type=<mask_hex>):
 	 *                       File=0x01, Project=0x02, Table=0x04, Folder=0x08,
-	 *                       View=0x10, Docker=0x20, SubmissionView=0x40, Dataset=0x80).
+	 *                       View=0x10, Docker=0x20, SubmissionView=0x40, Dataset=0x80, 
+	 *                       DatasetCollection=0x100, MaterializedView=0x200).
 	 * 
 	 * @return -
 	 * @throws DatastoreException - Synapse error.

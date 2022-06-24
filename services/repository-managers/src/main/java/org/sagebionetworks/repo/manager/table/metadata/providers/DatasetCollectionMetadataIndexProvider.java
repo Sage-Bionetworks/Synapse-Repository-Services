@@ -27,16 +27,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
+public class DatasetCollectionMetadataIndexProvider implements MetadataIndexProvider {
 
 	private final NodeDAO nodeDao;
 	private final NodeManager nodeManager;
 
-	static final DefaultColumnModel DATASET_FILE_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET)
-			.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
+	static final DefaultColumnModel DATASET_COLLECTION_COLUMNS = DefaultColumnModel.builder(ViewObjectType.DATASET_COLLECTION)
+			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS).build();
 
 	@Autowired
-	public DatasetMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager) {
+	public DatasetCollectionMetadataIndexProvider(NodeDAO nodeDao, NodeManager nodeManager) {
 		super();
 		this.nodeDao = nodeDao;
 		this.nodeManager = nodeManager;
@@ -44,7 +44,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public ViewObjectType getObjectType() {
-		return ViewObjectType.DATASET;
+		return ViewObjectType.DATASET_COLLECTION;
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 
 	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
-		return DATASET_FILE_COLUMNS;
+		return DATASET_COLLECTION_COLUMNS;
 	}
 
 	@Override
@@ -97,15 +97,15 @@ public class DatasetMetadataIndexProvider implements MetadataIndexProvider {
 	}
 
 	Set<SubType> getSubTypes() {
-		// currently only files are supported.
-		return Set.of(SubType.file);
+		// currently only datasets are supported.
+		return Set.of(SubType.dataset);
 	}
 
 	@Override
 	public void validateScopeAndType(Long typeMask, Set<Long> scopeIds, int maxContainersPerView) {
 		if (scopeIds != null && scopeIds.size() > maxContainersPerView) {
 			throw new IllegalArgumentException(
-					String.format(TableConstants.MAXIMUM_OF_ITEMS_IN_A_DATASET_EXCEEDED, maxContainersPerView));
+					String.format(TableConstants.MAXIMUM_OF_ITEMS_IN_A_DATASET_COLLECTION_EXCEEDED, maxContainersPerView));
 		}
 	}
 

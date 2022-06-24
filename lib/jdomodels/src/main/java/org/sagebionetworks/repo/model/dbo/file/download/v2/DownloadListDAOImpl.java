@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -57,7 +58,6 @@ import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -726,14 +726,14 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 
 	@WriteTransaction
 	@Override
-	public Long addDatasetItemsToDownloadList(Long userId, List<DatasetItem> items, long limit) {
+	public Long addDatasetItemsToDownloadList(Long userId, List<EntityRef> items, long limit) {
 		createOrUpdateDownloadList(userId);
 		String sql = "INSERT IGNORE INTO " + TABLE_DOWNLOAD_LIST_ITEM_V2 + " ("
 				+ COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID + ", " + COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID + ", "
 				+ COL_DOWNLOAD_LIST_ITEM_V2_VERSION_NUMBER + ", " + COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON + ") "
 				+ "VALUES(?, ?, ?, NOW(3))";
 		items = items.subList(0, Math.min((int)limit, items.size()));
-		DatasetItem[] itemsArray = items.toArray(new DatasetItem[items.size()]);
+		EntityRef[] itemsArray = items.toArray(new EntityRef[items.size()]);
 		int[] updates = jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {

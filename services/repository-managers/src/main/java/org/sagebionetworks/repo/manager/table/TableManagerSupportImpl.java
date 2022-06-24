@@ -539,6 +539,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return new TableIndexDescription(idAndVersion);
 		case entityview:
 		case dataset:
+		case datasetcollection:
 		case submissionview:
 			return new ViewIndexDescription(idAndVersion, type);
 		case materializedview:

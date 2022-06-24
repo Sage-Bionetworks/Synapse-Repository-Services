@@ -33,14 +33,14 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
-public class DatasetMetadataIndexProviderTest {
+public class DatasetCollectionMetadataIndexProviderTest {
 
 	@Mock
 	private NodeDAO mockNodeDao;
 	@Mock
 	private NodeManager mockNodeManager;
 	@InjectMocks
-	private DatasetMetadataIndexProvider provider;
+	private DatasetCollectionMetadataIndexProvider provider;
 
 	private Long viewId;
 	private List<EntityRef> items;
@@ -57,15 +57,15 @@ public class DatasetMetadataIndexProviderTest {
 
 		scope = items.stream().map(i -> new IdVersionPair().setId(KeyFactory.stringToKey(i.getEntityId()))
 				.setVersion(i.getVersionNumber())).collect(Collectors.toSet());
-		subTypes = Sets.newHashSet(SubType.file);
+		subTypes = Sets.newHashSet(SubType.dataset);
 
-		viewScopeType = new ViewScopeType(ViewObjectType.DATASET, 0L);
+		viewScopeType = new ViewScopeType(ViewObjectType.DATASET_COLLECTION, 0L);
 		containerIds = Sets.newHashSet(1L, 2L, 3L);
 	}
 
 	@Test
 	public void testGetObjectType() {
-		assertEquals(ViewObjectType.DATASET, provider.getObjectType());
+		assertEquals(ViewObjectType.DATASET_COLLECTION, provider.getObjectType());
 	}
 
 	@Test
@@ -110,7 +110,7 @@ public class DatasetMetadataIndexProviderTest {
 			// call under test
 			provider.validateScopeAndType(typeMask, scopeIds, maxContainersPerView);
 		}).getMessage();
-		assertEquals("Maximum of 1 items in a dataset exceeded.", message);
+		assertEquals("Maximum of 1 items in a dataset collection exceeded.", message);
 	}
 	
 	/**
@@ -119,8 +119,8 @@ public class DatasetMetadataIndexProviderTest {
 	@Test
 	public void testGetDefaultColumnModel() {
 		Long viewTypeMask = null;
-		DefaultColumnModel expected = DefaultColumnModel.builder(ViewObjectType.DATASET)
-		.withObjectField(Constants.FILE_DEFAULT_COLUMNS).build();
+		DefaultColumnModel expected = DefaultColumnModel.builder(ViewObjectType.DATASET_COLLECTION)
+		.withObjectField(Constants.BASIC_DEAFULT_COLUMNS).build();
 		// call under test
 		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
 		assertEquals(expected, model);

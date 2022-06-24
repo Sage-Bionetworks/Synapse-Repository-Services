@@ -147,6 +147,10 @@
             "description": "A dataset is a view of a list of entities."
         },
         {
+            "name": "DATASET_COLLECTION",
+            "description": "A dataset collection is a view of a list of datasets."
+        },
+        {
         	"name": "THREAD_VIEW",
         	"description": "Object used to proxy thread views"
         },

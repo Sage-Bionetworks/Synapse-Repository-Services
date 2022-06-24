@@ -11,7 +11,9 @@ public enum ViewTypeMask {
 	View(0x10, EntityType.entityview),
 	Docker(0x20, EntityType.dockerrepo),
 	SubmissionView(0x40, EntityType.submissionview),
-	Dataset(0x80, EntityType.dataset);
+	Dataset(0x80, EntityType.dataset),
+	DatasetCollection(0x100, EntityType.datasetcollection),
+	MaterializedView(0x200, EntityType.materializedview);
 
 	long bitMask;
 	EntityType entityType;

@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -717,7 +718,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	}
 	
 	public boolean isTableOrView(Entity entity) {
-		return entity instanceof TableEntity || entity instanceof EntityView || entity instanceof SubmissionView || entity instanceof Dataset || entity instanceof MaterializedView;
+		return entity instanceof Table;
 	}
 	
 }

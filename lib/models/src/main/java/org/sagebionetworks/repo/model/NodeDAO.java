@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -661,11 +660,12 @@ public interface NodeDAO {
 	Integer getEntityPathDepth(String entityId, int maxDepth);
 
 	/**
-	 * Get the DatasetItems for the given datasetId.
-	 * @param datasetId
+	 * Get the items set for the node with the given id.
+	 * 
+	 * @param nodeId
 	 * @return
 	 */
-	public List<DatasetItem> getDatasetItems(Long datasetId);
+	public List<EntityRef> getNodeItems(Long nodeId);
 
 	/**
 	 * Get all of the IdAndChecksums for children of the given parent.

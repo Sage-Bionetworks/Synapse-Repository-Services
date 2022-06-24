@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -25,8 +26,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
-import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
@@ -42,7 +43,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.DatasetItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -177,7 +177,7 @@ public class DownloadListWorkerIntegrationTest {
 		// create file in a project with read access
 		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ);
 		// add file to a data set
-		List<DatasetItem> items = Arrays.asList(new DatasetItem().setEntityId(file.getId())
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId(file.getId())
 				.setVersionNumber(file.getVersionNumber()));
 		Node dataset = nodeDaoHelper.create(n -> {
 			n.setName("aDataset");
