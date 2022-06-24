@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.joda.time.Instant;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionEvent;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -119,6 +121,10 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				.withChangeType(ChangeType.CREATE);
 		
 		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+
+		transactionalMessenger
+				.publishMessageAfterCommit(new DataAccessSubmissionEvent().setObjectId(status.getSubmissionId())
+						.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_EVENT).setTimestamp(Instant.now().toDate()));
 		
 		return status;
 	}
@@ -533,5 +539,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		result.setOpenSubmissionList(openSubmissionList);
 		result.setNextPageToken(token.getNextPageTokenForCurrentResults(openSubmissionList));
 		return result;
+	}
+
+	public void truncateAll() {
+		submissionDao.truncateAll();
 	}
 }

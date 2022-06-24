@@ -215,6 +215,17 @@ public interface AsynchronousJobWorkerHelper {
 	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
 
 	void emptyAllQueues();
+	
+	/**
+	 * Wait for an email message to appear in S3.
+	 * 
+	 * Note: This will delete the message once it is read from S3.
+	 * 
+	 * @param recieverEmailsAddress
+	 * @return
+	 * @throws Exception 
+	 */
+	String waitForEmailMessgae(String recieverEmailsAddress, long maxWaitMs) throws Exception;
 
 
 }

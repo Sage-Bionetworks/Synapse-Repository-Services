@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +53,8 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -489,6 +492,24 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public void emptyAllQueues() {
 		asynchJobStatusManager.emptyAllQueues();
+	}
+
+	@Override
+	public String waitForEmailMessgae(String emailAddress, long maxWaitMs) throws Exception {
+		String fileKey = emailAddress+".json";
+		String bucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		return TimeUtils.waitFor(maxWaitMs, 1000L, () -> {
+			try {
+				String contents;
+				try (InputStream input = s3Client.getObject(bucket, fileKey).getObjectContent()) {
+					contents =  IOUtils.toString(input, StandardCharsets.UTF_8.name());
+				}
+				s3Client.deleteObject(bucket, fileKey);
+				return new Pair<Boolean, String>(true, contents);
+			} catch (Exception e) {
+				return new Pair<>(false, null);
+			}
+		});
 	}
 
 }

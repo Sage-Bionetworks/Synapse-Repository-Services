@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -19,8 +18,6 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -34,16 +31,14 @@ public class RequestManagerImpl implements RequestManager{
 	private final AccessRequirementDAO accessRequirementDao;
 	private final RequestDAO requestDao;
 	private final SubmissionDAO submissionDao;
-	private final TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
-			SubmissionDAO submissionDao, TransactionalMessenger transactionalMessenger) {
+			SubmissionDAO submissionDao) {
 		super();
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestDao = requestDao;
 		this.submissionDao = submissionDao;
-		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	Request create(UserInfo userInfo, Request toCreate) {
@@ -54,7 +49,6 @@ public class RequestManagerImpl implements RequestManager{
 				"A Request can only associate with an ManagedACTAccessRequirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
-		transactionalMessenger.sendMessageAfterCommit(result.getId(), ObjectType.DATA_ACCESS_REQUEST, ChangeType.CREATE);
 		return result;
 	}
 
@@ -170,7 +164,6 @@ public class RequestManagerImpl implements RequestManager{
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		RequestInterface result = requestDao.update(toUpdate);
-		transactionalMessenger.sendMessageAfterCommit(result.getId(), ObjectType.DATA_ACCESS_REQUEST, ChangeType.UPDATE);
 		return result;
 	}
 

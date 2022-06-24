@@ -1,0 +1,6 @@
+{
+    "description": "An envent that is fired after a user creates a data access submission",
+    "implements": [
+    	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
+    ]
+}
