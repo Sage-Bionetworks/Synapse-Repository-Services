@@ -122,11 +122,22 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		
 		transactionalMessenger.sendMessageAfterCommit(changeMessage);
 
-		transactionalMessenger
-				.publishMessageAfterCommit(new DataAccessSubmissionEvent().setObjectId(status.getSubmissionId())
-						.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_EVENT).setTimestamp(Instant.now().toDate()));
+		sendLocalEventAfterCommit(status.getSubmissionId());
+
 		
 		return status;
+	}
+	
+	/**
+	 * This will send a message to a local topic only. The event will not propagate
+	 * to staging. A local event listener will then send a notification email to
+	 * users assigned to review this submission.
+	 * 
+	 * @param submissionId
+	 */
+	private void sendLocalEventAfterCommit(String submissionId) {
+		transactionalMessenger.publishMessageAfterCommit(new DataAccessSubmissionEvent().setObjectId(submissionId)
+				.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_EVENT).setTimestamp(Instant.now().toDate()));
 	}
 
 	/**

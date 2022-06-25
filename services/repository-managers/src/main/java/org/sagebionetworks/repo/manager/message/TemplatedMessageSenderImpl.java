@@ -40,6 +40,9 @@ public class TemplatedMessageSenderImpl implements TemplatedMessageSender {
 		ValidateArgument.required(t.getMessageBodyMimeType(), "MessageTemplate.messageBodyMimeType");
 		ValidateArgument.required(t.getSender(), "MessageTemplate.sender");
 		ValidateArgument.required(t.getRecipients(), "MessageTemplate.recipients");
+		if(t.getRecipients().isEmpty()) {
+			throw new IllegalArgumentException("MessageTemplate.recipients must contain at least one recipient");
+		}
 		
 		Map<String, Object> templateContext = t.getTemplateContext();
 		ValidateArgument.required(t.getTemplateFile(), "MessageTemplate.templateContext()");

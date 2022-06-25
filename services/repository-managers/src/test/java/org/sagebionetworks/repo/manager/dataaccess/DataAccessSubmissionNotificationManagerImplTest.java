@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -94,6 +95,15 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		verify(managerSpy, times(2)).sendNotificationMessageToReviewer(any(), any(), any());
 		verify(managerSpy).sendNotificationMessageToReviewer(users[1], dataAccessSubmissionId, users[0]);
 		verify(managerSpy).sendNotificationMessageToReviewer(users[3], dataAccessSubmissionId, users[0]);	
+	}
+	
+	@Test
+	public void testSendNotificationToReviewersWithNullId() {
+		String dataAccessSubmissionId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.sendNotificationToReviewers(dataAccessSubmissionId);
+		});
 	}
 	
 	@Test
