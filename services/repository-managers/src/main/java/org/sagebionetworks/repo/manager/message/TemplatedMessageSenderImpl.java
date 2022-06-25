@@ -21,15 +21,13 @@ import org.springframework.stereotype.Repository;
 public class TemplatedMessageSenderImpl implements TemplatedMessageSender {
 	
 	private final VelocityEngine velocityEngine;
-	private final UserNameProvider displayNameProvider;
 	private final FileHandleManager fileHandleManager;
 	private final MessageManager messageManager;
 	
-	public TemplatedMessageSenderImpl(VelocityEngine velocityEngine, UserNameProvider displayNameProvider,
+	public TemplatedMessageSenderImpl(VelocityEngine velocityEngine,
 			FileHandleManager fileHandleManager, MessageManager messageManager) {
 		super();
 		this.velocityEngine = velocityEngine;
-		this.displayNameProvider = displayNameProvider;
 		this.fileHandleManager = fileHandleManager;
 		this.messageManager = messageManager;
 	}
@@ -43,7 +41,7 @@ public class TemplatedMessageSenderImpl implements TemplatedMessageSender {
 		ValidateArgument.required(t.getSender(), "MessageTemplate.sender");
 		ValidateArgument.required(t.getRecipients(), "MessageTemplate.recipients");
 		
-		Map<String, Object> templateContext = t.getTemplateContext(displayNameProvider);
+		Map<String, Object> templateContext = t.getTemplateContext();
 		ValidateArgument.required(t.getTemplateFile(), "MessageTemplate.templateContext()");
 		
 		String messageBody = buildMessageBody(t.getTemplateFile(), t.getTemplateCharSet(), templateContext);

@@ -211,8 +211,8 @@ public class MessageTemplateBuilder {
 		}
 
 		@Override
-		public Map<String, Object> getTemplateContext(UserNameProvider displayNameProvider) {
-			return templateContextProvider.getTemplateContext(displayNameProvider);
+		public Map<String, Object> getTemplateContext() {
+			return templateContextProvider.getTemplateContext();
 		}
 
 		@Override

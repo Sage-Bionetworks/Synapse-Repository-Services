@@ -373,12 +373,6 @@ public class UserProfileManagerImpl implements UserProfileManager, UserNameProvi
 	}
 
 	@Override
-	public String getPrincipalDisplayName(Long principalId) {
-		final UserProfile profile = getUserProfile(principalId.toString());
-		return EmailUtils.getDisplayNameOrUsername(profile);
-	}
-
-	@Override
 	public String getPrincipaleName(Long principalId) {
 		return principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME).stream()
 				.findFirst().get().getAlias();

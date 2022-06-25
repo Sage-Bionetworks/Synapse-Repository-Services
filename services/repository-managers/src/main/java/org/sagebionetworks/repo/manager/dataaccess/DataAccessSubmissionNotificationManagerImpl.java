@@ -34,14 +34,17 @@ public class DataAccessSubmissionNotificationManagerImpl implements DataAccessSu
 	private final TemplatedMessageSender templatedMessageSender;
 	private final UserManager userManager;
 	private final SubmissionDAO submissionDao;
+	private final UserNameProvider userNameProvider;
 
 	public DataAccessSubmissionNotificationManagerImpl(AccessControlListDAO aclDao,
-			TemplatedMessageSender templatedMessageSender, UserManager userManager, SubmissionDAO submissionDao) {
+			TemplatedMessageSender templatedMessageSender, UserManager userManager, SubmissionDAO submissionDao,
+			UserNameProvider userNameProvider) {
 		super();
 		this.aclDao = aclDao;
 		this.templatedMessageSender = templatedMessageSender;
 		this.userManager = userManager;
 		this.submissionDao = submissionDao;
+		this.userNameProvider = userNameProvider;
 	}
 
 	@WriteTransaction
@@ -50,7 +53,7 @@ public class DataAccessSubmissionNotificationManagerImpl implements DataAccessSu
 		ValidateArgument.required(dataAccessSubmissionId, "dataAccessSubmissionId");
 		Submission submission = submissionDao.getSubmission(dataAccessSubmissionId);
 		if(!SubmissionState.SUBMITTED.equals(submission.getState())) {
-			LOG.info(String.format("Sent a message will not be sent for submission: %s because the submission state is: %s", dataAccessSubmissionId, submission.getState().name()));
+			LOG.info(String.format("A notification message will not be sent for submission: %s because the submission state is: %s", dataAccessSubmissionId, submission.getState().name()));
 			return;
 		}
 		/*
@@ -63,7 +66,7 @@ public class DataAccessSubmissionNotificationManagerImpl implements DataAccessSu
 					.map(r -> r.getPrincipalId()).filter(p -> !TeamConstants.ACT_TEAM_ID.equals(p))
 					.collect(Collectors.toList());
 			nonActReviewerPrincipalIds.stream().forEach((reviewerPrincialId) -> {
-				sendNotificationMessageToReviewers(reviewerPrincialId, dataAccessSubmissionId,
+				sendNotificationMessageToReviewer(reviewerPrincialId, dataAccessSubmissionId,
 						Long.parseLong(submission.getSubmittedBy()));
 			});
 		});
@@ -76,22 +79,23 @@ public class DataAccessSubmissionNotificationManagerImpl implements DataAccessSu
 	 * @param submissionId
 	 * @param requesterPrincipalId
 	 */
-	void sendNotificationMessageToReviewers(Long reviewerPrincialId, String submissionId, Long submittedById) {
+	void sendNotificationMessageToReviewer(Long reviewerPrincialId, String submissionId, Long submittedById) {
 
 		UserInfo sender = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
 
 		String messageId = templatedMessageSender.sendMessage(new MessageTemplateBuilder().withSender(sender)
 				.withRecipients(Collections.singleton(reviewerPrincialId.toString()))
 				.withTemplateFile("message/DataAccessSubmissionNotificationTemplate.html.vtl")
-				.withTemplateContextProvider((UserNameProvider displayNameProvider) -> {
+				.withSubject("[Time Sensitive] Request for access to data")
+				.withTemplateContextProvider(() -> {
 					Map<String, Object> c = new HashMap<String, Object>();
-					c.put("reviewerName", displayNameProvider.getPrincipaleName(reviewerPrincialId));
+					c.put("reviewerName", userNameProvider.getPrincipaleName(reviewerPrincialId));
 					c.put("dataAccessSubmissionId", submissionId);
-					c.put("submittedByName", displayNameProvider.getPrincipaleName(submittedById));
+					c.put("submittedByName", userNameProvider.getPrincipaleName(submittedById));
 					return c;
 				}).build()).getId();
 		
-		LOG.info(String.format("Sent a messageId: %s to reviewerId: %s ", messageId, reviewerPrincialId));
+		LOG.info(String.format("Sent a message with id: %s to reviewerId: %s ", messageId, reviewerPrincialId));
 	}
 
 }
