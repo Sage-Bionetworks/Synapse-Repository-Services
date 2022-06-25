@@ -8,5 +8,5 @@ public interface UserNameProvider {
 	 * @param userName
 	 * @return
 	 */
-	String getPrincipaleName(Long principalId);
+	String getPrincipalName(Long principalId);
 }

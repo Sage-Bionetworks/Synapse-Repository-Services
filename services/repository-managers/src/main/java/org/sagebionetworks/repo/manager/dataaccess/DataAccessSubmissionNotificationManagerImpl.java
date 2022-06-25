@@ -89,9 +89,9 @@ public class DataAccessSubmissionNotificationManagerImpl implements DataAccessSu
 				.withSubject("[Time Sensitive] Request for access to data")
 				.withTemplateContextProvider(() -> {
 					Map<String, Object> c = new HashMap<String, Object>();
-					c.put("reviewerName", userNameProvider.getPrincipaleName(reviewerPrincialId));
+					c.put("reviewerName", userNameProvider.getPrincipalName(reviewerPrincialId));
 					c.put("dataAccessSubmissionId", submissionId);
-					c.put("submittedByName", userNameProvider.getPrincipaleName(submittedById));
+					c.put("submittedByName", userNameProvider.getPrincipalName(submittedById));
 					return c;
 				}).build()).getId();
 		

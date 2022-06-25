@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Sets;
@@ -373,7 +374,8 @@ public class UserProfileManagerImpl implements UserProfileManager, UserNameProvi
 	}
 
 	@Override
-	public String getPrincipaleName(Long principalId) {
+	public String getPrincipalName(Long principalId) {
+		ValidateArgument.required(principalId, "principalId");
 		return principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME).stream()
 				.findFirst().get().getAlias();
 	}

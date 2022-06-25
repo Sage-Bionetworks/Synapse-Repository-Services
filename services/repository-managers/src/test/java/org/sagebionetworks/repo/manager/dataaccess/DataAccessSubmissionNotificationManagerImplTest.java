@@ -157,8 +157,8 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		when(mockUserManager.getUserInfo(any())).thenReturn(messageSender);
 		when(mockTemplatedMessageSender.sendMessage(any())).thenReturn(new MessageToUser().setId("222"));
 		
-		when(mockUserNameProvider.getPrincipaleName(reviewer)).thenReturn(reviewerName);
-		when(mockUserNameProvider.getPrincipaleName(submittedBy)).thenReturn(submittedByName);
+		when(mockUserNameProvider.getPrincipalName(reviewer)).thenReturn(reviewerName);
+		when(mockUserNameProvider.getPrincipalName(submittedBy)).thenReturn(submittedByName);
 		
 		// call under test
 		managerSpy.sendNotificationMessageToReviewer(reviewer, dataAccessSubmissionId, submittedBy);
@@ -183,8 +183,8 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		assertEquals(StandardCharsets.UTF_8, template.getTemplateCharSet());
 		assertEquals("message/DataAccessSubmissionNotificationTemplate.html.vtl", template.getTemplateFile());
 		
-		verify(mockUserNameProvider).getPrincipaleName(reviewer);
-		verify(mockUserNameProvider).getPrincipaleName(submittedBy);
+		verify(mockUserNameProvider).getPrincipalName(reviewer);
+		verify(mockUserNameProvider).getPrincipalName(submittedBy);
 
 	}
 }
