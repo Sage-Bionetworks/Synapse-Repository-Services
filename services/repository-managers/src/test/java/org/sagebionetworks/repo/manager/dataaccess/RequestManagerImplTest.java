@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,8 +38,6 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,8 +53,6 @@ public class RequestManagerImplTest {
 	private UserInfo mockUser;
 	@Mock
 	private ManagedACTAccessRequirement mockAccessRequirement;
-	@Mock
-	private TransactionalMessenger mockTransactionalMessenger;
 	
 	@InjectMocks
 	private RequestManagerImpl manager;
@@ -488,7 +483,6 @@ public class RequestManagerImplTest {
 		assertEquals(daoRequest, manager.createOrUpdate(mockUser, request));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(requestId, ObjectType.DATA_ACCESS_REQUEST, ChangeType.CREATE);
 		Request toCreate = captor.getValue();
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
@@ -507,7 +501,6 @@ public class RequestManagerImplTest {
 		assertEquals(request, manager.createOrUpdate(mockUser, toUpdate));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).update(captor.capture());
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(requestId, ObjectType.DATA_ACCESS_REQUEST, ChangeType.UPDATE);
 		Request updated = captor.getValue();
 		assertEquals(requestId, updated.getId());
 		assertEquals(userId, updated.getCreatedBy());
