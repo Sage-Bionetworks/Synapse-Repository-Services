@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -718,5 +719,41 @@ public class PrincipalManagerImplUnitTest {
 		assertThrows(DatastoreException.class,
 				() -> manager.clearPrincipalInformation(adminUserInfo, USER_ID),
 				"Removed zero aliases from principal: " + USER_ID + ". A principal record should have at least one alias.");
+	}
+	
+	@Test
+	public void testGetPrincipalNameWithUser() {
+		Long principalId = 123L;
+		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
+				new PrincipalAlias().setAlias("foo").setType(AliasType.USER_NAME)
+		));
+		// call under test
+		String name = manager.getPrincipalName(principalId);
+		assertEquals("foo", name);
+		
+		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
+	}
+	
+	@Test
+	public void testGetPrincipalNameWithTeam() {
+		Long principalId = 123L;
+		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
+				new PrincipalAlias().setAlias("bar").setType(AliasType.TEAM_NAME)
+		));
+		// call under test
+		String name = manager.getPrincipalName(principalId);
+		assertEquals("bar", name);
+		
+		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
+	}
+	
+	@Test
+	public void testGetPrincipalNameWithTeamNullId() {
+		Long principalId = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getPrincipalName(principalId);
+		}).getMessage();
+		assertEquals("principalId is required.", message);
 	}
 }

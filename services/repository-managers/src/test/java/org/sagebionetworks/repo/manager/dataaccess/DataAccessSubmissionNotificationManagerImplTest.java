@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -10,6 +8,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.REVIEW_SUBMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -18,8 +20,6 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -27,21 +27,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.MessageTemplate;
 import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
-import org.sagebionetworks.repo.manager.message.UserNameProvider;
-
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.*;
+import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-
-import static org.sagebionetworks.repo.model.util.AccessControlListUtil.*;
 
 @ExtendWith(MockitoExtension.class)
 public class DataAccessSubmissionNotificationManagerImplTest {
@@ -55,10 +51,7 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 	@Mock
 	private SubmissionDAO mockSubmissionDao;
 	@Mock
-	private UserNameProvider mockUserNameProvider;
-	
-	@Captor
-	private ArgumentCaptor<MessageTemplate> messageTemplateCaptor; 
+	private PrincipalNameProvider mockUserNameProvider;
 	
 	@Spy
 	@InjectMocks
@@ -165,24 +158,18 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
 		
-		verify(mockTemplatedMessageSender).sendMessage(messageTemplateCaptor.capture());
-		MessageTemplate template = messageTemplateCaptor.getValue();
-		assertNotNull(template);
 		Map<String, Object> expectedContext = Map.of(
 				"reviewerName", reviewerName,
 				"submittedByName", submittedByName,
 				"dataAccessSubmissionId", dataAccessSubmissionId
 		);
-		assertEquals(expectedContext, template.getTemplateContext());
-		assertEquals(null, template.getBcc());
-		assertEquals(null, template.getCc());
-		assertEquals("text/html", template.getMessageBodyMimeType());
-		assertEquals(Set.of(reviewer.toString()), template.getRecipients());
-		assertEquals(messageSender, template.getSender());
-		assertEquals("[Time Sensitive] Request for access to data", template.getSubject());
-		assertEquals(StandardCharsets.UTF_8, template.getTemplateCharSet());
-		assertEquals("message/DataAccessSubmissionNotificationTemplate.html.vtl", template.getTemplateFile());
-		
+		MessageTemplate expected = MessageTemplate.builder().withContext(expectedContext)
+				.withMessageBodyMimeType("text/html").withRecipients(Set.of(reviewer.toString()))
+				.withSender(messageSender).withSubject("[Time Sensitive] Request for access to data")
+				.withTemplateCharSet(StandardCharsets.UTF_8)
+				.withTemplateFile("message/DataAccessSubmissionNotificationTemplate.html.vtl").build();
+
+		verify(mockTemplatedMessageSender).sendMessage(expected);
 		verify(mockUserNameProvider).getPrincipalName(reviewer);
 		verify(mockUserNameProvider).getPrincipalName(submittedBy);
 

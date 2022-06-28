@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -46,15 +47,16 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
 /**
  * Basic implementation of the PrincipalManager.
- * @author John
  *
  */
-public class PrincipalManagerImpl implements PrincipalManager {
+@Service
+public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProvider {
 	
 	private static final Logger LOG = LogManager.getLogger(PrincipalManagerImpl.class);
 	
@@ -320,5 +322,12 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		} else {
 			throw new DatastoreException("Expected 0-1 results but found "+aliases.size());
 		}
+	}
+
+	@Override
+	public String getPrincipalName(Long principalId) {
+		ValidateArgument.required(principalId, "principalId");
+		return principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME).stream()
+				.findFirst().get().getAlias();
 	}
 }

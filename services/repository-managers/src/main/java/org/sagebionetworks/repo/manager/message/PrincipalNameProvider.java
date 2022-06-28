@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
-public interface UserNameProvider {
+public interface PrincipalNameProvider {
 
 	
 	/**

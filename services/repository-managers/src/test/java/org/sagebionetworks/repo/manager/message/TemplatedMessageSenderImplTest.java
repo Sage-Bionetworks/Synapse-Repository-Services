@@ -57,7 +57,9 @@ public class TemplatedMessageSenderImplTest {
 	private String subject;
 	private S3FileHandle fileHandle;
 	private Charset charset;
-	private String mimeType = MimeTypeUtils.TEXT_HTML_VALUE;
+	private String mimeType;
+	private String bcc;
+	private String cc;
 
 	@BeforeEach
 	public void before() {
@@ -68,7 +70,10 @@ public class TemplatedMessageSenderImplTest {
 		subject = "The Subject";
 		charset = StandardCharsets.UTF_8;
 		mimeType = MimeTypeUtils.TEXT_HTML_VALUE;
-		
+		subject = "the subject of the email";
+		bcc = "you@mail.com";
+		cc = "me@mail.com";
+
 		fileHandle = new S3FileHandle().setId("55");
 	}
 
@@ -84,7 +89,8 @@ public class TemplatedMessageSenderImplTest {
 
 		MessageToUser expectedMtU = new MessageToUser().setFileHandleId(fileHandle.getId()).setSubject(templateFile)
 				.setSubject(subject).setRecipients(recipients).setFileHandleId(fileHandle.getId())
-				.setWithProfileSettingLink(true).setWithUnsubscribeLink(true).setIsNotificationMessage(true);
+				.setWithProfileSettingLink(true).setWithUnsubscribeLink(true).setIsNotificationMessage(true)
+				.setBcc(bcc).setCc(cc).setSubject(subject);
 		boolean overrideNotificationSettings = false;
 		verify(mockMessageManager).createMessage(sender, expectedMtU, overrideNotificationSettings);
 
@@ -101,116 +107,113 @@ public class TemplatedMessageSenderImplTest {
 	}
 	
 	@Test
+	public void testSendMessageWithoutOptionalValues() throws UnsupportedEncodingException, IOException {
+		when(mockVelocityEngine.getTemplate(any(), any())).thenReturn(mockTemplate);
+		when(mockFileHandleManager.createCompressedFileFromString(any(), any(), any(), any())).thenReturn(fileHandle);
+		String messageBody = "some message body";
+		setupMockMergeTemplate(messageBody);
+		
+		subject = null;
+		bcc = null;
+		cc = null;
+
+		// call under test
+		templatedMessageSender.sendMessage(createTemplate());
+
+		MessageToUser expectedMtU = new MessageToUser().setFileHandleId(fileHandle.getId()).setSubject(templateFile)
+				.setSubject(subject).setRecipients(recipients).setFileHandleId(fileHandle.getId())
+				.setWithProfileSettingLink(true).setWithUnsubscribeLink(true).setIsNotificationMessage(true)
+				.setBcc(null).setCc(null).setSubject(null);
+		boolean overrideNotificationSettings = false;
+		verify(mockMessageManager).createMessage(sender, expectedMtU, overrideNotificationSettings);
+
+		verify(mockVelocityEngine).getTemplate(templateFile, StandardCharsets.UTF_8.toString());
+		ArgumentCaptor<VelocityContext> contextCaptor = ArgumentCaptor.forClass(VelocityContext.class);
+		verify(mockTemplate).merge(contextCaptor.capture(), any());
+		VelocityContext context = contextCaptor.getValue();
+		assertNotNull(context);
+		assertEquals(1L, context.get("one"));
+		assertEquals(2L, context.get("two"));
+
+		verify(mockFileHandleManager).createCompressedFileFromString(eq(sender.getId().toString()), any(),
+				eq(messageBody), eq(MimeTypeUtils.TEXT_HTML_VALUE.toString()));
+	}
+
+	@Test
 	public void testSendMessageWithNullTempalte() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(null);
 		}).getMessage();
-		assertEquals("MessageTemplate is required.", message);	
+		assertEquals("MessageTemplate is required.", message);
 	}
-	
+
 	@Test
 	public void testSendMessageWithNullTempalteFile() {
 		templateFile = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.templateFile is required.", message);	
+		assertEquals("templateFile is required.", message);
 	}
-	
+
 	@Test
 	public void testSendMessageWithNullSender() {
 		sender = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.sender is required.", message);	
+		assertEquals("sender is required.", message);
 	}
-	
+
 	@Test
 	public void testSendMessageWithNullRecipients() {
 		recipients = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.recipients is required.", message);	
+		assertEquals("recipients is required.", message);
 	}
-	
+
 	@Test
 	public void testSendMessageWithNullRecipientsEmpty() {
 		recipients = Collections.emptySet();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.recipients must contain at least one recipient", message);	
+		assertEquals("MessageTemplate.recipients must contain at least one recipient", message);
 	}
-	
-	
+
 	@Test
 	public void testSendMessageWithNullCharset() {
 		charset = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.templateCharSet is required.", message);	
+		assertEquals("templateCharSet is required.", message);
 	}
-	
+
 	@Test
 	public void testSendMessageWithNullMimeType() {
 		mimeType = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			templatedMessageSender.sendMessage(createTemplate());
 		}).getMessage();
-		assertEquals("MessageTemplate.messageBodyMimeType is required.", message);	
+		assertEquals("messageBodyMimeType is required.", message);
 	}
-	
-	
+
 	void setupMockMergeTemplate(String messageBody) {
-	    doAnswer(invocation -> {
-	        StringWriter writer = invocation.getArgument(1);
-	        writer.append(messageBody);
-	        return null;
-	    }).when(mockTemplate).merge(any(), any());
+		doAnswer(invocation -> {
+			StringWriter writer = invocation.getArgument(1);
+			writer.append(messageBody);
+			return null;
+		}).when(mockTemplate).merge(any(), any());
 	}
 
 	MessageTemplate createTemplate() {
-		return new MessageTemplate() {
+		return MessageTemplate.builder().withContext(context).withTemplateFile(templateFile).withSender(sender)
+				.withRecipients(recipients).withSubject(subject).withTemplateCharSet(charset)
+				.withMessageBodyMimeType(mimeType).withSubject(subject).withBcc(bcc).withCc(cc).build();
 
-			@Override
-			public Map<String, Object> getTemplateContext() {
-				return context;
-			}
-
-			@Override
-			public String getTemplateFile() {
-				return templateFile;
-			}
-
-			@Override
-			public UserInfo getSender() {
-				return sender;
-			}
-
-			@Override
-			public Set<String> getRecipients() {
-				return recipients;
-			}
-
-			@Override
-			public String getSubject() {
-				return subject;
-			}
-
-			@Override
-			public Charset getTemplateCharSet() {
-				return charset;
-			}
-
-			@Override
-			public String getMessageBodyMimeType() {
-				return mimeType;
-			}
-
-		};
 	}
 
 }

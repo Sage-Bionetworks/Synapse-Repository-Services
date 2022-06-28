@@ -15,9 +15,9 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 
-@Repository
+@Service
 public class TemplatedMessageSenderImpl implements TemplatedMessageSender {
 	
 	private final VelocityEngine velocityEngine;
@@ -44,16 +44,16 @@ public class TemplatedMessageSenderImpl implements TemplatedMessageSender {
 			throw new IllegalArgumentException("MessageTemplate.recipients must contain at least one recipient");
 		}
 		
-		Map<String, Object> templateContext = t.getTemplateContext();
+		Map<String, Object> templateContext = t.getContext();
 		ValidateArgument.required(t.getTemplateFile(), "MessageTemplate.templateContext()");
 		
 		String messageBody = buildMessageBody(t.getTemplateFile(), t.getTemplateCharSet(), templateContext);
 		String boddyFileHandleId = storeMessageBody(t.getSender(), messageBody, t.getMessageBodyMimeType());
 		MessageToUser mtu = new MessageToUser();
-		mtu.setBcc(t.getBcc());
-		mtu.setCc(t.getCc());
+		t.getBcc().ifPresent(bcc -> mtu.setBcc(bcc));
+		t.getCc().ifPresent(cc-> mtu.setCc(cc));
 		mtu.setFileHandleId(boddyFileHandleId);
-		mtu.setSubject(t.getSubject());
+		t.getSubject().ifPresent(subject -> mtu.setSubject(subject));
 		mtu.setIsNotificationMessage(t.isNotificationMessage());
 		mtu.setWithUnsubscribeLink(t.includeUnsubscribeLink());
 		mtu.setWithProfileSettingLink(t.includeProfileSettingLink());

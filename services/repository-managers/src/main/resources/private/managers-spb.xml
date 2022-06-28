@@ -30,9 +30,7 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
-	
-	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
-	
+		
 	<bean id="notificationManager" class="org.sagebionetworks.repo.manager.NotificationManagerImpl" />
 	
 	<bean id="CloudMailInManager" class="org.sagebionetworks.repo.manager.CloudMailInManagerImpl" />

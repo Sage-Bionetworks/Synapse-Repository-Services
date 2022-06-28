@@ -177,11 +177,11 @@ public class DataAccessSubmissionNotificationWorkerIntegrationTest {
 				new CreateSubmissionRequest().setRequestEtag(request.getEtag()).setRequestId(request.getId())
 						.setSubjectId("syn123").setSubjectType(RestrictableObjectType.ENTITY));
 
-		System.out.println(status);
-		
 		String emailBody = asynchHelper.waitForEmailMessgae(reviewerEmail, WORKER_TIMEOUT);
 
 		assertTrue(emailBody.contains(reviewerEmail));
+		String expectedUr = "https://www.synapse.org/#!DataAccessManagement:default/Submissions/"+status.getSubmissionId();
+		assertTrue(emailBody.contains(expectedUr));
 
 	}
 

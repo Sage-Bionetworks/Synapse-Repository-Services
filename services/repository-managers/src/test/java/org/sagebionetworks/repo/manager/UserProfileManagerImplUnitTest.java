@@ -778,39 +778,4 @@ public class UserProfileManagerImplUnitTest {
 		
 	}
 	
-	@Test
-	public void testGetPrincipalNameWithUser() {
-		Long principalId = 123L;
-		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
-				new PrincipalAlias().setAlias("foo").setType(AliasType.USER_NAME)
-		));
-		// call under test
-		String name = userProfileManager.getPrincipalName(principalId);
-		assertEquals("foo", name);
-		
-		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
-	}
-	
-	@Test
-	public void testGetPrincipalNameWithTeam() {
-		Long principalId = 123L;
-		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
-				new PrincipalAlias().setAlias("bar").setType(AliasType.TEAM_NAME)
-		));
-		// call under test
-		String name = userProfileManager.getPrincipalName(principalId);
-		assertEquals("bar", name);
-		
-		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
-	}
-	
-	@Test
-	public void testGetPrincipalNameWithTeamNullId() {
-		Long principalId = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			 userProfileManager.getPrincipalName(principalId);
-		}).getMessage();
-		assertEquals("principalId is required.", message);
-	}
 }
