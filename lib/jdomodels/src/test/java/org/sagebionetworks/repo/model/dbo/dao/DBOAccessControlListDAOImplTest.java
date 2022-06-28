@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -355,6 +356,13 @@ public class DBOAccessControlListDAOImplTest {
 		assertThrows(NotFoundException.class, () -> {
 			aclDAO.get(aclId);
 		});
+	}
+	
+	@Test
+	public void testGetAclIdNotExistOptional() throws Exception {
+		String objectid = "syn123";
+		ObjectType objectType = ObjectType.ENTITY;
+		assertEquals(Optional.empty(), aclDAO.getAcl(objectid, objectType));
 	}
 	
 	////////////////////

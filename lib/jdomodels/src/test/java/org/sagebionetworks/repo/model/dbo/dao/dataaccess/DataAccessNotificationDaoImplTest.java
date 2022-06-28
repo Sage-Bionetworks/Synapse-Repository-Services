@@ -70,14 +70,14 @@ public class DataAccessNotificationDaoImplTest {
 
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
-		accessRequirementDao.clear();
+		accessRequirementDao.truncateAll();
 	}
 
 	@AfterEach
 	public void after() {
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
-		accessRequirementDao.clear();
+		accessRequirementDao.truncateAll();
 		userGroupDao.delete(user.getId());
 		userGroupDao.delete(user2.getId());
 	}

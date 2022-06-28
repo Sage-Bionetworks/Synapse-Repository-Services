@@ -22,27 +22,34 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class RequestManagerImpl implements RequestManager{
 	public static final int MAX_ACCESSORS = 500;
 
+	private final AccessRequirementDAO accessRequirementDao;
+	private final RequestDAO requestDao;
+	private final SubmissionDAO submissionDao;
+	
 	@Autowired
-	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
-	private RequestDAO requestDao;
-	@Autowired
-	private SubmissionDAO submissionDao;
+	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
+			SubmissionDAO submissionDao) {
+		super();
+		this.accessRequirementDao = accessRequirementDao;
+		this.requestDao = requestDao;
+		this.submissionDao = submissionDao;
+	}
 
-	@WriteTransaction
-	@Override
-	public Request create(UserInfo userInfo, Request toCreate) {
+	Request create(UserInfo userInfo, Request toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toCreate);
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
 				"A Request can only associate with an ManagedACTAccessRequirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
-		return requestDao.create(toCreate);
+		Request result = requestDao.create(toCreate);
+		return result;
 	}
 
 	public Request prepareCreationFields(Request toCreate, String createdBy) {
@@ -129,9 +136,7 @@ public class RequestManagerImpl implements RequestManager{
 		return renewal;
 	}
 
-	@WriteTransaction
-	@Override
-	public RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
+	RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toUpdate);
@@ -158,7 +163,8 @@ public class RequestManagerImpl implements RequestManager{
 				"A submission has been created. User needs to cancel the created submission or wait for an ACT member to review it before create another submission.");
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
-		return requestDao.update(toUpdate);
+		RequestInterface result = requestDao.update(toUpdate);
+		return result;
 	}
 
 	@WriteTransaction
@@ -199,6 +205,11 @@ public class RequestManagerImpl implements RequestManager{
 	public RequestInterface getRequestForSubmission(String requestId) {
 		ValidateArgument.required(requestId, "requestId");
 		return requestDao.get(requestId);
+	}
+
+	@Override
+	public void truncateAll() {
+		requestDao.truncateAll();
 	}
 
 }

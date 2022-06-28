@@ -30,9 +30,7 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
-	
-	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
-	
+		
 	<bean id="notificationManager" class="org.sagebionetworks.repo.manager.NotificationManagerImpl" />
 	
 	<bean id="CloudMailInManager" class="org.sagebionetworks.repo.manager.CloudMailInManagerImpl" />
@@ -373,10 +371,6 @@
 
 	<bean id="tableUploadManager"
 		class="org.sagebionetworks.repo.manager.table.TableUploadManagerImpl"
-		scope="singleton" />
-
-	<bean id="requestManager"
-		class="org.sagebionetworks.repo.manager.dataaccess.RequestManagerImpl"
 		scope="singleton" />
 	
 	<bean id="bulkDownloadManager"

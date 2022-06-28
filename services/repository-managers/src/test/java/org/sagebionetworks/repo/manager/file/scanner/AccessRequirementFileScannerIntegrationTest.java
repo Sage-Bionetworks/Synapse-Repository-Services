@@ -54,7 +54,7 @@ public class AccessRequirementFileScannerIntegrationTest {
 	
 	@BeforeEach
 	public void before() {
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -62,7 +62,7 @@ public class AccessRequirementFileScannerIntegrationTest {
 	
 	@AfterEach
 	public void after() {
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 	}
 	

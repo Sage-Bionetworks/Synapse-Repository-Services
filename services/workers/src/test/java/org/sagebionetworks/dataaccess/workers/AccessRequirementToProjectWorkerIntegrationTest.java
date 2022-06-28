@@ -44,13 +44,13 @@ public class AccessRequirementToProjectWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		nodeDao.truncateAll();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 	
 	@AfterEach
 	public void after() {
 		nodeDao.truncateAll();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 	
 	@Test

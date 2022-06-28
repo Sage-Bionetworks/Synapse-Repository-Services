@@ -129,4 +129,9 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 			return update(userInfo, toCreateOrUpdate);
 		}
 	}
+
+	@Override
+	public void truncateAll() {
+		researchProjectDao.truncateAll();
+	}
 }

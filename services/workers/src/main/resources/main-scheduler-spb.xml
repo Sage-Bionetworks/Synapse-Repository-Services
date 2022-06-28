@@ -131,6 +131,7 @@
 		<ref bean="accessApprovalExpirationTrigger" />
 		<ref bean="accessApprovalRevokedNotificationTrigger" />
 		<ref bean="accessApprovalReminderNotificationWorkerTrigger" />
+		<ref bean="dataAccessSubmissionNotificationTrigger" />
 		<ref bean="schemaValidationTrigger" />
 		<ref bean="multipartCleanupWorkerTrigger" />
 		<ref bean="fileHandleAssociationScanDispatcherWorkerTrigger" />

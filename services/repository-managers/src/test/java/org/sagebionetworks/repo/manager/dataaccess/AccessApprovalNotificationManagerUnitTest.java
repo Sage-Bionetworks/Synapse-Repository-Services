@@ -183,7 +183,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 			manager.configureDataAccessNotificationBuilders(builders);
 		}).getMessage();
 		
-		assertEquals("A notification builder for type " + DataAccessNotificationType.REVOCATION + " is already registred.", message);
+		assertEquals("A notification builder for type " + DataAccessNotificationType.REVOCATION + " is already registered.", message);
 		
 	}
 

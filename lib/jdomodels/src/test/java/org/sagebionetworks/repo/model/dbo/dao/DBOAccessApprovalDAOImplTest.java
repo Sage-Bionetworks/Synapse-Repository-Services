@@ -77,7 +77,7 @@ public class DBOAccessApprovalDAOImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		accessApprovalDAO.clear();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
@@ -125,7 +125,7 @@ public class DBOAccessApprovalDAOImplTest {
 	@AfterEach
 	public void tearDown() throws Exception{
 		accessApprovalDAO.clear();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());
 			node = null;

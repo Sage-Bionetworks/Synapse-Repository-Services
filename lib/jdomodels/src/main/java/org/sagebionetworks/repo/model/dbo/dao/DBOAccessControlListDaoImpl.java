@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -324,14 +325,20 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public AccessControlList get(final String ownerId, final ObjectType ownerType)
 			throws DatastoreException, NotFoundException {
+		return getAcl(ownerId, ownerType)
+				.orElseThrow(() -> new NotFoundException(String.format(ACL_DOES_NOT_EXIST, ownerId, ownerType.name())));
+	}
+	
+	@Override
+	public Optional<AccessControlList> getAcl(final String ownerId, final ObjectType ownerType) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
 		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param)
-				.orElseThrow(() -> new NotFoundException(
-						String.format(ACL_DOES_NOT_EXIST, ownerId, ownerType.name())));
-		AccessControlList acl = doGet(dboAcl);
-		return acl;
+		Optional<DBOAccessControlList> dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		if(dboAcl.isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(doGet(dboAcl.get()));
 	}
 
 	@Override
@@ -693,4 +700,5 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 				"DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + " WHERE " + COL_ACL_OWNER_ID + " NOT IN(:bootstrapIds)",
 				params);
 	}
+
 }

@@ -114,7 +114,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			for (DataAccessNotificationType supportedType : builder.supportedTypes()) {
 				if (notificationBuilders.containsKey(supportedType)) {
 					throw new IllegalStateException(
-							"A notification builder for type " + supportedType + " is already registred.");
+							"A notification builder for type " + supportedType + " is already registered.");
 				}
 				notificationBuilders.put(supportedType, builder);
 			}

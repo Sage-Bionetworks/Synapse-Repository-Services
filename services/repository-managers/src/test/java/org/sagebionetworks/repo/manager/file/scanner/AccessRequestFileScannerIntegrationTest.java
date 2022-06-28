@@ -90,7 +90,7 @@ public class AccessRequestFileScannerIntegrationTest {
 		usersToDelete = new ArrayList<>();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		
 		
@@ -111,7 +111,7 @@ public class AccessRequestFileScannerIntegrationTest {
 	public void after() {
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		
 		usersToDelete.forEach(userGroupDao::delete);

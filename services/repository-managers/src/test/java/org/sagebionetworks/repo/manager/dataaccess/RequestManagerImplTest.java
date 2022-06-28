@@ -20,9 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class RequestManagerImplTest {
@@ -54,8 +53,10 @@ public class RequestManagerImplTest {
 	private UserInfo mockUser;
 	@Mock
 	private ManagedACTAccessRequirement mockAccessRequirement;
-
+	
+	@InjectMocks
 	private RequestManagerImpl manager;
+	
 	private String accessRequirementId;
 	private String userId;
 	private String researchProjectId;
@@ -69,12 +70,6 @@ public class RequestManagerImplTest {
 
 	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		manager = new RequestManagerImpl();
-		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(manager, "requestDao", mockRequestDao);
-		ReflectionTestUtils.setField(manager, "submissionDao", mockSubmissionDao);
-
 		userId = "1";
 		accessRequirementId = "2";
 		researchProjectId = "3";
@@ -480,10 +475,12 @@ public class RequestManagerImplTest {
 		
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockRequestDao.create(any())).thenReturn(request);
+		Request daoRequest = createNewRequest();
+		when(mockRequestDao.create(any())).thenReturn(daoRequest);
 		
+		request = createNewRequest();
 		request.setId(null);
-		assertEquals(request, manager.createOrUpdate(mockUser, request));
+		assertEquals(daoRequest, manager.createOrUpdate(mockUser, request));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
 		Request toCreate = captor.getValue();

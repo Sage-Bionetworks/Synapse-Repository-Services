@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.joda.time.Instant;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionEvent;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -119,8 +121,23 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				.withChangeType(ChangeType.CREATE);
 		
 		transactionalMessenger.sendMessageAfterCommit(changeMessage);
+
+		sendLocalEventAfterCommit(status.getSubmissionId());
+
 		
 		return status;
+	}
+	
+	/**
+	 * This will send a message to a local topic only. The event will not propagate
+	 * to staging. A local event listener will then send a notification email to
+	 * users assigned to review this submission.
+	 * 
+	 * @param submissionId
+	 */
+	private void sendLocalEventAfterCommit(String submissionId) {
+		transactionalMessenger.publishMessageAfterCommit(new DataAccessSubmissionEvent().setObjectId(submissionId)
+				.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_EVENT).setTimestamp(Instant.now().toDate()));
 	}
 
 	/**
@@ -533,5 +550,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		result.setOpenSubmissionList(openSubmissionList);
 		result.setNextPageToken(token.getNextPageTokenForCurrentResults(openSubmissionList));
 		return result;
+	}
+
+	public void truncateAll() {
+		submissionDao.truncateAll();
 	}
 }
