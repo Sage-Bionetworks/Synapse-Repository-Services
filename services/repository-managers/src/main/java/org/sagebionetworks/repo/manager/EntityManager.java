@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -564,6 +565,16 @@ public interface EntityManager {
 	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
 			ListValidationResultsRequest request);
 	
+	/**
+	 * Get the derived annotation keys for the given entity.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 */
+	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
+	
 	public void truncateAll();
+
+
 
 }

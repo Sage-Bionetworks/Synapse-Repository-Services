@@ -20,6 +20,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
@@ -27,9 +28,11 @@ import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_OFFSET;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.json.JSONObject;
@@ -66,8 +69,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -124,6 +129,8 @@ public class EntityManagerImplUnitTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	EntitySchemaValidationResultDao mockEntitySchemaValidationResultDao;
+	@Mock
+	DerivedAnnotationDao mockDerivedAnnotationDao;
 
 	@Captor
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
@@ -1306,5 +1313,63 @@ public class EntityManagerImplUnitTest {
 		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
 				BoundObjectType.entity);
 		verify(entityManagerSpy, never()).sendEntityUpdateNotifications(entityId);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotations() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.authorized());
+		Keys keys = new Keys().setKeys(List.of("one", "two"));
+		when(mockDerivedAnnotationDao.getDerivedAnnotationKeys(any())).thenReturn(Optional.of(keys));
+
+		// call under test
+		Keys results = entityManager.getDerivedAnnotationKeys(mockUser, entityId);
+		assertEquals(keys, results);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotationKeys(entityId);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationsWithEmpty() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockDerivedAnnotationDao.getDerivedAnnotationKeys(any())).thenReturn(Optional.empty());
+
+		// call under test
+		Keys results = entityManager.getDerivedAnnotationKeys(mockUser, entityId);
+		assertEquals(new Keys().setKeys(Collections.emptyList()), results);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotationKeys(entityId);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationsWithUnauthorized() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, () -> {
+			entityManager.getDerivedAnnotationKeys(mockUser, entityId);
+		});
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationsWithNullUser() {
+		mockUser = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.getDerivedAnnotationKeys(mockUser, entityId);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testGetDerivedAnnotationsWithNulEntityId() {
+		entityId = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.getDerivedAnnotationKeys(mockUser, entityId);
+		}).getMessage();
+		assertEquals("entityId is required.", message);
 	}
 }
