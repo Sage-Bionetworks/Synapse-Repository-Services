@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -73,6 +74,9 @@ public class EntityManagerImplAutowireTest {
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
+	
+	@Autowired
+	private DerivedAnnotationDao derivedAnnotationsDao;
 
 	private List<String> toDelete;
 	private List<String> activitiesToDelete;
@@ -98,6 +102,7 @@ public class EntityManagerImplAutowireTest {
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		fileHandlesToDelete = new ArrayList<String>();
+		derivedAnnotationsDao.clearAll();
 	}
 	
 	@AfterEach
@@ -131,6 +136,7 @@ public class EntityManagerImplAutowireTest {
 		if (userId!=null) {
 			userManager.deletePrincipal(adminUserInfo, userId);
 		}
+		derivedAnnotationsDao.clearAll();
 	}
 	
 	@Test
@@ -404,7 +410,7 @@ public class EntityManagerImplAutowireTest {
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 
 		// Call under test
-		JSONObject result = entityManager.getEntityJson(pid);
+		JSONObject result = entityManager.getEntityJson(pid, false);
 		assertNotNull(result);
 		assertEquals(project.getId(), result.getString("id"));
 		assertEquals(project.getEtag(), result.getString("etag"));
@@ -429,6 +435,52 @@ public class EntityManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testGetEntityJsonWithDerivedAnnotations() {
+		Project project = new Project();
+		project.setName("some kind of test project");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		
+		AnnotationsV2TestUtils.putAnnotations(annotations, "a", Arrays.asList("1"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "b", Arrays.asList("1.2"), AnnotationsValueType.DOUBLE);
+		
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		
+		Annotations derivedAnnotations = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(derivedAnnotations, "a", "should not override", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(derivedAnnotations, "c", "value", AnnotationsValueType.STRING);
+		
+		derivedAnnotationsDao.saveDerivedAnnotations(pid, derivedAnnotations);
+
+		// Call under test
+		JSONObject result = entityManager.getEntityJson(pid, true);
+		
+		assertNotNull(result);
+		assertEquals(project.getId(), result.getString("id"));
+		assertEquals(project.getEtag(), result.getString("etag"));
+		assertEquals(project.getName(), result.getString("name"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getCreatedOn()), result.getString("createdOn"));
+		assertEquals(JsonDateUtils.convertDateToString(FORMAT.DATE_TIME, project.getModifiedOn()), result.getString("modifiedOn"));
+		assertEquals(project.getModifiedBy(), result.getString("modifiedBy"));
+		assertEquals(project.getCreatedBy(), result.getString("createdBy"));
+		assertEquals(Project.class.getName(), result.getString("concreteType"));
+		assertEquals(project.getParentId(), result.getString("parentId"));
+		
+		// the annotations:
+		assertEquals(1, result.getJSONArray("a").length());
+		assertEquals("1", result.getJSONArray("a").getString(0));
+		assertEquals(1, result.getJSONArray("b").length());
+		assertEquals(1.2, result.getJSONArray("b").getDouble(0));
+		assertEquals(1, result.getJSONArray("c").length());
+		assertEquals("value", result.getJSONArray("c").getString(0));
+	}
+	
+	@Test
 	public void testUpdateEntityJson() {
 		Project project = new Project();
 		project.setName("some kind of test project");
@@ -443,7 +495,7 @@ public class EntityManagerImplAutowireTest {
 		entityManager.updateAnnotations(userInfo, pid, annotations);
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 
-		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
 		toUpdate.put("singleString", "two");
 		JSONArray doubleArray = new JSONArray();
 		doubleArray.put(new Double(4.5));
@@ -493,13 +545,13 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 		// get entity JSON
-		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
 		// add a list of booleans annotation
 		toUpdate.put("key", Arrays.asList(true, false));
 		// put entity JSON
 		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
 		// get the entity JSON
-		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid);
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
 		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), Boolean.class);
 		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), Boolean.class);
 	}
@@ -513,13 +565,13 @@ public class EntityManagerImplAutowireTest {
 		toDelete.add(pid);
 		project = entityManager.getEntity(userInfo, pid, Project.class);
 		// get entity JSON
-		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
 		// add a list of string boolean annotation
 		toUpdate.put("key", Arrays.asList("true", "false"));
 		// put entity JSON
 		entityManager.updateEntityJson(adminUserInfo, pid, toUpdate);
 		// get the entity JSON
-		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid);
+		JSONObject projectJSON = entityManager.getEntityJson(adminUserInfo, pid, false);
 		assertEquals(projectJSON.getJSONArray("key").get(0).getClass(), String.class);
 		assertEquals(projectJSON.getJSONArray("key").get(1).getClass(), String.class);
 	}
@@ -539,7 +591,7 @@ public class EntityManagerImplAutowireTest {
 
 		// Call under test - PLFM-6872
 		// Verify that we get an object back and can read it
-		JSONObject toUpdate = entityManager.getEntityJson(pid);
+		JSONObject toUpdate = entityManager.getEntityJson(pid, false);
 		
 		assertEquals("NaN", toUpdate.getJSONArray("listOfDoubles").get(0));
 		assertEquals("NaN", toUpdate.getJSONArray("listOfDoubles").get(1));

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySetOf;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.json.JSONObject;
@@ -66,8 +69,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -123,7 +128,9 @@ public class EntityManagerImplUnitTest {
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
-	EntitySchemaValidationResultDao mockEntitySchemaValidationResultDao;
+	private EntitySchemaValidationResultDao mockEntitySchemaValidationResultDao;
+	@Mock
+	private DerivedAnnotationDao mockDerivedAnnotationDao;
 
 	@Captor
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
@@ -895,19 +902,44 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId(entityId);
 		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
-		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
 		// call under test
-		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId);
+		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		assertNotNull(object);
 		assertEquals(jsonResult, object);
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
 		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
+	}
+	
+	@Test
+	public void testGetEntityJsonWithIncludeDerivedAnnotationsAndEmpty() {
+		JsonSchema schema = null;
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		Project project = new Project();
+		project.setId(entityId);
+		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
+		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.empty());
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		JSONObject jsonResult = new JSONObject();
+		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		// call under test
+		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId, true);
+		assertNotNull(object);
+		assertEquals(jsonResult, object);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(entityManagerSpy).getEntity(entityId, null);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
 	}
 	
 	@Test
@@ -916,7 +948,7 @@ public class EntityManagerImplUnitTest {
 		Project project = new Project();
 		project.setId(entityId);
 		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
-		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
@@ -926,13 +958,14 @@ public class EntityManagerImplUnitTest {
 		JsonSchema schema = new JsonSchema();
 		when(mockJsonSchemaManager.getValidationSchema(any())).thenReturn(schema);
 		// call under test
-		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId);
+		JSONObject object = entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		assertNotNull(object);
 		assertEquals(jsonResult, object);
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
 		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
 	}
 
 	@Test
@@ -940,11 +973,12 @@ public class EntityManagerImplUnitTest {
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			entityManagerSpy.getEntityJson(mockUser, entityId);
+			entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		});
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
 		verifyNoMoreInteractions(mockNodeManager);
 		verifyNoMoreInteractions(mockAnnotationTranslator);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
 	}
 	
 	@Test
@@ -952,7 +986,7 @@ public class EntityManagerImplUnitTest {
 		mockUser = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			entityManagerSpy.getEntityJson(mockUser, entityId);
+			entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		});
 	}
 	
@@ -961,7 +995,7 @@ public class EntityManagerImplUnitTest {
 		String entityId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			entityManagerSpy.getEntityJson(mockUser, entityId);
+			entityManagerSpy.getEntityJson(mockUser, entityId, false);
 		});
 	}
 	
@@ -972,13 +1006,13 @@ public class EntityManagerImplUnitTest {
 		project.setId(entityId);
 		project.setEtag("some-etag");
 		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
-		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		// call under test
-		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId);
+		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId, false);
 		assertNotNull(subject);
 		assertEquals(project.getId(), subject.getObjectId());
 		assertEquals(project.getEtag(), subject.getObjectEtag());
@@ -986,6 +1020,32 @@ public class EntityManagerImplUnitTest {
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
 		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
+	}
+	
+	@Test
+	public void testGetEntityJsonSubjectWithIncludeDerivedAnnotations() {
+		JsonSchema schema = null;
+		Project project = new Project();
+		project.setId(entityId);
+		project.setEtag("some-etag");
+		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.empty());
+		JSONObject jsonResult = new JSONObject();
+		when(mockNodeManager.findFirstBoundJsonSchema(any())).thenThrow(NotFoundException.class);
+		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
+		// call under test
+		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId, true);
+		assertNotNull(subject);
+		assertEquals(project.getId(), subject.getObjectId());
+		assertEquals(project.getEtag(), subject.getObjectEtag());
+		assertEquals(org.sagebionetworks.repo.model.schema.ObjectType.entity, subject.getObjectType());
+		verify(entityManagerSpy).getEntity(entityId, null);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
 	}
 	
 	@Test
@@ -994,7 +1054,7 @@ public class EntityManagerImplUnitTest {
 		project.setId(entityId);
 		project.setEtag("some-etag");
 		doReturn(project).when(entityManagerSpy).getEntity(any(String.class), any());
-		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = AnnotationsV2Utils.emptyAnnotations();
 		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
 		JSONObject jsonResult = new JSONObject();
 		Long schemaId = 123L;
@@ -1004,7 +1064,7 @@ public class EntityManagerImplUnitTest {
 		when(mockJsonSchemaManager.getValidationSchema(any())).thenReturn(schema);
 		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
 		// call under test
-		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId);
+		JsonSubject subject = entityManagerSpy.getEntityJsonSubject(entityId, false);
 		assertNotNull(subject);
 		assertEquals(project.getId(), subject.getObjectId());
 		assertEquals(project.getEtag(), subject.getObjectEtag());
@@ -1012,6 +1072,7 @@ public class EntityManagerImplUnitTest {
 		verify(entityManagerSpy).getEntity(entityId, null);
 		verify(mockNodeManager).getUserAnnotations(entityId);
 		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, schema);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
 	}
 	
 	@Test
@@ -1019,17 +1080,18 @@ public class EntityManagerImplUnitTest {
 		String entityId = null;
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			entityManagerSpy.getEntityJsonSubject(entityId);
+			entityManagerSpy.getEntityJsonSubject(entityId, false);
 		});
 		verifyNoMoreInteractions(mockNodeManager);
 		verifyNoMoreInteractions(mockAnnotationTranslator);
+		verifyZeroInteractions(mockDerivedAnnotationDao);
 	}
 	
 	@Test
 	public void testUpdateEntityJson() {
 		JSONObject inputJson = new JSONObject();
 		JSONObject resultJson = new JSONObject();
-		doReturn(resultJson).when(entityManagerSpy).getEntityJson(any());
+		doReturn(resultJson).when(entityManagerSpy).getEntityJson(any(), anyBoolean());
 		when(mockNodeManager.getNodeType(any(), any())).thenReturn(EntityType.project);
 		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
 		when(mockAnnotationTranslator.readFromJsonObject(any(), any())).thenReturn(annos);

@@ -3889,10 +3889,11 @@ public interface SynapseClient extends BaseClient {
 	 * the entity against a JSON schema.
 	 * 
 	 * @param entityId
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 * @throws SynapseException
 	 */
-	JSONObject getEntityJson(String entityId) throws SynapseException;
+	JSONObject getEntityJson(String entityId, boolean includeDerivedAnnotations) throws SynapseException;
 
 	/**
 	 * Update an Entity's annotations using the JSONObject representation of the Entity.

@@ -443,7 +443,7 @@ public class ITJsonSchemaControllerTest {
 		project = new Project();
 		project = synapse.createEntity(project);
 		// Call under test
-		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		JSONObject projectJSON = synapse.getEntityJson(project.getId(), false);
 		assertNotNull(projectJSON);
 		assertEquals(project.getName(), projectJSON.get("name"));
 		assertEquals(project.getId(), projectJSON.get("id"));
@@ -453,7 +453,7 @@ public class ITJsonSchemaControllerTest {
 	public void testUpdateEntityJson() throws SynapseException {
 		project = new Project();
 		project = synapse.createEntity(project);
-		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		JSONObject projectJSON = synapse.getEntityJson(project.getId(), false);
 		assertNotNull(projectJSON);
 		projectJSON.put("sample", "some value");
 		// call under test
@@ -473,7 +473,7 @@ public class ITJsonSchemaControllerTest {
 	public void testUpdateEntityJsonWithDoubleAnnotations() throws SynapseException {
 		project = new Project();
 		project = synapse.createEntity(project);
-		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		JSONObject projectJSON = synapse.getEntityJson(project.getId(), false);
 		assertNotNull(projectJSON);
 		
 		// Using the double wrapper ensures that the 1.0 is sent to the server with the trailing zero
@@ -503,7 +503,7 @@ public class ITJsonSchemaControllerTest {
 	public void testUpdateEntityJsonWithMixDoubleAndLongValues() throws SynapseException {
 		project = new Project();
 		project = synapse.createEntity(project);
-		JSONObject projectJSON = synapse.getEntityJson(project.getId());
+		JSONObject projectJSON = synapse.getEntityJson(project.getId(), false);
 		assertNotNull(projectJSON);
 		
 		// This is accepted and it will be treated as an array of doubles (but storing the original format)
