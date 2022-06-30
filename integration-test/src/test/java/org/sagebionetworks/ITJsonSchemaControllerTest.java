@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +35,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -52,6 +57,7 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
@@ -102,6 +108,7 @@ public class ITJsonSchemaControllerTest {
 	@AfterEach
 	public void afterEach() throws SynapseException {
 		if (project != null) {
+			synapse.clearSchemaBindingForEntity(project.getId());
 			synapse.deleteEntity(project, true);
 		}
 		try {
@@ -521,6 +528,85 @@ public class ITJsonSchemaControllerTest {
 		assertEquals(AnnotationsValueType.DOUBLE, value.getType());
 		assertEquals(Arrays.asList("1.2", "1", "2", "3", "4.5", "6"), value.getValue());
 
+	}
+	
+	@Test
+	public void tetGetDerivedAnnotationKeys() throws Exception {
+		
+		project = createProjectWithBoundSchema("schema/HasDefault.json");
+		assertNotNull(project);
+		
+		Folder folder = new Folder();
+		folder.setName("child");
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		final String folderId = folder.getId();
+		
+		waitFor("Waiting for derived annotation keys..",()->{
+			// call under test
+			Keys keys = synapse.getDerivedAnnotationsKeys(folderId);
+			Keys expected = new Keys().setKeys(List.of("hasDefault"));
+			assertEquals(expected, keys);
+			return keys;
+		});
+	
+	}
+	
+	public <T> T waitFor(String waitMessage,Callable<T> callable) throws Exception {
+		return TimeUtils.waitFor(MAX_WAIT_MS, 1000, ()->{
+			try {
+				return Pair.create(true, callable.call());
+			}catch (Throwable e) {
+				System.out.println("Waiting for expected ValidationResults..." + e.getMessage());
+				return Pair.create(false, null);
+			}
+		});
+	}
+	
+	/**
+	 * Helper to create a project with the provide bound schema.
+	 * @param fileName
+	 * @return
+	 * @throws Exception
+	 */
+	Project createProjectWithBoundSchema(String fileName) throws Exception {
+		JsonSchema schema = loadSchema(fileName);
+		organization = synapse.createOrganization(createOrganizationRequest);
+		assertNotNull(organization);
+		
+		CreateSchemaRequest request = new CreateSchemaRequest();
+		request.setSchema(schema);
+
+		// Call under test
+		JsonSchemaVersionInfo versionInfo = waitForSchemaCreate(request, (response) -> {
+			assertNotNull(response);
+		}).getNewVersionInfo();
+		
+		
+		project = new Project();
+		project = synapse.createEntity(project);
+
+		// will bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(project.getId());
+		bindRequest.setSchema$id(schema.get$id());
+		// Call under test
+		JsonSchemaObjectBinding parentBinding = synapse.bindJsonSchemaToEntity(bindRequest);
+		assertNotNull(parentBinding);
+		assertEquals(versionInfo, parentBinding.getJsonSchemaVersionInfo());
+		
+		return project;
+	}
+	
+	JsonSchema loadSchema(String fileName) {
+		try(InputStream in = ITJsonSchemaControllerTest.class.getClassLoader().getResourceAsStream(fileName)){
+			if(in == null) {
+				throw new IllegalArgumentException("File not found: "+fileName);
+			}
+			return EntityFactory.createEntityFromJSONString(IOUtils.toString(in, StandardCharsets.UTF_8), JsonSchema.class);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} 
 	}
 	
 	
