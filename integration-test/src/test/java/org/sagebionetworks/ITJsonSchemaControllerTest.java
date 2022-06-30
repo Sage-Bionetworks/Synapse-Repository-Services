@@ -531,6 +531,32 @@ public class ITJsonSchemaControllerTest {
 	}
 	
 	@Test
+	public void testGetEntityJsonWithDerivedAnnotations() throws Exception {
+		project = createProjectWithBoundSchema("schema/HasDefault.json");
+		assertNotNull(project);
+		
+		Folder folder = new Folder();
+		folder.setName("child");
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		
+		final String folderId = folder.getId();
+		
+		waitFor("Waiting for derived annotation keys..",()->{
+			// call under test
+			Keys keys = synapse.getDerivedAnnotationsKeys(folderId);
+			Keys expected = new Keys().setKeys(List.of("hasDefault"));
+			assertEquals(expected, keys);
+			return keys;
+		});
+		
+		// Call under test
+		JSONObject folderJson = synapse.getEntityJson(folderId, true);
+		
+		assertTrue(folderJson.has("hasDefault"));
+	}
+	
+	@Test
 	public void tetGetDerivedAnnotationKeys() throws Exception {
 		
 		project = createProjectWithBoundSchema("schema/HasDefault.json");

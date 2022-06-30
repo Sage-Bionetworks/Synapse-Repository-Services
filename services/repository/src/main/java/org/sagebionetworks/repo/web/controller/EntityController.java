@@ -1753,7 +1753,7 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(required = true) String id,
 			@RequestParam(value = "includeDerivedAnnotations", defaultValue = "false") Boolean includeDerivedAnnotations) {
-		return serviceProvider.getEntityService().getEntityJson(userId, id, Boolean.TRUE.equals(includeDerivedAnnotations));
+		return serviceProvider.getEntityService().getEntityJson(userId, id, includeDerivedAnnotations);
 	}
 
 	/**
