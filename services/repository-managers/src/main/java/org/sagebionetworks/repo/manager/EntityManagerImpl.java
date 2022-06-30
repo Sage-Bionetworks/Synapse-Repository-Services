@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +34,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -90,6 +93,8 @@ public class EntityManagerImpl implements EntityManager {
 	private EntitySchemaValidationResultDao entitySchemaValidationResultDao;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	@Autowired
+	private DerivedAnnotationDao derivedAnnotationDao;
 
 	boolean allowCreationOfOldEntities = true;
 
@@ -720,9 +725,18 @@ public class EntityManagerImpl implements EntityManager {
 		// Find the children of this entity that the caller cannot see.
 		return entityAclManager.getNonvisibleChildren(userInfo, containerId);
 	}
+	
+	@Override
+	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "entityId");
+		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return derivedAnnotationDao.getDerivedAnnotationKeys(id).orElse(new Keys().setKeys(Collections.emptyList()));
+	}
 
 	@Override
 	public void truncateAll() {
 		nodeManager.truncateAll();
 	}
+
 }
