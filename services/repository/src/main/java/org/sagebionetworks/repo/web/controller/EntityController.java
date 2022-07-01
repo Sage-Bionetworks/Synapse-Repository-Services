@@ -1736,9 +1736,14 @@ public class EntityController {
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
 	 * permission on the Entity.
 	 * </p>
+	 * The includeDerivedAnnotations parameters allows to include in the response annotations
+	 * that are derived from a bound schema, the derived annotations are not persistent and the client
+	 * must make sure to exclude the derived annotation keys when updating the entity JSON.
 	 * 
 	 * @param userId
 	 * @param id
+	 * @param includeDerivedAnnotations true if annotations that are derived from a bound schema should be 
+	 * included in the response, false otherwise (default false)
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -1746,8 +1751,9 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_JSON }, method = RequestMethod.GET)
 	public @ResponseBody JSONObject getEntityJson(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(required = true) String id) {
-		return serviceProvider.getEntityService().getEntityJson(userId, id);
+			@PathVariable(required = true) String id,
+			@RequestParam(value = "includeDerivedAnnotations", defaultValue = "false") Boolean includeDerivedAnnotations) {
+		return serviceProvider.getEntityService().getEntityJson(userId, id, includeDerivedAnnotations);
 	}
 
 	/**

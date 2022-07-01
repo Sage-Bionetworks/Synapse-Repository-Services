@@ -503,26 +503,29 @@ public interface EntityManager {
 	 * 
 	 * @param userInfo
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(UserInfo userInfo, String id);
+	public JSONObject getEntityJson(UserInfo userInfo, String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Same as : {@link #getEntityJson(UserInfo, String)} without an authorization
 	 * check.
 	 * 
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(String id);
+	public JSONObject getEntityJson(String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Get the JsonSubject representation of an Entity with the given ID.
 	 * 
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JsonSubject getEntityJsonSubject(String id);
+	public JsonSubject getEntityJsonSubject(String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Update the annotation of an Entity by providing the flat JSON representation

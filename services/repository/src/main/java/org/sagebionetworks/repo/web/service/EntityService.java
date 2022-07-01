@@ -679,9 +679,10 @@ public interface EntityService {
 	 * Get the JSON representation of an Entity and its annotations for JSON schema validation.
 	 * @param userId
 	 * @param entityId
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(Long userId, String entityId);
+	public JSONObject getEntityJson(Long userId, String entityId, boolean includeDerivedAnnotations);
 
 	/**
 	 * Update an Entity's annotations from the JSON representation of the entity.

@@ -5940,9 +5940,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public JSONObject getEntityJson(String entityId) throws SynapseException {
+	public JSONObject getEntityJson(String entityId, boolean includeDerivedAnnotations) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/json";
+		String url = "/entity/"+entityId+"/json?includeDerivedAnnotations=" + String.valueOf(includeDerivedAnnotations);
 		return getJson(getRepoEndpoint(), url);
 	}
 	

@@ -234,4 +234,30 @@ public class AnnotationsV2Utils {
 			return list.toString();
 		}
 	}
+	
+	/**
+	 * Overrides the annotation id, etag and keys in the given target annotations from the given source annotations
+	 * 
+	 * @param target The target annotations
+	 * @param source The source annotations
+	 * @return The target annotations
+	 */
+	public static Annotations overrideAnnotations(Annotations target, Annotations source) {
+		ValidateArgument.required(target, "target");
+		ValidateArgument.required(source, "source");
+		
+		target.setId(source.getId()).setEtag(source.getEtag());
+		
+		if (target.getAnnotations() == null && source.getAnnotations() != null && !source.getAnnotations().isEmpty()) {
+			target.setAnnotations(new HashMap<>());
+		}
+		
+		if (source.getAnnotations() != null) {
+			source.getAnnotations().forEach((key, value) -> {
+				target.getAnnotations().put(key, new AnnotationsValue().setType(value.getType()).setValue(new ArrayList<>(value.getValue())));
+			});
+		}
+		
+		return target;
+	}
 }

@@ -43,7 +43,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		ValidateArgument.required(entityId, "entityId");
 		try {
 			JsonSchemaObjectBinding binding = entityManger.getBoundSchema(entityId);
-			JsonSubject entitySubject = entityManger.getEntityJsonSubject(entityId);
+			JsonSubject entitySubject = entityManger.getEntityJsonSubject(entityId, false);
 			JsonSchema validationSchema = jsonSchemaManager
 					.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
 			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
@@ -53,6 +53,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 			if(annoOption.isPresent()) {
 				derivedAnnotationDao.saveDerivedAnnotations(entityId, annoOption.get());
 			}else {
+				
 				derivedAnnotationDao.clearDerivedAnnotations(entityId);
 			}
 		} catch (NotFoundException e) {

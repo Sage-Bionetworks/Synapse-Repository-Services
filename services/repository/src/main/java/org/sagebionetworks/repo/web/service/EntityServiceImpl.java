@@ -737,10 +737,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public JSONObject getEntityJson(Long userId, String id) {
+	public JSONObject getEntityJson(Long userId, String id, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityJson(userInfo, id);
+		return entityManager.getEntityJson(userInfo, id, includeDerivedAnnotations);
 	}
 
 	@Override
