@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DEERIVED_ANNOTATIONS_ANNOS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DEERIVED_ANNOTATIONS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DEERIVED_ANNOTATIONS_KEYS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_DEERIVED_ANNOTATIONS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DEERIVED_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_KEYS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_DERIVED_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DERIVED_ANNOTATIONS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,9 +22,9 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBODerivedAnnotations implements DatabaseObject<DBODerivedAnnotations> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("objectId", COL_DEERIVED_ANNOTATIONS_ID, true),
-			new FieldColumn("keys", COL_DEERIVED_ANNOTATIONS_KEYS),
-			new FieldColumn("annotations", COL_DEERIVED_ANNOTATIONS_ANNOS),
+			new FieldColumn("objectId", COL_DERIVED_ANNOTATIONS_ID, true),
+			new FieldColumn("keys", COL_DERIVED_ANNOTATIONS_KEYS),
+			new FieldColumn("annotations", COL_DERIVED_ANNOTATIONS_ANNOS),
 	};
 	
 	private Long objectId;
@@ -38,20 +38,20 @@ public class DBODerivedAnnotations implements DatabaseObject<DBODerivedAnnotatio
 			@Override
 			public DBODerivedAnnotations mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBODerivedAnnotations result = new DBODerivedAnnotations();
-				result.setObjectId(rs.getLong(COL_DEERIVED_ANNOTATIONS_ID));
-				result.setKeys(rs.getString(COL_DEERIVED_ANNOTATIONS_KEYS));
-				result.setAnnotations(rs.getString(COL_DEERIVED_ANNOTATIONS_ANNOS));
+				result.setObjectId(rs.getLong(COL_DERIVED_ANNOTATIONS_ID));
+				result.setKeys(rs.getString(COL_DERIVED_ANNOTATIONS_KEYS));
+				result.setAnnotations(rs.getString(COL_DERIVED_ANNOTATIONS_ANNOS));
 				return result;
 			}
 
 			@Override
 			public String getTableName() {
-				return TABLE_DEERIVED_ANNOTATIONS;
+				return TABLE_DERIVED_ANNOTATIONS;
 			}
 
 			@Override
 			public String getDDLFileName() {
-				return DDL_FILE_DEERIVED_ANNOTATIONS;
+				return DDL_FILE_DERIVED_ANNOTATIONS;
 			}
 
 			@Override

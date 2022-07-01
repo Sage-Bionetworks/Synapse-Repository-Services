@@ -538,4 +538,50 @@ public class AnnotationsV2UtilsTest {
 		assertEquals(expected, result);
 		
 	}
+	
+	@Test
+	public void testOverrideAnnotationsWithNullAnnotationValue() {
+		Annotations target = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(target, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
+		
+		Annotations source = AnnotationsV2Utils.emptyAnnotations();
+
+		source.getAnnotations().put("a", null);
+		
+		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
+		
+		expected.getAnnotations().put("a", null);
+		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
+		
+		// Call under test
+		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
+	public void testOverrideAnnotationsWithNullValue() {
+		Annotations target = AnnotationsV2Utils.emptyAnnotations();
+		
+		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(target, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
+		
+		Annotations source = AnnotationsV2Utils.emptyAnnotations();
+
+		source.getAnnotations().put("a", new AnnotationsValue().setValue(Arrays.asList("1", null)));
+		
+		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
+		
+		expected.getAnnotations().put("a", new AnnotationsValue().setValue(Arrays.asList("1", null)));
+		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
+		
+		// Call under test
+		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		
+		assertEquals(expected, result);
+		
+	}
 }
