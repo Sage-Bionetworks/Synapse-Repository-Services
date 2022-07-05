@@ -254,7 +254,7 @@ public class AnnotationsV2Utils {
 		
 		if (source.getAnnotations() != null) {
 			source.getAnnotations().forEach((key, value) -> {
-				target.getAnnotations().put(key, new AnnotationsValue().setType(value.getType()).setValue(new ArrayList<>(value.getValue())));
+				target.getAnnotations().put(key, value == null ? null : new AnnotationsValue().setType(value.getType()).setValue(new ArrayList<>(value.getValue())));
 			});
 		}
 		
