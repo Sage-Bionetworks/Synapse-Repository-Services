@@ -2502,7 +2502,7 @@ public class DownloadListDaoImplTest {
 		derivedAnnotationsDao.saveDerivedAnnotations(file.getId(), derivedAnnotations);
 		
 		// call under test
-		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L));
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()));
 		
 		JSONObject expected = new JSONObject();
 		expected.put(ManifestKeys.ID.name(), file.getId());
@@ -2519,6 +2519,64 @@ public class DownloadListDaoImplTest {
 		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
 		expected.put("boolean", "false");
 		expected.put("anotherKey", "do not ignore me");
+		assertJSONEquals(expected, object);
+	}
+	
+	@Test
+	public void testGetItemManifestDetailsForVersionWithDerivedAnnotations() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName(String.join("-", "project", "" + 1));
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(NodeConstants.BOOTSTRAP_NODES.ROOT.getId().toString());
+			n.setNodeType(EntityType.project);
+		});
+		// v1
+		FileHandle fh1 = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(101L);
+			h.setFileName("one.txt");
+		});
+		Node file = nodeDaoHelper.create(n -> {
+			n.setName("one.txt");
+			n.setCreatedByPrincipalId(userOneIdLong);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.file);
+			n.setFileHandleId(fh1.getId());
+			n.setVersionNumber(1L);
+			n.setVersionComment("v1");
+			n.setVersionLabel("v1");
+		});
+		Annotations annotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		annotations.getAnnotations().put(ManifestKeys.name.name(), new AnnotationsValue().setType(STRING).setValue(Arrays.asList("ignore me")));
+		annotations.getAnnotations().put("boolean", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("false")));
+		nodeDao.updateUserAnnotations(file.getId(), annotations);
+		
+		Annotations derivedAnnotations = new Annotations().setAnnotations(new LinkedHashMap<>());
+		derivedAnnotations.getAnnotations().put(ManifestKeys.name.name(), new AnnotationsValue().setType(STRING).setValue(Arrays.asList("ignore me")));
+		derivedAnnotations.getAnnotations().put("boolean", new AnnotationsValue().setType(BOOLEAN).setValue(Arrays.asList("ignore me")));
+		derivedAnnotations.getAnnotations().put("anotherKey", new AnnotationsValue().setType(STRING).setValue(Arrays.asList("do not ignore me")));
+		
+		derivedAnnotationsDao.saveDerivedAnnotations(file.getId(), derivedAnnotations);
+		
+		// call under test
+		JSONObject object = downloadListDao.getItemManifestDetails(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L));
+		
+		JSONObject expected = new JSONObject();
+		expected.put(ManifestKeys.ID.name(), file.getId());
+		expected.put(ManifestKeys.name.name(), file.getName());
+		expected.put(ManifestKeys.versionNumber.name(), 1L);
+		expected.put(ManifestKeys.contentType.name(), "text/plain; charset=UTF-8");
+		expected.put(ManifestKeys.dataFileSizeBytes.name(), "101");
+		expected.put(ManifestKeys.createdBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.createdOn.name(), ""+file.getCreatedOn().getTime());
+		expected.put(ManifestKeys.modifiedBy.name(), userOneIdLong.toString());
+		expected.put(ManifestKeys.modifiedOn.name(), ""+file.getModifiedOn().getTime());
+		expected.put(ManifestKeys.parentId.name(), file.getParentId());
+		expected.put(ManifestKeys.synapseURL.name(), "https://www.synapse.org/#!Synapse:"+file.getId()+".1");
+		expected.put(ManifestKeys.dataFileMD5Hex.name(), "md5");
+		expected.put("boolean", "false");
+
+		// No derived annotations are added when a version of the item is specified
+		
 		assertJSONEquals(expected, object);
 	}
 

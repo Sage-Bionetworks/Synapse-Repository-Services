@@ -728,10 +728,11 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 					+ " WHERE N." + COL_NODE_ID
 					+ " = :synId";
 		}else {
-			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + ", DA." + COL_DERIVED_ANNOTATIONS_ANNOS + " FROM " + TABLE_NODE
+			// When a version for an item is specified we never include the derived annotations, since those are computed only for the current version
+			// of an entity, the mapper expects a column for the derived annotations anyway
+			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + ", NULL AS " + COL_DERIVED_ANNOTATIONS_ANNOS + " FROM " + TABLE_NODE
 					+ " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE
 					+ " ) JOIN " + TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + ")"
-					+ " LEFT JOIN " + TABLE_DERIVED_ANNOTATIONS + " DA ON (N." + COL_NODE_ID + " = DA." + COL_DERIVED_ANNOTATIONS_ID + ")"
 					+ " WHERE N." + COL_NODE_ID + " = :synId AND R." + COL_REVISION_NUMBER + " = :version";
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
