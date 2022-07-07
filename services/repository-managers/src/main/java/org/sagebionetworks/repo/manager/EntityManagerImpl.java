@@ -588,10 +588,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "request.entityId");
 		ValidateArgument.required(request.getSchema$id(), "request.schema$id");
+		boolean enableDerived = false;
+		if(request.getEnableDerivedAnnotations() != null) {
+			enableDerived = request.getEnableDerivedAnnotations();
+		}
 		entityAuthorizationManager.hasAccess(userInfo, request.getEntityId(), ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
 		JsonSchemaObjectBinding binding = jsonSchemaManager.bindSchemaToObject(userInfo.getId(), request.getSchema$id(),
-				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity);
+				KeyFactory.stringToKey(request.getEntityId()), BoundObjectType.entity, enableDerived);
 		if (sendNotificationMessages) {
 			sendEntityUpdateNotifications(request.getEntityId());
 		}

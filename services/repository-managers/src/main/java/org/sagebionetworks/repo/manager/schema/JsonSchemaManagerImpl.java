@@ -530,7 +530,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Override
 	public JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId,
-			BoundObjectType objectType) {
+			BoundObjectType objectType, boolean enableDerivedAnnotations) {
 		ValidateArgument.required(createdBy, "createdBy");
 		ValidateArgument.required($id, "$id");
 		ValidateArgument.required(objectId, "objectId");
@@ -544,8 +544,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 			versionId = jsonSchemaDao.getVersionId(parsedId.getOrganizationName().toString(),
 					parsedId.getSchemaName().toString(), parsedId.getSemanticVersion().toString());
 		}
-		return jsonSchemaDao.bindSchemaToObject(new BindSchemaRequest().withCreatedBy(createdBy).withObjectId(objectId)
-				.withObjectType(objectType).withSchemaId(schemaId).withVersionId(versionId));
+		return jsonSchemaDao.bindSchemaToObject(
+				new BindSchemaRequest().withCreatedBy(createdBy).withObjectId(objectId).withObjectType(objectType)
+						.withSchemaId(schemaId).withVersionId(versionId).withEnableDerived(enableDerivedAnnotations));
 	}
 
 	@Override
