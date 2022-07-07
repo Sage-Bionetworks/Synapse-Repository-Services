@@ -1429,4 +1429,61 @@ public class EntityManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("entityId is required.", message);
 	}
+	
+	@Test
+	public void testGetEntityForVersion() {
+		Long versionNumber = 2L;
+		Node node = new Node();
+		node.setId(entityId);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		
+		Annotations annotations = new Annotations();
+		
+		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
+		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
+		
+		Project expected = new Project()
+			.setId(entityId)
+			.setCreatedBy("1")
+			.setModifiedBy("2");
+		
+		// Call under test
+		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, Project.class);
+		
+		assertEquals(expected, result);
+		
+		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
+		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+		
+	}
+	
+	@Test
+	public void testGetEntityForVersionWithNullEntityClass() {
+		Long versionNumber = 2L;
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.project);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		
+		Annotations annotations = new Annotations();
+		
+		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
+		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
+		
+		Project expected = new Project()
+			.setId(entityId)
+			.setCreatedBy("1")
+			.setModifiedBy("2");
+		
+		// Call under test
+		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, null);
+		
+		assertEquals(expected, result);
+		
+		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
+		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+		
+	}
 }

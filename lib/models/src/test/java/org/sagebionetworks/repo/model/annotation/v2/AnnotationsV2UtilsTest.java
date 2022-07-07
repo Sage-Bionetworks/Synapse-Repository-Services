@@ -376,27 +376,27 @@ public class AnnotationsV2UtilsTest {
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNoTarget() {
+	public void testPutAnnotationsIfAbsentWithNoTarget() {
 		
 		assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AnnotationsV2Utils.overrideAnnotations(null, AnnotationsV2Utils.emptyAnnotations());
+			AnnotationsV2Utils.putAnnotationsIfAbsent(null, AnnotationsV2Utils.emptyAnnotations());
 		});
 		
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNoSource() {
+	public void testPutAnnotationsIfAbsentWithNoSource() {
 		
 		assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AnnotationsV2Utils.overrideAnnotations(AnnotationsV2Utils.emptyAnnotations(), null);
+			AnnotationsV2Utils.putAnnotationsIfAbsent(AnnotationsV2Utils.emptyAnnotations(), null);
 		});
 		
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNullTargetAnnotationsAndEmptySourceAnnotations() {
+	public void testPutAnnotationsIfAbsentWithNullTargetAnnotationsAndEmptySourceAnnotations() {
 		
 		Annotations target = AnnotationsV2Utils.emptyAnnotations().setAnnotations(null);
 		
@@ -405,13 +405,13 @@ public class AnnotationsV2UtilsTest {
 		Annotations expected = AnnotationsV2Utils.emptyAnnotations().setAnnotations(null);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNullTargetAnnotationsAndNullSourceAnnotations() {
+	public void testPutAnnotationsIfAbsentWithNullTargetAnnotationsAndNullSourceAnnotations() {
 		
 		Annotations target = AnnotationsV2Utils.emptyAnnotations().setAnnotations(null);
 		
@@ -420,13 +420,13 @@ public class AnnotationsV2UtilsTest {
 		Annotations expected = AnnotationsV2Utils.emptyAnnotations().setAnnotations(null);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNullTargetAnnotations() {
+	public void testPutAnnotationsIfAbsentWithNullTargetAnnotations() {
 		
 		Annotations target = AnnotationsV2Utils.emptyAnnotations().setAnnotations(null);
 		
@@ -439,41 +439,26 @@ public class AnnotationsV2UtilsTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "a", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testOverrideAnnotationsIdAndEtag() {
-		Annotations target = AnnotationsV2Utils.emptyAnnotations().setId("oldId").setEtag("oldEtag");
-		
-		Annotations source = AnnotationsV2Utils.emptyAnnotations().setId("newId").setEtag("newEtag");
-		
-		Annotations expected = AnnotationsV2Utils.emptyAnnotations().setId("newId").setEtag("newEtag");
-		
-		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
-		
-		assertEquals(expected, result);
-		
-	}
-	
-	@Test
-	public void testOverrideAnnotationsWithEmpty() {
+	public void testPutAnnotationsIfAbsentWithEmpty() {
 		Annotations target = AnnotationsV2Utils.emptyAnnotations();
 		Annotations source = AnnotationsV2Utils.emptyAnnotations();
 		
 		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 		
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithEmptySource() {
+	public void testPutAnnotationsIfAbsentWithEmptySource() {
 		Annotations target = AnnotationsV2Utils.emptyAnnotations();
 		
 		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
@@ -487,13 +472,13 @@ public class AnnotationsV2UtilsTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNewValue() {
+	public void testPutAnnotationsIfAbsentWithNewKey() {
 		Annotations target = AnnotationsV2Utils.emptyAnnotations();
 		
 		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
@@ -510,14 +495,14 @@ public class AnnotationsV2UtilsTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "c", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 		
 	}
 	
 	@Test
-	public void testOverrideAnnotationsWithNewOverrideKey() {
+	public void testPutAnnotationsIfAbsentWithExistingKey() {
 		Annotations target = AnnotationsV2Utils.emptyAnnotations();
 		
 		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
@@ -529,57 +514,11 @@ public class AnnotationsV2UtilsTest {
 		
 		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
 		
-		AnnotationsV2TestUtils.putAnnotations(expected, "a", Arrays.asList("3", "4", "5"), AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
 		
 		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
-		
-		assertEquals(expected, result);
-		
-	}
-	
-	@Test
-	public void testOverrideAnnotationsWithNullAnnotationValue() {
-		Annotations target = AnnotationsV2Utils.emptyAnnotations();
-		
-		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(target, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
-		
-		Annotations source = AnnotationsV2Utils.emptyAnnotations();
-
-		source.getAnnotations().put("a", null);
-		
-		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
-		
-		expected.getAnnotations().put("a", null);
-		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
-		
-		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
-		
-		assertEquals(expected, result);
-		
-	}
-	
-	@Test
-	public void testOverrideAnnotationsWithNullValue() {
-		Annotations target = AnnotationsV2Utils.emptyAnnotations();
-		
-		AnnotationsV2TestUtils.putAnnotations(target, "a", Arrays.asList("1", "2"), AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(target, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
-		
-		Annotations source = AnnotationsV2Utils.emptyAnnotations();
-
-		source.getAnnotations().put("a", new AnnotationsValue().setValue(Arrays.asList("1", null)));
-		
-		Annotations expected = AnnotationsV2Utils.emptyAnnotations();
-		
-		expected.getAnnotations().put("a", new AnnotationsValue().setValue(Arrays.asList("1", null)));
-		AnnotationsV2TestUtils.putAnnotations(expected, "b", Arrays.asList("1", "2"), AnnotationsValueType.LONG);
-		
-		// Call under test
-		Annotations result = AnnotationsV2Utils.overrideAnnotations(target, source);
+		Annotations result = AnnotationsV2Utils.putAnnotationsIfAbsent(target, source);
 		
 		assertEquals(expected, result);
 		
