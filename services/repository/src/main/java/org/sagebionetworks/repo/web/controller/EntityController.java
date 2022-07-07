@@ -1750,6 +1750,31 @@ public class EntityController {
 	}
 
 	/**
+	 * Get the raw JSON for the given entity and version. The resulting JSON can be used for the
+	 * validation of an entity against a
+	 * <a href="${org.sagebionetworks.repo.model.schema.JsonSchema}">JsonSchema</a>.
+	 * <p>
+	 * Note: The caller must be granted the
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the Entity.
+	 * </p>
+	 *
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER_JSON }, method = RequestMethod.GET)
+	public @ResponseBody JSONObject getEntityJsonForVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id,
+			@PathVariable(required = true) Long versionNumber) {
+		return serviceProvider.getEntityService().getEntityJsonForVersion(userId, id, versionNumber);
+	}
+
+	/**
 	 * Update the annotations of an entity using the raw JSON of the entity.
 	 * <p>
 	 * See: <a href="${GET.entity.id.json}">GET entity/{id}/json</a> to get the JSON

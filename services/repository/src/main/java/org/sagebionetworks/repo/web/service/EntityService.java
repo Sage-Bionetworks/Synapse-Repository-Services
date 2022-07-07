@@ -715,4 +715,13 @@ public interface EntityService {
 	 * @return
 	 */
 	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(Long userId, ListValidationResultsRequest request);
+
+	/**
+	 * Get the JSON representation of an Entity and its annotations for a specified version.
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	JSONObject getEntityJsonForVersion(Long userId, String entityId, Long versionNumber);
 }

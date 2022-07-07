@@ -192,11 +192,19 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(versionNumber, "versionNumber");
 		// Get the annotations for this entity
 		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyForVersion(userInfo, entityId,
 				versionNumber);
 		// Fetch the current node from the server
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
+
+		if(entityClass == null) {
+			entityClass = (Class<? extends T>) EntityTypeUtils.getClassForType(node.getNodeType());
+		}
+
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
 
@@ -636,6 +644,23 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "entityId");
 		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return getEntityJson(entityId);
+	}
+
+	@Override
+	public JSONObject getEntityJsonForVersion(UserInfo userInfo, String entityId, Long versionNumber) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		Class<? extends Entity> entityClass = null;
+		Entity entity = getEntityForVersion(userInfo, entityId, versionNumber, entityClass);
+		Annotations annotations = getAnnotationsForVersion(userInfo, entityId, versionNumber);
+
+		// We explicitly pass a null schema since schema are not bound to specific versions. Additionally, no derived
+		// annotations are included because those are computed only for the latest version.
+		JSONObject json = annotationsTranslator.writeToJsonObject(entity, annotations, null);
+
+		return new EntityJsonSubject(entity, json).toJson();
 	}
 	
 	@Override

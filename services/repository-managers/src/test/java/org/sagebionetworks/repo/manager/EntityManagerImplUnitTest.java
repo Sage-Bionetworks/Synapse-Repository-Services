@@ -1307,4 +1307,146 @@ public class EntityManagerImplUnitTest {
 				BoundObjectType.entity);
 		verify(entityManagerSpy, never()).sendEntityUpdateNotifications(entityId);
 	}
+
+	@Test
+	public void testGetEntityJsonForVersion() {
+		long versionNumber = 1;
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		Project project = new Project();
+		project.setId(entityId);
+		doReturn(project).when(entityManagerSpy).getEntityForVersion(any(), any(), any(), any());
+		org.sagebionetworks.repo.model.annotation.v2.Annotations annos = new org.sagebionetworks.repo.model.annotation.v2.Annotations();
+		doReturn(annos).when(entityManagerSpy).getAnnotationsForVersion(any(), any(), any());
+		JSONObject jsonResult = new JSONObject();
+		when(mockAnnotationTranslator.writeToJsonObject(any(), any(), any())).thenReturn(jsonResult);
+		// call under test
+		JSONObject object = entityManagerSpy.getEntityJsonForVersion(mockUser, entityId, versionNumber);
+		assertNotNull(object);
+		assertEquals(jsonResult, object);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(entityManagerSpy).getEntityForVersion(mockUser, entityId, versionNumber, null);
+		verify(entityManagerSpy).getAnnotationsForVersion(mockUser, entityId, versionNumber);
+		verify(mockAnnotationTranslator).writeToJsonObject(project, annos, null);
+	}
+
+	@Test
+	public void testGetEntityJsonForVersionWithUnauthorized() {
+		long versionNumber = 1;
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied("no"));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJsonForVersion(mockUser, entityId, versionNumber);
+		});
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verifyNoMoreInteractions(mockNodeManager);
+		verifyNoMoreInteractions(mockAnnotationTranslator);
+	}
+
+	@Test
+	public void testGetEntityJsonForVersionWithNullUser() {
+		mockUser = null;
+		long versionNumber = 1;
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJsonForVersion(mockUser, entityId, versionNumber);
+		});
+		assertEquals("userInfo is required.", error.getMessage());
+	}
+
+	@Test
+	public void testGetEntityJsonForVersionWithNullEntityId() {
+		String entityId = null;
+		long versionNumber = 1;
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJsonForVersion(mockUser, entityId, versionNumber);
+		});
+		assertEquals("entityId is required.", error.getMessage());
+	}
+
+	@Test
+	public void testGetEntityJsonForVersionWithNullVersionNumber() {
+		Long versionNumber = null;
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManagerSpy.getEntityJsonForVersion(mockUser, entityId, versionNumber);
+		});
+		assertEquals("versionNumber is required.", error.getMessage());
+	}
+
+	@Test
+	public void testGetEntityForVersion() {
+		Long versionNumber = 2L;
+		Annotations annotations = new Annotations();
+		Node node = mock(Node.class);
+		node.setId(entityId);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+
+		Project project = new Project()
+				.setId(entityId)
+				.setCreatedBy("1")
+				.setModifiedBy("2");
+
+		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
+		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
+
+		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, Project.class);
+		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
+		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+	}
+
+	@Test
+	public void testGetEntityForVersionWithNullEntityClass() {
+		Long versionNumber = 2L;
+		Annotations annotations = new Annotations();
+		Node node = new Node();
+		node.setId(entityId);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		node.setNodeType(EntityType.project);
+
+		Project project = new Project()
+				.setId(entityId)
+				.setCreatedBy("1")
+				.setModifiedBy("2");
+
+		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
+		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
+
+		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, null);
+		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
+		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+	}
+
+	@Test
+	public void testGetEntityForVersionWithNullVersionNumber() {
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			Project result = entityManager.getEntityForVersion(mockUser, entityId, null, Project.class);
+		});
+		assertEquals("versionNumber is required.", error.getMessage());
+	}
+
+	@Test
+	public void testGetEntityForVersionWithNullEntityId() {
+		Long versionNumber = 2L;
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			Project result = entityManager.getEntityForVersion(mockUser, null, versionNumber, Project.class);
+		});
+		assertEquals("entityId is required.", error.getMessage());
+	}
+
+	@Test
+	public void testGetEntityForVersionWithNullUserInfo() {
+		Long versionNumber = 2L;
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			Project result = entityManager.getEntityForVersion(null, entityId, versionNumber, Project.class);
+		});
+		assertEquals("userInfo is required.", error.getMessage());
+	}
 }

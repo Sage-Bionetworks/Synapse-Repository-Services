@@ -743,6 +743,14 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
+	public JSONObject getEntityJsonForVersion(Long userId, String entityId, Long versionNumber) {
+		ValidateArgument.required(userId, "userId");
+		// Validate versionNumber
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityJsonForVersion(userInfo, entityId, versionNumber);
+	}
+
+	@Override
 	public JSONObject updateEntityJson(Long userId, String entityId, JSONObject request) {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -771,4 +779,6 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getInvalidEntitySchemaValidationResults(userInfo, request);
 	}
+
+
 }

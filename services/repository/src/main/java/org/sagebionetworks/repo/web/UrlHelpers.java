@@ -347,7 +347,8 @@ public class UrlHelpers {
 
 	
 	public static final String ENTITY_VERSION_NUMBER		= ENTITY_VERSION+VERSION_NUMBER;
-	
+
+	public static final String ENTITY_VERSION_NUMBER_JSON = ENTITY_VERSION_NUMBER+"/json";
 	/**
 	 * Get the annotations of a specific version of an entity
 	 */

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -22,18 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -426,6 +417,38 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(2, doubleArray.length());
 		assertEquals(new Double(1.2), doubleArray.getDouble(0));
 		assertEquals(new Double(2.3), doubleArray.getDouble(1));
+	}
+
+
+	@Test
+	public void testGetEntityJsonForVersion() {
+		FileEntity file = new FileEntity();
+		file.setName("some kind of test project");
+		String pid = entityManager.createEntity(userInfo, file, null);
+		toDelete.add(pid);
+		file = entityManager.getEntity(userInfo, pid, FileEntity.class);
+		Annotations annotations = entityManager.getAnnotations(userInfo, pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "testKey", "overrideMe!", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+		file = entityManager.getEntity(userInfo, pid, FileEntity.class);
+
+		file.setVersionLabel("Updated version");
+
+		entityManager.updateEntity(userInfo, file, true, null);
+
+		annotations = entityManager.getAnnotations(userInfo, pid);
+		AnnotationsV2TestUtils.putAnnotations(annotations, "testKey", "overriden!", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(userInfo, pid, annotations);
+
+		// Call under test
+		JSONObject result = entityManager.getEntityJsonForVersion(userInfo, pid, 1L);
+
+		assertEquals("overrideMe!", result.getJSONArray("testKey").get(0));
+
+		result = entityManager.getEntityJsonForVersion(userInfo, pid, 2L);
+
+		assertEquals("overriden!", result.getJSONArray("testKey").get(0));
+
 	}
 	
 	@Test
