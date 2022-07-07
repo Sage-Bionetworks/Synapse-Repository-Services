@@ -59,8 +59,7 @@ public abstract class AbstractViewFilter implements ViewFilter {
 	
 	@Override
 	public String getFilterSql() {
-		// For now we always exclude derived annotations (Will be implemented in https://sagebionetworks.jira.com/browse/PLFM-7299)
-		StringBuilder builder = new StringBuilder(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE");
+		StringBuilder builder = new StringBuilder(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)");
 		if(params.containsKey("limitObjectIds")) {
 			builder.append(" AND R.OBJECT_ID IN (:limitObjectIds)");
 		}
