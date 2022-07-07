@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
-import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdVersionPair;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
@@ -53,7 +52,7 @@ public class FlatIdAndVersionFilterTest {
 	public void testFilter() {
 		// call under test
 		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope);
-		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
+		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE"
 				+ " AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)", filter.getFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		assertEquals(4, paramters.size());
@@ -69,11 +68,11 @@ public class FlatIdAndVersionFilterTest {
 		ViewFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds) "
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE AND R.OBJECT_ID IN (:limitObjectIds) "
 						+ "AND A.ANNO_KEY NOT IN (:excludeKeys) AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
 				filter.getFilterSql());
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds)"
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE AND R.OBJECT_ID IN (:limitObjectIds)"
 				+ " AND A.ANNO_KEY NOT IN (:excludeKeys) AND R.OBJECT_ID IN (:objectIds)",
 				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();

@@ -48,10 +48,10 @@ public class HierarchicaFilterTest {
 		// call under test
 		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
-		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.PARENT_ID IN (:parentIds)",
+		assertEquals(" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE AND R.PARENT_ID IN (:parentIds)",
 				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		Map<String, Object> expected = new HashMap<>();
@@ -67,7 +67,7 @@ public class HierarchicaFilterTest {
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE"
 						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());

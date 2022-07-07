@@ -47,11 +47,11 @@ public class FlatIdsFilterTest {
 		// call under test
 		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, scope);
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) "
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE "
 						+ "AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:flatIds)",
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE AND R.OBJECT_ID IN (:flatIds)",
 				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		Map<String, Object> expected = new HashMap<>();
@@ -67,7 +67,7 @@ public class FlatIdsFilterTest {
 		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, scope).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
 		assertEquals(
-				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
+				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND A.IS_DERIVED = FALSE"
 						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
 						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
