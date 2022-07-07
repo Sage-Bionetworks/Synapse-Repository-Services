@@ -3171,7 +3171,7 @@ public class NodeDAOImplTest {
 		assertEquals(projectDto.getId(), projectDto.getBenefactorId());
 		assertEquals(projectDto.getId(), projectDto.getProjectId());
 		assertEquals(null, projectDto.getFileHandleId());
-		assertEquals(null, projectDto.getAnnotations());
+		assertEquals(Collections.emptyList(), projectDto.getAnnotations());
 		assertEquals(null, projectDto.getFileHandleId());
 	}
 	
@@ -3270,8 +3270,8 @@ public class NodeDAOImplTest {
 		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(List.of(KeyFactory.stringToKey(id)), maxAnnotationChars, limit, offset);
 		
 		assertEquals(3, results.size());
-		assertNull(results.get(0).getAnnotations());
-		assertNull(results.get(1).getAnnotations());
+		assertEquals(Collections.emptyList(), results.get(0).getAnnotations());
+		assertEquals(Collections.emptyList(), results.get(1).getAnnotations());
 		
 		List<ObjectAnnotationDTO> expectedAnnotations = List.of(
 			new ObjectAnnotationDTO(KeyFactory.stringToKey(id), 3L, "key1", AnnotationType.STRING, List.of("value")),

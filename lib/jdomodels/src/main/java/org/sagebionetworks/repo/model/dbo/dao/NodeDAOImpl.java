@@ -1845,9 +1845,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					});
 				}
 				
-				if (!translatedAnnotations.isEmpty()) {
-					dto.setAnnotations(translatedAnnotations);
-				}
+				dto.setAnnotations(translatedAnnotations);
 				
 				return dto;
 			}
