@@ -116,4 +116,41 @@
 		<property name="repeatInterval" value="60000" />
 	</bean>
 	
+	<!-- This worker sends notification emails after the create/update of data access requests. -->
+	<bean id="dataAccessSubmissionNotificationTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner">
+									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
+										<constructor-arg>
+											<bean class="org.sagebionetworks.dataaccess.workers.DataAccessSubmissionNotificationWorker"></bean>
+										</constructor-arg>
+									</bean>
+								</property>
+								<property name="semaphoreLockKey" value="dataAccessSubmissionNotification" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="30" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('DATA_ACCESS_SUBMISSION_NOTIFICATION')}"/>
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stagger the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="3465" />
+		<property name="repeatInterval" value="1003" />
+	</bean>
+	
 </beans>

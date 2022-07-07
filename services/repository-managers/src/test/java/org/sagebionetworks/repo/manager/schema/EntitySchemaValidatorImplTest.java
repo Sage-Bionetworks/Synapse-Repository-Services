@@ -66,7 +66,7 @@ public class EntitySchemaValidatorImplTest {
 	@Test
 	public void testValidateObject() {
 		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
-		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
+		when(mockEntityManger.getEntityJsonSubject(entityId, false)).thenReturn(mockEntitySubject);
 		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
@@ -79,7 +79,7 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
-		verify(mockEntityManger).getEntityJsonSubject(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId, false);
 		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
@@ -90,7 +90,7 @@ public class EntitySchemaValidatorImplTest {
 	@Test
 	public void testValidateObjectWithNoAnnotations() {
 		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
-		when(mockEntityManger.getEntityJsonSubject(entityId)).thenReturn(mockEntitySubject);
+		when(mockEntityManger.getEntityJsonSubject(entityId, false)).thenReturn(mockEntitySubject);
 		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
 		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
 				.thenReturn(mockValidationResults);
@@ -102,7 +102,7 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
 		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
 		verify(mockEntityManger).getBoundSchema(entityId);
-		verify(mockEntityManger).getEntityJsonSubject(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId, false);
 		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
 		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
 		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);

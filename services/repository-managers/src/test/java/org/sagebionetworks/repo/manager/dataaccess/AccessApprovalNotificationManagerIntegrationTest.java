@@ -82,7 +82,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 		users = new ArrayList<>();
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
-		accessRequirementDao.clear();
+		accessRequirementDao.truncateAll();
 		featureStatusDao.clear();
 		featureStatusDao.setFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS, true);
 		
@@ -98,7 +98,7 @@ public class AccessApprovalNotificationManagerIntegrationTest {
 	public void after() {
 		notificationDao.truncateAll();
 		accessApprovalDao.clear();
-		accessRequirementDao.clear();
+		accessRequirementDao.truncateAll();
 		featureStatusDao.clear();
 		
 		users.forEach( id -> {

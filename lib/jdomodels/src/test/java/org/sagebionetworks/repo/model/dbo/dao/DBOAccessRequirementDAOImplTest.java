@@ -97,7 +97,7 @@ public class DBOAccessRequirementDAOImplTest {
 		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		nodeDao.truncateAll();
 		
 		ars = new ArrayList<>();
@@ -122,7 +122,7 @@ public class DBOAccessRequirementDAOImplTest {
 		aclDao.truncateAll();
 		requestDao.truncateAll();
 		researchProjectDao.truncateAll();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		nodeDao.truncateAll();
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());

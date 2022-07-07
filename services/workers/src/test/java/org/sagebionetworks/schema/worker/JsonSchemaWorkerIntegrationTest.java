@@ -316,7 +316,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		// Add the foo annotation to the folder
 		folderJson.put("foo", "bar");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
@@ -380,7 +380,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		// Add the foo annotation to the folder
 		folderJson.put("hasBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
@@ -433,7 +433,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		// Add the foo annotation to the folder
 		folderJson.put("hasBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
@@ -531,7 +531,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		
 		// Add 3 single element array annotations to the folder
 		folderJson.put("fooKey", Arrays.asList("foo"));
@@ -546,7 +546,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		// call under test, will throw an org.json.JSONException if
 		// it is not a JSONArray
-		folderJson = entityManager.getEntityJson(folderId);
+		folderJson = entityManager.getEntityJson(folderId, false);
 		// barKey is defined as an array in a subschema, it will stay as an array
 		assertEquals(folderJson.getJSONArray("barKey").getString(0), "bar");
 		// bazKey is not defined in the schema, so it defaults to an array
@@ -599,7 +599,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		
 		folderJson.put("state", Arrays.asList("Alabama"));
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
@@ -612,12 +612,51 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		// call under test
 		// should not be an array
-		folderJson = entityManager.getEntityJson(folderId);
+		folderJson = entityManager.getEntityJson(folderId, false);
 		assertEquals("Alabama", folderJson.getString("state"));
 		
 		// clean up
 		entityManager.clearBoundSchema(adminUserInfo, projectId);
 		waitForValidationResultsToBeNotFound(adminUserInfo, folderId);
+	}
+	
+	@Test
+	public void testGetEntityJsonWithDerivedAnnotations() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+
+		// create the schema
+		String fileName = "schema/DerivedConditionalConst.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
+		
+		folderJson.put("hasBoolean", "true");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
+			assertNotNull(t);
+			assertTrue(t.getIsValid());
+		});
+		
+		folderJson = entityManager.getEntityJson(folderId, true);
+		
+		assertEquals(true, folderJson.getJSONArray("hasBoolean").getBoolean(0));
+		assertEquals(456, folderJson.getJSONArray("unconditionalDefault").getLong(0));
+		assertEquals("someBoolean was true", folderJson.getString("someConditional"));
+		assertEquals(999, folderJson.getLong("conditionalLong"));
 	}
 	
 	@Test
@@ -663,7 +702,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		
 		// Add single element annotations to the folder that is valid
 		folderJson.put("key", Arrays.asList("foo"));
@@ -713,7 +752,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		Folder folder = new Folder();
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
-		JSONObject folderJson = entityManager.getEntityJson(folderId);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		folderJson.put("hasBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 			

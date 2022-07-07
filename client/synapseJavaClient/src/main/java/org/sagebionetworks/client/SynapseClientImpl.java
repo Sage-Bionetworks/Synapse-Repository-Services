@@ -100,6 +100,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -5939,9 +5940,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public JSONObject getEntityJson(String entityId) throws SynapseException {
+	public JSONObject getEntityJson(String entityId, boolean includeDerivedAnnotations) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = "/entity/"+entityId+"/json";
+		String url = "/entity/"+entityId+"/json?includeDerivedAnnotations=" + String.valueOf(includeDerivedAnnotations);
 		return getJson(getRepoEndpoint(), url);
 	}
 	
@@ -6110,5 +6111,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT + "/search", request, AccessRequirementSearchResponse.class);
+	}
+
+	@Override
+	public Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), "/entity/"+entityId+"/derivedKeys", Keys.class);
 	}
 }

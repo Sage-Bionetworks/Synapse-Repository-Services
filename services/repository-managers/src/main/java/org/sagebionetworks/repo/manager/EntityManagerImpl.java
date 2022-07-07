@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +34,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -58,12 +62,13 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 /**
  *
  */
+@Service
 public class EntityManagerImpl implements EntityManager {
 
 	public static final int MAX_NUMBER_OF_REVISIONS = 15000;
@@ -72,34 +77,32 @@ public class EntityManagerImpl implements EntityManager {
 	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
 
-	@Autowired
 	private NodeManager nodeManager;
-	@Autowired
 	private EntityAclManager entityAclManager;
-	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
-	@Autowired
 	private FileHandleManager fileHandleManager;
-	@Autowired
 	private ObjectTypeManager objectTypeManager;
-	@Autowired
 	private JsonSchemaManager jsonSchemaManager;
-	@Autowired
 	private AnnotationsTranslator annotationsTranslator;
-	@Autowired
 	private EntitySchemaValidationResultDao entitySchemaValidationResultDao;
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	private DerivedAnnotationDao derivedAnnotationDao;
 
-	boolean allowCreationOfOldEntities = true;
-
-	/**
-	 * Injected via spring.
-	 * 
-	 * @param allowOldEntityTypes
-	 */
-	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
-		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
+	public EntityManagerImpl(NodeManager nodeManager, EntityAclManager entityAclManager,
+			EntityAuthorizationManager entityAuthorizationManager, FileHandleManager fileHandleManager, ObjectTypeManager objectTypeManager,
+			JsonSchemaManager jsonSchemaManager, AnnotationsTranslator annotationsTranslator,
+			EntitySchemaValidationResultDao entitySchemaValidationResultDao, TransactionalMessenger transactionalMessenger,
+			DerivedAnnotationDao derivedAnnotationDao) {
+		this.nodeManager = nodeManager;
+		this.entityAclManager = entityAclManager;
+		this.entityAuthorizationManager = entityAuthorizationManager;
+		this.fileHandleManager = fileHandleManager;
+		this.objectTypeManager = objectTypeManager;
+		this.jsonSchemaManager = jsonSchemaManager;
+		this.annotationsTranslator = annotationsTranslator;
+		this.entitySchemaValidationResultDao = entitySchemaValidationResultDao;
+		this.transactionalMessenger = transactionalMessenger;
+		this.derivedAnnotationDao = derivedAnnotationDao;
 	}
 
 	@WriteTransaction
@@ -639,11 +642,11 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public JSONObject getEntityJson(UserInfo userInfo, String entityId) {
+	public JSONObject getEntityJson(UserInfo userInfo, String entityId, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return getEntityJson(entityId);
+		return getEntityJson(entityId, includeDerivedAnnotations);
 	}
 
 	@Override
@@ -664,8 +667,8 @@ public class EntityManagerImpl implements EntityManager {
 	}
 	
 	@Override
-	public JSONObject getEntityJson(String entityId) {
-		return getEntityJsonSubject(entityId).toJson();
+	public JSONObject getEntityJson(String entityId, boolean includeDerivedAnnotations) {
+		return getEntityJsonSubject(entityId, includeDerivedAnnotations).toJson();
 	}
 
 	@Override
@@ -678,16 +681,27 @@ public class EntityManagerImpl implements EntityManager {
 		Class<? extends Entity> entityClass = EntityTypeUtils.getClassForType(type);
 		Annotations newAnnotations = annotationsTranslator.readFromJsonObject(entityClass, jsonObject);
 		nodeManager.updateUserAnnotations(userInfo, entityId, newAnnotations);
-		return getEntityJson(entityId);
+		return getEntityJson(entityId, false);
 	}
 
 	@Override
-	public JsonSubject getEntityJsonSubject(String entityId) {
+	public JsonSubject getEntityJsonSubject(String entityId, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(entityId, "entityId");
 		Class<? extends Entity> entityClass = null;
 		Entity entity = getEntity(entityId, entityClass);
-		Annotations annotations = nodeManager.getUserAnnotations(entityId);
+
+		Annotations annotations;
+		
+		if (includeDerivedAnnotations) {
+			annotations = derivedAnnotationDao.getDerivedAnnotations(entityId).orElse(AnnotationsV2Utils.emptyAnnotations());
+		} else {
+			annotations = AnnotationsV2Utils.emptyAnnotations();
+		}
+		
+		annotations = AnnotationsV2Utils.overrideAnnotations(annotations, nodeManager.getUserAnnotations(entityId));
+		
 		JSONObject json = null;
+		
 		try {
 			String schemaId = getBoundSchema(entityId).getJsonSchemaVersionInfo().get$id();
 			JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
@@ -745,9 +759,18 @@ public class EntityManagerImpl implements EntityManager {
 		// Find the children of this entity that the caller cannot see.
 		return entityAclManager.getNonvisibleChildren(userInfo, containerId);
 	}
+	
+	@Override
+	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "entityId");
+		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return derivedAnnotationDao.getDerivedAnnotationKeys(id).orElse(new Keys().setKeys(Collections.emptyList()));
+	}
 
 	@Override
 	public void truncateAll() {
 		nodeManager.truncateAll();
 	}
+
 }

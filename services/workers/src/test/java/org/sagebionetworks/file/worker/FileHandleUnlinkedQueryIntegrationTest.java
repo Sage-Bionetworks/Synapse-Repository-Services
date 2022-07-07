@@ -107,7 +107,7 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		
 		user = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		scannerDao.truncateAll();
 		
@@ -122,7 +122,7 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 	
 	@AfterEach
 	public void afterEach() {
-		arDao.clear();
+		arDao.truncateAll();
 		fileHandleDao.truncateTable();
 		scannerDao.truncateAll();
 	}

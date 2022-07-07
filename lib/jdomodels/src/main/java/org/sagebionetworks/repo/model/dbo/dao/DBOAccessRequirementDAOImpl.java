@@ -464,7 +464,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 	@Override
-	public void clear() {
+	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT);
 	}
 

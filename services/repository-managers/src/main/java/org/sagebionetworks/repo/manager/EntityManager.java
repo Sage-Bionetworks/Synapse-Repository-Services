@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -502,26 +503,41 @@ public interface EntityManager {
 	 * 
 	 * @param userInfo
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(UserInfo userInfo, String id);
+	public JSONObject getEntityJson(UserInfo userInfo, String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Same as : {@link #getEntityJson(UserInfo, String)} without an authorization
 	 * check.
 	 * 
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(String id);
+	public JSONObject getEntityJson(String id, boolean includeDerivedAnnotations);
+
+	/**
+	 * Get the flat JSON representation of an Entity for a specified version that includes both Entity data
+	 * and its annotations. This flat JSON is suitable to validate an entity against
+	 * a JSON schema.
+	 *
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	JSONObject getEntityJsonForVersion(UserInfo userInfo, String entityId, Long versionNumber);
 
 	/**
 	 * Get the JsonSubject representation of an Entity with the given ID.
 	 * 
 	 * @param id
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JsonSubject getEntityJsonSubject(String id);
+	public JsonSubject getEntityJsonSubject(String id, boolean includeDerivedAnnotations);
 
 	/**
 	 * Update the annotation of an Entity by providing the flat JSON representation
@@ -564,17 +580,13 @@ public interface EntityManager {
 	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(UserInfo userInfo,
 			ListValidationResultsRequest request);
 	
-	public void truncateAll();
-
 	/**
-	 * Get the flat JSON representation of an Entity for a specified version that includes both Entity data
-	 * and its annotations. This flat JSON is suitable to validate an entity against
-	 * a JSON schema.
-	 *
+	 * Get the derived annotation keys for the given entity.
 	 * @param userInfo
-	 * @param entityId
-	 * @param versionNumber
+	 * @param id
 	 * @return
 	 */
-	JSONObject getEntityJsonForVersion(UserInfo userInfo, String entityId, Long versionNumber);
+	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
+	
+	public void truncateAll();
 }

@@ -271,4 +271,9 @@ public class UserManagerImpl implements UserManager {
 		return groupMembersDAO.getIndividuals(principalIdsSet, limit, offset);
 	}
 
+	@Override
+	public void truncateAll() {
+		userGroupDAO.truncateAll();
+	}
+
 }

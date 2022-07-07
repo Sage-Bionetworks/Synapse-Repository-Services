@@ -45,7 +45,7 @@ public class TermsOfUseAccessRequirementObjectHelper implements DaoObjectHelper<
 
 	@Override
 	public void truncateAll() {
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 	}
 
 }

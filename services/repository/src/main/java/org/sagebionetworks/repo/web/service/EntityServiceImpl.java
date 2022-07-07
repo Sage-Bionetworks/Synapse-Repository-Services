@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -736,10 +737,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public JSONObject getEntityJson(Long userId, String id) {
+	public JSONObject getEntityJson(Long userId, String id, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityJson(userInfo, id);
+		return entityManager.getEntityJson(userInfo, id, includeDerivedAnnotations);
 	}
 
 	@Override
@@ -780,5 +781,11 @@ public class EntityServiceImpl implements EntityService {
 		return entityManager.getInvalidEntitySchemaValidationResults(userInfo, request);
 	}
 
-
+	@Override
+	public Keys getDerivedAnnotationKeys(Long userId, String id) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(id, "id");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getDerivedAnnotationKeys(userInfo, id);
+	}
 }

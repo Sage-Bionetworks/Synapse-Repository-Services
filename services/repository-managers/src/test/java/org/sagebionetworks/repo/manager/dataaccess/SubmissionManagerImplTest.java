@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,6 +59,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionEvent;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -120,6 +123,8 @@ public class SubmissionManagerImplTest {
 	private DataAccessAuthorizationManager mockAuthManager;
 	@InjectMocks
 	private SubmissionManagerImpl manager;
+	@Captor
+	private ArgumentCaptor<DataAccessSubmissionEvent> eventCaptor;
 	
 	private Renewal request;
 	private String userId;
@@ -447,6 +452,13 @@ public class SubmissionManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(expectedMessage);
 		
 		verify(mockAccessAprovalManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
+		
+		verify(mockTransactionalMessenger).publishMessageAfterCommit(eventCaptor.capture());
+		DataAccessSubmissionEvent event = eventCaptor.getValue();
+		assertNotNull(event);
+		assertEquals(ObjectType.DATA_ACCESS_SUBMISSION_EVENT, event.getObjectType());
+		assertEquals(submissionId, event.getObjectId());
+		assertNotNull(event.getTimestamp());
 	}
 
 	@Test

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -678,9 +679,10 @@ public interface EntityService {
 	 * Get the JSON representation of an Entity and its annotations for JSON schema validation.
 	 * @param userId
 	 * @param entityId
+	 * @param includeDerivedAnnotations True if the annotations derived from a bound schema should be included
 	 * @return
 	 */
-	public JSONObject getEntityJson(Long userId, String entityId);
+	public JSONObject getEntityJson(Long userId, String entityId, boolean includeDerivedAnnotations);
 
 	/**
 	 * Update an Entity's annotations from the JSON representation of the entity.
@@ -724,4 +726,13 @@ public interface EntityService {
 	 * @return
 	 */
 	JSONObject getEntityJsonForVersion(Long userId, String entityId, Long versionNumber);
+
+	/**
+	 * Get the derived annotation keys for the given entity.
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	public Keys getDerivedAnnotationKeys(Long userId, String id);
+
 }

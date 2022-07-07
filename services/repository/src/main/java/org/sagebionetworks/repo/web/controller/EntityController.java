@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -1735,9 +1736,14 @@ public class EntityController {
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
 	 * permission on the Entity.
 	 * </p>
+	 * The includeDerivedAnnotations parameters allows to include in the response annotations
+	 * that are derived from a bound schema, the derived annotations are not persistent and the client
+	 * must make sure to exclude the derived annotation keys when updating the entity JSON.
 	 * 
 	 * @param userId
 	 * @param id
+	 * @param includeDerivedAnnotations true if annotations that are derived from a bound schema should be 
+	 * included in the response, false otherwise (default false)
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -1745,8 +1751,9 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_JSON }, method = RequestMethod.GET)
 	public @ResponseBody JSONObject getEntityJson(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(required = true) String id) {
-		return serviceProvider.getEntityService().getEntityJson(userId, id);
+			@PathVariable(required = true) String id,
+			@RequestParam(value = "includeDerivedAnnotations", defaultValue = "false") Boolean includeDerivedAnnotations) {
+		return serviceProvider.getEntityService().getEntityJson(userId, id, includeDerivedAnnotations);
 	}
 
 	/**
@@ -1888,5 +1895,28 @@ public class EntityController {
 			@RequestBody(required = true) ListValidationResultsRequest request) {
 		request.setContainerId(id);
 		return serviceProvider.getEntityService().getInvalidEntitySchemaValidationResults(userId, request);
+	}
+	
+	/**
+	 * If the given Entity has derived annotations, then this will return the
+	 * distinct annotation keys of those annotations. If they entity does not have
+	 * derived annotations then the resulting Keys will be empty.
+	 * <p>
+	 * Note: Derived annotations are automatically added or removed base on a
+	 * combination of the Entity's currently bound JsonSchema and the Entitiy's
+	 * actual annotations. This automatic process is eventually consistent.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_DERIVED_KEYS }, method = RequestMethod.GET)
+	public @ResponseBody Keys getDerivedAnnotationKeys(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required = true) String id) {
+		return serviceProvider.getEntityService().getDerivedAnnotationKeys(userId, id);
 	}
 }

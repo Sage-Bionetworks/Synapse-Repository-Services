@@ -296,7 +296,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		request.setAccessRequirementId(managedActAr.getId().toString());
 		request.setAccessorChanges(accessorChanges);
 		request.setResearchProjectId(rp.getId());
-		request = requestManager.create(testUserInfo, (Request) request);
+		request = requestManager.createOrUpdate(testUserInfo, (Request) request);
 		requestIdsToDelete.add(request.getId());
 
 		// submit
@@ -359,7 +359,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		request.setAccessRequirementId(managedActAr.getId().toString());
 		request.setAccessorChanges(accessorChanges);
 		request.setResearchProjectId(rp.getId());
-		request = requestManager.create(testUserInfo, (Request) request);
+		request = requestManager.createOrUpdate(testUserInfo, (Request) request);
 		requestIdsToDelete.add(request.getId());
 
 		// submit

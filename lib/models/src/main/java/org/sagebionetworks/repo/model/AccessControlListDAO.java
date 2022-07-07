@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -48,13 +49,19 @@ public interface AccessControlListDAO  {
 	String create(AccessControlList dto, ObjectType ownerType) throws DatastoreException,	InvalidModelException, NotFoundException;
 
 	/**
-	 * Get an ACL using the Node's ID
-	 * @param id
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * Deprecated. Use: {@link #getAcl(String, ObjectType)}
 	 */
+	@Deprecated
 	AccessControlList get(String id, ObjectType objectType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get an ACL for the given object.  
+	 * @param objectId The ID of the object.
+	 * @param objectType The type of the object.
+	 * @return Optional.empty() when an ACL does not exist for this object.
+	 * @throws DatastoreException
+	 */
+	Optional<AccessControlList> getAcl(String objectId, ObjectType objectType) throws DatastoreException;
 	
 	/**
 	 * Get the ACL's ID using ownerId and objectType

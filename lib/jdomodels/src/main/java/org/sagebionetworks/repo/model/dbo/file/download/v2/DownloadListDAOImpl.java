@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ADDED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOWNLOAD_LIST_ITEM_V2_PRINCIPAL_ID;
@@ -18,6 +20,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DERIVED_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_ITEM_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOWNLOAD_LIST_V2;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -43,7 +46,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
@@ -165,18 +167,29 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			}
 			json.put(key.name(), value);
 		}
-		String jsonString = rs.getString(COL_REVISION_USER_ANNOS_JSON);
-		Annotations annos = AnnotationsV2Utils.fromJSONString(jsonString);
-		if (annos != null && annos.getAnnotations() != null) {
-			for (String key : annos.getAnnotations().keySet()) {
-				AnnotationsValue value = annos.getAnnotations().get(key);
-				if (value != null) {
-					if (!json.has(key)) {
-						json.put(key, AnnotationsV2Utils.toJSONString(value));
-					}
-				}
-			}
+		
+		String derivedAnnotationsJson = rs.getString(COL_DERIVED_ANNOTATIONS_ANNOS);
+		Annotations annotations = AnnotationsV2Utils.fromJSONString(derivedAnnotationsJson);
+		
+		if (annotations == null) {
+			annotations = AnnotationsV2Utils.emptyAnnotations();
 		}
+		
+		String userAnnotationsJson = rs.getString(COL_REVISION_USER_ANNOS_JSON);
+		Annotations userAnnotations = AnnotationsV2Utils.fromJSONString(userAnnotationsJson);
+		
+		if (userAnnotations != null) {
+			annotations = AnnotationsV2Utils.overrideAnnotations(annotations, userAnnotations);
+		}
+		
+		if (annotations != null && annotations.getAnnotations() != null) {
+			annotations.getAnnotations().forEach( (key, value) -> {
+				if (value != null && !json.has(key)) {
+					json.put(key, AnnotationsV2Utils.toJSONString(value));
+				}
+			});
+		}
+		
 		return json;
 	};
 	
@@ -707,16 +720,20 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	public JSONObject getItemManifestDetails(DownloadListItem item) {
 		String sql = null;
 		if (item.getVersionNumber() == null) {
-			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + " FROM " + TABLE_NODE
+			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + ", DA." + COL_DERIVED_ANNOTATIONS_ANNOS + " FROM " + TABLE_NODE
 					+ " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE
 					+ " AND N." + COL_NODE_CURRENT_REV + " = R." + COL_REVISION_NUMBER + ") JOIN " + TABLE_FILES
-					+ " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + ") WHERE N." + COL_NODE_ID
+					+ " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + ") "
+					+ " LEFT JOIN " + TABLE_DERIVED_ANNOTATIONS + " DA ON (N." + COL_NODE_ID + " = DA." + COL_DERIVED_ANNOTATIONS_ID + ")"
+					+ " WHERE N." + COL_NODE_ID
 					+ " = :synId";
 		}else {
-			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + " FROM " + TABLE_NODE
+			// When a version for an item is specified we never include the derived annotations, since those are computed only for the current version
+			// of an entity, the mapper expects a column for the derived annotations anyway
+			sql = "SELECT " + ManifestKeys.buildSelect() + ", R." + COL_REVISION_USER_ANNOS_JSON + ", NULL AS " + COL_DERIVED_ANNOTATIONS_ANNOS + " FROM " + TABLE_NODE
 					+ " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE
-					+ " ) JOIN " + TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
-					+ ") WHERE N." + COL_NODE_ID + " = :synId AND R." + COL_REVISION_NUMBER + " = :version";
+					+ " ) JOIN " + TABLE_FILES + " F ON (R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID + ")"
+					+ " WHERE N." + COL_NODE_ID + " = :synId AND R." + COL_REVISION_NUMBER + " = :version";
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("synId", KeyFactory.stringToKey(item.getFileEntityId()));

@@ -161,6 +161,10 @@
         {
         	"name": "TABLE_STATUS_EVENT",
         	"description": "A change in the table status"
+        },
+        {
+        	"name": "DATA_ACCESS_SUBMISSION_EVENT",
+        	"description": "An event fired when a user submits a data access submission"
         }
     ]
 }

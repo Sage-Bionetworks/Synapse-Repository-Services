@@ -89,7 +89,7 @@ public class AccessRestrictionStatusDaoImplTest {
 	@BeforeEach
 	public void before() throws Exception {
 		accessApprovalDAO.clear();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
@@ -115,7 +115,7 @@ public class AccessRestrictionStatusDaoImplTest {
 			nodeDao.delete(project.getId());
 		}
 		accessApprovalDAO.clear();
-		accessRequirementDAO.clear();
+		accessRequirementDAO.truncateAll();
 		if (userOneId != null) {
 			userGroupDAO.delete(userOneId.toString());
 		}

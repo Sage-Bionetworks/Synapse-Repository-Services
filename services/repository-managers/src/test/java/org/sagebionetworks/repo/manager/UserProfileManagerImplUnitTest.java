@@ -777,4 +777,5 @@ public class UserProfileManagerImplUnitTest {
 		
 		
 	}
+	
 }
