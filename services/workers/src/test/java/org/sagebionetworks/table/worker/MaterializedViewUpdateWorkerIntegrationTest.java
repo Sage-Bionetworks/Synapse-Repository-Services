@@ -349,8 +349,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				new Row().setRowId(4L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(3), "222", "222")),
 				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", null))
 		);
-		
-		// Wait for the query against the materialized view to have the expected results.
+
 		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
@@ -360,7 +359,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	 * This test is added to reproduce and fix PLFM-7321 user access issue.
 	 * */
 	@Test
-	public void testMaterializedViewWithLeftJoinViewsWithNormalUser() throws Exception {
+	public void testMaterializedViewWithLeftJoinViewsWithUserHavingFullAccess() throws Exception {
 		int numberOfFiles = 5;
 		final List<Entity> leftEntities = createProjectHierachy(numberOfFiles);
 		final String leftFolderId = leftEntities.get(2).getId();
@@ -410,10 +409,106 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", null))
 		);
 
-
-		// Wait for the query against the materialized view to have the expected results.
 		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
-			System.out.println(" result size "+ results.getQueryResult().getQueryResults().getRows().size());
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+
+	@Test
+	public void testMaterializedViewWithLeftJoinViewsWithUserHavingSemiAccessOnRight() throws Exception {
+		int numberOfFiles = 5;
+		final List<Entity> leftEntities = createProjectHierachy(numberOfFiles);
+		final String leftFolderId = leftEntities.get(2).getId();
+		aclDaoHelper.update(leftFolderId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+
+		final List<String> fileIds = leftEntities.stream()
+				.filter((e) -> e instanceof FileEntity)
+				.map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+
+		final List<PatientData> patientDataLeft = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final List<Entity> rightEntities = createProjectHierachy(2);
+
+		final List<PatientData> patientDataRight = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(333L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final IdAndVersion leftId = createFileViewWithPatientIds(leftEntities, patientDataLeft);
+
+		final IdAndVersion rightId = createFileViewWithPatientIds(rightEntities, patientDataRight);
+
+		final String definingSql = String.format(
+				"select l.id, l.patientId, r.patientId from %s l left join %s r on (l.patientId = r.patientId) order by l.ROW_ID",
+				leftId.toString(), rightId.toString());
+
+		final IdAndVersion materializedViewId = createMaterializedView(leftEntities.get(0).getId(), definingSql);
+
+		final String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"l.id\" asc";
+
+		final List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", null)),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", null)),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", null))
+		);
+
+		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+	}
+
+	@Test
+	public void testMaterializedViewWithLeftJoinViewsWithUserHavingSemiAccessOnLeft() throws Exception {
+		int numberOfFiles = 5;
+		//leftEntities has a project having 2 folders, User has acl on project and folder one, not on folder two.
+		final List<Entity> leftEntities = createProjectHierachy(numberOfFiles);
+
+		final List<String> fileIds = leftEntities.stream()
+				.filter((e) -> e instanceof FileEntity)
+				.map(e -> e.getId())
+				.collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+
+		final List<PatientData> patientDataLeft = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final List<Entity> rightEntities = createProjectHierachy(2);
+		aclDaoHelper.update(rightEntities.get(0).getId(), ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+		final List<PatientData> patientDataRight = Arrays.asList(
+				new PatientData().withCode("abc").withPatientId(333L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+
+		final IdAndVersion leftId = createFileViewWithPatientIds(leftEntities, patientDataLeft);
+
+		final IdAndVersion rightId = createFileViewWithPatientIds(rightEntities, patientDataRight);
+
+		final String definingSql = String.format(
+				"select l.id, l.patientId, r.patientId from %s l left join %s r on (l.patientId = r.patientId) order by l.ROW_ID",
+				leftId.toString(), rightId.toString());
+
+		final IdAndVersion materializedViewId = createMaterializedView(rightEntities.get(0).getId(), definingSql);
+
+		final String materializedQuery = "select * from "+materializedViewId.toString()+" order by \"l.id\" asc";
+
+		final List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", null)),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", null)),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", null))
+		);
+
+		asyncHelper.assertQueryResult(userInfo, materializedQuery, (results) -> {
 			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
 		}, MAX_WAIT_MS);
 	}

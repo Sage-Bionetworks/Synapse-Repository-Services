@@ -679,15 +679,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				tableBenefactors = Collections.emptySet();
 			}
 
-			boolean hasNullBenefactors =tableBenefactors.stream().anyMatch(Objects::isNull);
-
 			// Get the sub-set of benefactors visible to the user,Null benefactors for user is ignored by query.
+			boolean hasNullBenefactors =tableBenefactors.stream().anyMatch(Objects::isNull);
 			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
-
 			if(hasNullBenefactors){
 				accessibleBenefactors.add(null);
 			}
-
 			resultQuery = buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}
 		return resultQuery;
