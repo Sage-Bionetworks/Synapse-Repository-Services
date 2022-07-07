@@ -386,10 +386,10 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
-
+	
 	@Override
-	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException {
-		return nodeManager.getNodeTypeForDeletion(entityId);
+	public EntityType getEntityType(String entityId) throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeType(entityId);
 	}
 
 	@Override
