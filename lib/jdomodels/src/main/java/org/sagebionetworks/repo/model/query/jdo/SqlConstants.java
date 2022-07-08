@@ -165,6 +165,7 @@ public class SqlConstants {
 	public static final String COL_JSON_SCHEMA_BINDING_OBJECT_TYPE		= "OBJECT_TYPE";
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_BY		= "CREATED_BY";
 	public static final String COL_JSON_SCHEMA_BINDING_CREATED_ON		= "CREATED_ON";
+	public static final String COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED	= "ENABLE_DERIVED";
 	public static final String DDL_FILE_JSON_SCHEMA_BINDING				= "schema/JsonSchemaBindObject-ddl.sql";
 	
 	// Table to track JSON schema validation results.

@@ -59,14 +59,19 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 					.getValidationSchema(binding.getJsonSchemaVersionInfo().get$id());
 			ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, entitySubject);
 			schemaValidationResultDao.createOrUpdateResults(results);
-			
-			Optional<Annotations> annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema, entitySubject.toJson());
-			if(annoOption.isPresent()) {
-				derivedAnnotationDao.saveDerivedAnnotations(entityId, annoOption.get());
-				sendEntityUpdate = true;
-			}else {
+		
+			if (binding.getEnableDerivedAnnotations()) {
+				Optional<Annotations> annoOption = jsonSchemaValidationManager.calculateDerivedAnnotations(validationSchema, entitySubject.toJson());
+				if(annoOption.isPresent()) {
+					derivedAnnotationDao.saveDerivedAnnotations(entityId, annoOption.get());
+					sendEntityUpdate = true;
+				} else {
+					sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
+				}
+			} else {
 				sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
 			}
+
 		} catch (NotFoundException e) {
 			schemaValidationResultDao.clearResults(entityId, ObjectType.entity);
 			sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);

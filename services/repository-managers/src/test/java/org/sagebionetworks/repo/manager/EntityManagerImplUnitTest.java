@@ -731,14 +731,14 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testBindSchemaToEntity() {
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any())).thenReturn(schemaBinding);
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
 
 		// call under test
 		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest);
 		assertEquals(schemaBinding, result);
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
 		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
-				BoundObjectType.entity);
+				BoundObjectType.entity, false);
 		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
 	}
 
@@ -749,7 +749,7 @@ public class EntityManagerImplUnitTest {
 			entityManager.bindSchemaToEntity(mockUser, schemaBindRequest);
 		});
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
-		verify(mockJsonSchemaManager, never()).bindSchemaToObject(any(), any(), any(), any());
+		verify(mockJsonSchemaManager, never()).bindSchemaToObject(any(), any(), any(), any(), anyBoolean());
 	}
 
 	@Test
@@ -1347,29 +1347,74 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testBindSchemaToEntityWithSendNotificationMessage() {
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any())).thenReturn(schemaBinding);
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
 
 		// call under test, verify that a notification message was sent
 		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest, true);
 		assertEquals(schemaBinding, result);
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
 		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
-				BoundObjectType.entity);
+				BoundObjectType.entity, false);
 		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
 	}
 	
 	@Test
 	public void testBindSchemaToEntityWithNoSendNotificationMessage() {
 		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any())).thenReturn(schemaBinding);
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
 
 		// call under test, verify no notification message is sent
 		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest, false);
 		assertEquals(schemaBinding, result);
 		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
 		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
-				BoundObjectType.entity);
+				BoundObjectType.entity, false);
 		verify(entityManagerSpy, never()).sendEntityUpdateNotifications(entityId);
+	}
+	
+	@Test
+	public void testBindSchemaToEntityWithDerivedEnabled() {
+		schemaBindRequest.setEnableDerivedAnnotations(true);
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
+
+		// call under test, verify that a notification message was sent
+		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest, true);
+		assertEquals(schemaBinding, result);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
+		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
+				BoundObjectType.entity, true);
+		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
+	}
+	
+	@Test
+	public void testBindSchemaToEntityWithDerivedEnabledNull() {
+		schemaBindRequest.setEnableDerivedAnnotations(null);
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
+
+		// call under test, verify that a notification message was sent
+		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest, true);
+		assertEquals(schemaBinding, result);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
+		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
+				BoundObjectType.entity, false);
+		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
+	}
+	
+	@Test
+	public void testBindSchemaToEntityWithDerivedEnabledFalse() {
+		schemaBindRequest.setEnableDerivedAnnotations(false);
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockJsonSchemaManager.bindSchemaToObject(any(), any(), any(), any(), anyBoolean())).thenReturn(schemaBinding);
+
+		// call under test, verify that a notification message was sent
+		JsonSchemaObjectBinding result = entityManagerSpy.bindSchemaToEntity(mockUser, schemaBindRequest, true);
+		assertEquals(schemaBinding, result);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.UPDATE);
+		verify(mockJsonSchemaManager).bindSchemaToObject(mockUser.getId(), schemaBindRequest.getSchema$id(), 123L,
+				BoundObjectType.entity, false);
+		verify(entityManagerSpy).sendEntityUpdateNotifications(entityId);
 	}
 	
 	@Test

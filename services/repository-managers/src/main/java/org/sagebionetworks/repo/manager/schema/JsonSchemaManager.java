@@ -135,7 +135,7 @@ public interface JsonSchemaManager {
 	 * @param objectType
 	 * @return
 	 */
-	JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId, BoundObjectType objectType);
+	JsonSchemaObjectBinding bindSchemaToObject(Long createdBy, String $id, Long objectId, BoundObjectType objectType, boolean enableDerived);
 
 	/**
 	 * Get the JsonSchemaObjectBinding for the given objectId and objectType 

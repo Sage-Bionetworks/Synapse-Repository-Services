@@ -52,18 +52,18 @@ public class EntitySchemaValidatorImplTest {
 	@InjectMocks
 	private EntitySchemaValidator manager;
 
-	String entityId;
-	String schema$id;
-	JsonSchemaObjectBinding binding;
+	private String entityId;
+	private String schema$id;
+	private JsonSchemaObjectBinding binding;
 	@Mock
-	JsonSubject mockEntitySubject;
+	private JsonSubject mockEntitySubject;
 	@Mock
-	JsonSchema mockJsonSchema;
+	private JsonSchema mockJsonSchema;
 	@Mock
-	ValidationResults mockValidationResults;
+	private ValidationResults mockValidationResults;
 	
 	@Captor
-	ArgumentCaptor<LocalStackChangeMesssage> messageCaptor;
+	private ArgumentCaptor<LocalStackChangeMesssage> messageCaptor;
 
 	@BeforeEach
 	public void before() {
@@ -73,6 +73,7 @@ public class EntitySchemaValidatorImplTest {
 		JsonSchemaVersionInfo versionInfo = new JsonSchemaVersionInfo();
 		versionInfo.set$id(schema$id);
 		binding.setJsonSchemaVersionInfo(versionInfo);
+		binding.setEnableDerivedAnnotations(true);
 	}
 
 	@Test
@@ -213,5 +214,59 @@ public class EntitySchemaValidatorImplTest {
 			// call under test
 			manager.validateObject(entityId);
 		});
+	}
+	
+	@Test
+	public void testValidateObjectWithEnableDerivedFalse() {
+		binding.setEnableDerivedAnnotations(false);
+		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
+		when(mockEntityManger.getEntityJsonSubject(entityId, false)).thenReturn(mockEntitySubject);
+		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
+		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
+				.thenReturn(mockValidationResults);
+		// call under test
+		manager.validateObject(entityId);
+		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
+		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
+		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId, false);
+		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
+		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
+		verify(mockJsonSchemaValidationManager, never()).calculateDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
+	}
+	
+	@Test
+	public void testValidateObjectWithEnableDerivedFalseAndClearedExisting() {
+		binding.setEnableDerivedAnnotations(false);
+		when(mockEntityManger.getBoundSchema(entityId)).thenReturn(binding);
+		when(mockEntityManger.getEntityJsonSubject(entityId, false)).thenReturn(mockEntitySubject);
+		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(mockJsonSchema);
+		when(mockJsonSchemaValidationManager.validate(mockJsonSchema, mockEntitySubject))
+				.thenReturn(mockValidationResults);
+		when(mockDerivedAnnotationDao.clearDerivedAnnotations(any())).thenReturn(true);
+		// call under test
+		manager.validateObject(entityId);
+		verify(mockSchemaValidationResultDao).createOrUpdateResults(mockValidationResults);
+		verify(mockSchemaValidationResultDao, never()).clearResults(any(), any());
+		verify(mockEntityManger).getBoundSchema(entityId);
+		verify(mockEntityManger).getEntityJsonSubject(entityId, false);
+		verify(mockJsonSchemaManager).getValidationSchema(schema$id);
+		verify(mockJsonSchemaValidationManager).validate(mockJsonSchema, mockEntitySubject);
+		verify(mockJsonSchemaValidationManager, never()).calculateDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
+		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
+		verify(mockMessenger).publishMessageAfterCommit(messageCaptor.capture());
+		
+		LocalStackChangeMesssage sentMessage = messageCaptor.getValue();
+		
+		assertEquals(new LocalStackChangeMesssage()
+			.setObjectId(entityId)
+			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+			.setTimestamp(sentMessage.getTimestamp())
+			.setChangeType(ChangeType.UPDATE)
+			.setChangeNumber(-1L),
+		sentMessage);
 	}
 }
