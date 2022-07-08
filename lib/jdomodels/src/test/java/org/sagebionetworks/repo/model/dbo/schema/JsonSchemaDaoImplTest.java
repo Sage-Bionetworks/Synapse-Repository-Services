@@ -1799,4 +1799,28 @@ public class JsonSchemaDaoImplTest {
 		}).getMessage();
 		assertEquals(message, "schemaId is required.");
 	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithNull() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(null);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.FALSE, dbo.getEnableDerived());
+	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithTrue() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(Boolean.TRUE);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.TRUE, dbo.getEnableDerived());
+	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithFalse() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(Boolean.FALSE);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.FALSE, dbo.getEnableDerived());
+	}
 }
