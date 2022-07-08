@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -18,11 +19,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -43,6 +46,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -54,10 +58,15 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
+import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -90,7 +99,10 @@ public class JsonSchemaWorkerIntegrationTest {
 	private EntityManager entityManager;
 	
 	@Autowired
-	DerivedAnnotationDao derivedAnnotationsDao;
+	private DerivedAnnotationDao derivedAnnotationsDao;
+	
+	@Autowired
+	private TableIndexDAO tableIndexDao;
 
 	UserInfo adminUserInfo;
 	String organizationName;
@@ -104,6 +116,7 @@ public class JsonSchemaWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		jsonSchemaManager.truncateAll();
+		tableIndexDao.truncateIndex();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		organizationName = "my.org.net";
 		schemaName = "some.schema";
@@ -123,6 +136,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		if (projectId != null) {
 			entityManager.deleteEntity(adminUserInfo, projectId);
 		}
+		tableIndexDao.truncateIndex();
 	}
 
 	@Test
@@ -765,6 +779,80 @@ public class JsonSchemaWorkerIntegrationTest {
 		waitForDerivedAnnotations(adminUserInfo, folderId, (Optional<Annotations> t) -> {
 			assertEquals(Optional.of(expected), t);
 		});
+	}
+	
+	@Test
+	@Disabled
+	public void testDerivedAnnotationsReplication() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
+		folderJson.put("myAnnotation", "myAnnotationValue");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		waitForReplicationIndexData(folderId, data-> {
+			assertEquals(List.of(
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"))
+			), 
+			data.getAnnotations());
+		});
+
+		// create the schema
+		String fileName = "schema/DerivedConditionalConst.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		// Now bind the schema to the project
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+		
+		waitForReplicationIndexData(folderId, data-> {
+			assertEquals(List.of(
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue")),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
+			), 
+			data.getAnnotations());
+		});
+		
+		// This will enable derived annotations from the schema that will eventually be replicated
+		folderJson.put("hasBoolean", "true");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+				
+		waitForReplicationIndexData(folderId, data-> {
+			assertEquals(List.of(
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "hasBoolean", AnnotationType.BOOLEAN, List.of("true"), false),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someConditional", AnnotationType.STRING, List.of("someBoolean was true"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
+			), 
+			data.getAnnotations());
+		});
+	}
+	
+	public void waitForReplicationIndexData(String entityId, Consumer<ObjectDataDTO> consumer) {
+		try {
+			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				try {
+					ObjectDataDTO data= tableIndexDao.getObjectDataForCurrentVersion(ReplicationType.ENTITY, KeyFactory.stringToKey(entityId));
+					consumer.accept(data);
+					return new Pair<>(Boolean.TRUE, null);
+				} catch (Throwable e) {
+					System.out.println("Waiting for replication index data..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
