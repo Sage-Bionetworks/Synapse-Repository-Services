@@ -105,7 +105,8 @@ public class EntitySchemaValidatorImplTest {
 			.setObjectId(entityId)
 			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
 			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE),
+			.setChangeType(ChangeType.UPDATE)
+			.setChangeNumber(-1L),
 		sentMessage);
 		
 	}
@@ -163,7 +164,8 @@ public class EntitySchemaValidatorImplTest {
 			.setObjectId(entityId)
 			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
 			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE),
+			.setChangeType(ChangeType.UPDATE)
+			.setChangeNumber(-1L),
 		sentMessage);
 	}
 	
@@ -199,7 +201,8 @@ public class EntitySchemaValidatorImplTest {
 			.setObjectId(entityId)
 			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
 			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE),
+			.setChangeType(ChangeType.UPDATE)
+			.setChangeNumber(-1L),
 		sentMessage);
 	}
 	

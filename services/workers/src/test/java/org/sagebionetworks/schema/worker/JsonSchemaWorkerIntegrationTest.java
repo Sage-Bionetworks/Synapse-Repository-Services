@@ -657,7 +657,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
 		
-		folderJson.put("hasBoolean", "true");
+		folderJson.put("someBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		
 		waitForValidationResults(adminUserInfo, folderId, (ValidationResults t) -> {
@@ -667,7 +667,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		folderJson = entityManager.getEntityJson(folderId, true);
 		
-		assertEquals(true, folderJson.getJSONArray("hasBoolean").getBoolean(0));
+		assertEquals(true, folderJson.getBoolean("someBoolean"));
 		assertEquals(456, folderJson.getJSONArray("unconditionalDefault").getLong(0));
 		assertEquals("someBoolean was true", folderJson.getString("someConditional"));
 		assertEquals(999, folderJson.getLong("conditionalLong"));
@@ -767,7 +767,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		folder.setParentId(project.getId());
 		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
 		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
-		folderJson.put("hasBoolean", "true");
+		folderJson.put("someBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 			
 		Annotations expected = new Annotations().setAnnotations(new LinkedHashMap<>());
@@ -782,7 +782,6 @@ public class JsonSchemaWorkerIntegrationTest {
 	}
 	
 	@Test
-	@Disabled
 	public void testDerivedAnnotationsReplication() throws Exception {
 		bootstrapAndCreateOrganization();
 		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
@@ -808,7 +807,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		JsonSchema schema = getSchemaFromClasspath(fileName);
 		CreateSchemaResponse createResponse = registerSchema(schema);
 		String schema$id = createResponse.getNewVersionInfo().get$id();
-		// Now bind the schema to the project
+		// Now bind the schema to the project, this will enable derived annotations from the schema that will eventually be replicated
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(projectId);
 		bindRequest.setSchema$id(schema$id);
@@ -816,22 +815,23 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
-				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue")),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someConditional", AnnotationType.STRING, List.of("someBoolean was true"), true),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());
 		});
 		
-		// This will enable derived annotations from the schema that will eventually be replicated
-		folderJson.put("hasBoolean", "true");
+		// Now we put an explicit property that should be replicated as well
+		folderJson.put("someBoolean", "false");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 				
 		waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
-				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
-				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "hasBoolean", AnnotationType.BOOLEAN, List.of("true"), false),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
-				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someConditional", AnnotationType.STRING, List.of("someBoolean was true"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someBoolean", AnnotationType.BOOLEAN, List.of("false"), false),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someConditional", AnnotationType.STRING, List.of("someBoolean was false"), true),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());

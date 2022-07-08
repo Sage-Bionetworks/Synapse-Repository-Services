@@ -80,6 +80,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 					.setObjectId(entityId)
 					.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
 					.setChangeType(ChangeType.UPDATE)
+					.setChangeNumber(-1L)
 					.setTimestamp(Date.from(Instant.now()))
 			);
 		}
