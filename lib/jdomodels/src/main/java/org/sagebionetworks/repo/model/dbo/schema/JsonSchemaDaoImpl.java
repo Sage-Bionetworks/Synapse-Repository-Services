@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_VERSION_ID;
@@ -583,10 +584,11 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 				"INSERT INTO " + TABLE_JSON_SCHEMA_OBJECT_BINDING + "(" + COL_JSON_SCHEMA_BINDING_BIND_ID + ","
 						+ COL_JSON_SCHEMA_BINDING_SCHEMA_ID + "," + COL_JSON_SCHEMA_BINDING_VERSION_ID + ","
 						+ COL_JONS_SCHEMA_BINDING_OBJECT_ID + "," + COL_JSON_SCHEMA_BINDING_OBJECT_TYPE + ","
-						+ COL_JSON_SCHEMA_BINDING_CREATED_BY + "," + COL_JSON_SCHEMA_BINDING_CREATED_ON
-						+ ") VALUES (?,?,?,?,?,?,?)",
+						+ COL_JSON_SCHEMA_BINDING_CREATED_BY + "," + COL_JSON_SCHEMA_BINDING_CREATED_ON + ","
+						+ COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED
+						+ ") VALUES (?,?,?,?,?,?,?,?)",
 				bindId, request.getSchemaId(), request.getVersionId(), request.getObjectId(),
-				request.getObjectType().name(), request.getCreatedBy(), now);
+				request.getObjectType().name(), request.getCreatedBy(), now, request.getEnableDerived());
 		return getSchemaBindingForObject(request.getObjectId(), request.getObjectType());
 	}
 
@@ -612,6 +614,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			result.setObjectType(BoundObjectType.valueOf(dbo.getObjectType()));
 			result.setCreatedBy(dbo.getCreatedBy().toString());
 			result.setCreatedOn(dbo.getCreatedOn());
+			result.setEnableDerivedAnnotations(dbo.getEnableDerived());
 			return result;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("JSON Schema binding was not found for ObjectId: '" + objectId

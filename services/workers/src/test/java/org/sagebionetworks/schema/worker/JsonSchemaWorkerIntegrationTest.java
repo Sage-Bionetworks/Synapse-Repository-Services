@@ -635,6 +635,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(projectId);
 		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
 		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
 
 		// add a folder to the project
@@ -746,6 +747,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(projectId);
 		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
 		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
 
 		// add a folder to the project
