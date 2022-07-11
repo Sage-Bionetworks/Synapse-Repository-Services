@@ -104,7 +104,6 @@ public class JsonSchemaWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		jsonSchemaManager.truncateAll();
-		tableIndexDao.truncateIndex();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		organizationName = "my.org.net";
 		schemaName = "some.schema";
@@ -124,7 +123,6 @@ public class JsonSchemaWorkerIntegrationTest {
 		if (projectId != null) {
 			entityManager.deleteEntity(adminUserInfo, projectId);
 		}
-		tableIndexDao.truncateIndex();
 	}
 
 	@Test
