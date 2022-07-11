@@ -633,6 +633,7 @@ public class ITJsonSchemaControllerTest {
 		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
 		bindRequest.setEntityId(project.getId());
 		bindRequest.setSchema$id(schema.get$id());
+		bindRequest.setEnableDerivedAnnotations(true);
 		// Call under test
 		JsonSchemaObjectBinding parentBinding = synapse.bindJsonSchemaToEntity(bindRequest);
 		assertNotNull(parentBinding);

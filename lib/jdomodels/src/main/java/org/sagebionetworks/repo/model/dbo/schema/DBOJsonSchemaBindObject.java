@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_VERSION_ID;
@@ -33,7 +34,8 @@ public class DBOJsonSchemaBindObject
 			new FieldColumn("objectId", COL_JONS_SCHEMA_BINDING_OBJECT_ID),
 			new FieldColumn("objectType", COL_JSON_SCHEMA_BINDING_OBJECT_TYPE),
 			new FieldColumn("createdBy", COL_JSON_SCHEMA_BINDING_CREATED_BY),
-			new FieldColumn("createdOn", COL_JSON_SCHEMA_BINDING_CREATED_ON), };
+			new FieldColumn("createdOn", COL_JSON_SCHEMA_BINDING_CREATED_ON),
+			new FieldColumn("enableDerived", COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED)};
 
 	private Long bindId;
 	private Long schemaId;
@@ -42,6 +44,7 @@ public class DBOJsonSchemaBindObject
 	private String objectType;
 	private Long createdBy;
 	private Timestamp createdOn;
+	private Boolean enableDerived;
 
 	/**
 	 * @return the bindId
@@ -141,6 +144,21 @@ public class DBOJsonSchemaBindObject
 		this.createdOn = createdOn;
 	}
 
+	/**
+	 * @return the enableDerived
+	 */
+	public Boolean getEnableDerived() {
+		return enableDerived;
+	}
+
+	/**
+	 * @param enableDerived the enableDerived to set
+	 */
+	public void setEnableDerived(Boolean enableDerived) {
+		this.enableDerived = enableDerived;
+	}
+
+
 	public static final TableMapping<DBOJsonSchemaBindObject> TABLE_MAPPING = new TableMapping<DBOJsonSchemaBindObject>() {
 
 		@Override
@@ -156,6 +174,7 @@ public class DBOJsonSchemaBindObject
 			dbo.setObjectType(rs.getString(COL_JSON_SCHEMA_BINDING_OBJECT_TYPE));
 			dbo.setCreatedBy(rs.getLong(COL_JSON_SCHEMA_BINDING_CREATED_BY));
 			dbo.setCreatedOn(rs.getTimestamp(COL_JSON_SCHEMA_BINDING_CREATED_ON));
+			dbo.setEnableDerived(rs.getBoolean(COL_JSON_SCHEMA_BINDING_ENABLE_DERIVED));
 			return dbo;
 		}
 
@@ -194,7 +213,21 @@ public class DBOJsonSchemaBindObject
 
 	@Override
 	public MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject> getTranslator() {
-		return TRANSLATOR;
+		return new MigratableTableTranslation<DBOJsonSchemaBindObject, DBOJsonSchemaBindObject>() {
+			
+			@Override
+			public DBOJsonSchemaBindObject createDatabaseObjectFromBackup(DBOJsonSchemaBindObject backup) {
+				if(backup.getEnableDerived() == null) {
+					backup.setEnableDerived(Boolean.FALSE);
+				}
+				return backup;
+			}
+			
+			@Override
+			public DBOJsonSchemaBindObject createBackupFromDatabaseObject(DBOJsonSchemaBindObject dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override
@@ -214,7 +247,7 @@ public class DBOJsonSchemaBindObject
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bindId, createdBy, createdOn, objectId, objectType, schemaId, versionId);
+		return Objects.hash(bindId, createdBy, createdOn, enableDerived, objectId, objectType, schemaId, versionId);
 	}
 
 	@Override
@@ -227,16 +260,16 @@ public class DBOJsonSchemaBindObject
 		}
 		DBOJsonSchemaBindObject other = (DBOJsonSchemaBindObject) obj;
 		return Objects.equals(bindId, other.bindId) && Objects.equals(createdBy, other.createdBy)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(objectId, other.objectId)
-				&& Objects.equals(objectType, other.objectType) && Objects.equals(schemaId, other.schemaId)
-				&& Objects.equals(versionId, other.versionId);
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(enableDerived, other.enableDerived)
+				&& Objects.equals(objectId, other.objectId) && Objects.equals(objectType, other.objectType)
+				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOJsonSchemaBindObject [bindId=" + bindId + ", schemaId=" + schemaId + ", versionId=" + versionId
 				+ ", objectId=" + objectId + ", objectType=" + objectType + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + "]";
+				+ createdOn + ", enableDerived=" + enableDerived + "]";
 	}
 
 }

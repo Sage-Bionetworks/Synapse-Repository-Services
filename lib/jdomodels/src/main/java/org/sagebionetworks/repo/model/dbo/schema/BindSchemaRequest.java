@@ -15,6 +15,23 @@ public class BindSchemaRequest {
 	private Long objectId;
 	private BoundObjectType objectType;
 	private Long createdBy;
+	private boolean enableDerived = false;
+
+
+	/**
+	 * @return the enableDerived
+	 */
+	public boolean getEnableDerived() {
+		return enableDerived;
+	}
+
+	/**
+	 * @param enableDerived the enableDerived to set
+	 */
+	public BindSchemaRequest withEnableDerived(boolean enableDerived) {
+		this.enableDerived = enableDerived;
+		return this;
+	}
 
 	/**
 	 * @return the schemaId
@@ -93,7 +110,7 @@ public class BindSchemaRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, objectId, objectType, schemaId);
+		return Objects.hash(createdBy, enableDerived, objectId, objectType, schemaId, versionId);
 	}
 
 	@Override
@@ -105,14 +122,15 @@ public class BindSchemaRequest {
 			return false;
 		}
 		BindSchemaRequest other = (BindSchemaRequest) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(objectId, other.objectId)
-				&& objectType == other.objectType && Objects.equals(schemaId, other.schemaId);
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(enableDerived, other.enableDerived)
+				&& Objects.equals(objectId, other.objectId) && objectType == other.objectType
+				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(versionId, other.versionId);
 	}
 
 	@Override
 	public String toString() {
-		return "BindSchemaRequest [schemaId=" + schemaId + ", objectId=" + objectId + ", objectType=" + objectType
-				+ ", createdBy=" + createdBy + "]";
+		return "BindSchemaRequest [schemaId=" + schemaId + ", versionId=" + versionId + ", objectId=" + objectId
+				+ ", objectType=" + objectType + ", createdBy=" + createdBy + ", enableDerived=" + enableDerived + "]";
 	}
 
 }

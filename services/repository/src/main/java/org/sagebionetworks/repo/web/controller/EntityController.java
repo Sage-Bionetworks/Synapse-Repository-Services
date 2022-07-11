@@ -195,9 +195,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Despite being <a href=
  * "${org.sagebionetworks.repo.model.VersionableEntity}">versionable</a>,
  * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">Tables</a>,
- * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> and 
- * <a href="${org.sagebionetworks.repo.model.table.MaterializedView}">Materialized Views</a> are
- * versioned using snapshots: see
+ * <a href="${org.sagebionetworks.repo.model.table.View}">Views</a> and <a href=
+ * "${org.sagebionetworks.repo.model.table.MaterializedView}">Materialized
+ * Views</a> are versioned using snapshots: see
  * <a href="${POST.entity.id.table.snapshot}">POST
  * /entity/{id}/table/snapshot</a> and
  * <a href="${POST.entity.id.table.transaction.async.start}">POST
@@ -836,7 +836,7 @@ public class EntityController {
 	/**
 	 * Get the EntityHeader for a list of references with a POST. If any item in the
 	 * batch fails (e.g., with a 404) it will be EXCLUDED in the result set.
-	 * 	
+	 * 
 	 * @param userId
 	 * @param referenceList - List of entity id-version pairs.
 	 * @return
@@ -907,8 +907,8 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
 	public @ResponseBody BooleanResult hasAccess(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM) String accessType,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM) String accessType, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
 		return new BooleanResult(serviceProvider.getEntityService().hasAccess(id, userId, accessType));
 	}
 
@@ -1541,20 +1541,26 @@ public class EntityController {
 	public @ResponseBody EntityId getEntityIdByAlias(@PathVariable String alias) throws NotFoundException {
 		return serviceProvider.getEntityService().getEntityIdForAlias(alias);
 	}
-	
+
 	/**
-	 * For managed docker repositories find the entity id matching the given repository name
+	 * For managed docker repositories find the entity id matching the given
+	 * repository name
 	 * 
 	 * @param repositoryName The name of a managed docker repository
-	 * @throws NotFoundException If the given repository name does not refer to an entity or if the repository is not a managed repository
-	 * @throws UnauthorizedException If the user does not have READ access to the entity pointing to the repository name
+	 * @throws NotFoundException     If the given repository name does not refer to
+	 *                               an entity or if the repository is not a managed
+	 *                               repository
+	 * @throws UnauthorizedException If the user does not have READ access to the
+	 *                               entity pointing to the repository name
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_DOCKER_REPO_ID }, method = RequestMethod.GET, params = { UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
+	@RequestMapping(value = { UrlHelpers.ENTITY_DOCKER_REPO_ID }, method = RequestMethod.GET, params = {
+			UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME })
 	public @ResponseBody EntityId getEntityIdByDockerRepositoryName(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME) String repositoryName) throws NotFoundException {
+			@RequestParam(value = UrlHelpers.PARAM_DOCKER_REPOSITORY_NAME) String repositoryName)
+			throws NotFoundException {
 		return serviceProvider.getDockerService().getEntityIdForRepositoryName(userId, repositoryName);
 	}
 
@@ -1663,6 +1669,17 @@ public class EntityController {
 	 * that defines how the schemas should be used for validation.
 	 * </p>
 	 * <p>
+	 * In order to enable the automatic addition of derived annotations to the
+	 * entities bound to this schema, the option: 'enableDerivedAnnotations' must be
+	 * set to 'true'. When enabled, derived annotations will be added to entities
+	 * when schema conditions are met for schema properties defined with either
+	 * 'default' or 'const' values.
+	 * </p>
+	 * <p>
+	 * Note: The addition of derived annotations occurs asynchronously (eventually
+	 * consistent).
+	 * </p>
+	 * <p>
 	 * Note: The caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> permission on the Entity to bind.
@@ -1736,14 +1753,16 @@ public class EntityController {
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
 	 * permission on the Entity.
 	 * </p>
-	 * The includeDerivedAnnotations parameters allows to include in the response annotations
-	 * that are derived from a bound schema, the derived annotations are not persistent and the client
-	 * must make sure to exclude the derived annotation keys when updating the entity JSON.
+	 * The includeDerivedAnnotations parameters allows to include in the response
+	 * annotations that are derived from a bound schema, the derived annotations are
+	 * not persistent and the client must make sure to exclude the derived
+	 * annotation keys when updating the entity JSON.
 	 * 
 	 * @param userId
 	 * @param id
-	 * @param includeDerivedAnnotations true if annotations that are derived from a bound schema should be 
-	 * included in the response, false otherwise (default false)
+	 * @param includeDerivedAnnotations true if annotations that are derived from a
+	 *                                  bound schema should be included in the
+	 *                                  response, false otherwise (default false)
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -1896,7 +1915,7 @@ public class EntityController {
 		request.setContainerId(id);
 		return serviceProvider.getEntityService().getInvalidEntitySchemaValidationResults(userId, request);
 	}
-	
+
 	/**
 	 * If the given Entity has derived annotations, then this will return the
 	 * distinct annotation keys of those annotations. If they entity does not have

@@ -93,7 +93,7 @@ public class JsonSchemaDaoImplTest {
 				.withSemanticVersion(semanticVersion);
 
 		bindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId).withObjectId(objectId)
-				.withObjectType(BoundObjectType.entity);
+				.withObjectType(BoundObjectType.entity).withEnableDerived(false);
 
 	}
 
@@ -1380,6 +1380,7 @@ public class JsonSchemaDaoImplTest {
 		JsonSchemaVersionInfo two = createNewSchemaVersion("my.org.edu-one-2.0.0", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withVersionId(one.getVersionId());
+		bindSchemaRequest.withEnableDerived(true);
 		// call under test
 		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
 		assertNotNull(result);
@@ -1388,6 +1389,7 @@ public class JsonSchemaDaoImplTest {
 		assertNotNull(result.getCreatedOn());
 		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
 		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+		assertEquals(bindSchemaRequest.getEnableDerived(), result.getEnableDerivedAnnotations());
 
 		// should be able to bind the object to another version
 		bindSchemaRequest.withSchemaId(two.getSchemaId());
@@ -1400,6 +1402,7 @@ public class JsonSchemaDaoImplTest {
 		assertNotNull(result.getCreatedOn());
 		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
 		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+		assertEquals(bindSchemaRequest.getEnableDerived(), result.getEnableDerivedAnnotations());
 	}
 
 	@Test
@@ -1418,6 +1421,41 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
 		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
 
+	}
+	
+	@Test
+	public void testBindSchemaToObjectWithEnableDerivedFalse() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		bindSchemaRequest.withEnableDerived(false);
+		
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		assertNotNull(result);
+		assertEquals(one, result.getJsonSchemaVersionInfo());
+		assertEquals(adminUserId.toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
+		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+		assertEquals(false, result.getEnableDerivedAnnotations());
+	}
+	
+	@Test
+	public void testBindSchemaToObjectWithEnableDerivedNotSet() throws JSONObjectAdapterException {
+		int index = 0;
+		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
+		bindSchemaRequest.withSchemaId(one.getSchemaId());
+		
+		// call under test
+		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
+		assertNotNull(result);
+		assertEquals(one, result.getJsonSchemaVersionInfo());
+		assertEquals(adminUserId.toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(bindSchemaRequest.getObjectId(), result.getObjectId());
+		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
+		assertEquals(false, result.getEnableDerivedAnnotations());
 	}
 
 	@Test
@@ -1760,5 +1798,29 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.getNextPageForVersionIdsOfDependants(schemaId, limit, offset);
 		}).getMessage();
 		assertEquals(message, "schemaId is required.");
+	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithNull() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(null);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.FALSE, dbo.getEnableDerived());
+	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithTrue() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(Boolean.TRUE);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.TRUE, dbo.getEnableDerived());
+	}
+	
+	@Test
+	public void testDBOJsonSchemaBindObjectMigratableTableTranslationWithFalse() {
+		DBOJsonSchemaBindObject dbo = new DBOJsonSchemaBindObject();
+		dbo.setEnableDerived(Boolean.FALSE);
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(Boolean.FALSE, dbo.getEnableDerived());
 	}
 }

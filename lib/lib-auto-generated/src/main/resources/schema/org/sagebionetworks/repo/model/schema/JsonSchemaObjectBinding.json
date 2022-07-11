@@ -23,6 +23,10 @@
 			"type": "string",
 			"description": "The ID of the user that bound this object to the schema.",
 			"title": "Created By"
+		},
+		"enableDerivedAnnotations": {
+			"type": "boolean",
+			"description": "When 'true', Synapse will automatically, calculate the derived annotations for the Entities bound to this schema"
 		}
 	}
 }

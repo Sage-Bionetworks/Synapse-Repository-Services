@@ -145,6 +145,7 @@ public class JsonSchemaManagerImplTest {
 	Long objectId;
 	BoundObjectType objectType;
 
+	private boolean enableDerived = true;
 	JsonSchemaObjectBinding jsonSchemaObjectBinding;
 
 	@BeforeEach
@@ -1551,13 +1552,15 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getVersionId(any(), any(), any())).thenReturn(versionId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
 		// call under test
-		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
+		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType,
+				enableDerived);
 		assertNotNull(binding);
 		assertEquals(jsonSchemaObjectBinding, binding);
 		verify(mockSchemaDao).getSchemaId(organizationName, schemaName);
 		verify(mockSchemaDao).getVersionId(organizationName, schemaName, semanticVersionString);
 		verify(mockSchemaDao).bindSchemaToObject(new BindSchemaRequest().withCreatedBy(adminUser.getId())
-				.withObjectId(objectId).withObjectType(objectType).withSchemaId(schemaId).withVersionId(versionId));
+				.withObjectId(objectId).withObjectType(objectType).withSchemaId(schemaId).withVersionId(versionId)
+				.withEnableDerived(enableDerived));
 	}
 
 	@Test
@@ -1566,13 +1569,15 @@ public class JsonSchemaManagerImplTest {
 		when(mockSchemaDao.getSchemaId(any(), any())).thenReturn(schemaId);
 		when(mockSchemaDao.bindSchemaToObject(any())).thenReturn(jsonSchemaObjectBinding);
 		// call under test
-		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
+		JsonSchemaObjectBinding binding = manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType,
+				enableDerived);
 		assertNotNull(binding);
 		assertEquals(jsonSchemaObjectBinding, binding);
 		verify(mockSchemaDao).getSchemaId(organizationName, schemaName);
 		verify(mockSchemaDao, never()).getVersionId(any(), any(), any());
 		verify(mockSchemaDao).bindSchemaToObject(new BindSchemaRequest().withCreatedBy(adminUser.getId())
-				.withObjectId(objectId).withObjectType(objectType).withSchemaId(schemaId).withVersionId(null));
+				.withObjectId(objectId).withObjectType(objectType).withSchemaId(schemaId).withVersionId(null)
+				.withEnableDerived(enableDerived));
 	}
 
 	@Test
@@ -1580,7 +1585,7 @@ public class JsonSchemaManagerImplTest {
 		String $id = organizationName + "-" + schemaName;
 		Long userId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.bindSchemaToObject(userId, $id, objectId, objectType);
+			manager.bindSchemaToObject(userId, $id, objectId, objectType, enableDerived);
 		});
 	}
 
@@ -1588,7 +1593,7 @@ public class JsonSchemaManagerImplTest {
 	public void testBindSchemaToObjectWithNull$id() {
 		String $id = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
+			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
 		});
 	}
 
@@ -1597,7 +1602,7 @@ public class JsonSchemaManagerImplTest {
 		String $id = organizationName + "-" + schemaName;
 		objectId = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
+			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
 		});
 	}
 
@@ -1606,7 +1611,7 @@ public class JsonSchemaManagerImplTest {
 		String $id = organizationName + "-" + schemaName;
 		objectType = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType);
+			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
 		});
 	}
 	
