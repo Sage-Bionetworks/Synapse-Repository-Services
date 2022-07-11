@@ -679,11 +679,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				tableBenefactors = Collections.emptySet();
 			}
 
-			// Get the sub-set of benefactors visible to the user,Null benefactors for user is ignored by query.
-			boolean hasNullBenefactors =tableBenefactors.stream().anyMatch(Objects::isNull);
+			// Get the sub-set of benefactors visible to the user,-1 benefactors for user is ignored by query.
+			boolean hasNullBenefactors =tableBenefactors.contains(-1l);
 			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
 			if(hasNullBenefactors){
-				accessibleBenefactors.add(null);
+				accessibleBenefactors.add(-1l);
 			}
 			resultQuery = buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}
@@ -718,10 +718,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
             if (where != null) {
                 filterBuilder.append("(");
                 filterBuilder.append(where.getSearchCondition().toSql());
-                filterBuilder.append(") ");
+                filterBuilder.append(") AND ");
             }
 
-            addBenefactorsColumn(filterBuilder, accessibleBenefactors, benefactorColumnName, where);
+			filterBuilder.append(benefactorColumnName);
+			filterBuilder.append(" IN (");
+			boolean isFirst = true;
+			for (Long id : accessibleBenefactors) {
+				if (!isFirst) {
+					filterBuilder.append(",");
+				}
+					filterBuilder.append(id);
+
+				isFirst = false;
+			}
+			filterBuilder.append(")");
 
             // create the new where
             where = new TableQueryParser(filterBuilder.toString()).whereClause();

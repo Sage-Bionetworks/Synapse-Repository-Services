@@ -466,6 +466,22 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
+	public void testGetSelectColumnsHasIfNullFunction() throws ParseException{
+		when(mockColumnLookup.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnId)));
+
+		DerivedColumn derivedColumn = new TableQueryParser("IFNULL( id ,-1) as id").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mockColumnLookup);
+		assertNotNull(results);
+		assertEquals("id", results.getName());
+		assertEquals(ColumnType.INTEGER, results.getColumnType());
+		assertEquals("444", results.getId());
+
+		verify(mockColumnLookup).lookupColumnReference(columnRefCapture.capture());
+		assertEquals("id", columnRefCapture.getValue().toSql());
+	}
+
+	@Test
 	public void testGetSelectColumnsCurrentUser() throws ParseException{
 		
 		DerivedColumn derivedColumn = new TableQueryParser("current_user()").derivedColumn();

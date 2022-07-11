@@ -40,7 +40,7 @@ public class MaterializedViewIndexDescriptionTest {
 		assertEquals("CREATE TABLE IF NOT EXISTS T123("
 				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
 				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T999 BIGINT,"
+				+ " ROW_BENEFACTOR_T999 BIGINT NOT NULL,"
 				+ " PRIMARY KEY (ROW_ID),"
 				+ " KEY (ROW_BENEFACTOR_T999))", sql);
 	}
@@ -57,8 +57,8 @@ public class MaterializedViewIndexDescriptionTest {
 		assertEquals("CREATE TABLE IF NOT EXISTS T123("
 				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
 				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T888 BIGINT,"
-				+ " ROW_BENEFACTOR_T999 BIGINT,"
+				+ " ROW_BENEFACTOR_T888 BIGINT NOT NULL,"
+				+ " ROW_BENEFACTOR_T999 BIGINT NOT NULL,"
 				+ " PRIMARY KEY (ROW_ID),"
 				+ " KEY (ROW_BENEFACTOR_T888),"
 				+ " KEY (ROW_BENEFACTOR_T999))", sql);
@@ -78,8 +78,8 @@ public class MaterializedViewIndexDescriptionTest {
 		assertEquals("CREATE TABLE IF NOT EXISTS T123("
 				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
 				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T888_T456 BIGINT,"
-				+ " ROW_BENEFACTOR_T999_T456 BIGINT,"
+				+ " ROW_BENEFACTOR_T888_T456 BIGINT NOT NULL,"
+				+ " ROW_BENEFACTOR_T999_T456 BIGINT NOT NULL,"
 				+ " PRIMARY KEY (ROW_ID),"
 				+ " KEY (ROW_BENEFACTOR_T888_T456),"
 				+ " KEY (ROW_BENEFACTOR_T999_T456))", sql);
@@ -138,7 +138,7 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean isAggregate = false;
 		// call under test
 		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
-		assertEquals(Arrays.asList("T888_3.ROW_BENEFACTOR", "T999.ROW_BENEFACTOR"), result);
+		assertEquals(Arrays.asList("IFNULL( T888_3.ROW_BENEFACTOR , -1) AS T888_3.ROW_BENEFACTOR", "IFNULL( T999.ROW_BENEFACTOR , -1) AS T999.ROW_BENEFACTOR"), result);
 	}
 	
 	@Test

@@ -1679,50 +1679,50 @@ public class TableQueryManagerImplTest {
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
 
 		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ( ROW_BENEFACTOR IN ( 456, 123 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123, -1 )", filtered.toSql());
 	}
 
 	@Test
 	public void testBuildBenefactorFilterWithMultipleNull() throws ParseException {
 		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
-		benefactorIds.add(null);
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
+		benefactorIds.add(-1l);
 
 		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ( ROW_BENEFACTOR IN ( 456 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1, 456 )", filtered.toSql());
 	}
 
 	@Test
 	public void testBuildBenefactorFilterWithAllNull() throws ParseException, EmptyResultException{
 		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
-		benefactorIds.add(null);
-		benefactorIds.add(null);
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
+		benefactorIds.add(-1l);
+		benefactorIds.add(-1l);
 
 		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IS NULL", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
 	}
 
 	@Test
 	public void testBuildBenefactorFilterWithoutWhereClauseAndWithNull() throws ParseException, EmptyResultException{
 		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
 		benefactorIds.add(123L);
 
 		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ( ROW_BENEFACTOR IN ( 123 ) OR ROW_BENEFACTOR IS NULL )", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 123 )", filtered.toSql());
 	}
 
 	@Test
@@ -1741,13 +1741,13 @@ public class TableQueryManagerImplTest {
 	public void testBuildBenefactorFilterWithoutWhereClauseAndNoBenefactors() throws ParseException, EmptyResultException{
 		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
-		benefactorIds.add(null);
-		benefactorIds.add(null);
-		benefactorIds.add(null);
+		benefactorIds.add(-1l);
+		benefactorIds.add(-1l);
+		benefactorIds.add(-1l);
 
 		final QuerySpecification filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		assertNotNull(filtered);
-		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IS NULL", filtered.toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", filtered.toSql());
 	}
 
 
