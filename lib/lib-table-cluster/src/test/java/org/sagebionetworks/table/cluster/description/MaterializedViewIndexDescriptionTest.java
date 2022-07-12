@@ -138,7 +138,7 @@ public class MaterializedViewIndexDescriptionTest {
 		boolean isAggregate = false;
 		// call under test
 		List<String> result = mid.getColumnNamesToAddToSelect(SqlContext.build, includeEtag, isAggregate);
-		assertEquals(Arrays.asList("IFNULL( T888_3.ROW_BENEFACTOR , -1) AS T888_3.ROW_BENEFACTOR", "IFNULL( T999.ROW_BENEFACTOR , -1) AS T999.ROW_BENEFACTOR"), result);
+		assertEquals(Arrays.asList("IFNULL( T888_3.ROW_BENEFACTOR , -1)", "IFNULL( T999.ROW_BENEFACTOR , -1)"), result);
 	}
 	
 	@Test

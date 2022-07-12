@@ -51,7 +51,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 				// The SQL translator will be able to translate from this table name to the appropriate table alias.
 				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
-				String ifNullCheck = String.format("IFNULL( %s , -1) AS %s",selectColumnReference,selectColumnReference);
+				String ifNullCheck = String.format("IFNULL( %s , -1)",selectColumnReference);
 				buildColumnsToAddToSelect.add(ifNullCheck);
 				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
