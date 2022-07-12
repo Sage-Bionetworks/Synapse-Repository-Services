@@ -895,6 +895,24 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testCalculateDerivedAnnotationsWithConditionalConstNoProperty() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalConst.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("anotherProperty", "some value");
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "someUnconditionalConst", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was true", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "conditionalLong", "999", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "secondConditional", "secondBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
 	public void testCalculateDerivedAnnotationsWithCondionalAndNoThen() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/DerivedConditionalNoThen.json");
 		assertNotNull(schema.getProperties());

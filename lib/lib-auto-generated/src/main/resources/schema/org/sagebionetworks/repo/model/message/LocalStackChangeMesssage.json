@@ -1,0 +1,19 @@
+{
+    "description": "Local stack object that can be used in place of a change message (e.g. this won't migrate through stacks)",
+    "implements": [
+    	{"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"}
+    ],
+    "properties": {
+    	"changeNumber": {
+            "type": "integer",
+            "description": "The application change number created as a result of this change."
+        },
+        "changeType": {
+            "$ref": "org.sagebionetworks.repo.model.message.ChangeType"
+        },
+        "userId": {
+            "type": "integer",
+            "description": "The ID of the user who created this change message"
+        }
+    }
+}

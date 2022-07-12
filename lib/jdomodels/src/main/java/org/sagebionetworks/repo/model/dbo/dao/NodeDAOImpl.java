@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DERIVED_ANNOTATIONS_ANNOS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
@@ -115,6 +116,7 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.schema.BoundObjectType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SubType;
@@ -122,8 +124,6 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1823,15 +1823,30 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					dto.setIsInSynapseStorage(null);
 				}
 				dto.setFileMD5(rs.getString(COL_FILES_CONTENT_MD5));
-				String userAnnoJson = rs.getString(COL_REVISION_USER_ANNOS_JSON);
-				if(userAnnoJson != null){
-					try {
-						Annotations annos = EntityFactory.createEntityFromJSONString(userAnnoJson, Annotations.class);
-						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, version, annos, maxAnnotationSize));
-					} catch (JSONObjectAdapterException e) {
-						throw new DatastoreException(e);
-					}
+				
+				Annotations annotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_REVISION_USER_ANNOS_JSON));
+				
+				if (annotations == null) {
+					annotations = AnnotationsV2Utils.emptyAnnotations();
 				}
+				
+				List<ObjectAnnotationDTO> translatedAnnotations = new ArrayList<>(AnnotationsV2Utils.toObjectAnnotationDTOList(entityId, version, annotations, maxAnnotationSize));
+				
+				Annotations derivedAnnotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_DERIVED_ANNOTATIONS_ANNOS));
+				
+				if (derivedAnnotations != null && !derivedAnnotations.getAnnotations().isEmpty()) {
+					Set<String> existingKeys = annotations.getAnnotations().keySet();
+					
+					derivedAnnotations.getAnnotations().forEach((key, value) -> {
+						// We do not want to override normal annotations with derived ones, so check for existing keys before adding them
+						if (!existingKeys.contains(key)) {
+							AnnotationsV2Utils.toObjectAnnotationDTO(entityId, version, maxAnnotationSize, key, value, true).ifPresent(translatedAnnotations::add);
+						}
+					});
+				}
+				
+				dto.setAnnotations(translatedAnnotations);
+				
 				return dto;
 			}
 		});

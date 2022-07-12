@@ -394,10 +394,10 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
-
+	
 	@Override
-	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException {
-		return nodeManager.getNodeTypeForDeletion(entityId);
+	public EntityType getEntityType(String entityId) throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeType(entityId);
 	}
 
 	@Override
@@ -694,15 +694,11 @@ public class EntityManagerImpl implements EntityManager {
 		Class<? extends Entity> entityClass = null;
 		Entity entity = getEntity(entityId, entityClass);
 
-		Annotations annotations;
+		Annotations annotations = nodeManager.getUserAnnotations(entityId);
 		
 		if (includeDerivedAnnotations) {
-			annotations = derivedAnnotationDao.getDerivedAnnotations(entityId).orElse(AnnotationsV2Utils.emptyAnnotations());
-		} else {
-			annotations = AnnotationsV2Utils.emptyAnnotations();
+			annotations = AnnotationsV2Utils.putAnnotationsIfAbsent(annotations, derivedAnnotationDao.getDerivedAnnotations(entityId).orElse(AnnotationsV2Utils.emptyAnnotations()));
 		}
-		
-		annotations = AnnotationsV2Utils.overrideAnnotations(annotations, nodeManager.getUserAnnotations(entityId));
 		
 		JSONObject json = null;
 		

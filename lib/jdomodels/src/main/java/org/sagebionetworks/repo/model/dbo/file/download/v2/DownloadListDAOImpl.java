@@ -168,18 +168,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			json.put(key.name(), value);
 		}
 		
-		String derivedAnnotationsJson = rs.getString(COL_DERIVED_ANNOTATIONS_ANNOS);
-		Annotations annotations = AnnotationsV2Utils.fromJSONString(derivedAnnotationsJson);
+		Annotations annotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_REVISION_USER_ANNOS_JSON));
 		
 		if (annotations == null) {
 			annotations = AnnotationsV2Utils.emptyAnnotations();
 		}
 		
-		String userAnnotationsJson = rs.getString(COL_REVISION_USER_ANNOS_JSON);
-		Annotations userAnnotations = AnnotationsV2Utils.fromJSONString(userAnnotationsJson);
+		Annotations derivedAnnotations = AnnotationsV2Utils.fromJSONString(rs.getString(COL_DERIVED_ANNOTATIONS_ANNOS));
 		
-		if (userAnnotations != null) {
-			annotations = AnnotationsV2Utils.overrideAnnotations(annotations, userAnnotations);
+		if (derivedAnnotations != null) {
+			annotations = AnnotationsV2Utils.putAnnotationsIfAbsent(annotations, derivedAnnotations);
 		}
 		
 		if (annotations != null && annotations.getAnnotations() != null) {
