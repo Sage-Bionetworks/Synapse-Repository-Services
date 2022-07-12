@@ -1442,12 +1442,12 @@ public class EntityManagerImplUnitTest {
 	public void testGetEntityForVersion() {
 		Long versionNumber = 2L;
 		Annotations annotations = new Annotations();
-		Node node = mock(Node.class);
+		Node node = new Node();
 		node.setId(entityId);
 		node.setCreatedByPrincipalId(1L);
 		node.setModifiedByPrincipalId(2L);
 
-		Project project = new Project()
+		Project expected = new Project()
 				.setId(entityId)
 				.setCreatedBy("1")
 				.setModifiedBy("2");
@@ -1455,9 +1455,11 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
 		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
 
+		// Call under test
 		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, Project.class);
 		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
 		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+		assertEquals(expected, result);
 	}
 
 	@Test
@@ -1470,7 +1472,7 @@ public class EntityManagerImplUnitTest {
 		node.setModifiedByPrincipalId(2L);
 		node.setNodeType(EntityType.project);
 
-		Project project = new Project()
+		Project expected = new Project()
 				.setId(entityId)
 				.setCreatedBy("1")
 				.setModifiedBy("2");
@@ -1478,9 +1480,11 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeManager.getEntityPropertyForVersion(any(), any(), any())).thenReturn(annotations);
 		when(mockNodeManager.getNodeForVersionNumber(any(), any(), any())).thenReturn(node);
 
+		// Call under test
 		Project result = entityManager.getEntityForVersion(mockUser, entityId, versionNumber, null);
 		verify(mockNodeManager).getEntityPropertyForVersion(mockUser, entityId, versionNumber);
 		verify(mockNodeManager).getNodeForVersionNumber(mockUser, entityId, versionNumber);
+		assertEquals(expected, result);
 	}
 
 	@Test
