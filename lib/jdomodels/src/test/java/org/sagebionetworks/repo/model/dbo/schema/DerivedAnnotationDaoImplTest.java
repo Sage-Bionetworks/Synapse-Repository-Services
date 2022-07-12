@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -58,15 +60,16 @@ public class DerivedAnnotationDaoImplTest {
 				derivedAnnotationsDao.getDerivedAnnotationKeys(entityTwo));
 
 		// Call under test
-		derivedAnnotationsDao.clearDerivedAnnotations(entityOne);
-
+		assertTrue(derivedAnnotationsDao.clearDerivedAnnotations(entityOne));
+		assertFalse(derivedAnnotationsDao.clearDerivedAnnotations(entityOne));
+		
 		assertEquals(Optional.empty(), derivedAnnotationsDao.getDerivedAnnotations(entityOne));
 		assertEquals(Optional.of(annosTwo), derivedAnnotationsDao.getDerivedAnnotations(entityTwo));
 		
 		assertEquals(Optional.empty(), derivedAnnotationsDao.getDerivedAnnotationKeys(entityOne));
 		assertEquals(Optional.of(new Keys().setKeys(Arrays.asList("aString", "aDouble"))),
 				derivedAnnotationsDao.getDerivedAnnotationKeys(entityTwo));
-
+		
 	}
 	
 	

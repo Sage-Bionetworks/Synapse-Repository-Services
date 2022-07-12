@@ -832,7 +832,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		}
 
 		// Translates the annotations on the object itself first
-		List<ObjectAnnotationDTO> objectAnnotations = AnnotationsV2Utils.translate(submissionId, version, annotations,
+		List<ObjectAnnotationDTO> objectAnnotations = AnnotationsV2Utils.toObjectAnnotationDTOList(submissionId, version, annotations,
 				maxAnnotationChars);
 
 		// Merge the custom default fields from the result set and return the complete

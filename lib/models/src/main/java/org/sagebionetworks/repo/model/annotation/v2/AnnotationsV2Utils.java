@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -103,45 +104,46 @@ public class AnnotationsV2Utils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<ObjectAnnotationDTO> translate(Long entityId, Long objectVersion, Annotations annos, int maxAnnotationChars) {
-		Map<String, ObjectAnnotationDTO> map;
-		
+	public static List<ObjectAnnotationDTO> toObjectAnnotationDTOList(Long entityId, Long objectVersion, Annotations annos, int maxAnnotationChars) {
 		if (annos == null || annos.getAnnotations() == null) {
-			map = Collections.emptyMap();
-		} else {
-			map = new LinkedHashMap<>(annos.getAnnotations().size());
-			// add additional
-			addAnnotations(entityId, objectVersion, maxAnnotationChars, map, annos.getAnnotations());
+			return Collections.emptyList();
 		}
-		// build the results from the map
+		
+		Map<String, ObjectAnnotationDTO> map = new LinkedHashMap<>(annos.getAnnotations().size());
+		
+		annos.getAnnotations().forEach((key, value) -> {
+			toObjectAnnotationDTO(entityId, objectVersion, maxAnnotationChars, key, value, false).ifPresent( translated -> {
+				map.put(key, translated);
+			});
+		});
+		
 		return map.values().stream().collect(Collectors.toList());
 	}
+	
+	public static Optional<ObjectAnnotationDTO> toObjectAnnotationDTO(Long entityId, Long objectVersion, int maxAnnotationChars, String key, AnnotationsValue annotationsV2Value, boolean isDerived) {
+		//ignore empty list or null list for values
+		if (annotationsV2Value == null || annotationsV2Value.getValue() == null || annotationsV2Value.getValue().isEmpty()){
+			return Optional.empty();
+		}
 
-	private static void addAnnotations(Long entityId, Long objectVersion, int maxAnnotationChars, Map<String, ObjectAnnotationDTO> map, Map<String, AnnotationsValue> additional) {
+		List<String> transferredValues = new ArrayList<>(annotationsV2Value.getValue().size());
+
+		//enforce value max character limit			
+		for (String value : annotationsV2Value.getValue()) {
+			if (value == null) {
+				continue;
+			}
+			//make sure values are under the maxAnnotationChars limit
+			String shortenedString = StringUtils.truncate(value, maxAnnotationChars);
+			transferredValues.add(shortenedString);
+		}
 		
-		additional.forEach((String key, AnnotationsValue annotationsV2Value) -> {
-			//ignore empty list or null list for values
-			if (annotationsV2Value.getValue() == null || annotationsV2Value.getValue().isEmpty()){
-				return;
-			}
-
-			List<String> transferredValues = new ArrayList<>(annotationsV2Value.getValue().size());
-
-			//enforce value max character limit			
-			for (String value : annotationsV2Value.getValue()) {
-				if (value == null) {
-					continue;
-				}
-				//make sure values are under the maxAnnotationChars limit
-				String shortenedString = StringUtils.truncate(value, maxAnnotationChars);
-				transferredValues.add(shortenedString);
-			}
-			
-			if(!transferredValues.isEmpty()) {
-				AnnotationType annotationType = AnnotationType.forAnnotationV2Type(annotationsV2Value.getType());
-				map.put(key, new ObjectAnnotationDTO(entityId, objectVersion, key, annotationType, transferredValues));
-			}
-		});
+		if(transferredValues.isEmpty()) {
+			return Optional.empty();
+		}
+		AnnotationType annotationType = AnnotationType.forAnnotationV2Type(annotationsV2Value.getType());
+		
+		return Optional.of(new ObjectAnnotationDTO(entityId, objectVersion, key, annotationType, transferredValues, isDerived));
 	}
 
 	/**
@@ -234,29 +236,29 @@ public class AnnotationsV2Utils {
 			return list.toString();
 		}
 	}
-	
+		
 	/**
-	 * Overrides the annotation id, etag and keys in the given target annotations from the given source annotations
+	 * Adds the annotations from source that are missing in target
 	 * 
-	 * @param target The target annotations
-	 * @param source The source annotations
-	 * @return The target annotations
+	 * @param target
+	 * @param source
+	 * @return
 	 */
-	public static Annotations overrideAnnotations(Annotations target, Annotations source) {
+	public static Annotations putAnnotationsIfAbsent(Annotations target, Annotations source) {
 		ValidateArgument.required(target, "target");
 		ValidateArgument.required(source, "source");
 		
-		target.setId(source.getId()).setEtag(source.getEtag());
+		if (source.getAnnotations() == null || source.getAnnotations().isEmpty()) {
+			return target;
+		}
 		
-		if (target.getAnnotations() == null && source.getAnnotations() != null && !source.getAnnotations().isEmpty()) {
+		if (target.getAnnotations() == null) {
 			target.setAnnotations(new HashMap<>());
 		}
 		
-		if (source.getAnnotations() != null) {
-			source.getAnnotations().forEach((key, value) -> {
-				target.getAnnotations().put(key, value == null ? null : new AnnotationsValue().setType(value.getType()).setValue(new ArrayList<>(value.getValue())));
-			});
-		}
+		source.getAnnotations().forEach((key, value) -> {
+			target.getAnnotations().putIfAbsent(key, value == null ? null : new AnnotationsValue().setType(value.getType()).setValue(new ArrayList<>(value.getValue())));
+		});
 		
 		return target;
 	}
