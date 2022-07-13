@@ -260,6 +260,8 @@ public interface EntityService {
 	 */
 	public Annotations getEntityAnnotations(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	public Annotations getEntityAnnotations(Long userId, String id, boolean includeDerived);
 
 	/**
 	 * Get the annotations of an entity for a specific version.
@@ -275,18 +277,6 @@ public interface EntityService {
 	public Annotations getEntityAnnotationsForVersion(Long userId, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
-	/**
-	 * Same as above but with a UserInfo
-	 * 
-	 * @param info
-	 * @param id
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public Annotations getEntityAnnotations(UserInfo info, String id)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	public Annotations updateEntityAnnotations(Long userId, String entityId, Annotations updatedAnnotations)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException,

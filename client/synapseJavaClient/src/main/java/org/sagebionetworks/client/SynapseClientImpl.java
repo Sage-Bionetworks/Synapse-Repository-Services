@@ -1283,7 +1283,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public Annotations getAnnotationsV2(String entityId) throws SynapseException {
-		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2;
+		boolean includeDerived = false;
+		return getAnnotationsV2(entityId, includeDerived);
+	}
+	
+	@Override
+	public Annotations getAnnotationsV2(String entityId, boolean includeDerived) throws SynapseException {
+		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2+"?includeDerived="+includeDerived;
 		return getJSONEntity(getRepoEndpoint(), url, Annotations.class);
 	}
 
