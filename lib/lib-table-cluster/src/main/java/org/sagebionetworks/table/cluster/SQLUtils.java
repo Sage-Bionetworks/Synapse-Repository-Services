@@ -1796,7 +1796,7 @@ public class SQLUtils {
 	 */
 	public static void writeAnnotationDtoToPreparedStatement(ReplicationType mainType, PreparedStatement ps, ObjectAnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
-		int updateOffset = 9;
+		int updateOffset = 10;
 		
 		ps.setString(parameterIndex++, mainType.name());
 		ps.setLong(parameterIndex++, dto.getObjectId());
@@ -1911,6 +1911,8 @@ public class SQLUtils {
 		
 		ps.setLong(parameterIndex++, stringList.size());
 		ps.setLong(parameterIndex + updateOffset, stringList.size());
+		ps.setBoolean(parameterIndex++, dto.isDerived());
+		ps.setBoolean(parameterIndex + updateOffset, dto.isDerived());
 	}
 
 	/**

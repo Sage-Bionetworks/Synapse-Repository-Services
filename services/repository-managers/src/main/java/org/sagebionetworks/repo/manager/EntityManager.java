@@ -118,18 +118,16 @@ public interface EntityManager {
 	 */
 	public EntityType getEntityType(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
-
+	
 	/**
-	 * Get the type of an entity for purposes of a delete action
+	 * Get the type of an entity bypassing authorization
 	 * 
 	 * @param entityId
 	 * @return
-	 * @throws UnauthorizedException
-	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public EntityType getEntityTypeForDeletion(String entityId)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
+	EntityType getEntityType(String entityId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the entity header.
@@ -519,6 +517,18 @@ public interface EntityManager {
 	public JSONObject getEntityJson(String id, boolean includeDerivedAnnotations);
 
 	/**
+	 * Get the flat JSON representation of an Entity for a specified version that includes both Entity data
+	 * and its annotations. This flat JSON is suitable to validate an entity against
+	 * a JSON schema.
+	 *
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	JSONObject getEntityJsonForVersion(UserInfo userInfo, String entityId, Long versionNumber);
+
+	/**
 	 * Get the JsonSubject representation of an Entity with the given ID.
 	 * 
 	 * @param id
@@ -577,7 +587,4 @@ public interface EntityManager {
 	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
 	
 	public void truncateAll();
-
-
-
 }

@@ -42,8 +42,9 @@ public interface DerivedAnnotationDao {
 	 * for the given entity then this call will do nothing.
 	 * 
 	 * @param entityId
+	 * @return True if any annotation was deleted for the given entity
 	 */
-	void clearDerivedAnnotations(String entityId);
+	boolean clearDerivedAnnotations(String entityId);
 
 	/**
 	 * Clear all data from the table.

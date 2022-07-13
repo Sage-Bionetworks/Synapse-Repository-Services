@@ -83,10 +83,10 @@ public class DerivedAnnotationDaoImpl implements DerivedAnnotationDao {
 	}
 
 	@Override
-	public void clearDerivedAnnotations(String entityId) {
+	public boolean clearDerivedAnnotations(String entityId) {
 		ValidateArgument.required(entityId, "entityId");
-		jdbcTemplate.update("DELETE FROM DERIVED_ANNOTATIONS WHERE OBJECT_ID = ?",
-				KeyFactory.stringToKey(entityId));
+		return jdbcTemplate.update("DELETE FROM DERIVED_ANNOTATIONS WHERE OBJECT_ID = ?",
+				KeyFactory.stringToKey(entityId)) > 0;
 
 	}
 

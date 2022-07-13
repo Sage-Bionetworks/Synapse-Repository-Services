@@ -34,5 +34,4 @@ public interface AnnotationsTranslator {
 	 * @return
 	 */
 	AnnotationsValue getAnnotationValueFromJsonObject(String key, JSONObject value);
-
 }

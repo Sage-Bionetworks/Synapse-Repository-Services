@@ -23,6 +23,7 @@ public class ObjectAnnotationDTO {
 	private String key;
 	private AnnotationType type;
 	private List<String> value;
+	private boolean isDerived;
 	
 	public ObjectAnnotationDTO() {}
 
@@ -38,16 +39,17 @@ public class ObjectAnnotationDTO {
 	 * @param type
 	 * @param value
 	 */
-	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, List<String> value) {
+	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, List<String> value, boolean isDerived) {
 		this.objectId = objectId;
 		this.objectVersion = objectVersion;
 		this.key = key;
 		this.type = type;
 		this.value = value;
+		this.isDerived = isDerived;
 	}
-
-	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, String value) {
-		this(objectId, objectVersion, key, type, Collections.singletonList(value));
+	
+	public ObjectAnnotationDTO(Long objectId, Long objectVersion, String key, AnnotationType type, List<String> value) {
+		this(objectId, objectVersion, key, type, value, false);
 	}
 
 	public Long getObjectId() {
@@ -100,9 +102,17 @@ public class ObjectAnnotationDTO {
 		setValue(Collections.singletonList(value));
 	}
 
+	public boolean isDerived() {
+		return isDerived;
+	}
+
+	public void setDerived(boolean isDerived) {
+		this.isDerived = isDerived;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(key, objectId, objectVersion, type, value);
+		return Objects.hash(isDerived, key, objectId, objectVersion, type, value);
 	}
 
 	@Override
@@ -110,19 +120,21 @@ public class ObjectAnnotationDTO {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof ObjectAnnotationDTO)) {
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
 		}
 		ObjectAnnotationDTO other = (ObjectAnnotationDTO) obj;
-		return Objects.equals(key, other.key) && Objects.equals(objectId, other.objectId)
-				&& Objects.equals(objectVersion, other.objectVersion) && type == other.type
-				&& Objects.equals(value, other.value);
+		return isDerived == other.isDerived && Objects.equals(key, other.key) && Objects.equals(objectId, other.objectId)
+				&& Objects.equals(objectVersion, other.objectVersion) && type == other.type && Objects.equals(value, other.value);
 	}
 
 	@Override
 	public String toString() {
-		return "ObjectAnnotationDTO [objectId=" + objectId + ", key=" + key + ", type=" + type + ", value=" + value
-				+ "]";
+		return "ObjectAnnotationDTO [objectId=" + objectId + ", objectVersion=" + objectVersion + ", key=" + key + ", type=" + type
+				+ ", value=" + value + ", isDerived=" + isDerived + "]";
 	}
 
 }

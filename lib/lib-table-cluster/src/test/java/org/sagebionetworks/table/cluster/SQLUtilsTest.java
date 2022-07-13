@@ -2527,6 +2527,19 @@ public class SQLUtilsTest {
 				+ "        GROUP BY A.ANNO_KEY LIMIT :pLimit OFFSET :pOffset";
 		assertEquals(expected, sql);
 	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementWithIsDerivedFalse() throws SQLException{
+		// string value
+		annotationDto.setDerived(false);
+		
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(ReplicationType.ENTITY, mockPreparedStatement, annotationDto);
+		
+		verify(mockPreparedStatement).setBoolean(16, false);
+		verify(mockPreparedStatement).setBoolean(27, false);
+	}
+
 
 	@Test
 	public void testWriteAnnotationDtoToPreparedStatementString() throws SQLException{
@@ -2747,7 +2760,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(9, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
 		verify(mockPreparedStatement).setNull(10, Types.BOOLEAN);
 	}
-	
+		
 	@Test
 	public void testCreateInsertViewFromSnapshot() {
 		String[] headers = new String[] {"foo","bar"};

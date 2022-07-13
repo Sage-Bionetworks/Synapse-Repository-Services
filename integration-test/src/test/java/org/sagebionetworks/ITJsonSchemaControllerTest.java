@@ -1,18 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
@@ -57,13 +46,24 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.doubles.DoubleJSONStringWrapper;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(ITTestExtension.class)
 public class ITJsonSchemaControllerTest {
@@ -454,6 +454,23 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(projectJSON);
 		assertEquals(project.getName(), projectJSON.get("name"));
 		assertEquals(project.getId(), projectJSON.get("id"));
+	}
+
+	@Test
+	public void testGetEntityJsonForVersion() throws SynapseException {
+		// Create a project, this will own the file entity
+		project = new Project();
+		project = synapse.createEntity(project);
+
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+
+		// Call under test
+		JSONObject tableJSON = synapse.getEntityJsonForVersion(table.getId(), 1L);
+		assertEquals(table.getName(), tableJSON.get("name"));
+		assertEquals(table.getId(), tableJSON.get("id"));
+		assertEquals(1, tableJSON.get("versionNumber"));
 	}
 	
 	@Test

@@ -5945,6 +5945,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = "/entity/"+entityId+"/json?includeDerivedAnnotations=" + String.valueOf(includeDerivedAnnotations);
 		return getJson(getRepoEndpoint(), url);
 	}
+
+	@Override
+	public JSONObject getEntityJsonForVersion(String entityId, long versionNumber) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		String url = "/entity/"+entityId+"/version/"+versionNumber+"/json";
+		return getJson(getRepoEndpoint(), url);
+	}
 	
 	@Override
 	public JSONObject updateEntityJson(String entityId, JSONObject json) throws SynapseException {

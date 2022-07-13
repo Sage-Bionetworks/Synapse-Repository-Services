@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaTestHelper;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -170,6 +171,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private AccessControlListObjectHelper aclDaoHelper;
+	
+	@Autowired
+	private DerivedAnnotationDao derivedAnnotationsDao;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -199,6 +203,7 @@ public class NodeDAOImplTest {
 	public void before() throws Exception {
 		
 		nodeDao.truncateAll();
+		derivedAnnotationsDao.clearAll();
 		
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
@@ -267,6 +272,7 @@ public class NodeDAOImplTest {
 			userGroupDAO.delete(todelete);
 		}
 		nodeDao.truncateAll();
+		derivedAnnotationsDao.clearAll();
 	}
 	
 	private Node privateCreateNew(String name) {
@@ -3149,10 +3155,10 @@ public class NodeDAOImplTest {
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
 		List<ObjectAnnotationDTO> expected = Lists.newArrayList(
-				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aString", AnnotationType.STRING, "someString"),
-				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aLong", AnnotationType.LONG, "123"),
-				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble2", AnnotationType.DOUBLE, "1.22")
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aString", AnnotationType.STRING, List.of("someString")),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aLong", AnnotationType.LONG, List.of("123")),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble", AnnotationType.DOUBLE, List.of("1.22")),
+				new ObjectAnnotationDTO(fileIdLong, fileDto.getVersion(), "aDouble2", AnnotationType.DOUBLE, List.of("1.22"))
 		);
 		// Annotation order is not preserved by the JSON database column used to store annotations
 		for(ObjectAnnotationDTO expectedDto: expected) {
@@ -3165,7 +3171,7 @@ public class NodeDAOImplTest {
 		assertEquals(projectDto.getId(), projectDto.getBenefactorId());
 		assertEquals(projectDto.getId(), projectDto.getProjectId());
 		assertEquals(null, projectDto.getFileHandleId());
-		assertEquals(null, projectDto.getAnnotations());
+		assertEquals(Collections.emptyList(), projectDto.getAnnotations());
 		assertEquals(null, projectDto.getFileHandleId());
 	}
 	
@@ -3231,6 +3237,50 @@ public class NodeDAOImplTest {
 		// 2
 		assertEquals(ids.get(1), results.get(2).getId());
 		assertEquals(1L, results.get(2).getVersion());
+	}
+	
+	@Test
+	public void testGetEntityDTOsWithDerivedAnnotations() throws Exception {
+		int numberVersions = 3;
+		
+		String id = createNodeWithMultipleVersions(numberVersions);
+		
+		Node node = nodeDao.getNode(id);
+		
+		// Add annotations to the current version
+		Annotations userAnnos = new Annotations().setId(node.getId()).setEtag(node.getETag());
+		AnnotationsV2TestUtils.putAnnotations(userAnnos, "key1", "value", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(userAnnos, "key2", "123", AnnotationsValueType.LONG);
+		nodeDao.updateUserAnnotations(node.getId(), userAnnos);
+		
+		// Save the derived annotations, we should get them only for the current version
+		Annotations derivedAnnos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(derivedAnnos, "key1", "override value", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(derivedAnnos, "key2", "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(derivedAnnos, "key3", "another value", AnnotationsValueType.STRING);
+		
+		derivedAnnotationsDao.saveDerivedAnnotations(node.getId(), derivedAnnos);
+		
+		// call under test
+		long limit = 10;
+		long offset = 0;
+		int maxAnnotationChars = 10;
+		
+		// call under test
+		List<ObjectDataDTO> results = nodeDao.getEntityDTOs(List.of(KeyFactory.stringToKey(id)), maxAnnotationChars, limit, offset);
+		
+		assertEquals(3, results.size());
+		assertEquals(Collections.emptyList(), results.get(0).getAnnotations());
+		assertEquals(Collections.emptyList(), results.get(1).getAnnotations());
+		
+		List<ObjectAnnotationDTO> expectedAnnotations = List.of(
+			new ObjectAnnotationDTO(KeyFactory.stringToKey(id), 3L, "key1", AnnotationType.STRING, List.of("value")),
+			new ObjectAnnotationDTO(KeyFactory.stringToKey(id), 3L, "key2", AnnotationType.LONG, List.of("123")),
+			new ObjectAnnotationDTO(KeyFactory.stringToKey(id), 3L, "key3", AnnotationType.STRING, List.of("another va"), true)
+		);
+		
+		assertEquals(expectedAnnotations, results.get(2).getAnnotations());
+		
 	}
 	
 
