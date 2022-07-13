@@ -709,13 +709,20 @@ public interface EntityService {
 	public ListValidationResultsResponse getInvalidEntitySchemaValidationResults(Long userId, ListValidationResultsRequest request);
 
 	/**
+	 * Get the JSON representation of an Entity and its annotations for a specified version.
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	JSONObject getEntityJsonForVersion(Long userId, String entityId, Long versionNumber);
+
+	/**
 	 * Get the derived annotation keys for the given entity.
 	 * @param userId
 	 * @param id
 	 * @return
 	 */
 	public Keys getDerivedAnnotationKeys(Long userId, String id);
-
-
 
 }

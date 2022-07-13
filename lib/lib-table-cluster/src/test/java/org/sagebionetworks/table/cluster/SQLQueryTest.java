@@ -1047,8 +1047,8 @@ public class SQLQueryTest {
 		sql = "select * from syn1 join syn2 on (syn1.foo = syn2.foo) WHERE syn1.bar = 'some text' order by syn1.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_,"
-				+ " _A1.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
+		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C4242_, IFNULL(_A1.ROW_BENEFACTOR,-1) " +
+						"FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A0._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
@@ -1125,9 +1125,8 @@ public class SQLQueryTest {
 		sql = "select * from syn1 a join syn1 b on (a.foo = b.foo) WHERE a.bar = 'some text' order by b.bar";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_,"
-				+ " _A0.ROW_BENEFACTOR"
-				+ " FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
+		assertEquals("SELECT _A0._C111_, _A0._C333_, _A1._C111_, _A1._C333_, IFNULL(_A0.ROW_BENEFACTOR,-1) " +
+						"FROM T1 _A0 JOIN T1 _A1 ON ( _A0._C111_ = _A1._C111_ ) WHERE _A0._C333_ = :b0 ORDER BY _A1._C333_",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
 	}
@@ -1266,7 +1265,7 @@ public class SQLQueryTest {
 		sql = "select doubletype from syn1";
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
-		assertEquals("SELECT _C777_, ROW_BENEFACTOR FROM T1", query.getOutputSQL());
+		assertEquals("SELECT _C777_, IFNULL(ROW_BENEFACTOR,-1) FROM T1", query.getOutputSQL());
 	}
 	
 	@Test
@@ -1330,7 +1329,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
+				"SELECT _A0._C888_, _A1._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1) FROM T1 _A0 JOIN T2 _A1 ON _A0._C888_ = _A1._C888_",
 				query.getOutputSQL());
 	}
 	
@@ -1356,7 +1355,7 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
+				"SELECT _A0._C888_, _A1._C888_, _A2._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1) FROM T1 _A0 JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ ) JOIN T1 _A2 ON ( _A1._C888_ = _A2._C888_ )",
 				query.getOutputSQL());
 	}
 	
@@ -1455,8 +1454,8 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQueryBuilder(sql, userId).schemaProvider(new TestSchemaProvider(schemaMap))
 				.sqlContext(SqlContext.build).indexDescription(indexDescription).build();
 		assertEquals(
-				"SELECT _A0._C888_, _A1._C888_, _A0.ROW_BENEFACTOR FROM T1 _A0"
-				+ " JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ AND _A0._C888_ > :b0 )",
+				"SELECT _A0._C888_, _A1._C888_, IFNULL(_A0.ROW_BENEFACTOR,-1) FROM T1 _A0 " +
+						"JOIN T2 _A1 ON ( _A0._C888_ = _A1._C888_ AND _A0._C888_ > :b0 )",
 				query.getOutputSQL());
 		Map<String, Object> expectedParams = new HashMap<>(4);
 		expectedParams.put("b0", 12L);

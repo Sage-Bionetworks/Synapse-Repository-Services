@@ -51,7 +51,8 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 				// The SQL translator will be able to translate from this table name to the appropriate table alias.
 				String dependencyTranslatedTableName = SQLUtils.getTableNameForId(dependency.getIdAndVersion(), TableType.INDEX);
 				String selectColumnReference = dependencyTranslatedTableName + "." + desc.getBenefactorColumnName();
-				buildColumnsToAddToSelect.add(selectColumnReference);
+				String ifNullCheck = String.format("IFNULL( %s , -1)",selectColumnReference);
+				buildColumnsToAddToSelect.add(ifNullCheck);
 				String newBenefactorColumnName = desc.getBenefactorColumnName() + "_" + dependencyTranslatedTableName;
 				benefactorDescriptions
 						.add(new BenefactorDescription(newBenefactorColumnName, desc.getBenefactorType()));
@@ -74,7 +75,7 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL DEFAULT 0, ");
 		StringBuilder benefactorIndicies = new StringBuilder();
 		for (BenefactorDescription desc : benefactorDescriptions) {
-			builder.append(desc.getBenefactorColumnName()).append(" BIGINT, ");
+			builder.append(desc.getBenefactorColumnName()).append(" BIGINT NOT NULL, ");
 			benefactorIndicies.append(", KEY (").append(desc.getBenefactorColumnName()).append(")");
 		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");

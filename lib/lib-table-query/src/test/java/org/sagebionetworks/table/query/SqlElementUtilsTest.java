@@ -431,6 +431,12 @@ public class SqlElementUtilsTest {
 		assertEquals("ROW_ID", dr.toSql());
 	}
 
+	@Test
+	public void testCreateNonQuotedDerivedColumnWithControlFunction(){
+		DerivedColumn dr = SqlElementUtils.createNonQuotedDerivedColumn("IFNULL(ROW_ID,-1) AS ROW_ID");
+		assertEquals("IFNULL(ROW_ID,-1) AS ROW_ID", dr.toSql());
+	}
+
 
 	////////////////////////////////////////////////////////////
 	// appendCombinedWhereClauseToStringBuilder() tests

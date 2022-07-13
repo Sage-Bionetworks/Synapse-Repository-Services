@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -456,6 +457,23 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(projectJSON);
 		assertEquals(project.getName(), projectJSON.get("name"));
 		assertEquals(project.getId(), projectJSON.get("id"));
+	}
+
+	@Test
+	public void testGetEntityJsonForVersion() throws SynapseException {
+		// Create a project, this will own the file entity
+		project = new Project();
+		project = synapse.createEntity(project);
+
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+
+		// Call under test
+		JSONObject tableJSON = synapse.getEntityJsonForVersion(table.getId(), 1L);
+		assertEquals(table.getName(), tableJSON.get("name"));
+		assertEquals(table.getId(), tableJSON.get("id"));
+		assertEquals(1, tableJSON.get("versionNumber"));
 	}
 	
 	@Test
