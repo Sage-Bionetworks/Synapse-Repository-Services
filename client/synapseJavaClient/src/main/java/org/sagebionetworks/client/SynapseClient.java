@@ -3897,6 +3897,17 @@ public interface SynapseClient extends BaseClient {
 	JSONObject getEntityJson(String entityId, boolean includeDerivedAnnotations) throws SynapseException;
 
 	/**
+	 * Get the JSONObject representation of an Entity for a specific entity version that can be used to validate
+	 * the entity against a JSON schema.
+	 *
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws SynapseException
+	 */
+	JSONObject getEntityJsonForVersion(String entityId, long versionNumber) throws SynapseException;
+
+	/**
 	 * Update an Entity's annotations using the JSONObject representation of the Entity.
 	 * @param entityId
 	 * @param json
