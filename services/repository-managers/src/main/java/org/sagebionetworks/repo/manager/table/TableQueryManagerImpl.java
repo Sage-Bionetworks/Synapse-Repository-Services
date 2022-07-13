@@ -679,12 +679,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				tableBenefactors = Collections.emptySet();
 			}
 
-			// Get the sub-set of benefactors visible to the user,Null benefactors for user is ignored by query.
-			boolean hasNullBenefactors =tableBenefactors.stream().anyMatch(Objects::isNull);
 			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
-			if(hasNullBenefactors){
-				accessibleBenefactors.add(null);
-			}
+
 			resultQuery = buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}
 		return resultQuery;
@@ -704,11 +700,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
                                                            String benefactorColumnName) {
         ValidateArgument.required(originalQuery, "originalQuery");
         ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
-        if (accessibleBenefactors.isEmpty()) {
-            // There are no negative benefactorIds so this set would create a filter that
-            // matches no rows
-            accessibleBenefactors = Collections.singleton(-1L);
-        }
+
+		// add -1 to set, as -1 is default value for benefactors column
+		accessibleBenefactors.add(-1l);
+
         // copy the original model
         try {
             QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
@@ -718,10 +713,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
             if (where != null) {
                 filterBuilder.append("(");
                 filterBuilder.append(where.getSearchCondition().toSql());
-                filterBuilder.append(") ");
+                filterBuilder.append(") AND ");
             }
 
-            addBenefactorsColumn(filterBuilder, accessibleBenefactors, benefactorColumnName, where);
+			filterBuilder.append(benefactorColumnName);
+			filterBuilder.append(" IN (");
+
+			filterBuilder.append(accessibleBenefactors.stream()
+					.map(String::valueOf)
+					.collect(Collectors.joining(",")));
+			filterBuilder.append(")");
 
             // create the new where
             where = new TableQueryParser(filterBuilder.toString()).whereClause();
@@ -732,65 +733,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
             throw new RuntimeException(e);
         }
     }
-
-	private static void addBenefactorsColumn(final StringBuilder filterBuilder, final Set<Long> accessibleBenefactors,
-											 final String benefactorColumnName, final WhereClause where) {
-		final Set<Long> nonNullBenefactors = accessibleBenefactors.stream()
-				.filter(benefactorId -> benefactorId != null)
-				.collect(Collectors.toSet());
-		String inClause = null;
-		String nullClause = null;
-
-		if (nonNullBenefactors.size() > 0) {
-			inClause = addNonNullBenefactors(benefactorColumnName, nonNullBenefactors);
-		}
-
-		if (accessibleBenefactors.stream().anyMatch(Objects::isNull)) {
-			nullClause = addNullBenefactors(benefactorColumnName);
-		}
-
-		if (where != null) {
-			filterBuilder.append(" AND ");
-		}
-
-		if (inClause != null && nullClause != null) {
-			filterBuilder.append(" ( ");
-		}
-
-		if (inClause != null) {
-			filterBuilder.append(inClause);
-		}
-
-		if (nullClause != null) {
-			if (inClause != null) {
-				filterBuilder.append(" OR ");
-			}
-
-			filterBuilder.append(nullClause);
-		}
-
-		if (inClause != null && nullClause != null) {
-			filterBuilder.append(" ) ");
-		}
-	}
-
-	private static String addNonNullBenefactors(final String benefactorColumnName,
-												final Set<Long> nonNullBenefactors) {
-		final StringBuilder filterBuilder = new StringBuilder();
-
-		filterBuilder.append(benefactorColumnName + " IN (");
-
-		filterBuilder.append(nonNullBenefactors.stream()
-				.map(String::valueOf)
-				.collect(Collectors.joining(",")));
-		filterBuilder.append(")");
-
-		return filterBuilder.toString();
-	}
-
-	private static String addNullBenefactors(final String benefactorColumnName) {
-		return benefactorColumnName + " IS NULL ";
-	}
 
     @Override
     public EntityType getTableEntityType(IdAndVersion idAndVersion) {

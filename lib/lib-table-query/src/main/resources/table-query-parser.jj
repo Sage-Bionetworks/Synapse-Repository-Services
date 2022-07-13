@@ -248,6 +248,12 @@ TOKEN [IGNORE_CASE]: {
   < current_user_function: "CURRENT_USER" >
 }
 
+/* control functions */
+TOKEN [IGNORE_CASE]: {
+< control_function_name: "IFNULL">
+
+}
+
 /* string functions */
 TOKEN [IGNORE_CASE]: {
   < string_function_name:
@@ -1155,6 +1161,7 @@ MySqlFunctionName mySqlFunctionName():
 	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <date_time_field> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 	| functionName = <numeric_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <control_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 
 StringValueExpression stringValueExpression():
