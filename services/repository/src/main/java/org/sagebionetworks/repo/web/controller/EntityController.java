@@ -597,9 +597,10 @@ public class EntityController {
 	 * on the Entity, to get its annotations.
 	 * </p>
 	 *
-	 * @param id      - The id of the entity to update.
-	 * @param userId  - The user that is doing the update.
-	 * @param request - Used to read the contents.
+	 * @param id             - The id of the entity to update.
+	 * @param userId         - The user that is doing the update.
+	 * @param includeDerived - When set to 'true', the derived annotations will be
+	 *                       included in the results. Default value 'false'.
 	 * @return The annotations for the given entity.
 	 * @throws NotFoundException     - Thrown if the given entity does not exist.
 	 * @throws DatastoreException    - Thrown when there is a server side problem.
@@ -609,9 +610,10 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody Annotations getEntityAnnotationsV2(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(defaultValue = "false") Boolean includeDerived)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().getEntityAnnotations(userId, id);
+		return serviceProvider.getEntityService().getEntityAnnotations(userId, id, includeDerived);
 	}
 
 	/**

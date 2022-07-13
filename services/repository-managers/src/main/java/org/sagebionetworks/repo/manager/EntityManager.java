@@ -197,6 +197,8 @@ public interface EntityManager {
 	 */
 	public Annotations getAnnotations(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	public Annotations getAnnotations(UserInfo userInfo, String id, boolean includeDerived);
 
 	/**
 	 * Get the annotations of an entity for a given version.
@@ -575,7 +577,6 @@ public interface EntityManager {
 	public Keys getDerivedAnnotationKeys(UserInfo userInfo, String id);
 	
 	public void truncateAll();
-
 
 
 }

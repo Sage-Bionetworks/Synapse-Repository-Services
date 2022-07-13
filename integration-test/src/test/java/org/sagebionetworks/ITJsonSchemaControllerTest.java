@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
@@ -554,6 +556,50 @@ public class ITJsonSchemaControllerTest {
 		JSONObject folderJson = synapse.getEntityJson(folderId, true);
 		
 		assertTrue(folderJson.has("hasDefault"));
+	}
+	
+	@Test
+	public void testGetAnnotationsWithDerived() throws Exception {
+		project = createProjectWithBoundSchema("schema/HasDefault.json");
+		assertNotNull(project);
+		
+		Folder folder = new Folder();
+		folder.setName("child");
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		
+		final String folderId = folder.getId();
+		
+		waitFor("Waiting for derived annotations...",()->{
+			boolean includeDerived = true;
+			// call under test
+			Annotations annos = synapse.getAnnotationsV2(folderId, includeDerived);
+			Annotations expected = new Annotations();
+			AnnotationsV2TestUtils.putAnnotations(expected, "hasDefault", List.of("12345"), AnnotationsValueType.LONG);
+			assertEquals(expected.getAnnotations(), annos.getAnnotations());
+			return annos;
+		});
+	}
+	
+	@Test
+	public void testGetAnnotationsWithoutDerived() throws Exception {
+		project = createProjectWithBoundSchema("schema/HasDefault.json");
+		assertNotNull(project);
+		
+		Folder folder = new Folder();
+		folder.setName("child");
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		
+		final String folderId = folder.getId();
+		
+		waitFor("Waiting for derived annotations...",()->{
+			boolean includeDerived = false;
+			// call under test
+			Annotations annos = synapse.getAnnotationsV2(folderId, includeDerived);
+			assertEquals(Collections.emptyMap(), annos.getAnnotations());
+			return annos;
+		});
 	}
 	
 	@Test

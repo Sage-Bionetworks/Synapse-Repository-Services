@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -70,7 +69,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
@@ -235,7 +237,7 @@ public class EntityManagerImplUnitTest {
 		String parentId = "456";
 
 		Node node = mock(Node.class);
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
@@ -278,7 +280,7 @@ public class EntityManagerImplUnitTest {
 		String parentId = "456";
 
 		Node node = mock(Node.class);
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
 		when(node.getParentId()).thenReturn(parentId);
@@ -324,7 +326,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = new Node();
 		node.setFileHandleId(sourceFileHandleId);
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
@@ -366,7 +368,7 @@ public class EntityManagerImplUnitTest {
 
 		Node node = new Node();
 		node.setFileHandleId(sourceFileHandleId);
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		
 		when(mockNodeManager.getNode(mockUser, id)).thenReturn(node);
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, id)).thenReturn(annos);
@@ -651,13 +653,13 @@ public class EntityManagerImplUnitTest {
 		project.setId(entityId);
 		project.setParentId("syn456");
 		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
-		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new org.sagebionetworks.repo.model.Annotations());
 		// still have room for one more version
 		when(mockNodeManager.getCurrentRevisionNumber(project.getId()))
 				.thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS - 1);
 		// call under test
 		entityManager.updateEntity(mockUser, project, newVersion, activityId);
-		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(org.sagebionetworks.repo.model.Annotations.class), eq(newVersion));
 		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
 	}
 
@@ -669,7 +671,7 @@ public class EntityManagerImplUnitTest {
 		project.setId(entityId);
 		project.setParentId("syn456");
 		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
-		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new org.sagebionetworks.repo.model.Annotations());
 		long currentRevisionNumber = (long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS;
 		// still have room for one more version
 		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn(currentRevisionNumber);
@@ -679,7 +681,7 @@ public class EntityManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("Exceeded the maximum number of " + EntityManagerImpl.MAX_NUMBER_OF_REVISIONS
 				+ " versions for a single Entity", message);
-		verify(mockNodeManager, never()).update(any(UserInfo.class), any(Node.class), any(Annotations.class),
+		verify(mockNodeManager, never()).update(any(UserInfo.class), any(Node.class), any(org.sagebionetworks.repo.model.Annotations.class),
 				any(Boolean.class));
 		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
 	}
@@ -692,10 +694,10 @@ public class EntityManagerImplUnitTest {
 		project.setId(entityId);
 		project.setParentId("syn456");
 		when(mockNodeManager.getNode(mockUser, project.getId())).thenReturn(new Node());
-		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new org.sagebionetworks.repo.model.Annotations());
 		// call under test
 		entityManager.updateEntity(mockUser, project, newVersion, activityId);
-		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(org.sagebionetworks.repo.model.Annotations.class), eq(newVersion));
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(project.getId());
 	}
 
@@ -711,7 +713,7 @@ public class EntityManagerImplUnitTest {
 		doNothing().when(entityManagerSpy).updateNodeAndAnnotationsFromEntity(any(), any(), any());
 
 		when(mockNodeManager.getNode(any(), any())).thenReturn(new Node());
-		when(mockNodeManager.getEntityPropertyAnnotations(any(), any())).thenReturn(new Annotations());
+		when(mockNodeManager.getEntityPropertyAnnotations(any(), any())).thenReturn(new org.sagebionetworks.repo.model.Annotations());
 
 		String activityId = null;
 		boolean newVersion = true;
@@ -724,7 +726,7 @@ public class EntityManagerImplUnitTest {
 		// Despite the newVersion flag true, a new version for Table types cannot be
 		// created this way
 		assertFalse(newVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(Annotations.class), eq(false));
+		verify(mockNodeManager).update(eq(mockUser), any(Node.class), any(org.sagebionetworks.repo.model.Annotations.class), eq(false));
 		verify(mockNodeManager, never()).getCurrentRevisionNumber(any());
 	}
 
@@ -1474,4 +1476,59 @@ public class EntityManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("entityId is required.", message);
 	}
+	
+	@Test
+	public void testGetAnnotations() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.authorized());
+		Annotations annos = new Annotations().setId(entityId);
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		boolean includeDerived = false;
+		// call under test
+		Annotations results = entityManager.getAnnotations(mockUser, entityId, includeDerived);
+		assertEquals(annos, results);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
+	}
+	
+	@Test
+	public void testGetAnnotationsWithDerived() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.authorized());
+		Annotations annos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyOne", "one", AnnotationsValueType.STRING);
+		when(mockNodeManager.getUserAnnotations(any())).thenReturn(annos);
+		Annotations derived = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(derived, "keyOne", "ignore me", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(derived, "keyTwo", "two", AnnotationsValueType.STRING);
+		when(mockDerivedAnnotationDao.getDerivedAnnotations(any())).thenReturn(Optional.of(derived));
+		boolean includeDerived = true;
+		// call under test
+		Annotations results = entityManager.getAnnotations(mockUser, entityId, includeDerived);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "keyOne", "one", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(expected, "keyTwo", "two", AnnotationsValueType.STRING);
+		assertEquals(expected, results);
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockNodeManager).getUserAnnotations(entityId);
+		verify(mockDerivedAnnotationDao).getDerivedAnnotations(entityId);
+	}
+	
+	@Test
+	public void testGetAnnotationsWithUnauthorized() {
+		when(mockAuthorizationManger.hasAccess(any(), any(), any(ACCESS_TYPE.class)))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+		boolean includeDerived = false;
+		
+		assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			entityManager.getAnnotations(mockUser, entityId, includeDerived);
+		});
+		verify(mockAuthorizationManger).hasAccess(mockUser, entityId, ACCESS_TYPE.READ);
+		verify(mockNodeManager, never()).getUserAnnotations(any());
+		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
+	}
+	
+
 }

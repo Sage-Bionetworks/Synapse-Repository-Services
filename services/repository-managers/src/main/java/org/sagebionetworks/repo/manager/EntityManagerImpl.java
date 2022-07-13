@@ -272,10 +272,16 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public Annotations getAnnotations(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		if (entityId == null)
-			throw new IllegalArgumentException("Entity ID cannot be null");
-		// This is a simple pass through
-		return nodeManager.getUserAnnotations(userInfo, entityId);
+		boolean includeDerived = false;
+		return getAnnotations(userInfo, entityId, includeDerived);
+	}
+	
+	@Override
+	public Annotations getAnnotations(UserInfo userInfo, String id, boolean includeDerived) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(id, "id");
+		entityAuthorizationManager.hasAccess(userInfo, id, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return getAnnotations(id, includeDerived);
 	}
 
 	@Override
@@ -669,11 +675,7 @@ public class EntityManagerImpl implements EntityManager {
 		Class<? extends Entity> entityClass = null;
 		Entity entity = getEntity(entityId, entityClass);
 
-		Annotations annotations = nodeManager.getUserAnnotations(entityId);
-		
-		if (includeDerivedAnnotations) {
-			annotations = AnnotationsV2Utils.putAnnotationsIfAbsent(annotations, derivedAnnotationDao.getDerivedAnnotations(entityId).orElse(AnnotationsV2Utils.emptyAnnotations()));
-		}
+		Annotations annotations = getAnnotations(entityId, includeDerivedAnnotations);
 		
 		JSONObject json = null;
 		
@@ -685,6 +687,15 @@ public class EntityManagerImpl implements EntityManager {
 			json = annotationsTranslator.writeToJsonObject(entity, annotations, null);
 		}
 		return new EntityJsonSubject(entity, json);
+	}
+
+	Annotations getAnnotations(String entityId, boolean includeDerivedAnnotations) {
+		Annotations annotations = nodeManager.getUserAnnotations(entityId);
+		
+		if (includeDerivedAnnotations) {
+			annotations = AnnotationsV2Utils.putAnnotationsIfAbsent(annotations, derivedAnnotationDao.getDerivedAnnotations(entityId).orElse(AnnotationsV2Utils.emptyAnnotations()));
+		}
+		return annotations;
 	}
 
 	@Override

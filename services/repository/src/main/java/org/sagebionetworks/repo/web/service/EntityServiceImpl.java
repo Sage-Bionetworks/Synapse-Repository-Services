@@ -414,14 +414,17 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public Annotations getEntityAnnotations(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntityAnnotations(userInfo, id);
+		boolean includeDerived = false;
+		return getEntityAnnotations(userId, id, includeDerived);
 	}
 	
+
 	@Override
-	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		return entityManager.getAnnotations(info, id);
+	public Annotations getEntityAnnotations(Long userId, String id, boolean includeDerived) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getAnnotations(userInfo, id, includeDerived);
 	}
+	
 	
 	@Override
 	public Annotations getEntityAnnotationsForVersion(Long userId, String id, Long versionNumber)
@@ -780,4 +783,5 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getDerivedAnnotationKeys(userInfo, id);
 	}
+
 }

@@ -595,6 +595,15 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public Annotations getAnnotationsV2(String entityId) throws SynapseException;
+	
+	/**
+	 * Get the annotations for the given entity.
+	 * @param entityId
+	 * @param includeDerived When true, the results will include derived annotations.
+	 * @return
+	 * @throws SynapseException
+	 */
+	Annotations getAnnotationsV2(String entityId, boolean includeDerived) throws SynapseException;
 
 	public Annotations updateAnnotationsV2(String entityId, Annotations updated)
 			throws SynapseException;
@@ -4112,4 +4121,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException;
+
+
 }
