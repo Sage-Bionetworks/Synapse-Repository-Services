@@ -26,7 +26,7 @@ import org.scribe.oauth.OAuthService;
  */
 public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
-    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
+    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
     private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
 
     private static final String MESSAGE = " Message: ";

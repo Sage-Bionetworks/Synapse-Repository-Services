@@ -32,7 +32,7 @@ public class GoogleOAuth2ProviderTest {
 	public void testGetAuthorizationUrl(){
 		String redirectUrl = "https://domain.com";
 		String authUrl = provider.getAuthorizationUrl(redirectUrl);
-		assertEquals("https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&scope=email", authUrl);
+		assertEquals("https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&prompt=select_account&scope=email", authUrl);
 	}
 	
 	@Test
