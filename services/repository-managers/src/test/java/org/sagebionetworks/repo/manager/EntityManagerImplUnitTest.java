@@ -1443,7 +1443,7 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testGetEntityForVersion() {
 		Long versionNumber = 2L;
-		Annotations annotations = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annotations = new org.sagebionetworks.repo.model.Annotations();
 		Node node = new Node();
 		node.setId(entityId);
 		node.setCreatedByPrincipalId(1L);
@@ -1467,7 +1467,7 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testGetEntityForVersionWithNullEntityClass() {
 		Long versionNumber = 2L;
-		Annotations annotations = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annotations = new org.sagebionetworks.repo.model.Annotations();
 		Node node = new Node();
 		node.setId(entityId);
 		node.setCreatedByPrincipalId(1L);
