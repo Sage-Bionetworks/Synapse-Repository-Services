@@ -12,6 +12,8 @@ public interface ViewFilterBuilder {
 	
 	ViewFilterBuilder addExcludeAnnotationKeys(Set<String> excludeKeys);
 	
+	ViewFilterBuilder setExcludeDerivedKeys(boolean excludeDerivedKeys);
+	
 	ViewFilter build();
 	
 }

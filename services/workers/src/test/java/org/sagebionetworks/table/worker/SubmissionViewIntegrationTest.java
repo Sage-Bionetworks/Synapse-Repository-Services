@@ -337,7 +337,9 @@ public class SubmissionViewIntegrationTest {
 		viewScope.setScope(ImmutableList.of(evaluation.getId()));
 		viewScope.setViewEntityType(ViewEntityType.submissionview);
 		
-		ColumnModelPage page = connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(viewScope, null);
+		boolean excludeDerivedKeys = false;
+		
+		ColumnModelPage page = connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(viewScope, null, excludeDerivedKeys);
 		
 		List<ColumnModel> model = page.getResults();
 

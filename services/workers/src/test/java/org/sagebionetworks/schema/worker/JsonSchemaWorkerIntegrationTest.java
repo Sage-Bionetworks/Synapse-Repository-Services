@@ -50,9 +50,14 @@ import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
-import org.sagebionetworks.repo.model.table.ObjectDataDTO;
-import org.sagebionetworks.repo.model.table.ReplicationType;
+import org.sagebionetworks.repo.model.table.ViewColumnModelRequest;
+import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
+import org.sagebionetworks.repo.model.table.ViewEntityType;
+import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -746,12 +751,12 @@ public class JsonSchemaWorkerIntegrationTest {
 		folderJson.put("myAnnotation", "myAnnotationValue");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		
-		waitForReplicationIndexData(folderId, data-> {
+		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"))
 			), 
 			data.getAnnotations());
-		});
+		}, MAX_WAIT_MS);
 
 		// create the schema
 		String fileName = "schema/DerivedConditionalConst.json";
@@ -767,7 +772,7 @@ public class JsonSchemaWorkerIntegrationTest {
 		
 		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
 		
-		waitForReplicationIndexData(folderId, data-> {
+		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
@@ -775,13 +780,13 @@ public class JsonSchemaWorkerIntegrationTest {
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());
-		});
+		}, MAX_WAIT_MS);
 		
 		// Now we put an explicit property that should be replicated as well
 		folderJson.put("someBoolean", "false");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 				
-		waitForReplicationIndexData(folderId, data-> {
+		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someBoolean", AnnotationType.BOOLEAN, List.of("false"), false),
@@ -789,13 +794,13 @@ public class JsonSchemaWorkerIntegrationTest {
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());
-		});
+		}, MAX_WAIT_MS);
 		
 		// Now switch the boolean
 		folderJson.put("someBoolean", "true");
 		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
 		
-		waitForReplicationIndexData(folderId, data-> {
+		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
 			assertEquals(List.of(
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
@@ -804,26 +809,76 @@ public class JsonSchemaWorkerIntegrationTest {
 				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
 			), 
 			data.getAnnotations());
-		});
+		}, MAX_WAIT_MS);
 	}
 	
-	public void waitForReplicationIndexData(String entityId, Consumer<ObjectDataDTO> consumer) {
-		try {
-			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-				try {
-					ObjectDataDTO data= tableIndexDao.getObjectDataForCurrentVersion(ReplicationType.ENTITY, KeyFactory.stringToKey(entityId));
-					consumer.accept(data);
-					return new Pair<>(Boolean.TRUE, null);
-				} catch (Throwable e) {
-					System.out.println("Waiting for replication index data..." + e.getMessage());
-					return new Pair<>(Boolean.FALSE, null);
-				}
-			});
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	@Test
+	public void testDerivedAnnotationsAndViewColumnModelRequest() throws Exception {
+		bootstrapAndCreateOrganization();
+		String projectId = entityManager.createEntity(adminUserInfo, new Project(), null);
+		Project project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
+		
+		// create the schema
+		String fileName = "schema/DerivedConditionalConst.json";
+		JsonSchema schema = getSchemaFromClasspath(fileName);
+		CreateSchemaResponse createResponse = registerSchema(schema);
+		String schema$id = createResponse.getNewVersionInfo().get$id();
+		
+		// Now bind the schema to the project, this will enable derived annotations from the schema that will eventually be replicated
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(projectId);
+		bindRequest.setSchema$id(schema$id);
+		bindRequest.setEnableDerivedAnnotations(true);
+		
+		entityManager.bindSchemaToEntity(adminUserInfo, bindRequest);
+		
+		// add a folder to the project
+		Folder folder = new Folder();
+		folder.setParentId(project.getId());
+		String folderId = entityManager.createEntity(adminUserInfo, folder, null);
+		JSONObject folderJson = entityManager.getEntityJson(folderId, false);
+		folderJson.put("myAnnotation", "myAnnotationValue");
+		folderJson = entityManager.updateEntityJson(adminUserInfo, folderId, folderJson);
+		
+		asynchronousJobWorkerHelper.waitForReplicationIndexData(folderId, data-> {
+			assertEquals(List.of(
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "conditionalLong", AnnotationType.LONG, List.of("999"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "myAnnotation", AnnotationType.STRING, List.of("myAnnotationValue"), false),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "someConditional", AnnotationType.STRING, List.of("someBoolean was true"), true),
+				new ObjectAnnotationDTO(KeyFactory.stringToKey(folderId), 1L, "unconditionalDefault", AnnotationType.LONG, List.of("456"), true)
+			), 
+			data.getAnnotations());
+		}, MAX_WAIT_MS);
+
+		ViewScope viewScope = new ViewScope()
+			.setViewEntityType(ViewEntityType.entityview)
+			.setScope(List.of(projectId))
+			.setViewTypeMask(ViewTypeMask.Folder.getMask());
+		
+		ViewColumnModelRequest request = new ViewColumnModelRequest()
+			.setViewScope(viewScope);
+						
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (ViewColumnModelResponse response) -> {
+			List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("myAnnotation").setColumnType(ColumnType.STRING).setMaximumSize(17L)
+			);
+			assertEquals(expected, response.getResults());
+		}, MAX_WAIT_MS);
+		
+		// now asks to include the derived annotations
+		request.setIncludeDerivedAnnotations(true);
+		
+		asynchronousJobWorkerHelper.assertJobResponse(adminUserInfo, request, (ViewColumnModelResponse response) -> {
+			List<ColumnModel> expected = List.of(
+				new ColumnModel().setName("conditionalLong").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setName("myAnnotation").setColumnType(ColumnType.STRING).setMaximumSize(17L),
+				new ColumnModel().setName("someConditional").setColumnType(ColumnType.STRING).setMaximumSize(20L),
+				new ColumnModel().setName("unconditionalDefault").setColumnType(ColumnType.INTEGER)
+			);
+			assertEquals(expected, response.getResults());
+		}, MAX_WAIT_MS);
 	}
-	
+		
 	/**
 	 * Wait for the validation results
 	 * 

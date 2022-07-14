@@ -11,13 +11,15 @@ public abstract class AbstractBuilder implements ViewFilterBuilder {
 	protected Set<SubType> subTypes;
 	protected Set<Long> limitObjectIds;
 	protected Set<String> excludeKeys;
+	protected boolean excludeDerivedKeys;
 
-	public AbstractBuilder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys) {
+	public AbstractBuilder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys, boolean excludeDerivedKeys) {
 		super();
 		this.mainType = mainType;
 		this.subTypes = subTypes;
 		this.limitObjectIds = limitObjectIds;
 		this.excludeKeys = excludeKeys;
+		this.excludeDerivedKeys = excludeDerivedKeys;
 	}
 
 	@Override
@@ -29,6 +31,12 @@ public abstract class AbstractBuilder implements ViewFilterBuilder {
 	@Override
 	public ViewFilterBuilder addExcludeAnnotationKeys(Set<String> excludeKeys) {
 		this.excludeKeys = excludeKeys;
+		return this;
+	}
+	
+	@Override
+	public ViewFilterBuilder setExcludeDerivedKeys(boolean excludeDerivedKeys) {
+		this.excludeDerivedKeys = excludeDerivedKeys;
 		return this;
 	}
 

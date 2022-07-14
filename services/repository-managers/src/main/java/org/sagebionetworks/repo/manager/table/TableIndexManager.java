@@ -197,9 +197,10 @@ public interface TableIndexManager {
 	 * 
 	 * @param scope         Defined as the list of container ids for a view.
 	 * @param nextPageToken Optional: Controls pagination.
+	 * @param excludeDerivedKeys True if the annotations keys derived from schemas bound to entities should be excluded from the computation
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken);
+	ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken, boolean excludeDerivedKeys);
 
 	/**
 	 * Build the index for the given table using the provided change metadata up to

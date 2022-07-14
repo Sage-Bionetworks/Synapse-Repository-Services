@@ -324,6 +324,25 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			}
 		}
 	}
+	
+	@Override
+	public void waitForReplicationIndexData(String entityId, Consumer<ObjectDataDTO> consumer, long maxWaitMs) {
+		try {
+			TableIndexDAO indexDao = tableConnectionFactory.getFirstConnection();
+			TimeUtils.waitFor(maxWaitMs, 1000L, () -> {
+				try {
+					ObjectDataDTO data= indexDao.getObjectDataForCurrentVersion(ReplicationType.ENTITY, KeyFactory.stringToKey(entityId));
+					consumer.accept(data);
+					return new Pair<>(Boolean.TRUE, null);
+				} catch (Throwable e) {
+					System.out.println("Waiting for replication index data..." + e.getMessage());
+					return new Pair<>(Boolean.FALSE, null);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	/**
 	 * Create a View with the default schema for its type.

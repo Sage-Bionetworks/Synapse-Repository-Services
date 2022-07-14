@@ -2178,7 +2178,9 @@ public class TableIndexDAOImplTest {
 		Set<String> annotationNames = Sets.newHashSet("foo", "bar");
 
 		Set<Long> objectIdFilter = Sets.newHashSet(2L);
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, objectIdFilter, null, scope);
+		boolean excludeDerivedKeys = false;
+		
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, objectIdFilter, null, scope, excludeDerivedKeys);
 		
 		// method under test
 		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
@@ -2559,8 +2561,9 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
+		boolean excludeDerivedKeys = false;
 		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Sets.newHashSet("key0"), containerIds);
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Sets.newHashSet("key0"), containerIds, excludeDerivedKeys);
 		
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		
@@ -4219,7 +4222,9 @@ public class TableIndexDAOImplTest {
 		
 		// add the two rows back to the view
 		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
-		filter = new HierarchicaFilter(mainType, subTypes,rowIdFilter,null, scope);
+		boolean excludeDerivedKeys = false;
+		
+		filter = new HierarchicaFilter(mainType, subTypes,rowIdFilter,null, scope, excludeDerivedKeys);
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter, false);

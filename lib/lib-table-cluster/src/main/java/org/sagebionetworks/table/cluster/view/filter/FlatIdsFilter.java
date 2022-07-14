@@ -15,12 +15,12 @@ public class FlatIdsFilter extends AbstractViewFilter {
 	protected final Set<Long> scope;
 
 	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
-		this(mainType, subTypes, null, null, scope);
+		this(mainType, subTypes, null, null, scope, false);
 	}
 
 	public FlatIdsFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds, Set<String> excludeKeys,
-			Set<Long> scope) {
-		super(mainType, subTypes, limitObjectIds, excludeKeys);
+			Set<Long> scope, boolean excludeDerivedKeys) {
+		super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 		this.scope = scope;
 		this.params.put("flatIds", scope);
 	}
@@ -43,7 +43,7 @@ public class FlatIdsFilter extends AbstractViewFilter {
 
 	@Override
 	public Builder newBuilder() {
-		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 	}
 
 	public Set<Long> getScope(){
@@ -86,14 +86,14 @@ public class FlatIdsFilter extends AbstractViewFilter {
 		 Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys,  Set<Long> scope) {
-			super(mainType, subTypes, limitObjectIds, excludeKeys);
+				Set<String> excludeKeys,  Set<Long> scope, boolean excludeDerivedKeys) {
+			super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+			return new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		}
 
 	}

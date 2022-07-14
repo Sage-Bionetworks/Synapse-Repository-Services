@@ -12,6 +12,10 @@
 			"$ref": "org.sagebionetworks.repo.model.table.ViewScope",
 			"required": true
 		},
+		"includeDerivedAnnotations": {
+			"description": "If true will include colum models that map to annotations that are derived from the schemas of the entities in the scope",
+			"type": "boolean"
+		},
 		"nextPageToken": {
 			"description": "Optional token used to retrieve subsequent pages, returned as part of the <a href=\"${org.sagebionetworks.repo.model.table.ViewColumnModelResponse}\">ViewColumnModelResponse</a>",
 			"type": "string"

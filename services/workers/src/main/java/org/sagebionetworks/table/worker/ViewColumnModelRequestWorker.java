@@ -55,10 +55,12 @@ public class ViewColumnModelRequestWorker implements AsyncJobRunner<ViewColumnMo
 		
 		ViewScope viewScope = request.getViewScope();
 		String nextPageToken = request.getNextPageToken();
+		// By default we exclude derived keys
+		boolean excludeDerivedKeys = request.getIncludeDerivedAnnotations() == null ? true : !request.getIncludeDerivedAnnotations();
 
 		TableIndexManager indexManager = connectionFactory.connectToFirstIndex();
 		
-		ColumnModelPage page = indexManager.getPossibleColumnModelsForScope(viewScope, nextPageToken);
+		ColumnModelPage page = indexManager.getPossibleColumnModelsForScope(viewScope, nextPageToken, excludeDerivedKeys);
 		
 		ViewColumnModelResponse response = new ViewColumnModelResponse();
 		
