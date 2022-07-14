@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,7 +61,7 @@ public class ViewColumnModelRequestWorkerTest {
 	@Test
 	public void testRun() throws Exception {
 		when(mockindexConnectionFactory.connectToFirstIndex()).thenReturn(mockIndexManager);
-		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any())).thenReturn(mockModelPage);
+		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any(), anyBoolean())).thenReturn(mockModelPage);
 		when(mockModelPage.getResults()).thenReturn(mockModelResults);
 		
 		String jobId = "1";
@@ -82,13 +83,71 @@ public class ViewColumnModelRequestWorkerTest {
 		assertEquals(expectedResponse, result);
 		
 		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
-		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null);
+		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
+	}
+	
+	@Test
+	public void testRunWithIncludeDerivedAnnotations() throws Exception {
+		when(mockindexConnectionFactory.connectToFirstIndex()).thenReturn(mockIndexManager);
+		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any(), anyBoolean())).thenReturn(mockModelPage);
+		when(mockModelPage.getResults()).thenReturn(mockModelResults);
+		
+		String jobId = "1";
+		List<String> scope = ImmutableList.of("1", "2");
+		ViewEntityType viewEntityType = ViewEntityType.submissionview;
+
+		when(mockViewScope.getScope()).thenReturn(scope);
+		when(mockViewScope.getViewEntityType()).thenReturn(viewEntityType);
+		
+		when(mockRequest.getViewScope()).thenReturn(mockViewScope);
+		when(mockRequest.getIncludeDerivedAnnotations()).thenReturn(true);
+		
+		ViewColumnModelResponse expectedResponse = new ViewColumnModelResponse();
+		
+		expectedResponse.setResults(mockModelResults);
+		
+		// Call under test
+		ViewColumnModelResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
+		
+		assertEquals(expectedResponse, result);
+		
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, false);
+	}
+	
+	@Test
+	public void testRunWithExcludeDerivedAnnotations() throws Exception {
+		when(mockindexConnectionFactory.connectToFirstIndex()).thenReturn(mockIndexManager);
+		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any(), anyBoolean())).thenReturn(mockModelPage);
+		when(mockModelPage.getResults()).thenReturn(mockModelResults);
+		
+		String jobId = "1";
+		List<String> scope = ImmutableList.of("1", "2");
+		ViewEntityType viewEntityType = ViewEntityType.submissionview;
+
+		when(mockViewScope.getScope()).thenReturn(scope);
+		when(mockViewScope.getViewEntityType()).thenReturn(viewEntityType);
+		
+		when(mockRequest.getViewScope()).thenReturn(mockViewScope);
+		when(mockRequest.getIncludeDerivedAnnotations()).thenReturn(false);
+		
+		ViewColumnModelResponse expectedResponse = new ViewColumnModelResponse();
+		
+		expectedResponse.setResults(mockModelResults);
+		
+		// Call under test
+		ViewColumnModelResponse result = worker.run(jobId, mockUser, mockRequest, mockJobCallback);
+		
+		assertEquals(expectedResponse, result);
+		
+		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
+		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
 	}
 	
 	@Test
 	public void testRunWithNextPageToken() throws Exception {
 		when(mockindexConnectionFactory.connectToFirstIndex()).thenReturn(mockIndexManager);
-		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any())).thenReturn(mockModelPage);
+		when(mockIndexManager.getPossibleColumnModelsForScope(any(), any(), anyBoolean())).thenReturn(mockModelPage);
 		when(mockModelPage.getResults()).thenReturn(mockModelResults);
 		
 		String jobId = "1";
@@ -114,7 +173,7 @@ public class ViewColumnModelRequestWorkerTest {
 		assertEquals(expectedResponse, result);
 		
 		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
-		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, nextPageToken);
+		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, nextPageToken, true);
 	}
 	
 	@Test
@@ -123,7 +182,7 @@ public class ViewColumnModelRequestWorkerTest {
 		
 		IllegalArgumentException ex = new IllegalArgumentException("Some exception");
 		
-		doThrow(ex).when(mockIndexManager).getPossibleColumnModelsForScope(any(), any());
+		doThrow(ex).when(mockIndexManager).getPossibleColumnModelsForScope(any(), any(), anyBoolean());
 		
 		String jobId = "1";
 		List<String> scope = ImmutableList.of("1", "2");
@@ -142,7 +201,7 @@ public class ViewColumnModelRequestWorkerTest {
 		assertEquals(ex, result);
 		
 		verify(mockJobCallback).updateProgress("Processing ViewColumnModelRequest job (EntiyViewType: submissionview, Scope Size: 2)...", 0L, 100L);
-		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null);
+		verify(mockIndexManager).getPossibleColumnModelsForScope(mockViewScope, null, true);
 	}
 	
 	

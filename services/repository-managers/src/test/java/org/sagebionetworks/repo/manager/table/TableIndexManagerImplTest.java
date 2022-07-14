@@ -55,7 +55,6 @@ import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -85,10 +84,10 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.TypedCellValue;
+import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.TableRowData;
+import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilterBuilder;
@@ -891,14 +890,45 @@ public class TableIndexManagerImplTest {
 		when(mockFilterBuilder.addExcludeAnnotationKeys(any())).thenReturn(mockFilterBuilder);
 		when(mockFilterBuilder.build()).thenReturn(mockNewFilter);
 
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
-				tokenString);
+				tokenString, excludeDerivedKeys);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		verify(mockFilterBuilder).addExcludeAnnotationKeys(Sets.newHashSet("testKey"));
 		verify(mockFilterBuilder).build();
+		// should request one more than the limit
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockNewFilter, limit + 1, offset);
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForContainerIdsWithExcludeDerivedKeys() {
+		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
+		when(mockDefaultColumnModel.getCustomFields()).thenReturn(Arrays.asList(new ColumnModel().setName("testKey")));
+		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
+		
+		when(mockFilter.newBuilder()).thenReturn(mockFilterBuilder);
+		when(mockFilterBuilder.addExcludeAnnotationKeys(any())).thenReturn(mockFilterBuilder);
+		when(mockFilterBuilder.build()).thenReturn(mockNewFilter);
+		when(mockNewFilter.newBuilder()).thenReturn(mockFilterBuilder);
+		when(mockFilterBuilder.setExcludeDerivedKeys(anyBoolean())).thenReturn(mockFilterBuilder);
+
+		boolean excludeDerivedKeys = true;
+		
+		// call under test
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
+				tokenString, excludeDerivedKeys);
+		assertNotNull(results);
+		assertEquals(null, results.getNextPageToken());
+		assertEquals(schema, results.getResults());
+		verify(mockFilterBuilder).addExcludeAnnotationKeys(Sets.newHashSet("testKey"));
+		verify(mockFilterBuilder).setExcludeDerivedKeys(true);
+		verify(mockFilterBuilder, times(2)).build();
 		// should request one more than the limit
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(mockNewFilter, limit + 1, offset);
 	}
@@ -910,9 +940,12 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
-				tokenString);
+				tokenString, excludeDerivedKeys);
+		
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -928,9 +961,12 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 
 		tokenString = null;
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
-				tokenString);
+				tokenString, excludeDerivedKeys);
+		
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -949,9 +985,12 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 
 		nextPageToken = new NextPageToken(schema.size(), 0L);
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
-				nextPageToken.toToken());
+				nextPageToken.toToken(), excludeDerivedKeys);
+		
 		assertNotNull(results);
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -966,7 +1005,7 @@ public class TableIndexManagerImplTest {
 		containerIds = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, token);
+			manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, token, false);
 		});
 	}
 
@@ -978,9 +1017,12 @@ public class TableIndexManagerImplTest {
 		when(mockFilter.isEmpty()).thenReturn(true);
 		
 		String token = nextPageToken.toToken();
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds,
-				token);
+				token, excludeDerivedKeys);
+		
 		assertNotNull(results);
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
@@ -995,20 +1037,23 @@ public class TableIndexManagerImplTest {
 		nextPageToken = new NextPageToken(limit, offset);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken.toToken());
+			manager.getPossibleAnnotationDefinitionsForContainerIds(scopeType, containerIds, nextPageToken.toToken(), false);
 		});
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForScope() {
+	public void testGetPossibleColumnModelsForScope() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
 		when(mockMetadataProvider.getViewFilter(any(), any())).thenReturn(mockFilter);
 		when(mockFilter.isEmpty()).thenReturn(false);
 
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString, excludeDerivedKeys);
+		
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -1018,9 +1063,9 @@ public class TableIndexManagerImplTest {
 		verify(mockFilter).isEmpty();
 
 	}
-
+	
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull() {
+	public void testGetPossibleColumnModelsForScopeWithTypeNull() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
@@ -1028,9 +1073,10 @@ public class TableIndexManagerImplTest {
 		when(mockFilter.isEmpty()).thenReturn(false);
 
 		scope.setViewEntityType(null);
+		boolean excludeDerivedKeys = false;
 
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString, excludeDerivedKeys);
 
 		assertNotNull(results);
 		// should default to file view.
@@ -1039,7 +1085,7 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsWithCustomFields() {
+	public void testGetPossibleColumnModelsForScopeWithCustomFields() {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(any(), any(), any())).thenReturn(schema);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getDefaultColumnModel(any())).thenReturn(mockDefaultColumnModel);
@@ -1054,9 +1100,10 @@ public class TableIndexManagerImplTest {
 		customField.setName("CustomField");
 
 		when(mockDefaultColumnModel.getCustomFields()).thenReturn(ImmutableList.of(customField));
-
+		boolean excludeDerivedKeys = false;
+		
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString, excludeDerivedKeys);
 
 		assertNotNull(results);
 		// Makes sure the exclude list is passed correctly.
@@ -1067,11 +1114,11 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForScopeNullScope() {
+	public void testGetPossibleColumnModelsForScopeWithNullScope() {
 		scope.setScope(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.getPossibleColumnModelsForScope(scope, tokenString);
+			manager.getPossibleColumnModelsForScope(scope, tokenString, false);
 		});
 	}
 

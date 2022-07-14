@@ -34,6 +34,7 @@ public class FlatIdAndVersionFilterTest {
 	private Set<Long> limitObjectIds;
 	private Set<String> excludeKeys;
 	private Set<Long> objectIds;
+	private boolean excludeDerivedKeys;
 
 	@BeforeEach
 	public void before() {
@@ -46,6 +47,7 @@ public class FlatIdAndVersionFilterTest {
 		objectIds = scope.stream().map(i->i.getId()).collect(Collectors.toSet());
 		limitObjectIds = Sets.newHashSet(1L, 3L);
 		excludeKeys = Sets.newHashSet("foo", "bar");
+		excludeDerivedKeys = true;
 	}
 
 	@Test
@@ -66,14 +68,17 @@ public class FlatIdAndVersionFilterTest {
 	public void testFilterBuilder() {
 		// call under test
 		ViewFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, scope).newBuilder()
-				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
+				.addExcludeAnnotationKeys(excludeKeys)
+				.addLimitObjectids(limitObjectIds)
+				.setExcludeDerivedKeys(excludeDerivedKeys)
+				.build();
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds) "
-						+ "AND A.ANNO_KEY NOT IN (:excludeKeys) AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
+						+ "AND A.ANNO_KEY NOT IN (:excludeKeys) AND A.IS_DERIVED = FALSE AND (R.OBJECT_ID, R.OBJECT_VERSION) IN (:scopePairs)",
 				filter.getFilterSql());
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes) AND R.OBJECT_ID IN (:limitObjectIds)"
-				+ " AND A.ANNO_KEY NOT IN (:excludeKeys) AND R.OBJECT_ID IN (:objectIds)",
+				+ " AND A.ANNO_KEY NOT IN (:excludeKeys) AND A.IS_DERIVED = FALSE AND R.OBJECT_ID IN (:objectIds)",
 				filter.getObjectIdFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
 		assertEquals(6, paramters.size());
@@ -94,14 +99,14 @@ public class FlatIdAndVersionFilterTest {
 	
 	@Test
 	public void testBuilderWithAllFields() {
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
 	}
 	
 	@Test
 	public void testGetLimitedObjectIds() {
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertTrue(optional.isPresent());
@@ -111,7 +116,7 @@ public class FlatIdAndVersionFilterTest {
 	@Test
 	public void testGetLimitedObjectIdswithNull() {
 		limitObjectIds = null;
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
@@ -119,7 +124,7 @@ public class FlatIdAndVersionFilterTest {
 	
 	@Test
 	public void testGetSubViews() {
-		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdAndVersionFilter filter = new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();

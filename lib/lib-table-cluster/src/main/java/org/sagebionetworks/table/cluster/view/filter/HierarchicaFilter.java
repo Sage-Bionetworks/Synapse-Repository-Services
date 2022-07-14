@@ -22,12 +22,12 @@ public class HierarchicaFilter extends AbstractViewFilter {
 	protected final Set<Long> parentIds;
 
 	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
-		this(mainType, subTypes, null, null, scope);
+		this(mainType, subTypes, null, null, scope, false);
 	}
 
 	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-			Set<String> excludeKeys, Set<Long> scope) {
-		super(mainType, subTypes, limitObjectIds, excludeKeys);
+			Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
+		super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 		ValidateArgument.required(scope, "scope");
 		this.parentIds = scope;
 		this.params.put("parentIds", scope);
@@ -55,7 +55,7 @@ public class HierarchicaFilter extends AbstractViewFilter {
 
 	@Override
 	public Builder newBuilder() {
-		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds);
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys);
 	}
 
 	@Override
@@ -102,14 +102,14 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys, Set<Long> scope) {
-			super(mainType, subTypes, limitObjectIds, excludeKeys);
+				Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
+			super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		}
 
 	}

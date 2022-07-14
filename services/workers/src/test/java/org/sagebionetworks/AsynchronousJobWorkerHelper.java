@@ -111,6 +111,14 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	ObjectDataDTO waitForObjectReplication(ReplicationType objectType, Long objectId, String etag, long maxWaitMS)
 			throws InterruptedException;
+	
+	/**
+	 * Wait for the replication of the data for the given entity and allow the caller to consume it's data and assert results
+	 * @param entityId
+	 * @param consumer
+	 * @param maxWaitMs
+	 */
+	void waitForReplicationIndexData(String entityId, Consumer<ObjectDataDTO> consumer, long maxWaitMs);
 
 	/**
 	 * Create a view with the default columns for the type.
@@ -236,7 +244,5 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws Exception 
 	 */
 	String waitForEmailMessgae(String recieverEmailsAddress, long maxWaitMs) throws Exception;
-
-
 
 }

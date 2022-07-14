@@ -487,7 +487,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 		
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken) {
+	public ColumnModelPage getPossibleColumnModelsForScope(ViewScope scope, String nextPageToken, boolean excludeDerivedKeys) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(scope.getScope(), "scope.scopeIds");
 		
@@ -506,7 +506,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ViewScopeType scopeType = new ViewScopeType(objectType, viewTypeMask);
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scope.getScope()));
-		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scopeSet, nextPageToken);
+		return getPossibleAnnotationDefinitionsForContainerIds(scopeType, scopeSet, nextPageToken, excludeDerivedKeys);
 	}
 	
 	
@@ -518,7 +518,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(ViewScopeType viewScopeType,
-			Set<Long> scope, String nextPageToken) {
+			Set<Long> scope, String nextPageToken, boolean excludeDerivedKeys) {
 		ValidateArgument.required(scope, "scope");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
@@ -537,8 +537,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		// We exclude from the suggested column models the custom fields defined for the object (since they are included in the default column model itself)
 		List<String> excludeKeys = getAnnotationKeysExcludeList(defaultColumnModel);
-		if(excludeKeys != null) {
+		
+		if (excludeKeys != null) {
 			filter = filter.newBuilder().addExcludeAnnotationKeys(new HashSet<>(excludeKeys)).build();
+		}
+		
+		// Make sure that the derived keys are excluded if they are not requested
+		if (excludeDerivedKeys) {
+			filter = filter
+					.newBuilder()
+					.setExcludeDerivedKeys(true)
+					.build();
 		}
 
 		// request one page with a limit one larger than the passed limit.

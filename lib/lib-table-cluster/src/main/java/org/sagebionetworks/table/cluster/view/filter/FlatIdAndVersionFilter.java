@@ -20,12 +20,12 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 	private final Set<Long> objectIds;
 
 	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<IdVersionPair> scope) {
-		this(mainType, subTypes, null, null, scope);
+		this(mainType, subTypes, null, null, scope, false);
 	}
 	
 	public FlatIdAndVersionFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-			Set<String> excludeKeys, Set<IdVersionPair> scope) {
-		super(mainType, subTypes, limitObjectIds, excludeKeys);
+			Set<String> excludeKeys, Set<IdVersionPair> scope, boolean excludeDerivedKeys) {
+		super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 		this.scope = scope;
 		List<Long[]> pairedList = scope.stream().map(i-> new Long[] {i.getId(), i.getVersion()}).collect(Collectors.toList());
 		this.params.put("scopePairs", pairedList);
@@ -52,7 +52,7 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 
 	@Override
 	public Builder newBuilder() {
-		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 	}
 
 	public Set<IdVersionPair> getScope(){
@@ -88,8 +88,9 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 
 	@Override
 	public String toString() {
-		return "FlatIdAndVersionFilter [scope=" + scope + ", mainType=" + mainType + ", subTypes=" + subTypes
-				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
+		return "FlatIdAndVersionFilter [scope=" + scope + ", objectIds=" + objectIds + ", mainType=" + mainType + ", subTypes=" + subTypes
+				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + ", excludeDerivedKeys="
+				+ excludeDerivedKeys + "]";
 	}
 
 
@@ -98,14 +99,14 @@ public class FlatIdAndVersionFilter extends AbstractViewFilter {
 		Set<IdVersionPair> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys, Set<IdVersionPair> scope) {
-			super(mainType, subTypes, limitObjectIds, excludeKeys);
+				Set<String> excludeKeys, Set<IdVersionPair> scope, boolean excludeDerivedKeys) {
+			super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
 			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+			return new FlatIdAndVersionFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		}
 		
 	}

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
-import org.sagebionetworks.table.cluster.view.filter.FlatIdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.FlatIdsFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 
@@ -31,6 +30,7 @@ public class FlatIdsFilterTest {
 	private Set<Long> scope;
 	private Set<Long> limitObjectIds;
 	private Set<String> excludeKeys;
+	private boolean excludeDerivedKeys;
 
 	@BeforeEach
 	public void before() {
@@ -40,6 +40,7 @@ public class FlatIdsFilterTest {
 		scope = Sets.newHashSet(1L, 2L, 3L);
 		limitObjectIds = Sets.newHashSet(1L, 3L);
 		excludeKeys = Sets.newHashSet("foo", "bar");
+		excludeDerivedKeys = true;
 	}
 
 	@Test
@@ -65,10 +66,13 @@ public class FlatIdsFilterTest {
 	public void testFilterBuilder() {
 		// call under test
 		ViewFilter filter = new FlatIdsFilter(mainType, subTypes, scope).newBuilder()
-				.addExcludeAnnotationKeys(excludeKeys).addLimitObjectids(limitObjectIds).build();
+				.addExcludeAnnotationKeys(excludeKeys)
+				.addLimitObjectids(limitObjectIds)
+				.setExcludeDerivedKeys(excludeDerivedKeys)
+				.build();
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
-						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys)"
+						+ " AND R.OBJECT_ID IN (:limitObjectIds) AND A.ANNO_KEY NOT IN (:excludeKeys) AND A.IS_DERIVED = FALSE"
 						+ " AND R.OBJECT_ID IN (:flatIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
 				filter.getFilterSql());
 		Map<String, Object> paramters = filter.getParameters();
@@ -83,14 +87,14 @@ public class FlatIdsFilterTest {
 	
 	@Test
 	public void testBuilderWithAllFields() {
-		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
 	}
 	
 	@Test
 	public void testGetLimitedObjectIds() {
-		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertTrue(optional.isPresent());
@@ -100,7 +104,7 @@ public class FlatIdsFilterTest {
 	@Test
 	public void testGetLimitedObjectIdswithNull() {
 		limitObjectIds = null;
-		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
@@ -108,7 +112,7 @@ public class FlatIdsFilterTest {
 	
 	@Test
 	public void testGetSubViews() {
-		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope);
+		FlatIdsFilter filter = new FlatIdsFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
