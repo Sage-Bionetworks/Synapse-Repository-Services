@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,7 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ThreadLocalProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -109,7 +112,26 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@Override
 	public void publishMessageAfterCommit(LocalStackMessage message) {
+		ValidateArgument.required(message, "The message");
+		ValidateArgument.required(message.getObjectId(), "The message.objectId");
+		ValidateArgument.required(message.getObjectType(), "The message.objectType");
+
+		if (message.getTimestamp() == null) {
+			message.setTimestamp(Date.from(Instant.now()));
+		}
+		
+		if (message instanceof LocalStackChangeMesssage) {
+			LocalStackChangeMesssage changeMessage = (LocalStackChangeMesssage) message;
+			ValidateArgument.required(changeMessage.getChangeType(), "The message.changeType");
+			ValidateArgument.required(changeMessage.getUserId(), "The message.userId");
+			
+			if (changeMessage.getChangeNumber() == null) {
+				changeMessage.setChangeNumber(-1L);
+			}
+		}
+		
 		assertActiveSynchronization();
+		
 		transactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override
 			public void afterCommit() {
