@@ -24,6 +24,7 @@ public class TableUpdateRequestManagerProviderImpl implements TableUpdateRequest
 		managerMap.put(EntityType.entityview, tableViewUpdateManager);
 		managerMap.put(EntityType.submissionview, tableViewUpdateManager);
 		managerMap.put(EntityType.dataset, tableViewUpdateManager);
+		managerMap.put(EntityType.datasetcollection, tableViewUpdateManager);
 	}
 
 	@Override
