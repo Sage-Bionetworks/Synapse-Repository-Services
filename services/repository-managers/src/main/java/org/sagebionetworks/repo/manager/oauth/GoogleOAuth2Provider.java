@@ -26,26 +26,26 @@ import org.scribe.oauth.OAuthService;
  */
 public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
-    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
-    private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
+    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
+    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
 
     private static final String MESSAGE = " Message: ";
 	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
-	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 	/*
 	 * Json keys for object returned by https://www.googleapis.com/oauth2/v2/userinfo
 	 */
 	public static final String EMAIL = "email";
-	public static final String VERIFIED_EMAIL = "verified_email";
-	public static final String ID = "id";
+	public static final String VERIFIED_EMAIL = "email_verified";
 	public static final String GIVEN_NAME = "given_name";
 	public static final String FAMILY_NAME = "family_name";
+	public static final String ISS = "iss";
+	public static final String SUB = "sub";
 
 	/*
-	 * Email scope indicates to Google that we want to request the user's email
-	 * after authentication.
+	 * To be OIDC compliant we need the openid scope (See https://developers.google.com/identity/protocols/oauth2/openid-connect#sendauthrequest)
 	 */
-	private static final String SCOPE_EMAIL = "email";
+	private static final String OIDC_SCOPES = "openid profile email";
 
 	private String apiKey;
 	private String apiSecret;
@@ -61,11 +61,10 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		this.apiSecret = apiSecret;
 	}
 	
-	// remove either buildService or the call to Google2Api() for consistency.  Ditto with ORCID2Api
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
 		return new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
-				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_EMAIL, null));
+				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
 	}
 
 	@Override
@@ -88,7 +87,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 			if(!reponse.isSuccessful()){
 				throw new UnauthorizedException(FAILED_PREFIX+reponse.getCode()+MESSAGE+reponse.getMessage());
 			}
-			return parserResponseBody(reponse.getBody());
+			return parseUserInfo(reponse.getBody());
 		} catch(OAuthException e) {
 			throw new UnauthorizedException(e);
 		}
@@ -99,27 +98,25 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	 * @param body
 	 * @return
 	 */
-	public static ProvidedUserInfo parserResponseBody(String body){
+	public static ProvidedUserInfo parseUserInfo(String body) {
 		try {
 			JSONObject json = new JSONObject(body);
-			
+
 			ProvidedUserInfo info = new ProvidedUserInfo();
-			if(json.has(FAMILY_NAME)){
+			if (json.has(FAMILY_NAME)) {
 				info.setLastName(json.getString(FAMILY_NAME));
 			}
-			if(json.has(GIVEN_NAME)){
+			if (json.has(GIVEN_NAME)) {
 				info.setFirstName(json.getString(GIVEN_NAME));
 			}
-			if(json.has(ID)){
-				info.setProvidersUserId(json.getString(ID));
+			if (json.has(ISS)) {
+				info.setIssuer(json.getString(ISS));
 			}
-			if(json.has(VERIFIED_EMAIL)){
-				boolean isEmailVerfied = json.getBoolean(VERIFIED_EMAIL);
-				if(isEmailVerfied){
-					if(json.has(EMAIL)){
-						info.setUsersVerifiedEmail(json.getString(EMAIL));
-					}
-				}
+			if (json.has(SUB)) {
+				info.setSubject(json.getString(SUB));
+			}
+			if (json.has(VERIFIED_EMAIL) && json.getBoolean(VERIFIED_EMAIL) && json.has(EMAIL)) {
+				info.setUsersVerifiedEmail(json.getString(EMAIL));
 			}
 			return info;
 		} catch (JSONException e) {

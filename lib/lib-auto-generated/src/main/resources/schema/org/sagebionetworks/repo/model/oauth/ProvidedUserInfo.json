@@ -1,13 +1,17 @@
 {
-    "title":"ProvidedUserInfo",
-    "description":"Information about a user provided by an OAuthProvider",
+	"title": "ProvidedUserInfo",
+	"description": "Information about a user provided by an OAuthProvider",
 	"properties": {
-		"providersUserId":{
-			"type":"string",
-			"description":"The OauthProvider's ID for the user."
-		},
-		"usersVerifiedEmail": {
+		"issuer": {
 			"type": "string",
+			"description": "The provider issuer value"
+		},
+		"subject": {
+			"type":"string",
+			"description": "The provider subject value"
+		},
+		"usersVerifiedEmail":{
+			"type":"string",
 			"description": "The user's email address that has been verified by the OauthProvider."
 		},
 		"firstName": {

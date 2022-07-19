@@ -5,7 +5,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.FAMILY_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.GIVEN_NAME;
-import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.ID;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.ISS;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.SUB;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.VERIFIED_EMAIL;
 
 import org.json.JSONException;
@@ -32,7 +33,7 @@ public class GoogleOAuth2ProviderTest {
 	public void testGetAuthorizationUrl(){
 		String redirectUrl = "https://domain.com";
 		String authUrl = provider.getAuthorizationUrl(redirectUrl);
-		assertEquals("https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&prompt=select_account&scope=email", authUrl);
+		assertEquals("https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&prompt=select_account&scope=openid%20profile%20email", authUrl);
 	}
 	
 	@Test
@@ -42,13 +43,15 @@ public class GoogleOAuth2ProviderTest {
 		json.put(GIVEN_NAME, "first");
 		json.put(VERIFIED_EMAIL, true);
 		json.put(EMAIL, "first.last@domain.com");
-		json.put(ID, "123");
-		ProvidedUserInfo info = GoogleOAuth2Provider.parserResponseBody(json.toString());
+		json.put(ISS, "google.com");
+		json.put(SUB, "abcd");
+		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
 		assertNotNull(info);
 		assertEquals("last", info.getLastName());
 		assertEquals("first", info.getFirstName());
 		assertEquals("first.last@domain.com", info.getUsersVerifiedEmail());
-		assertEquals("123", info.getProvidersUserId());
+		assertEquals("google.com", info.getIssuer());
+		assertEquals("abcd", info.getSubject());
 	}
 	
 	@Test
@@ -56,7 +59,7 @@ public class GoogleOAuth2ProviderTest {
 		JSONObject json = new JSONObject();
 		// This case does not have a verified email so no email should be returned.
 		json.put(EMAIL, "first.last@domain.com");
-		ProvidedUserInfo info = GoogleOAuth2Provider.parserResponseBody(json.toString());
+		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
 		assertNotNull(info);
 		assertEquals("Email was not verified and should not have been returned.", null, info.getUsersVerifiedEmail());
 	}
@@ -67,7 +70,7 @@ public class GoogleOAuth2ProviderTest {
 		// email not verified.
 		json.put(VERIFIED_EMAIL, false);
 		json.put(EMAIL, "first.last@domain.com");
-		ProvidedUserInfo info = GoogleOAuth2Provider.parserResponseBody(json.toString());
+		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
 		assertNotNull(info);
 		assertEquals("Email was not verified and should not have been returned.",null, info.getUsersVerifiedEmail());
 	}
