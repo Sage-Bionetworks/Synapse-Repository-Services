@@ -63,6 +63,7 @@ public class BaseClientImpl implements BaseClient {
 	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
+	private static final String DEFAULT_DRS_ENDPOINT = "https://repo-prod.prod.sagebase.org/ga4gh/drs/v1";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 	protected static final String APPLICATION_JSON = "application/json";
@@ -89,6 +90,7 @@ public class BaseClientImpl implements BaseClient {
 	private String repoEndpoint;
 	private String authEndpoint;
 	private String fileEndpoint;
+	private String drsEndpoint;
 
 	private String authorizationHeader;
 	
@@ -111,6 +113,7 @@ public class BaseClientImpl implements BaseClient {
 		this.authEndpoint = DEFAULT_AUTH_ENDPOINT;
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		this.fileEndpoint = DEFAULT_FILE_ENDPOINT;
+		this.drsEndpoint = DEFAULT_DRS_ENDPOINT;
 		this.defaultGETDELETEHeaders = new HashMap<String, String>();
 		this.defaultGETDELETEHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
 		this.defaultPOSTPUTHeaders = new HashMap<String, String>();
@@ -312,6 +315,16 @@ public class BaseClientImpl implements BaseClient {
 	@Override
 	public String getFileEndpoint() {
 		return this.fileEndpoint;
+	}
+
+	@Override
+	public void setDrsEndpoint(String drsEndpoint) {
+		this.drsEndpoint = drsEndpoint;
+	}
+
+	@Override
+	public String getDrsEndpoint() {
+		return this.drsEndpoint;
 	}
 
 	@Override

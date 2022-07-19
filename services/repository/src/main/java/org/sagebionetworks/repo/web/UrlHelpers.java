@@ -35,6 +35,7 @@ public class UrlHelpers {
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
 	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
+	public static final String DRS_PATH             = "/ga4gh/drs/v1";
 
 	/**
 	 * Used for batch requests
@@ -1239,6 +1240,10 @@ public class UrlHelpers {
 	 */
 	public static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken";
 
+	/**
+	 * DRS urls
+	 */
+	public static final String DRS_SERVICE_INFO = DRS_PATH+ "/service-info";
 
 	static {
 		@SuppressWarnings("rawtypes")

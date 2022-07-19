@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.auth.services.OpenIDConnectService;
+import org.sagebionetworks.drs.services.DRSService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
@@ -89,6 +90,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private JsonSchemaServicesImpl schemaServices;
 	@Autowired
 	private DownloadListService downloadListService;
+	@Autowired
+	private DRSService drsService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -232,5 +235,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DownloadListService getDownloadListService() {
 		return downloadListService;
+	}
+
+	@Override
+	public DRSService getDRSService(){
+		return drsService;
 	}
 }
