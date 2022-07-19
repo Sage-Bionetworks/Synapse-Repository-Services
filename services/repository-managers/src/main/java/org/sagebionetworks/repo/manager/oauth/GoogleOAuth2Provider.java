@@ -33,13 +33,12 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
 	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 	/*
-	 * Json keys for object returned by https://www.googleapis.com/oauth2/v2/userinfo
+	 * Json keys for object returned by https://openidconnect.googleapis.com/v1/userinfo
 	 */
 	public static final String EMAIL = "email";
 	public static final String VERIFIED_EMAIL = "email_verified";
 	public static final String GIVEN_NAME = "given_name";
-	public static final String FAMILY_NAME = "family_name";
-	public static final String ISS = "iss";
+	public static final String FAMILY_NAME = "family_name";	
 	public static final String SUB = "sub";
 
 	/*
@@ -108,9 +107,6 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 			}
 			if (json.has(GIVEN_NAME)) {
 				info.setFirstName(json.getString(GIVEN_NAME));
-			}
-			if (json.has(ISS)) {
-				info.setIssuer(json.getString(ISS));
 			}
 			if (json.has(SUB)) {
 				info.setSubject(json.getString(SUB));

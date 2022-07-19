@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -22,36 +23,36 @@ public interface UserManager {
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
-	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
+	UserInfo getUserInfo(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Creates a new user
 	 * 
 	 * @return The ID of the user
 	 */
-	public long createUser(NewUser user);
+	long createUser(NewUser user);
 	
-	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
 	
-	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse) throws NotFoundException;
+	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse) throws NotFoundException;
 	
 	/**
 	 * Delete a principal by ID
 	 * 
 	 * For testing purposes only
 	 */
-	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException;
+	void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException;
 
 	/**
 	 * Get all non-individual user groups, including Public.
 	 */
-	public Collection<UserGroup> getGroups() throws DatastoreException;
+	Collection<UserGroup> getGroups() throws DatastoreException;
 
 	/**
 	 * Get non-individual user groups (including Public) in range
 	 **/
-	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
+	List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
 	
 	/**
@@ -60,11 +61,22 @@ public interface UserManager {
 	 * @param alias
 	 * @return
 	 */
-	public PrincipalAlias lookupUserByUsernameOrEmail(String alias);
+	PrincipalAlias lookupUserByUsernameOrEmail(String alias);
 
-	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
+	/**
+	 * Lookup a user given the subject returned by an oauth provider
+	 * 
+	 * @param provider
+	 * @param subject
+	 * @return
+	 */
+	PrincipalAlias lookupUserByOauthProvider(OAuthProvider provider, String subject);
 	
-	public void unbindAlias(String aliasName, AliasType type, Long principalId);
+	PrincipalAlias bindOauthProviderAlias(OAuthProvider provider, String subject, Long principalId);
+	
+	PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
+	
+	void unbindAlias(String aliasName, AliasType type, Long principalId);
 	
 	/**
 	 * Get the distinct principal IDs of users for a given list of principal
@@ -77,12 +89,14 @@ public interface UserManager {
 	 *            names.
 	 * @param limit Limit the number of results.
 	 */
-	public Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
+	Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
 
 	/**
 	 * Clear all user
 	 */
-	public void truncateAll();
+	void truncateAll();
+
+
 	
 	
 }

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.FAMILY_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.GIVEN_NAME;
-import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.ISS;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.SUB;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.VERIFIED_EMAIL;
 
@@ -43,14 +42,12 @@ public class GoogleOAuth2ProviderTest {
 		json.put(GIVEN_NAME, "first");
 		json.put(VERIFIED_EMAIL, true);
 		json.put(EMAIL, "first.last@domain.com");
-		json.put(ISS, "google.com");
 		json.put(SUB, "abcd");
 		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
 		assertNotNull(info);
 		assertEquals("last", info.getLastName());
 		assertEquals("first", info.getFirstName());
 		assertEquals("first.last@domain.com", info.getUsersVerifiedEmail());
-		assertEquals("google.com", info.getIssuer());
 		assertEquals("abcd", info.getSubject());
 	}
 	

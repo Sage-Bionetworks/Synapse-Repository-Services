@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -80,6 +81,10 @@ public class UserManagerImpl implements UserManager {
 		if (alias != null) {
 			throw new NameConflictException("User '" + user.getUserName() + "' already exists");
 		}
+		// Make sure that the subject for an oauth provider is not registered yet
+		if (user.getOauthProvider() != null) {
+			alias = principalAliasDAO.findPrincipalWithAlias(getAliasForOauthProvider(user.getOauthProvider(), user.getSubject()));
+		}
 		
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
@@ -115,9 +120,23 @@ public class UserManagerImpl implements UserManager {
 	 */
 	private void bindAllAliases(NewUser user, Long principalId) {
 		// Bind all aliases
+		if (user.getOauthProvider() != null) {
+			bindOauthProviderAlias(user.getOauthProvider(), user.getSubject(), principalId);
+		}
 		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId);
 		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId);
 		notificationEmailDao.create(emailAlias);
+	}
+	
+	@WriteTransaction
+	@Override
+	public PrincipalAlias bindOauthProviderAlias(OAuthProvider provider, String subject, Long principalId) {
+		String oauthAlias = getAliasForOauthProvider(provider, subject);
+		return bindAlias(oauthAlias, AliasType.USER_OAUTH, principalId);
+	}
+	
+	private static String getAliasForOauthProvider(OAuthProvider provider, String subject) {
+		return provider.name() + " " + subject;
 	}
 
 	@WriteTransaction
@@ -244,6 +263,16 @@ public class UserManagerImpl implements UserManager {
 		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias, AliasType.USER_EMAIL, AliasType.USER_NAME);
 		if(pa == null) {
 			throw new NotFoundException("Did not find a user with alias: "+alias);
+		}
+		return pa;
+	}
+	
+	@Override
+	public PrincipalAlias lookupUserByOauthProvider(OAuthProvider provider, String subject) {
+		String oauthAlias = getAliasForOauthProvider(provider, subject);
+		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(getAliasForOauthProvider(provider, subject), AliasType.USER_OAUTH);
+		if (pa == null) {
+			throw new NotFoundException("Did not find a user with alias: "+oauthAlias);
 		}
 		return pa;
 	}

@@ -2,10 +2,6 @@
 	"title": "ProvidedUserInfo",
 	"description": "Information about a user provided by an OAuthProvider",
 	"properties": {
-		"issuer": {
-			"type": "string",
-			"description": "The provider issuer value"
-		},
 		"subject": {
 			"type":"string",
 			"description": "The provider subject value"

@@ -4,6 +4,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -259,12 +261,52 @@ public class UserManagerImplUnitTest {
 	public void testLookupUserByUsernameOrEmailNotFound() {
 		// unknown alias
 		alias = "unknown";
-		try {
+		
+		String message = assertThrows(NotFoundException.class, () -> {
 			// call under test
 			userManager.lookupUserByUsernameOrEmail(alias);
-			fail();
-		} catch (NotFoundException e) {
-			assertEquals("Did not find a user with alias: unknown",e.getMessage());
-		}
+		}).getMessage();
+		
+		assertEquals("Did not find a user with alias: unknown", message);
+	}
+	
+	@Test
+	public void testLookupUserByOauthProvider() {
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(), any())).thenReturn(principalAlias);
+		
+		// call under test
+		PrincipalAlias pa = userManager.lookupUserByOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		
+		assertEquals(principalAlias, pa);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(OAuthProvider.GOOGLE_OAUTH_2_0 + " " + alias, AliasType.USER_OAUTH);
+	}
+	
+	@Test
+	public void testLookupUserByOauthProviderNotFound() {
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			userManager.lookupUserByOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0, "unknown");
+		}).getMessage();
+		
+		assertEquals("Did not find a user with alias: GOOGLE_OAUTH_2_0 unknown", message);
+	}
+	
+	@Test
+	public void testBindOauthProviderAlias() {
+		
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any())).thenReturn(principalAlias);
+		
+		// Call under test
+		PrincipalAlias result = userManager.bindOauthProviderAlias(OAuthProvider.GOOGLE_OAUTH_2_0, alias, 123L);
+		
+		assertEquals(principalAlias, result);
+		
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(new PrincipalAlias()
+			.setAlias(OAuthProvider.GOOGLE_OAUTH_2_0 + " " + alias)
+			.setType(AliasType.USER_OAUTH)
+			.setPrincipalId(123L)
+		);
+		
 	}
 }

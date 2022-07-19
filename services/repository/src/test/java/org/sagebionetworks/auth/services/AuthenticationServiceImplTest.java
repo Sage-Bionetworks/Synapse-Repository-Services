@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -66,7 +65,6 @@ public class AuthenticationServiceImplTest {
 	private static String username = "AuthServiceUser";
 	private static String password = "NeverUse_thisPassword";
 	private static long userId = 123456789L;
-	private static String sessionToken = "Some session token";
 	private static String ACCESS_TOKEN = "Some access token";
 	private static final String ISSUER = "https://repo-prod.sagebase.org/v1";
 	
@@ -147,11 +145,12 @@ public class AuthenticationServiceImplTest {
 		request.setRedirectUrl("https://domain.com");
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
 		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
+		when(mockUserManager.lookupUserByOauthProvider(any(), any())).thenReturn(alias);
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -164,7 +163,42 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserByOauthProvider(request.getProvider(), info.getSubject());
+		verify(mockUserManager, never()).lookupUserByUsernameOrEmail(any());
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithEmailFallback() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupUserByOauthProvider(any(), any())).thenThrow(NotFoundException.class);
+		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenReturn(alias);
+		when(mockUserManager.bindOauthProviderAlias(any(), any(), any())).thenReturn(alias);
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupUserByOauthProvider(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
+		verify(mockUserManager).bindOauthProviderAlias(request.getProvider(), info.getSubject(), alias.getPrincipalId());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
@@ -175,8 +209,11 @@ public class AuthenticationServiceImplTest {
 		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
 		request.setRedirectUrl("https://domain.com");
 		request.setUserName("uname");
+		
 		ProvidedUserInfo info = new ProvidedUserInfo();
 		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		
 		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
 		
 		when(mockUserManager.createUser((NewUser)any())).thenReturn(userId);
@@ -184,21 +221,23 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(userId, ISSUER)).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.createAccountViaOauth(request, ISSUER);
 		assertEquals(authMgrLoginResponse, result);
 		
+		NewUser expectedUser = new NewUser();
+		expectedUser.setEmail(info.getUsersVerifiedEmail());
+		expectedUser.setFirstName(info.getFirstName());
+		expectedUser.setLastName(info.getLastName());
+		expectedUser.setUserName(request.getUserName());
+		expectedUser.setOauthProvider(request.getProvider());
+		expectedUser.setSubject(info.getSubject());
+		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		NewUser newUser = new NewUser();
-		newUser.setEmail(info.getUsersVerifiedEmail());
-		newUser.setFirstName(info.getFirstName());
-		newUser.setLastName(info.getLastName());
-		newUser.setUserName(request.getUserName());
-		ArgumentCaptor<NewUser> captor = ArgumentCaptor.forClass(NewUser.class);
-		verify(mockUserManager).createUser(captor.capture());
-		assertEquals(newUser, captor.getValue());
+		verify(mockUserManager).createUser(expectedUser);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	

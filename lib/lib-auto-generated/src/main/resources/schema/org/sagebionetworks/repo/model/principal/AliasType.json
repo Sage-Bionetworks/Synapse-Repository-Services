@@ -1,5 +1,5 @@
 {
-    "description": "The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum",
+    "description": "The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum.",
     "name": "AliasType",
     "type": "string",
     "enum": [
@@ -22,6 +22,10 @@
         {
             "name": "USER_ORCID",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "USER_OAUTH",
+            "description": "Alias for the an oauth provider"
         }
     ]
 }
