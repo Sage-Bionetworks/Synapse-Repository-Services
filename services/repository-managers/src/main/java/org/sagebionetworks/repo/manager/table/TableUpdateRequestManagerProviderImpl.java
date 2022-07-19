@@ -32,7 +32,7 @@ public class TableUpdateRequestManagerProviderImpl implements TableUpdateRequest
 		ValidateArgument.required(type, "type");
 		TableUpdateRequestManager manager = managerMap.get(type);
 		if (manager == null){
-			throw new IllegalArgumentException("Unknown type: "+type);
+			throw new IllegalArgumentException("Unsupported type: "+type);
 		}
 		return manager;
 	}
