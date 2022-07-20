@@ -1,0 +1,17 @@
+{
+	"description": "The DRS standard information.",
+	"properties": {
+		"group": {
+			"type": "string",
+			"description": "The group information of DRS, eg GA4GH."
+		},
+		"artifact": {
+			"type": "string",
+			"description": "The artifact information of DRS."
+		},
+		"version": {
+			"type": "string",
+			"description": "The version of DRS standard."
+		}
+	}
+}

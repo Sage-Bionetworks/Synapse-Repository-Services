@@ -1,0 +1,57 @@
+{
+	"description": "Service information",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The globally unique identifier of the service. Reverse domain name notation is used as id."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of the service."
+		},
+		"type": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.drs.DRSPackageInformation",
+			"description": "The Drs standard information."
+		},
+		"description": {
+			"type": "string",
+			"description": "The description of the service."
+		},
+		"organization": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.drs.OrganizationInformation",
+			"description": "The organization information."
+		},
+		"contactUrl": {
+			"type": "string",
+			"description": "The contact url of the organization."
+		},
+		"documentationUrl": {
+			"type": "string",
+			"description": "The url of supporting document for the service."
+		},
+		"createdAt": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The creation date of the service."
+		},
+		"updatedAt": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The creation date of the service."
+		},
+		"environment": {
+			"type": "string",
+			"description": "The environment of the service in which its up and running."
+		},
+		"version": {
+			"type": "string",
+			"description": "The version of software."
+		},
+		"url": {
+			"type": "string",
+			"description": "The DRS url."
+		}
+	}
+}

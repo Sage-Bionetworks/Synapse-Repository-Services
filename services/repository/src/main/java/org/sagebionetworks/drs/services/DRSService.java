@@ -7,5 +7,5 @@ public interface DRSService {
      *
      * @return the DRS service information
      */
-     ServiceInformation getServiceInformation();
+    ServiceInformation getServiceInformation();
 }
