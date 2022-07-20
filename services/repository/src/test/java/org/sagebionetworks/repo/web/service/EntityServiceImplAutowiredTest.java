@@ -635,6 +635,24 @@ public class EntityServiceImplAutowiredTest  {
 		assertEquals("The definingSQL of the materialized view is required and must not be the empty string.", message);
 		
 	}
+
+	// Reproduces https://sagebionetworks.jira.com/browse/PLFM-7200
+	@Test
+	public void testMaterializedViewWithSQLQueryReferencingUnsupportedType() {
+		String activityId = null;
+
+		MaterializedView materializedView = new MaterializedView();
+		materializedView.setName("materializedView");
+		materializedView.setParentId(project.getId());
+		materializedView.setDefiningSQL("SELECT * FROM "+ project.getId());
+
+		// call under test (create and get)
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.createEntity(adminUserId, materializedView, activityId);
+		}).getMessage();
+
+		assertEquals("Unexpected type for entity with id " + project.getId() + ": project (expected a table or view type)", errorMessage);
+	}
 	
 	@Test
 	public void testCreateTableWithSearchEnabled() {

@@ -1035,13 +1035,13 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetIndexDescription() {
+	public void testGetIndexDescriptionWithUnsupportedType() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.folder);
-		String message = assertThrows(IllegalStateException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.getIndexDescription(idAndVersion);
 		}).getMessage();
-		assertEquals("Unknown type: folder", message);
+		assertEquals("Unexpected type for entity with id " + idAndVersion.toString() + ": folder (expected a table or view type)", message);
 	}
 	
 	@Test
