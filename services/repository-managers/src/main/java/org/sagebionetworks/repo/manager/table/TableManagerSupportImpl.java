@@ -547,7 +547,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 					materializedViewDao.getSourceTablesIds(idAndVersion).stream()
 							.map(childId -> getIndexDescription(childId)).collect(Collectors.toList()));
 		default:
-			throw new IllegalStateException("Unknown type: " + type);
+			throw new IllegalArgumentException("Unexpected type for entity with id " + idAndVersion.toString() + ": " + type +  " (expected a table or view type)");
 		}
 	}
 
