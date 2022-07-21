@@ -26,12 +26,9 @@ import org.scribe.oauth.OAuthService;
  */
 public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
-    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
-    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
-
     private static final String MESSAGE = " Message: ";
 	private static final String FAILED_PREFIX = "Failed to get User's information from Google. Code: ";
-	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://openidconnect.googleapis.com/v1/userinfo";
+	private static final String AUTH_URL_DEFAULT_PARAMS = "?response_type=code&client_id=%s&redirect_uri=%s&prompt=select_account";
 	/*
 	 * Json keys for object returned by https://openidconnect.googleapis.com/v1/userinfo
 	 */
@@ -48,6 +45,9 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 
 	private String apiKey;
 	private String apiSecret;
+	private String authUrl;
+	private String tokenUrl;
+	private String userInfoUrl;
 	
 	/**
 	 * Thread safe Google provider.
@@ -55,14 +55,17 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	 * @param apiKey Client ID provided by Google developer console.
 	 * @param apiSecret Client Secret provided by Google developer console..
 	 */
-	public GoogleOAuth2Provider(String apiKey, String apiSecret) {
+	public GoogleOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
+		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
+		this.tokenUrl = oidcConfig.getTokenEndpoint();
+		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 	
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
+		return new OAuth2Api(authUrl, tokenUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
 	}
 
@@ -72,7 +75,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 			throw new IllegalArgumentException("RedirectUrl cannot be null");
 		}
 		try {
-			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
+			OAuthService service = (new OAuth2Api(authUrl, tokenUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			/*
 			 * Get an access token from Google using the provided authorization code.
@@ -80,7 +83,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 			 */
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
 			// Use the access token to get the UserInfo from Google.
-			OAuthRequest request = new OAuthRequest(Verb.GET, GOOGLE_OAUTH_USER_INFO_API_URL);
+			OAuthRequest request = new OAuthRequest(Verb.GET, userInfoUrl);
 			service.signRequest(accessToken, request);
 			Response reponse = request.send();
 			if(!reponse.isSuccessful()){

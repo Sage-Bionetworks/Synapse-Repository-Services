@@ -2,29 +2,42 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL_VERIFIED;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.FAMILY_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.GIVEN_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.SUB;
-import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL_VERIFIED;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 
 public class GoogleOAuth2ProviderTest {
 	
 	String apiKey;
 	String apiSecret;
+	OIDCConfig mockConfig;
 	GoogleOAuth2Provider provider;
 	
-	@Before
+	private String authEndpoint = "https://auth_url.org";
+	private String tokenEndpoint = "https://token_url.org";
+	private String userInfoEndpoint = "https://userInfo_url.org";
+	
+	@BeforeEach
 	public void before(){
 		apiKey = "fake key";
 		apiSecret = "fake secret";
-		provider = new GoogleOAuth2Provider(apiKey, apiSecret);
+		mockConfig = Mockito.mock(OIDCConfig.class);
+		
+		when(mockConfig.getAuthorizationEndpoint()).thenReturn(authEndpoint);
+		when(mockConfig.getTokenEndpoint()).thenReturn(tokenEndpoint);
+		when(mockConfig.getUserInfoEndpoint()).thenReturn(userInfoEndpoint);
+		
+		provider = new GoogleOAuth2Provider(apiKey, apiSecret, mockConfig);
 	}
 
 	
@@ -32,7 +45,7 @@ public class GoogleOAuth2ProviderTest {
 	public void testGetAuthorizationUrl(){
 		String redirectUrl = "https://domain.com";
 		String authUrl = provider.getAuthorizationUrl(redirectUrl);
-		assertEquals("https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&prompt=select_account&scope=openid%20profile%20email", authUrl);
+		assertEquals(authEndpoint + "?response_type=code&client_id=fake key&redirect_uri=https%3A%2F%2Fdomain.com&prompt=select_account&scope=openid%20profile%20email", authUrl);
 	}
 	
 	@Test
