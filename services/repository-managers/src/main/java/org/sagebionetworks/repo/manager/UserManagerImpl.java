@@ -97,23 +97,19 @@ public class UserManagerImpl implements UserManager {
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
-		Long id;
-		try {
-			id = userGroupDAO.create(individualGroup);
-			individualGroup = userGroupDAO.get(id);
-		} catch (NotFoundException ime) {
-			throw new DatastoreException(ime);
-		}		
+		Long principalId = userGroupDAO.create(individualGroup);
+		
 		// Make some credentials for this user
-		Long principalId = Long.parseLong(individualGroup.getId());
 		authDAO.createNew(principalId);
 		
 		// Create a new user profile.
 		UserProfile userProfile = new UserProfile();
-		userProfile.setOwnerId(individualGroup.getId());
+		
+		userProfile.setOwnerId(principalId.toString());
 		userProfile.setFirstName(user.getFirstName());
 		userProfile.setLastName(user.getLastName());
 		userProfile.setUserName(user.getUserName());
+		
 		userProfileDAO.create(userProfile);
 		
 		bindAllAliases(user, principalId);

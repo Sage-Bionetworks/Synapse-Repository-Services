@@ -12,6 +12,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -24,16 +26,19 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -350,5 +355,197 @@ public class UserManagerImplUnitTest {
 		}).getMessage();
 		
 		assertEquals("The userId is required.", message);
+	}
+	
+	@Test
+	public void testCreateUser() {
+		Long userId = 123L;
+		
+		when(mockUserGroupDAO.create(any())).thenReturn(userId);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any())).thenReturn(principalAlias);
+		
+		NewUser user = new NewUser()
+			.setUserName(UUID.randomUUID().toString())
+			.setEmail(UUID.randomUUID().toString());
+		
+		// Call under test
+		Long result = userManager.createUser(user);
+		
+		assertEquals(userId, result);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
+		
+		UserGroup expectedGroup = new UserGroup()
+			.setIsIndividual(true);
+		
+		ArgumentCaptor<UserGroup> ugCaptor = ArgumentCaptor.forClass(UserGroup.class);
+		
+		verify(mockUserGroupDAO).create(ugCaptor.capture());
+		
+		assertEquals(expectedGroup.setCreationDate(ugCaptor.getValue().getCreationDate()), ugCaptor.getValue());
+		
+		verify(mockAuthDAO).createNew(userId);
+		
+		UserProfile expectedProfile = new UserProfile()
+			.setOwnerId(userId.toString())
+			.setUserName(user.getUserName());
+		
+		verify(userProfileDAO).create(expectedProfile);
+		
+		PrincipalAlias usernameAlias = new PrincipalAlias()
+			.setType(AliasType.USER_NAME)
+			.setAlias(user.getUserName())
+			.setPrincipalId(userId);
+		
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(usernameAlias);
+		
+		PrincipalAlias emailAlias = new PrincipalAlias()
+			.setType(AliasType.USER_EMAIL)
+			.setAlias(user.getEmail())
+			.setPrincipalId(userId);
+		
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(emailAlias);
+		verify(notificationEmailDao).create(principalAlias);
+		verifyNoMoreInteractions(mockPrincipalAliasDAO);
+		verifyNoMoreInteractions(mockPrincipalOIDCDao);
+	}
+	
+	@Test
+	public void testCreateUserWithExistingEmail() {
+		NewUser user = new NewUser()
+			.setUserName(UUID.randomUUID().toString())
+			.setEmail(UUID.randomUUID().toString());
+		
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(user.getEmail())).thenReturn(principalAlias);
+		
+		String result = assertThrows(NameConflictException.class, () -> {			
+			// Call under test
+			userManager.createUser(user);
+		}).getMessage();
+		
+		assertEquals("User '" + user.getEmail() + "' already exists", result);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
+		verifyNoMoreInteractions(mockPrincipalAliasDAO);
+		
+		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockUserGroupDAO);
+		verifyZeroInteractions(mockAuthDAO);
+		verifyZeroInteractions(userProfileDAO);
+		verifyZeroInteractions(notificationEmailDao);
+	}
+	
+	@Test
+	public void testCreateUserWithExistingUsername() {
+		NewUser user = new NewUser()
+			.setUserName(UUID.randomUUID().toString())
+			.setEmail(UUID.randomUUID().toString());
+		
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(user.getEmail())).thenReturn(null);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(user.getUserName())).thenReturn(principalAlias);
+		
+		String result = assertThrows(NameConflictException.class, () -> {			
+			// Call under test
+			userManager.createUser(user);
+		}).getMessage();
+		
+		assertEquals("User '" + user.getUserName() + "' already exists", result);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
+		
+		verifyNoMoreInteractions(mockPrincipalAliasDAO);
+		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockUserGroupDAO);
+		verifyZeroInteractions(mockAuthDAO);
+		verifyZeroInteractions(userProfileDAO);
+		verifyZeroInteractions(notificationEmailDao);
+	}
+	
+	@Test
+	public void testCreateUserWithExistingOIDCBinding() {
+		NewUser user = new NewUser()
+			.setUserName(UUID.randomUUID().toString())
+			.setEmail(UUID.randomUUID().toString())
+			.setOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0)
+			.setSubject(UUID.randomUUID().toString());
+		
+		when(mockPrincipalOIDCDao.findBindingForSubject(any(), any())).thenReturn(Optional.of(123L));
+		
+		String result = assertThrows(NameConflictException.class, () -> {			
+			// Call under test
+			userManager.createUser(user);
+		}).getMessage();
+		
+		assertEquals("A user is already bound to the '" + user.getOauthProvider().name() + "' provider with the same identity", result);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
+		verify(mockPrincipalOIDCDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
+		
+		verifyNoMoreInteractions(mockPrincipalAliasDAO);
+		verifyZeroInteractions(mockPrincipalOIDCDao);
+		verifyZeroInteractions(mockUserGroupDAO);
+		verifyZeroInteractions(mockAuthDAO);
+		verifyZeroInteractions(userProfileDAO);
+		verifyZeroInteractions(notificationEmailDao);
+	}
+	
+	@Test
+	public void testCreateUserWithOauthProvider() {
+		Long userId = 123L;
+		
+		when(mockUserGroupDAO.create(any())).thenReturn(userId);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any())).thenReturn(principalAlias);
+		
+		NewUser user = new NewUser()
+			.setUserName(UUID.randomUUID().toString())
+			.setEmail(UUID.randomUUID().toString())
+			.setOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0)
+			.setSubject(UUID.randomUUID().toString());
+		
+		// Call under test
+		Long result = userManager.createUser(user);
+		
+		assertEquals(userId, result);
+		
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
+		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
+		verify(mockPrincipalOIDCDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
+		
+		UserGroup expectedGroup = new UserGroup()
+			.setIsIndividual(true);
+		
+		ArgumentCaptor<UserGroup> ugCaptor = ArgumentCaptor.forClass(UserGroup.class);
+		
+		verify(mockUserGroupDAO).create(ugCaptor.capture());
+		
+		assertEquals(expectedGroup.setCreationDate(ugCaptor.getValue().getCreationDate()), ugCaptor.getValue());
+		
+		verify(mockAuthDAO).createNew(userId);
+		
+		UserProfile expectedProfile = new UserProfile()
+			.setOwnerId(userId.toString())
+			.setUserName(user.getUserName());
+		
+		verify(userProfileDAO).create(expectedProfile);
+		
+		PrincipalAlias usernameAlias = new PrincipalAlias()
+			.setType(AliasType.USER_NAME)
+			.setAlias(user.getUserName())
+			.setPrincipalId(userId);
+		
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(usernameAlias);
+		
+		PrincipalAlias emailAlias = new PrincipalAlias()
+			.setType(AliasType.USER_EMAIL)
+			.setAlias(user.getEmail())
+			.setPrincipalId(userId);
+		
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(emailAlias);
+		verify(notificationEmailDao).create(principalAlias);
+		verify(mockPrincipalOIDCDao).bindPrincipalToSubject(userId, user.getOauthProvider(), user.getSubject());
+		verifyNoMoreInteractions(mockPrincipalAliasDAO);
 	}
 }
