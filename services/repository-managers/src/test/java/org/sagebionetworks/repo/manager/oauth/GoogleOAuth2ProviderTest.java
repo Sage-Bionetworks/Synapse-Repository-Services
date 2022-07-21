@@ -6,7 +6,7 @@ import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.FAMILY_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.GIVEN_NAME;
 import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.SUB;
-import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.VERIFIED_EMAIL;
+import static org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider.EMAIL_VERIFIED;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,7 +40,7 @@ public class GoogleOAuth2ProviderTest {
 		JSONObject json = new JSONObject();
 		json.put(FAMILY_NAME, "last");
 		json.put(GIVEN_NAME, "first");
-		json.put(VERIFIED_EMAIL, true);
+		json.put(EMAIL_VERIFIED, true);
 		json.put(EMAIL, "first.last@domain.com");
 		json.put(SUB, "abcd");
 		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
@@ -65,7 +65,7 @@ public class GoogleOAuth2ProviderTest {
 	public void testParserResponseBodyEmailNotVerifeid() throws JSONException{
 		JSONObject json = new JSONObject();
 		// email not verified.
-		json.put(VERIFIED_EMAIL, false);
+		json.put(EMAIL_VERIFIED, false);
 		json.put(EMAIL, "first.last@domain.com");
 		ProvidedUserInfo info = GoogleOAuth2Provider.parseUserInfo(json.toString());
 		assertNotNull(info);

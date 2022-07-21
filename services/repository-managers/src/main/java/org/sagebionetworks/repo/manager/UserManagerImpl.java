@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -32,6 +34,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -44,6 +47,7 @@ public class UserManagerImpl implements UserManager {
 	private final AuthenticationDAO authDAO;
 	private final PrincipalAliasDAO principalAliasDAO;
 	private final NotificationEmailDAO notificationEmailDao;
+	private final PrincipalOIDCBindingDao principalOIDCBindingDao;
 	
 	/**
 	 * Testing purposes only
@@ -55,6 +59,7 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO,
 			AuthenticationDAO authDAO, PrincipalAliasDAO principalAliasDAO, NotificationEmailDAO notificationEmailDao,
+			PrincipalOIDCBindingDao principalOIDCBindingDao,
 			DBOBasicDao basicDAO) {
 		super();
 		this.userGroupDAO = userGroupDAO;
@@ -63,6 +68,7 @@ public class UserManagerImpl implements UserManager {
 		this.authDAO = authDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.notificationEmailDao = notificationEmailDao;
+		this.principalOIDCBindingDao = principalOIDCBindingDao;
 		this.basicDAO = basicDAO;
 	}
 
@@ -81,9 +87,11 @@ public class UserManagerImpl implements UserManager {
 		if (alias != null) {
 			throw new NameConflictException("User '" + user.getUserName() + "' already exists");
 		}
-		// Make sure that the subject for an oauth provider is not registered yet
+		// Make sure that the subject for an oauth provider is not bound yet
 		if (user.getOauthProvider() != null) {
-			alias = principalAliasDAO.findPrincipalWithAlias(getAliasForOauthProvider(user.getOauthProvider(), user.getSubject()));
+			lookupUserIdByOIDCSubject(user.getOauthProvider(), user.getSubject()).ifPresent((principalId)-> {
+				throw new NameConflictException("A user is already bound to the '" + user.getOauthProvider() +"' provider with the same identity");
+			});
 		}
 		
 		UserGroup individualGroup = new UserGroup();
@@ -120,24 +128,13 @@ public class UserManagerImpl implements UserManager {
 	 */
 	private void bindAllAliases(NewUser user, Long principalId) {
 		// Bind all aliases
-		if (user.getOauthProvider() != null) {
-			bindOauthProviderAlias(user.getOauthProvider(), user.getSubject(), principalId);
-		}
 		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId);
 		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId);
+		if (user.getOauthProvider() != null) {
+			bindUserToOIDCSubject(principalId, user.getOauthProvider(), user.getSubject());
+		}
 		notificationEmailDao.create(emailAlias);
-	}
-	
-	@WriteTransaction
-	@Override
-	public PrincipalAlias bindOauthProviderAlias(OAuthProvider provider, String subject, Long principalId) {
-		String oauthAlias = getAliasForOauthProvider(provider, subject);
-		return bindAlias(oauthAlias, AliasType.USER_OAUTH, principalId);
-	}
-	
-	private static String getAliasForOauthProvider(OAuthProvider provider, String subject) {
-		return provider.name() + " " + subject;
-	}
+	}	
 
 	@WriteTransaction
 	@Override
@@ -268,16 +265,6 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
-	public PrincipalAlias lookupUserByOauthProvider(OAuthProvider provider, String subject) {
-		String oauthAlias = getAliasForOauthProvider(provider, subject);
-		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(getAliasForOauthProvider(provider, subject), AliasType.USER_OAUTH);
-		if (pa == null) {
-			throw new NotFoundException("Did not find a user with alias: "+oauthAlias);
-		}
-		return pa;
-	}
-
-	@Override
 	public void unbindAlias(String aliasName, AliasType type, Long principalId) {
 		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, type, aliasName);
 		if (aliases.isEmpty()) throw new NotFoundException(
@@ -298,6 +285,25 @@ public class UserManagerImpl implements UserManager {
 		}
 		// Expand teams to include members and include all users.
 		return groupMembersDAO.getIndividuals(principalIdsSet, limit, offset);
+	}
+	
+
+	@Override
+	public Optional<Long> lookupUserIdByOIDCSubject(OAuthProvider provider, String subject) {
+		ValidateArgument.required(provider, "The provider");
+		ValidateArgument.requiredNotBlank(subject, "The subject");
+		
+		return principalOIDCBindingDao.findBindingForSubject(provider, subject);
+	}
+	
+	@WriteTransaction
+	@Override
+	public void bindUserToOIDCSubject(Long userId, OAuthProvider provider, String subject) {
+		ValidateArgument.required(userId, "The userId");
+		ValidateArgument.required(provider, "The provider");
+		ValidateArgument.requiredNotBlank(subject, "The subject");
+		
+		principalOIDCBindingDao.bindPrincipalToSubject(userId, provider, subject);
 	}
 
 	@Override

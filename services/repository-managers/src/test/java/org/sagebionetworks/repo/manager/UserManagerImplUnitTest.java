@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -64,6 +66,8 @@ public class UserManagerImplUnitTest {
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
+	@Mock
+	private PrincipalOIDCBindingDao mockPrincipalOIDCDao;
 	
 	@InjectMocks
 	private UserManagerImpl userManager;
@@ -271,42 +275,80 @@ public class UserManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testLookupUserByOauthProvider() {
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(), any())).thenReturn(principalAlias);
+	public void testLookupUserIdByOIDCSubject() {
+		
+		Optional<Long> expected = Optional.of(123L);
+		
+		when(mockPrincipalOIDCDao.findBindingForSubject(any(), any())).thenReturn(expected);
 		
 		// call under test
-		PrincipalAlias pa = userManager.lookupUserByOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		Optional<Long> result = userManager.lookupUserIdByOIDCSubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 		
-		assertEquals(principalAlias, pa);
+		assertEquals(expected, result);
 		
-		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(OAuthProvider.GOOGLE_OAUTH_2_0 + " " + alias, AliasType.USER_OAUTH);
+		verify(mockPrincipalOIDCDao).findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 	}
 	
 	@Test
-	public void testLookupUserByOauthProviderNotFound() {
-		String message = assertThrows(NotFoundException.class, () -> {
+	public void testLookupUserIdByOIDCSubjectWithNoProvider() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// call under test
-			userManager.lookupUserByOauthProvider(OAuthProvider.GOOGLE_OAUTH_2_0, "unknown");
+			userManager.lookupUserIdByOIDCSubject(null, alias);
 		}).getMessage();
 		
-		assertEquals("Did not find a user with alias: GOOGLE_OAUTH_2_0 unknown", message);
+		assertEquals("The provider is required.", message);
+	}
+	
+	@Test
+	public void testLookupUserIdByOIDCSubjectWithNoSubject() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			userManager.lookupUserIdByOIDCSubject(OAuthProvider.GOOGLE_OAUTH_2_0, null);
+		}).getMessage();
+		
+		assertEquals("The subject is required and must not be the empty string.", message);
+		
 	}
 	
 	@Test
 	public void testBindOauthProviderAlias() {
 		
-		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any())).thenReturn(principalAlias);
-		
 		// Call under test
-		PrincipalAlias result = userManager.bindOauthProviderAlias(OAuthProvider.GOOGLE_OAUTH_2_0, alias, 123L);
+		userManager.bindUserToOIDCSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 		
-		assertEquals(principalAlias, result);
+		verify(mockPrincipalOIDCDao).bindPrincipalToSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
 		
-		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(new PrincipalAlias()
-			.setAlias(OAuthProvider.GOOGLE_OAUTH_2_0 + " " + alias)
-			.setType(AliasType.USER_OAUTH)
-			.setPrincipalId(123L)
-		);
+	}
+	
+	@Test
+	public void testBindOauthProviderAliasWithNoProvider() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.bindUserToOIDCSubject(123L, null, alias);
+		}).getMessage();
 		
+		assertEquals("The provider is required.", message);
+		
+	}
+	
+	@Test
+	public void testBindOauthProviderAliasWithNoSubject() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.bindUserToOIDCSubject(123L, OAuthProvider.GOOGLE_OAUTH_2_0, null);
+		}).getMessage();
+		
+		assertEquals("The subject is required and must not be the empty string.", message);		
+	}
+	
+	@Test
+	public void testBindOauthProviderAliasWithNoUserId() {
+				
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.bindUserToOIDCSubject(null, OAuthProvider.GOOGLE_OAUTH_2_0, alias);
+		}).getMessage();
+		
+		assertEquals("The userId is required.", message);
 	}
 }

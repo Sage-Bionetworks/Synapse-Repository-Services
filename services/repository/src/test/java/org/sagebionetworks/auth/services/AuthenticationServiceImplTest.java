@@ -9,7 +9,10 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -150,7 +153,7 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserByOauthProvider(any(), any())).thenReturn(alias);
+		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.of(userId));
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -163,8 +166,8 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserByOauthProvider(request.getProvider(), info.getSubject());
-		verify(mockUserManager, never()).lookupUserByUsernameOrEmail(any());
+		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
+		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
@@ -181,9 +184,8 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserByOauthProvider(any(), any())).thenThrow(NotFoundException.class);
+		when(mockUserManager.lookupUserIdByOIDCSubject(any(), any())).thenReturn(Optional.empty());
 		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenReturn(alias);
-		when(mockUserManager.bindOauthProviderAlias(any(), any(), any())).thenReturn(alias);
 		LoginResponse authMgrLoginResponse = new LoginResponse();
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
@@ -196,9 +198,9 @@ public class AuthenticationServiceImplTest {
 		assertEquals(authMgrLoginResponse, result);
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		verify(mockUserManager).lookupUserByOauthProvider(request.getProvider(), info.getSubject());
+		verify(mockUserManager).lookupUserIdByOIDCSubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
-		verify(mockUserManager).bindOauthProviderAlias(request.getProvider(), info.getSubject(), alias.getPrincipalId());
+		verify(mockUserManager).bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	

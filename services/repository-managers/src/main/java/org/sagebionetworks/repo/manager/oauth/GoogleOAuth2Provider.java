@@ -36,7 +36,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	 * Json keys for object returned by https://openidconnect.googleapis.com/v1/userinfo
 	 */
 	public static final String EMAIL = "email";
-	public static final String VERIFIED_EMAIL = "email_verified";
+	public static final String EMAIL_VERIFIED = "email_verified";
 	public static final String GIVEN_NAME = "given_name";
 	public static final String FAMILY_NAME = "family_name";	
 	public static final String SUB = "sub";
@@ -111,7 +111,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 			if (json.has(SUB)) {
 				info.setSubject(json.getString(SUB));
 			}
-			if (json.has(VERIFIED_EMAIL) && json.getBoolean(VERIFIED_EMAIL) && json.has(EMAIL)) {
+			if (json.has(EMAIL_VERIFIED) && json.getBoolean(EMAIL_VERIFIED) && json.has(EMAIL)) {
 				info.setUsersVerifiedEmail(json.getString(EMAIL));
 			}
 			return info;

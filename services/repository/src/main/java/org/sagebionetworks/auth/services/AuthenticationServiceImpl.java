@@ -127,19 +127,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide the user subject");
 		}
 		
-		PrincipalAlias alias;
-		
-		try {
-			alias = userManager.lookupUserByOauthProvider(request.getProvider(), providedInfo.getSubject());
-		} catch (NotFoundException e) {
-			// For backward compatibility we also lookup the user by the provider verified email
-			alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
-			// We also migrate the user to the oauth alias using the subject as identifier (See https://sagebionetworks.jira.com/browse/PLFM-7302)
-			alias = userManager.bindOauthProviderAlias(request.getProvider(), providedInfo.getSubject(), alias.getPrincipalId());
-		}
+		// We first lookup for a potential subject already bound for the given provider
+		Long principalId = userManager.lookupUserIdByOIDCSubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
+			// If not found, for backward compatibility we also lookup the user by the provider verified email
+			PrincipalAlias alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+			// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
+			userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
+			return alias.getPrincipalId();
+		});
 				
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(alias.getPrincipalId(), tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer);
 	}
 	
 	@WriteTransaction

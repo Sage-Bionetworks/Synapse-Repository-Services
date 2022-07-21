@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -63,17 +64,6 @@ public interface UserManager {
 	 */
 	PrincipalAlias lookupUserByUsernameOrEmail(String alias);
 
-	/**
-	 * Lookup a user given the subject returned by an oauth provider
-	 * 
-	 * @param provider
-	 * @param subject
-	 * @return
-	 */
-	PrincipalAlias lookupUserByOauthProvider(OAuthProvider provider, String subject);
-	
-	PrincipalAlias bindOauthProviderAlias(OAuthProvider provider, String subject, Long principalId);
-	
 	PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	
 	void unbindAlias(String aliasName, AliasType type, Long principalId);
@@ -90,6 +80,23 @@ public interface UserManager {
 	 * @param limit Limit the number of results.
 	 */
 	Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
+	
+	/**
+	 * Lookup the id of the user that is bound to the given {@link OAuthProvider}, subject pair
+	 * 
+	 * @param provider
+	 * @param subject
+	 * @return An optional containing the id of the user bound to the given subject of the {@link OAuthProvider}
+	 */
+	Optional<Long> lookupUserIdByOIDCSubject(OAuthProvider provider, String subject);
+	
+	/**
+	 * Binds the given userId to the subject of the given {@link OAuthProvider}
+	 * @param userId
+	 * @param provider
+	 * @param subject
+	 */
+	void bindUserToOIDCSubject(Long userId, OAuthProvider provider, String subject);
 
 	/**
 	 * Clear all user
