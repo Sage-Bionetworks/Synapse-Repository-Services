@@ -82,7 +82,7 @@
 		<constructor-arg>
 			<bean class="org.sagebionetworks.repo.manager.oauth.OIDCConfig">
 				<constructor-arg ref="httpClientImpl"/>
-				<constructor-arg value="https://accounts.google.com/.well-known/openid-configuration"></constructor-arg>
+				<constructor-arg ref="stackConfiguration.oAuth2GoogleDiscoveryDocument"/>
 			</bean>
 		</constructor-arg>
 	</bean>
@@ -93,7 +93,7 @@
 		<constructor-arg>
 			<bean class="org.sagebionetworks.repo.manager.oauth.OIDCConfig">
 				<constructor-arg ref="httpClientImpl"/>
-				<constructor-arg value="https://orcid.org/.well-known/openid-configuration"></constructor-arg>
+				<constructor-arg ref="stackConfiguration.oAuth2ORCIDDiscoveryDocument"/>
 			</bean>
 		</constructor-arg>
 	</bean>

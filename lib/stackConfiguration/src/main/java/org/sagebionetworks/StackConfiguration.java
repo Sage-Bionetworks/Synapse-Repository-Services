@@ -494,6 +494,8 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientSecret();
+	
+	public String getOAuth2GoogleDiscoveryDocument();
 
 	/**
 	 * 
@@ -506,6 +508,8 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientSecret();
+	
+	public String getOAuth2ORCIDDiscoveryDocument();
 
 	/**
 	 * Get the max bytes per HTTP request for a table.

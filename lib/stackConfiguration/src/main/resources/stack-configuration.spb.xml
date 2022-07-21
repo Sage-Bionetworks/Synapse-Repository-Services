@@ -28,9 +28,11 @@
 	
 	<bean id="stackConfiguration.oAuth2GoogleClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.oAuth2GoogleClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2GoogleDiscoveryDocument" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.oAuth2ORCIDClientId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.oAuth2ORCIDClientSecret" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.oAuth2ORCIDDiscoveryDocument" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.repositoryDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
