@@ -50,7 +50,9 @@ public interface TransactionalMessenger {
 	void sendMessageAfterCommit(ChangeMessage message);
 	
 	/**
-	 * Publishes the given message to its observers directly after the current transaction commits.
+	 * Publishes the given message to its observers directly after the current transaction commits. If the timestamp is not set it will be automatically be assigned.
+	 * 
+	 * In case of a {@link LocalStackChangeMesssage} the change number is automatically populated with a -1 if not supplied.
 	 * 
 	 * @param message A message is that is local to the current stack (e.g. does not migrate between stack and will not be re-played)
 	 */

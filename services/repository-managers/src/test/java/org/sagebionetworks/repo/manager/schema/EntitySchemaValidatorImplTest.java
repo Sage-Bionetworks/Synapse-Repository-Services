@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -14,12 +13,11 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
@@ -61,9 +59,6 @@ public class EntitySchemaValidatorImplTest {
 	private JsonSchema mockJsonSchema;
 	@Mock
 	private ValidationResults mockValidationResults;
-	
-	@Captor
-	private ArgumentCaptor<LocalStackChangeMesssage> messageCaptor;
 
 	@BeforeEach
 	public void before() {
@@ -98,17 +93,11 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
 		verify(mockDerivedAnnotationDao).saveDerivedAnnotations(entityId, derivedAnnotations);
 		verify(mockDerivedAnnotationDao, never()).clearDerivedAnnotations(any());
-		verify(mockMessenger).publishMessageAfterCommit(messageCaptor.capture());
-		
-		LocalStackChangeMesssage sentMessage = messageCaptor.getValue();
-		
-		assertEquals(new LocalStackChangeMesssage()
-			.setObjectId(entityId)
-			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
-			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE)
-			.setChangeNumber(-1L),
-		sentMessage);
+		verify(mockMessenger).publishMessageAfterCommit(new LocalStackChangeMesssage()
+				.setObjectId(entityId)
+				.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE)
+				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 		
 	}
 	
@@ -157,17 +146,11 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockJsonSchemaValidationManager).calculateDerivedAnnotations(mockJsonSchema, subject);
 		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
 		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(any());
-		verify(mockMessenger).publishMessageAfterCommit(messageCaptor.capture());
-		
-		LocalStackChangeMesssage sentMessage = messageCaptor.getValue();
-		
-		assertEquals(new LocalStackChangeMesssage()
-			.setObjectId(entityId)
-			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
-			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE)
-			.setChangeNumber(-1L),
-		sentMessage);
+		verify(mockMessenger).publishMessageAfterCommit(new LocalStackChangeMesssage()
+				.setObjectId(entityId)
+				.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE)
+				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 	}
 	
 	@Test
@@ -194,17 +177,11 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockSchemaValidationResultDao).clearResults(entityId, ObjectType.entity);
 		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
 		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
-		verify(mockMessenger).publishMessageAfterCommit(messageCaptor.capture());
-		
-		LocalStackChangeMesssage sentMessage = messageCaptor.getValue();
-		
-		assertEquals(new LocalStackChangeMesssage()
-			.setObjectId(entityId)
-			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
-			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE)
-			.setChangeNumber(-1L),
-		sentMessage);
+		verify(mockMessenger).publishMessageAfterCommit(new LocalStackChangeMesssage()
+				.setObjectId(entityId)
+				.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE)
+				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 	}
 	
 	@Test
@@ -257,16 +234,10 @@ public class EntitySchemaValidatorImplTest {
 		verify(mockJsonSchemaValidationManager, never()).calculateDerivedAnnotations(any(), any());
 		verify(mockDerivedAnnotationDao, never()).saveDerivedAnnotations(any(), any());
 		verify(mockDerivedAnnotationDao).clearDerivedAnnotations(entityId);
-		verify(mockMessenger).publishMessageAfterCommit(messageCaptor.capture());
-		
-		LocalStackChangeMesssage sentMessage = messageCaptor.getValue();
-		
-		assertEquals(new LocalStackChangeMesssage()
-			.setObjectId(entityId)
-			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
-			.setTimestamp(sentMessage.getTimestamp())
-			.setChangeType(ChangeType.UPDATE)
-			.setChangeNumber(-1L),
-		sentMessage);
+		verify(mockMessenger).publishMessageAfterCommit(new LocalStackChangeMesssage()
+				.setObjectId(entityId)
+				.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE)
+				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 	}
 }

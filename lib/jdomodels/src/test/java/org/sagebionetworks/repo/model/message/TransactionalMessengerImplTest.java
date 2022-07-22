@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -219,12 +220,132 @@ public class TransactionalMessengerImplTest {
 	
 	@Test
 	public void testPublishMessageAfterCommmit() {
+		when(mockLocalMessage.getObjectId()).thenReturn("123");
+		when(mockLocalMessage.getObjectType()).thenReturn(ObjectType.ENTITY);
+		when(mockLocalMessage.getTimestamp()).thenReturn(new Date());
+		
 		// Call under test
 		messenger.publishMessageAfterCommit(mockLocalMessage);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		
 		verify(mockObserver).fireLocalStackMessage(mockLocalMessage);
+	}
+
+	@Test
+	public void testPublishMessageAfterCommmitWithNoDate() {
+		when(mockLocalMessage.getObjectId()).thenReturn("123");
+		when(mockLocalMessage.getObjectType()).thenReturn(ObjectType.ENTITY);
+		when(mockLocalMessage.getTimestamp()).thenReturn(null);
+		
+		// Call under test
+		messenger.publishMessageAfterCommit(mockLocalMessage);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		
+		verify(mockObserver).fireLocalStackMessage(mockLocalMessage);
+		verify(mockLocalMessage).setTimestamp(any());
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithNoMessage() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			messenger.publishMessageAfterCommit(null);
+		}).getMessage();
+		
+		assertEquals("The message is required.", result);
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithNoObjectId() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			messenger.publishMessageAfterCommit(mockLocalMessage);
+		}).getMessage();
+		
+		assertEquals("The message.objectId is required.", result);
+	}
+		
+	@Test
+	public void testPublishMessageAfterCommmitWithNoObjectType() {
+		when(mockLocalMessage.getObjectId()).thenReturn("123");
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			messenger.publishMessageAfterCommit(mockLocalMessage);
+		}).getMessage();
+		
+		assertEquals("The message.objectType is required.", result);
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithLocalChangeMessage() {
+		
+		LocalStackChangeMesssage message = new LocalStackChangeMesssage()
+			.setObjectId("123")
+			.setObjectType(ObjectType.ENTITY)
+			.setChangeType(ChangeType.UPDATE)
+			.setUserId(1L)
+			.setChangeNumber(123L);
+		
+		// Call under test
+		messenger.publishMessageAfterCommit(message);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		
+		verify(mockObserver).fireLocalStackMessage(message);
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithLocalChangeMessageWithNoChangeNumber() {
+		
+		LocalStackChangeMesssage message = new LocalStackChangeMesssage()
+			.setObjectId("123")
+			.setObjectType(ObjectType.ENTITY)
+			.setChangeType(ChangeType.UPDATE)
+			.setUserId(1L);
+		
+		// Call under test
+		messenger.publishMessageAfterCommit(message);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		
+		verify(mockObserver).fireLocalStackMessage(message);
+
+		assertEquals(-1L, message.getChangeNumber());
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithLocalChangeMessageWithNoChangeType() {
+		
+		LocalStackChangeMesssage message = new LocalStackChangeMesssage()
+			.setObjectId("123")
+			.setObjectType(ObjectType.ENTITY)
+			.setUserId(1L);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {	
+			// Call under test
+			messenger.publishMessageAfterCommit(message);
+		}).getMessage();
+		
+		assertEquals("The message.changeType is required.", result);
+	}
+	
+	@Test
+	public void testPublishMessageAfterCommmitWithLocalChangeMessageWithNoUserId() {
+		
+		LocalStackChangeMesssage message = new LocalStackChangeMesssage()
+			.setObjectId("123")
+			.setObjectType(ObjectType.ENTITY)
+			.setChangeType(ChangeType.UPDATE);
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {	
+			// Call under test
+			messenger.publishMessageAfterCommit(message);
+		}).getMessage();
+		
+		assertEquals("The message.userId is required.", result);
 	}
 
 	/**

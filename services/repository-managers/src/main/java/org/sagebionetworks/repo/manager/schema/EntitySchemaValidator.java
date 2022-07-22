@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
@@ -85,8 +86,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 					.setObjectId(entityId)
 					.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
 					.setChangeType(ChangeType.UPDATE)
-					.setChangeNumber(-1L)
-					.setTimestamp(Date.from(Instant.now()))
+					.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())
 			);
 		}
 	}
