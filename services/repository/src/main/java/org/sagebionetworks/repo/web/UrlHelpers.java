@@ -1243,7 +1243,7 @@ public class UrlHelpers {
 	/**
 	 * DRS urls
 	 */
-	public static final String DRS_SERVICE_INFO = DRS_PATH+ "/service-info";
+	public static final String DRS_SERVICE_INFO = "/service-info";
 
 	static {
 		@SuppressWarnings("rawtypes")

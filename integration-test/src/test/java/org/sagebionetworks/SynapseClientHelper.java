@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 
-import java.util.UUID;
-
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
@@ -10,6 +8,8 @@ import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import java.util.UUID;
 
 /**
  * Holds helpers for setting up integration tests
@@ -20,6 +20,7 @@ public class SynapseClientHelper {
 		client.setAuthEndpoint(StackConfigurationSingleton.singleton().getAuthenticationServicePrivateEndpoint());
 		client.setRepositoryEndpoint(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
 		client.setFileEndpoint(StackConfigurationSingleton.singleton().getFileServiceEndpoint());
+		client.setDrsEndpoint(StackConfigurationSingleton.singleton().getDrsServiceEndpoint());
 	}
 	
 	/**

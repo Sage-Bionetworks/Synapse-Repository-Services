@@ -1,13 +1,13 @@
 package org.sagebionetworks;
 
+import com.google.inject.Inject;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.StringJoiner;
-
-import com.google.inject.Inject;
 
 public class StackConfigurationImpl implements StackConfiguration {
 
@@ -21,9 +21,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	private ConfigurationProperties configuration;
 	private StackEncrypter stackEncrypter;
-	
+
 	/**
-	 * The only constructor for 
+	 * The only constructor for
 	 * @param configuration
 	 */
 	@Inject
@@ -35,7 +35,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Is this a production stack?
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -45,7 +45,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Does the passed stack string represent prod?
-	 * 
+	 *
 	 * @param stack
 	 * @return
 	 */
@@ -55,7 +55,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Is this a Develop stack?
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -69,7 +69,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Is this a Hudson stack?
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -87,7 +87,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * be able to determine the order the stacks were created. For example, we
 	 * staging should always have a higher number than production. This number is
 	 * used to provide that order.
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -101,7 +101,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * be able to determine the order the stacks were created. For example, we
 	 * staging should always have a higher number than production. This number is
 	 * used to provide that order.
-	 * 
+	 *
 	 * @param instance
 	 * @param isProd
 	 * @return
@@ -143,7 +143,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * This is for Attachment URLs that expire in seconds.
-	 * 
+	 *
 	 * @return
 	 */
 	@Override
@@ -161,7 +161,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The database connection string used for the ID Generator.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getIdGeneratorDatabaseConnectionUrl() {
@@ -170,7 +170,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The username used for the ID Generator.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getIdGeneratorDatabaseUsername() {
@@ -179,7 +179,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The password used for the ID Generator.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getIdGeneratorDatabasePassword() {
@@ -192,7 +192,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Driver for the repository service.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryDatabaseDriver() {
@@ -201,7 +201,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Driver for the repository service.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getTableDatabaseDriver() {
@@ -210,7 +210,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The repository database connection string.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryDatabaseConnectionUrl() {
@@ -228,7 +228,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The repository database schema name.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryDatabaseSchemaName() {
@@ -237,7 +237,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The repository database username.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryDatabaseUsername() {
@@ -246,7 +246,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The repository database password.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getRepositoryDatabasePassword() {
@@ -263,7 +263,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Should the connection pool connections be validated?
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDatabaseConnectionPoolShouldValidate() {
@@ -272,7 +272,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The SQL used to validate pool connections
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDatabaseConnectionPoolValidateSql() {
@@ -281,7 +281,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The minimum number of connections in the pool
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDatabaseConnectionPoolMinNumberConnections() {
@@ -290,7 +290,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of connections in the pool
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDatabaseConnectionPoolMaxNumberConnections() {
@@ -380,7 +380,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of threads to be used for backup/restore
-	 * 
+	 *
 	 * @return
 	 */
 	public int getBackupRestoreThreadPoolMaximum() {
@@ -389,7 +389,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum bytes allowed for a single query result.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getMaximumBytesPerQueryResult() {
@@ -398,7 +398,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number entities returned in a single call
-	 * 
+	 *
 	 * @return
 	 */
 	public int getMaximumNumberOfEntitiesReturnedPerCall() {
@@ -408,7 +408,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of pixels used for a preview image width
-	 * 
+	 *
 	 * @return
 	 */
 	public int getMaximumPreviewWidthPixels() {
@@ -417,7 +417,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of pixels used for a preview image height
-	 * 
+	 *
 	 * @return
 	 */
 	public int getMaximumPreviewHeightPixels() {
@@ -426,7 +426,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of pixels used for an attachment image
-	 * 
+	 *
 	 * @return
 	 */
 	public int getMaximumAttachmentPreviewPixels() {
@@ -435,7 +435,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Is the search feature enabled?
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean getSearchEnabled() {
@@ -444,7 +444,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Is the DOI feature enabled?
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean getDoiEnabled() {
@@ -459,7 +459,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable data
 	 * migration across a stack.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getSharedS3BackupBucket() {
@@ -472,7 +472,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The AWS domain name is the <stack>+<stackInstance>
-	 * 
+	 *
 	 * @return
 	 */
 	public String getAWSDomainName() {
@@ -485,7 +485,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Stack and instance: <stack>-<stack_instance>
-	 * 
+	 *
 	 * @return
 	 */
 	public String getStackAndStackInstancePrefix() {
@@ -494,7 +494,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The name of the queue
-	 * 
+	 *
 	 * @return
 	 */
 	public String getQueueName(String baseName) {
@@ -503,7 +503,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the full topic name for a given object type.
-	 * 
+	 *
 	 * @param objectType
 	 * @return
 	 */
@@ -515,7 +515,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
 	 * multi-part upload this value cannot be less 5 MB. Currently defaults to 5 MB.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getFileTransferBufferSizeBytes() {
@@ -526,7 +526,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The percentage of the maximum memory that can be used for file transfer.
 	 * Note: transfer% + preview% cannot exceed 90%
-	 * 
+	 *
 	 * @return
 	 */
 	public double getFileTransferMemoryPercentOfMax() {
@@ -537,7 +537,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The percentage of the maximum memory that can be used for file transfer.
 	 * Note: transfer% + preview% cannot exceed 90%
-	 * 
+	 *
 	 * @return
 	 */
 	public double getFilePreivewMemoryPercentOfMax() {
@@ -560,7 +560,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * This is the maximum memory used by file transfer memory pool. Currently
 	 * defaults to 70% of max memory.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getMaxFileTransferMemoryPoolBytes() {
@@ -573,7 +573,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum memory that can be used for preview generation.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getMaxFilePreviewMemoryPoolBytes() {
@@ -586,7 +586,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Should messages be published to the AWS topic?
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean getShouldMessagesBePublishedToTopic() {
@@ -629,7 +629,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum size of a backup batch.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getMigrationBackupBatchMax() {
@@ -638,7 +638,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * This should match the Database max_allowed_packet value. See PLFM-1900
-	 * 
+	 *
 	 * @return
 	 */
 	public Integer getMigrationMaxAllowedPacketBytes() {
@@ -653,7 +653,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum timeout for an exclusive lock in milliseconds.
-	 * 
+	 *
 	 * @return
 	 */
 	public Integer getSemaphoreExclusiveMaxTimeoutMS() {
@@ -662,7 +662,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum timeout for a shared lock in milliseconds.
-	 * 
+	 *
 	 * @return
 	 */
 	public Integer getSemaphoreSharedMaxTimeoutMS() {
@@ -677,7 +677,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
 	 * before timing out.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getFileMultipartUploadDaemonTimeoutMS() {
@@ -688,7 +688,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The maximum number of threads that can be used for the mutipart upload
 	 * daemons.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getFileMultipartUploadDaemonMainMaxThreads() {
@@ -699,7 +699,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The maximum number of threads that can be used for the mutipart upload
 	 * daemons copy part sub-task.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getFileMultipartUploadDaemonCopyPartMaxThreads() {
@@ -709,7 +709,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get credentials for the Jira service account used to create Jira issues
-	 * 
+	 *
 	 * @return
 	 */
 	public String getJiraUserEmail() {
@@ -750,13 +750,13 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the table row bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getTableRowChangeBucketName() {
 		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, getStack());
 	}
-	
+
 	/**
 	 * The name of the bucket for view snapshots
 	 * @return
@@ -766,7 +766,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public String getOAuth2GoogleClientId() {
@@ -774,7 +774,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public String getOAuth2GoogleClientSecret() {
@@ -782,7 +782,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientId() {
@@ -790,7 +790,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientSecret() {
@@ -799,7 +799,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the max bytes per HTTP request for a table.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getTableMaxBytesPerRequest() {
@@ -808,7 +808,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of rows in a single table change set file.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getTableMaxBytesPerChangeSet() {
@@ -817,7 +817,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the max bytes per HTTP request for a table.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getTableMaxEnumValues() {
@@ -827,7 +827,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The maximum amount of time in MS that the table worker can hold the semaphore
 	 * lock on the table.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getTableWorkerTimeoutMS() {
@@ -837,7 +837,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The maxiumn amount of time in MS that a table reader can hold a read lock on
 	 * a table.
-	 * 
+	 *
 	 * @return
 	 */
 	public long getTableReadTimeoutMS() {
@@ -851,7 +851,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between
 	 * pages.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getChangeSynchWorkerSleepTimeMS() {
@@ -860,7 +860,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The minium page size used by ChangeSentMessageSynchWorker.
-	 * 
+	 *
 	 * @return
 	 */
 	public Integer getChangeSynchWorkerMinPageSize() {
@@ -869,7 +869,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the audit access record bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getAuditRecordBucketName() {
@@ -878,7 +878,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the object snapshot record bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getSnapshotRecordBucketName() {
@@ -887,7 +887,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the object snapshot record bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getDiscussionBucketName() {
@@ -896,7 +896,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the stack log bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getLogBucketName() {
@@ -905,7 +905,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the name of the stack test bucket.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getExternalS3TestBucketName() {
@@ -914,7 +914,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the number of database in the table's cluster.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getTablesDatabaseCount() {
@@ -923,7 +923,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the endpoint of a table's database given its index.
-	 * 
+	 *
 	 * @param index
 	 *            Each database in the cluster has an index: 0 - n-1.
 	 * @return
@@ -934,7 +934,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the schema name of a table's database given its index.
-	 * 
+	 *
 	 * @param index
 	 *            Each database in the cluster has an index: 0 - n-1.
 	 * @return
@@ -1032,7 +1032,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return if missing or false then certified user restrictions are in effect.
 	 *         Setting to true disables.
 	 */
@@ -1071,7 +1071,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * The maximum number of entities per container.
-	 * 
+	 *
 	 * @return
 	 */
 	public Long getMaximumNumberOfEntitiesPerContainer() {
@@ -1080,7 +1080,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Stack identifies production vs develop.
-	 * 
+	 *
 	 * @return Will be 'prod' for production or 'dev' for develop.
 	 */
 	public String getStack() {
@@ -1090,7 +1090,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * The instance number of this stack. Can also be a developer's name for a 'dev'
 	 * stack.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getStackInstance() {
@@ -1098,7 +1098,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return authentication service private endpoint
 	 */
 	public String getAuthenticationServicePrivateEndpoint() {
@@ -1121,15 +1121,19 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the file service Endpoint.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getFileServiceEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.fileservice.endpoint");
 	}
 
+	public String getDrsServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.drsservice.endpoint");
+	}
+
 	/**
-	 * 
+	 *
 	 * @return search service endpoint
 	 */
 	public String getSearchServiceEndpoint() {
@@ -1137,7 +1141,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return docker service endpoint
 	 */
 	public String getDockerServiceEndpoint() {
@@ -1145,7 +1149,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return the endpoint for the docker registry event listener
 	 */
 	public String getDockerRegistryListenerEndpoint() {
@@ -1154,7 +1158,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	/**
 	 * Get the decrypted HMAC signing key for a given version.
-	 * 
+	 *
 	 * @param keyVersion
 	 * @return
 	 */
@@ -1169,7 +1173,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	/**
 	 * Get the current version of the HMAC signing key to be used to sign all new
 	 * requests.
-	 * 
+	 *
 	 * @return
 	 */
 	public int getCurrentHmacSigningKeyVersion() {
@@ -1200,7 +1204,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getOAuthAuthorizationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.oauth.authorization.endpoint");
 	}
-	
+
 	@Override
 	public int getMaximumMonthsForMonthlyStatistics() {
 		return  Integer.parseInt(configuration.getProperty("org.sagebionetworks.statistics.monthly.max"));
@@ -1214,22 +1218,22 @@ public class StackConfigurationImpl implements StackConfiguration {
 			return null;
 		}
 	}
-	
+
 	@Override
 	public String getServiceAuthKey(String serviceName) {
 		return stackEncrypter.getDecryptedProperty(String.format(SERVICE_AUTH_TEMPLATE, serviceName, "key"));
 	}
-	
+
 	@Override
 	public String getServiceAuthSecret(String serviceName) {
 		return stackEncrypter.getDecryptedProperty(String.format(SERVICE_AUTH_TEMPLATE, serviceName, "secret"));
 	}
-	
+
 	@Override
 	public String getRepositoryServiceProdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.repositoryservice.endpoint.prod");
 	}
-	
+
 	@Override
 	public Long getKinesisMaxRetryDelay() {
 		if (configuration.hasProperty("org.sagebionetworks.kinesis.maxRetryDelay")) {

@@ -7,12 +7,14 @@ import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 @Service
-public class DRSManagerImpl implements DRSManager{
-    public static final String REVERSE_DOMAIN_NOTATION ="org.sagebase.prod.repo-prod";
-    public static final String SERVICE_NAME ="DRS Service";
-    public static final String CONTACT_URL ="https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
-    public static final String DOCUMENTATION_URL ="https://docs.synapse.org";
+public class DRSManagerImpl implements DRSManager {
+    public static final String REVERSE_DOMAIN_NOTATION = "org.sagebase.prod.repo-prod";
+    public static final String SERVICE_NAME = "DRS Service";
+    public static final String CONTACT_URL = "https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
+    public static final String DOCUMENTATION_URL = "https://docs.synapse.org";
     public static final String DRS_URL = "https://repo-prod.prod.sagebase.org";
     public static final String DRS_GROUP = "org.ga4gh";
     public static final String DRS_ARTIFACT = "drs";
@@ -20,10 +22,17 @@ public class DRSManagerImpl implements DRSManager{
     public static final String ORGANIZATION_NAME = "Sage Bionetworks";
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
     public static final String DESCRIPTION = "This service provides information about implementation of DRS specification";
+    private StackConfiguration stackConfiguration;
+    private Date createdAt;
+    private Date updatedAt;
 
     @Autowired
-    StackConfiguration stackConfiguration;
-
+    public DRSManagerImpl(StackConfiguration stackConfiguration) {
+        super();
+        this.stackConfiguration = stackConfiguration;
+        this.createdAt = new Date();
+        this.updatedAt = new Date();
+    }
 
     @Override
     public ServiceInformation getServiceInformation() {
@@ -41,9 +50,9 @@ public class DRSManagerImpl implements DRSManager{
         organization.setUrl(ORGANIZATION_URL);
         result.setOrganization(organization);
         result.setContactUrl(CONTACT_URL);
-        result.setDocumentationUrl(DOCUMENTATION_URL); // should it be confluence page or drs specification url
-        // result.setCreatedAt();
-        // result.setUpdatedAt();
+        result.setDocumentationUrl(DOCUMENTATION_URL);
+        result.setCreatedAt(createdAt);
+        result.setUpdatedAt(updatedAt);
         result.setEnvironment(stackConfiguration.getStack());
         result.setVersion(stackConfiguration.getStackInstance());
         result.setUrl(DRS_URL);
