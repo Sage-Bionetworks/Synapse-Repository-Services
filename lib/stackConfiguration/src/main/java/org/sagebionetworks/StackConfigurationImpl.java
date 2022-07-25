@@ -1,13 +1,13 @@
 package org.sagebionetworks;
 
-import com.google.inject.Inject;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.StringJoiner;
+
+import com.google.inject.Inject;
 
 public class StackConfigurationImpl implements StackConfiguration {
 
