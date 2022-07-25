@@ -781,6 +781,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.google.client.secret");
 	}
 
+	@Override
+	public String getOAuth2GoogleDiscoveryDocument() {
+		return configuration.getProperty("org.sagebionetworks.oauth2.google.discoveryDocument");
+	}
+	
 	/**
 	 * 
 	 * @return
@@ -795,6 +800,11 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 */
 	public String getOAuth2ORCIDClientSecret() {
 		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.orcid.client.secret.v2");
+	}
+	
+	@Override
+	public String getOAuth2ORCIDDiscoveryDocument() {
+		return configuration.getProperty("org.sagebionetworks.oauth2.orcid.discoveryDocument");
 	}
 
 	/**

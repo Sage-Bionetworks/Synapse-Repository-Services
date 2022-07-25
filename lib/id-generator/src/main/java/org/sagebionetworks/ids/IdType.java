@@ -67,7 +67,8 @@ public enum IdType {
 	DATA_ACCESS_NOTIFICATION_ID(null),
 	FEATURE_STATUS_ID(null),
 	FILES_SCANNER_STATUS_ID(null),
-	TABLE_CHANGE_ID(null)
+	TABLE_CHANGE_ID(null),
+	PRINCIPAL_OIDC_BINDING_ID(null)
 	;
 	
 	Long startingId;

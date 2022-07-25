@@ -1,16 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Utilities for alias.
@@ -93,21 +90,6 @@ public class AliasUtils {
 		Matcher m = PRINICPAL_UNIQUENESS_REPLACE_PATTERN.matcher(lower);
 		// Replace all non-letters and numbers with empty strings
 		return m.replaceAll("");
-	}
-
-	/**
-	 * Get the list of unique alias for the given alias list
-	 * 
-	 * @param inputNameList
-	 * @return
-	 */
-	public static Set<String> getUniqueAliasName(Set<String> inputNameList) {
-		ValidateArgument.required(inputNameList, "inputNameList");
-		Set<String> result = new HashSet<String>();
-		for (String inputName : inputNameList) {
-			result.add(getUniqueAliasName(inputName));
-		}
-		return result;
 	}
 
 }

@@ -13,9 +13,8 @@ import org.scribe.oauth.OAuthService;
 
 public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
-	private static final String AUTHORIZE_URL = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
-	private static final String TOKEN_URL = "https://pub.orcid.org/oauth/token";
-
+	private static final String AUTH_URL_DEFAULT_PARAMS = "?response_type=code&client_id=%s&redirect_uri=%s";
+	
     /*
 	 * "/authenticate scope indicates to ORCID that we just want to request the user's ORCID ID
 	 * after authentication.
@@ -27,16 +26,20 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 
 	private String apiKey;
 	private String apiSecret;
+	private String authUrl;
+	private String tokenUrl;
 	
-	public OrcidOAuth2Provider(String apiKey, String apiSecret) {
+	public OrcidOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
+		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
+		this.tokenUrl = oidcConfig.getTokenEndpoint();
 	}
 
 
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
+		return  new OAuth2Api(authUrl, tokenUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_AUTHENTICATE, null));
 	}
 	
@@ -50,7 +53,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	public AliasAndType retrieveProvidersId(String authorizationCode, String redirectUrl) {
 		try{
 			// Note:  We don't need to use the redirectUrl.
-			OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
+			OAuthService service = (new OAuth2Api(authUrl, tokenUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
 
 			/*

@@ -8,21 +8,20 @@ import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.springframework.stereotype.Service;
 
 /**
  * Simple implementation of the  OAuthManager.
  * @author John
  *
  */
+@Service
 public class OAuthManagerImpl implements OAuthManager {
 	
-	private Map<OAuthProvider, OAuthProviderBinding> providerMap;
+	private Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap;
 	
-	/**
-	 * Injected.
-	 */
-	public void setProviderMap(Map<OAuthProvider, OAuthProviderBinding> providerMap) {
-		this.providerMap = providerMap;
+	public OAuthManagerImpl(Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap) {
+		this.oauthProvidersBindingMap = oauthProvidersBindingMap;
 	}
 
 	@Override
@@ -56,7 +55,7 @@ public class OAuthManagerImpl implements OAuthManager {
 		if(provider == null){
 			throw new IllegalArgumentException("OAuthProvider cannot be null");
 		}
-		OAuthProviderBinding binding = providerMap.get(provider);
+		OAuthProviderBinding binding = oauthProvidersBindingMap.get(provider);
 		if(binding == null){
 			throw new IllegalArgumentException("Unknown provider: "+provider.name());
 		}
