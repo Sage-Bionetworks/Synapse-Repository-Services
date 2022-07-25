@@ -1,18 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_PROVIDER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_SUBJECT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_OIDC_BINDING;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -23,27 +21,27 @@ import org.springframework.stereotype.Repository;
 public class PrincipalOIDCBindingDaoImpl implements PrincipalOIDCBindingDao {
 
 	private IdGenerator idGenerator;
-	private DBOBasicDao basicDao;
 	private JdbcTemplate jdbcTemplate;
 
-	public PrincipalOIDCBindingDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
+	public PrincipalOIDCBindingDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate) {
 		this.idGenerator = idGenerator;
-		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
 	@Override
 	@WriteTransaction
 	public void bindPrincipalToSubject(Long principalId, OAuthProvider provider, String subject) {
-		DBOPrincipalOIDCBinding binding = new DBOPrincipalOIDCBinding();
-
-		binding.setId(idGenerator.generateNewId(IdType.PRINCIPAL_OIDC_BINDING_ID));
-		binding.setCreatedOn(Timestamp.from(Instant.now()));
-		binding.setPrincipalId(principalId);
-		binding.setProvider(provider.name());
-		binding.setSubject(subject);
-
-		basicDao.createNew(binding);
+		String sql = "INSERT IGNORE INTO " + TABLE_PRINCIPAL_OIDC_BINDING + "(" 
+			+ COL_PRINCIPAL_OIDC_BINDING_ID + ", " 
+			+ COL_PRINCIPAL_OIDC_BINDING_CREATED_ON + ","
+			+ COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID + ","
+			+ COL_PRINCIPAL_OIDC_BINDING_PROVIDER + ","
+			+ COL_PRINCIPAL_OIDC_BINDING_SUBJECT 
+		+ ") VALUES (?, NOW(), ?, ?, ?)";
+		
+		Long newId = idGenerator.generateNewId(IdType.PRINCIPAL_OIDC_BINDING_ID);
+		
+		jdbcTemplate.update(sql, newId, principalId, provider.name(), subject);
 	}
 
 	@Override

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Date;
 import java.util.Optional;
@@ -60,10 +59,8 @@ public class PrincipalOIDCBindingDaoImplTest {
 		
 		dao.bindPrincipalToSubject(principalId, OAuthProvider.GOOGLE_OAUTH_2_0, subject);
 		
-		assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			dao.bindPrincipalToSubject(principalId, OAuthProvider.GOOGLE_OAUTH_2_0, subject);
-		});
+		// Call under test, should be a noop
+		dao.bindPrincipalToSubject(principalId, OAuthProvider.GOOGLE_OAUTH_2_0, subject);
 	}
 		
 	@Test
