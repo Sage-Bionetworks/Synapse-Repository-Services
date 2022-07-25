@@ -1128,10 +1128,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return configuration.getProperty("org.sagebionetworks.fileservice.endpoint");
 	}
 
-	public String getDrsServiceEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.drsservice.endpoint");
-	}
-
 	/**
 	 *
 	 * @return search service endpoint
@@ -1241,4 +1237,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 		}
 		return null;
 	}
+
+	@Override
+	public String getDrsServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.drsservice.endpoint");
+	}
+
 }
