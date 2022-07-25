@@ -90,7 +90,7 @@ public class UserManagerImpl implements UserManager {
 		// Make sure that the subject for an oauth provider is not bound yet
 		if (user.getOauthProvider() != null) {
 			lookupUserIdByOIDCSubject(user.getOauthProvider(), user.getSubject()).ifPresent((principalId)-> {
-				throw new NameConflictException("A user is already bound to the '" + user.getOauthProvider() +"' provider with the same identity");
+				throw new NameConflictException("The provided '" + user.getOauthProvider() +"' account is already registered with Synapse");
 			});
 		}
 		

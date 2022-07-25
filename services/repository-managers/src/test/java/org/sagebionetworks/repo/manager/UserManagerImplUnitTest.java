@@ -478,7 +478,7 @@ public class UserManagerImplUnitTest {
 			userManager.createUser(user);
 		}).getMessage();
 		
-		assertEquals("A user is already bound to the '" + user.getOauthProvider().name() + "' provider with the same identity", result);
+		assertEquals("The provided '" + OAuthProvider.GOOGLE_OAUTH_2_0 + "' account is already registered with Synapse", result);
 		
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
