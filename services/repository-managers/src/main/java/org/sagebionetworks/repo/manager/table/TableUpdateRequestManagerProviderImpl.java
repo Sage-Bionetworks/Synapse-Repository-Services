@@ -24,6 +24,7 @@ public class TableUpdateRequestManagerProviderImpl implements TableUpdateRequest
 		managerMap.put(EntityType.entityview, tableViewUpdateManager);
 		managerMap.put(EntityType.submissionview, tableViewUpdateManager);
 		managerMap.put(EntityType.dataset, tableViewUpdateManager);
+		managerMap.put(EntityType.datasetcollection, tableViewUpdateManager);
 	}
 
 	@Override
@@ -31,7 +32,7 @@ public class TableUpdateRequestManagerProviderImpl implements TableUpdateRequest
 		ValidateArgument.required(type, "type");
 		TableUpdateRequestManager manager = managerMap.get(type);
 		if (manager == null){
-			throw new IllegalArgumentException("Unknown type: "+type);
+			throw new IllegalArgumentException("Unsupported type: "+type);
 		}
 		return manager;
 	}
