@@ -28,7 +28,7 @@
 		},
 		"node_type": {
 			"type": "string",
-			"description": "The type of this entity.",
+			"description": "The type of this entity. Corresponds to an (<a href=\"${org.sagebionetworks.repo.model.EntityType}\">EntityType</a>) value.",
 			"title": "Entity Type"
 		},
 		"created_on": {
