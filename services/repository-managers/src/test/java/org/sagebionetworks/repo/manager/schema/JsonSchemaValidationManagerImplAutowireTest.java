@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.manager.schema.SchemaTestUtils.loadSchema
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1010,6 +1011,67 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		expected = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
 		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testContainsSingleConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("fruit", new JSONArray(List.of("peach","apple","pear")));
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
+	
+	@Test
+	public void testContainsSingleConstInvalid() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
+		assertNotNull(schema.getProperties());
+		
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("fruit", new JSONArray(List.of("peach","apples","pear")));
+		
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("expected at least one array item to match 'contains' schema", result.getValidationErrorMessage());
+		assertEquals(List.of("#/fruit: expected at least one array item to match 'contains' schema"), result.getAllValidationMessages());
+	}
+
+	@Test
+	public void testContainsMultipleConst() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultiple.json");
+		assertNotNull(schema.getProperties());
+
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("integers", new JSONArray(List.of(111L, 456L, 789L, 123L, 222L)));
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertTrue(result.getIsValid());
+	}
+	
+	@Test
+	public void testContainsMultipleConstInvalid() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultiple.json");
+		assertNotNull(schema.getProperties());
+
+		JsonSubject subject = setupSubject();
+		subject.toJson().put("integers", new JSONArray(List.of(111L, 456L, 789L, 1234L, 222L)));
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		assertNotNull(result);
+		assertFalse(result.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 2", result.getValidationErrorMessage());
+		assertEquals(List.of("#/integers: expected at least one array item to match 'contains' schema"), result.getAllValidationMessages());
+
 	}
 
 
