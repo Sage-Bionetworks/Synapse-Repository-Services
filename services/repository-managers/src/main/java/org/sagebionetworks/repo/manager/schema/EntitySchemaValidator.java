@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.schema;
 
-import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.EntityManager;
