@@ -25,7 +25,7 @@ public class ITDRSControllerTest {
         ServiceInformation serviceInformation = synapse.getDRSServiceInfo();
         assertNotNull(serviceInformation);
         assertThat(serviceInformation.getId(), is("org.sagebase.prod.repo-prod"));
-        assertThat(serviceInformation.getName(), is("DRS Service"));
+        assertThat(serviceInformation.getName(), is("Sage Bionetworks Synapse DRS API"));
         assertThat(serviceInformation.getUrl(), is("https://repo-prod.prod.sagebase.org"));
         assertThat(serviceInformation.getDocumentationUrl(), is("https://docs.synapse.org"));
         assertThat(serviceInformation.getContactUrl(), is("https://sagebionetworks.jira.com/servicedesk/customer/portal/9"));

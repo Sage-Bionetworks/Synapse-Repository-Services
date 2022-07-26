@@ -12,7 +12,7 @@ import java.util.Date;
 @Service
 public class DRSManagerImpl implements DRSManager {
     public static final String REVERSE_DOMAIN_NOTATION = "org.sagebase.prod.repo-prod";
-    public static final String SERVICE_NAME = "DRS Service";
+    public static final String SERVICE_NAME = "Sage Bionetworks Synapse DRS API";
     public static final String CONTACT_URL = "https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
     public static final String DOCUMENTATION_URL = "https://docs.synapse.org";
     public static final String DRS_URL = "https://repo-prod.prod.sagebase.org";
@@ -21,7 +21,8 @@ public class DRSManagerImpl implements DRSManager {
     public static final String DRS_VERSION = "1.2.0";
     public static final String ORGANIZATION_NAME = "Sage Bionetworks";
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
-    public static final String DESCRIPTION = "This service provides information about implementation of DRS specification";
+    public static final String DESCRIPTION = "This service provides implementation of DRS specification for " +
+            "accessing FileEntities and Datasets within Synapse.";
     private StackConfiguration stackConfiguration;
     private Date createdAt;
     private Date updatedAt;
