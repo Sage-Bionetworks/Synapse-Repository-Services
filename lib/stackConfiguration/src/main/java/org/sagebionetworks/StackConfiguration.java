@@ -841,6 +841,6 @@ public interface StackConfiguration {
 	/**
 	 * @return drs service endpoint
 	 */
-	public String getDrsServiceEndpoint();
+	String getDrsServiceEndpoint();
 	
 }

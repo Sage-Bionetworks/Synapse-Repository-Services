@@ -11,8 +11,8 @@
 		},
 		"type": {
 			"type": "object",
-			"$ref": "org.sagebionetworks.repo.model.drs.DRSPackageInformation",
-			"description": "The Drs standard information."
+			"$ref": "org.sagebionetworks.repo.model.drs.PackageInformation",
+			"description": "The Drs package information."
 		},
 		"description": {
 			"type": "string",
@@ -21,7 +21,7 @@
 		"organization": {
 			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.drs.OrganizationInformation",
-			"description": "The organization information."
+			"description": "The information of the organization, which provides DRS API."
 		},
 		"contactUrl": {
 			"type": "string",

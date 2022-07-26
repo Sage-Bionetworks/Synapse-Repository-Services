@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.drs;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.drs.DRSPackageInformation;
+import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class DRSManagerImpl implements DRSManager {
         ServiceInformation result = new ServiceInformation();
         result.setId(REVERSE_DOMAIN_NOTATION);
         result.setName(SERVICE_NAME);
-        DRSPackageInformation drsPackageInformation = new DRSPackageInformation();
+        PackageInformation drsPackageInformation = new PackageInformation();
         drsPackageInformation.setGroup(DRS_GROUP);
         drsPackageInformation.setArtifact(DRS_ARTIFACT);
         drsPackageInformation.setVersion(DRS_VERSION);

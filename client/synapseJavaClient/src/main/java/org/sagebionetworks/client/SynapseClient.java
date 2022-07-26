@@ -4134,6 +4134,11 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException;
 
+	/**
+	 * Get the service information for DRS API.
+	 * @return
+	 * @throws SynapseException
+	 */
 	ServiceInformation getDRSServiceInfo() throws SynapseException;
 	
 }

@@ -108,7 +108,7 @@ public interface BaseClient {
 	 * The drs endpoint includes the host and version. For example:
 	 * " https://repo-prod.prod.sagebase.org/ga4gh/drs/v1"
 	 */
-	public void setDrsEndpoint(String drsEndpoint);
+	 void setDrsEndpoint(String drsEndpoint);
 
 	/**
 	 * Get the endpoint of the drs service
