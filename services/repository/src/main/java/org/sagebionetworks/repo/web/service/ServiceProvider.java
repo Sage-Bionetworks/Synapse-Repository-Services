@@ -87,6 +87,6 @@ public interface ServiceProvider {
 	
 	public DownloadListService getDownloadListService();
 
-	public DRSService getDRSService();
+	DRSService getDRSService();
 	
 }

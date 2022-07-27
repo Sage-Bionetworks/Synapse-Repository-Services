@@ -8,8 +8,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class DRSServiceImpl implements DRSService{
 
+    private DRSManager drsManager;
+
     @Autowired
-    DRSManager drsManager;
+    public DRSServiceImpl(DRSManager drsManager){
+        super();
+        this.drsManager = drsManager;
+    }
 
     @Override
     public ServiceInformation getServiceInformation() {
