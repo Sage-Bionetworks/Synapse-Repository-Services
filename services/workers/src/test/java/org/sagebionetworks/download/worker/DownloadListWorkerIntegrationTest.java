@@ -249,7 +249,7 @@ public class DownloadListWorkerIntegrationTest {
 		
 	}
 	
-	// Set of tests to reproduce PLFM-7263
+	// Set of tests to reproduce issues in https://sagebionetworks.jira.com/browse/PLFM-7263
 	
 	// Case when we add a DELETED file using a batch action
 	@Test
@@ -280,6 +280,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case when we add a TRASHED file using a batch action
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7416 
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testAddBatchWithTrashedItem() throws Exception {
 		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.DELETE);
@@ -308,6 +310,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case when we add dataset items with a deleted file in it
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7416
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testAddFromDatasetWithDeletedFile() throws Exception {
 		// create file in a project with read access
@@ -348,6 +352,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case when we add dataset items with a trashed file in it
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7416
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testAddFromDatasetWithTrashedFile() throws Exception {
 		// create file in a project with read access
@@ -388,6 +394,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case when we add items from a query on a snapshot and there are deleted files in it
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7416
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testAddFromQueryOnSnapshotWithDeletedFile() throws Exception {
 		// create file in a project with read access
@@ -442,6 +450,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case when we add items from a query on a snapshot and there are trashed files in it
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7416
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testAddFromQueryOnSnapshotWithTrashedFile() throws Exception {
 		// create file in a project with read access
@@ -496,6 +506,8 @@ public class DownloadListWorkerIntegrationTest {
 	
 	// Case for statistics on files when a file on the download list is deleted 
 	@Test
+	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, the behavior should be consistent with trashed case (See testStatisticsWithTrashedItem)
+	// no matter which way we decide to go
 	@Disabled
 	public void testStatisticsWithDeletedItem() throws Exception {
 		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
@@ -523,8 +535,8 @@ public class DownloadListWorkerIntegrationTest {
 		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
 			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
 			assertEquals(1, details.getNumberOfFilesAvailableForDownload());
-			// PLFM-7263: This fails returning 1 instead of 0
-			assertEquals(0, details.getNumberOfFilesRequiringAction());
+			// The deleted file is not available for download and needs to be removed from the download list
+			assertEquals(1, details.getNumberOfFilesRequiringAction());
 			// Note that the deleted file is still in the download list
 			assertEquals(2, details.getTotalNumberOfFiles());
 		}, MAX_WAIT_MS, MAX_RETRIES);
@@ -538,14 +550,13 @@ public class DownloadListWorkerIntegrationTest {
 		// No file should require any action for download
 		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest()), (DownloadListQueryResponse response) -> {
 			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
-			// PLFM-7263: Interestingly this does not fail, even though the FilesStatisticsRequest returns 1 for the numberOfFilesRequiringAction
-			assertEquals(0, details.getPage().size());
+			// PLFM-7263: This fails with a 0 and it is not consistent with the FilesStatisticsRequest
+			assertEquals(1, details.getPage().size());
 		}, MAX_WAIT_MS, MAX_RETRIES);
 		
 	}
 	
 	@Test
-	@Disabled
 	public void testStatisticsWithTrashedItem() throws Exception {
 		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.DELETE);
 		
@@ -572,8 +583,8 @@ public class DownloadListWorkerIntegrationTest {
 		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
 			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
 			assertEquals(1, details.getNumberOfFilesAvailableForDownload());
-			// PLFM-7263: This fails returning 1 instead of 0
-			assertEquals(0, details.getNumberOfFilesRequiringAction());
+			// The trashed file is not available for download and needs to be removed from the download list
+			assertEquals(1, details.getNumberOfFilesRequiringAction());
 			// Note that the trashed file is still in the download list
 			assertEquals(2, details.getTotalNumberOfFiles());
 		}, MAX_WAIT_MS, MAX_RETRIES);
@@ -587,8 +598,7 @@ public class DownloadListWorkerIntegrationTest {
 		// No file should require any action for download
 		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest()), (DownloadListQueryResponse response) -> {
 			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
-			// PLFM-7263: This fails returning 1 instead of 0
-			assertEquals(0, details.getPage().size());
+			assertEquals(1, details.getPage().size());
 		}, MAX_WAIT_MS, MAX_RETRIES);
 		
 	}
