@@ -1,5 +1,5 @@
 {
-	"description": "The information of the organization, which provides DRS API.",
+	"description": "The information of the organization, which provides DRS API implementation.",
 	"properties": {
 		"name": {
 			"type": "string",

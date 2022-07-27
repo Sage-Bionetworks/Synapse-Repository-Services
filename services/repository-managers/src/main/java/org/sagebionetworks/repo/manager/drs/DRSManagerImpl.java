@@ -7,9 +7,6 @@ import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Service
@@ -28,8 +25,6 @@ public class DRSManagerImpl implements DRSManager {
             "accessing FileEntities and Datasets within Synapse.";
     public static Date CREATED_AT = new Date("Tue Jul 29 12:27:16 PDT 2022");
     public static Date UPDATED_AT = new Date("Tue Jul 29 12:27:16 PDT 2022");
-
-    public static final String DRS_RELEASE_VERSION = "417.0.1";
 
     private StackConfiguration stackConfiguration;
 
@@ -59,7 +54,7 @@ public class DRSManagerImpl implements DRSManager {
         result.setCreatedAt(CREATED_AT);
         result.setUpdatedAt(UPDATED_AT);
         result.setEnvironment(stackConfiguration.getStack());
-        result.setVersion(DRS_RELEASE_VERSION);
+        result.setVersion(stackConfiguration.getStackInstance());
         result.setUrl(DRS_URL);
         return result;
     }

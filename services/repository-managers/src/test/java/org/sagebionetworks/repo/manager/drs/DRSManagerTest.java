@@ -27,6 +27,7 @@ public class DRSManagerTest {
     @Test
     public void testGETDRSServiceInformation() {
         when(stackConfiguration.getStack()).thenReturn("dev");
+        when(stackConfiguration.getStackInstance()).thenReturn("417.0.1");
         ServiceInformation serviceInformation = drsManager.getServiceInformation();
         assertNotNull(serviceInformation);
         assertEquals(createExpectedServiceInformation(), serviceInformation);
@@ -51,7 +52,7 @@ public class DRSManagerTest {
         serviceInformation.setCreatedAt(DRSManagerImpl.CREATED_AT);
         serviceInformation.setUpdatedAt(DRSManagerImpl.UPDATED_AT);
         serviceInformation.setEnvironment("dev");
-        serviceInformation.setVersion(DRSManagerImpl.DRS_RELEASE_VERSION);
+        serviceInformation.setVersion("417.0.1");
         serviceInformation.setUrl(DRSManagerImpl.DRS_URL);
 
         return serviceInformation;

@@ -12,7 +12,7 @@
 		"type": {
 			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.drs.PackageInformation",
-			"description": "The Drs package information."
+			"description": "The DRS package information follows GA4GH specification."
 		},
 		"description": {
 			"type": "string",
@@ -21,7 +21,7 @@
 		"organization": {
 			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.drs.OrganizationInformation",
-			"description": "The information of the organization, which provides DRS API."
+			"description": "The information of the organization, which provides DRS API implementation."
 		},
 		"contactUrl": {
 			"type": "string",

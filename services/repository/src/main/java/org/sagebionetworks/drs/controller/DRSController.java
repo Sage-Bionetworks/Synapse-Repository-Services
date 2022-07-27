@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * The supported end point for drs are:
  *     <ul>
- *         <li><a href="${GET.service-info}> GET /service-info</a></li>
+ *         <li><a href="${GET.service-info}"> GET /service-info</a></li>
  *     </ul>
  * </p>
  * <p>
@@ -44,8 +44,9 @@ public class DRSController {
 
 
     /**
-     * Get the drs service information.
-     *
+     * Get the drs service information.See the drs specification:
+     *<a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#tag/GA4GH-Service-Registry">
+     *     GA4GH Service Registry</a>
      * @return the drs service information
      */
     @RequiredScope({OAuthScope.view})

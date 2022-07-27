@@ -1,5 +1,5 @@
 {
-	"description": "The DRS package information, which is followed by drs API.",
+	"description": "The DRS package information follows GA4GH specification.",
 	"properties": {
 		"group": {
 			"type": "string",
