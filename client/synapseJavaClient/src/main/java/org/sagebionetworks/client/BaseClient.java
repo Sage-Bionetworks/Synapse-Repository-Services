@@ -113,7 +113,7 @@ public interface BaseClient {
 	/**
 	 * Get the endpoint of the drs service
 	 */
-	public String getDrsEndpoint();
+	 String getDrsEndpoint();
 
 	public String getUserName();
 

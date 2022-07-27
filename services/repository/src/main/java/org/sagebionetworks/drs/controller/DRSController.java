@@ -16,7 +16,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 /**
- * Services for DRS.
+ * <p>
+ * The <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/">
+ * Data Repository Service</a> API provides access to data objects in single, standard way regardless of
+ * where they are stored and how they are managed.Data Objects for which information can be fetched is
+ * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> and
+ * <a href="${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a>.The data object that be downloaded is file.
+ * </p>
+ * <p>
+ * The supported end point for drs are:
+ *     <ul>
+ *         <li><a href="${GET.service-info}> GET /service-info</a></li>
+ *     </ul>
+ * </p>
+ * <p>
+ *     Use <a href="${GET.service-info}> GET /service-info</a> API to get information about GA4GH-compliant web services,
+ *     including DRS services, to be aggregated into registries and made available via a standard API
+ * </p>
  */
 @ControllerInfo(displayName = "DRS Services", path = "ga4gh/drs/v1")
 @Controller

@@ -1,5 +1,5 @@
 {
-	"description": "The DRS standard information.",
+	"description": "The DRS package information, which is followed by drs API.",
 	"properties": {
 		"group": {
 			"type": "string",

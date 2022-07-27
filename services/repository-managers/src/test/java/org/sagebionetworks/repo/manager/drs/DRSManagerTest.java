@@ -6,6 +6,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.drs.OrganizationInformation;
+import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,23 +27,34 @@ public class DRSManagerTest {
     @Test
     public void testGETDRSServiceInformation() {
         when(stackConfiguration.getStack()).thenReturn("dev");
-        when(stackConfiguration.getStackInstance()).thenReturn("417.0.1");
-        drsManager = new DRSManagerImpl(stackConfiguration);
         ServiceInformation serviceInformation = drsManager.getServiceInformation();
         assertNotNull(serviceInformation);
-        assertEquals(serviceInformation.getId(), DRSManagerImpl.REVERSE_DOMAIN_NOTATION);
-        assertEquals(serviceInformation.getName(), DRSManagerImpl.SERVICE_NAME);
-        assertEquals(serviceInformation.getType().getGroup(), DRSManagerImpl.DRS_GROUP);
-        assertEquals(serviceInformation.getType().getArtifact(), DRSManagerImpl.DRS_ARTIFACT);
-        assertEquals(serviceInformation.getType().getVersion(), DRSManagerImpl.DRS_VERSION);
-        assertEquals(serviceInformation.getDescription(), DRSManagerImpl.DESCRIPTION);
-        assertEquals(serviceInformation.getOrganization().getName(), DRSManagerImpl.ORGANIZATION_NAME);
-        assertEquals(serviceInformation.getOrganization().getUrl(), DRSManagerImpl.ORGANIZATION_URL);
-        assertEquals(serviceInformation.getContactUrl(), DRSManagerImpl.CONTACT_URL);
-        assertEquals(serviceInformation.getDocumentationUrl(), DRSManagerImpl.DOCUMENTATION_URL);
-        assertEquals(serviceInformation.getEnvironment(), "dev");
-        assertEquals(serviceInformation.getVersion(), "417.0.1");
-        assertEquals(serviceInformation.getUrl(), DRSManagerImpl.DRS_URL);
+        assertEquals(createExpectedServiceInformation(), serviceInformation);
+    }
+
+    private ServiceInformation createExpectedServiceInformation(){
+        final ServiceInformation serviceInformation = new ServiceInformation();
+        serviceInformation.setId(DRSManagerImpl.REVERSE_DOMAIN_NOTATION);
+        serviceInformation.setName(DRSManagerImpl.SERVICE_NAME);
+        PackageInformation drsPackageInformation = new PackageInformation();
+        drsPackageInformation.setGroup(DRSManagerImpl.DRS_GROUP);
+        drsPackageInformation.setArtifact(DRSManagerImpl.DRS_ARTIFACT);
+        drsPackageInformation.setVersion(DRSManagerImpl.DRS_VERSION);
+        serviceInformation.setType(drsPackageInformation);
+        serviceInformation.setDescription(DRSManagerImpl.DESCRIPTION);
+        OrganizationInformation organization = new OrganizationInformation();
+        organization.setName(DRSManagerImpl.ORGANIZATION_NAME);
+        organization.setUrl(DRSManagerImpl.ORGANIZATION_URL);
+        serviceInformation.setOrganization(organization);
+        serviceInformation.setContactUrl(DRSManagerImpl.CONTACT_URL);
+        serviceInformation.setDocumentationUrl(DRSManagerImpl.DOCUMENTATION_URL);
+        serviceInformation.setCreatedAt(DRSManagerImpl.CREATED_AT);
+        serviceInformation.setUpdatedAt(DRSManagerImpl.UPDATED_AT);
+        serviceInformation.setEnvironment("dev");
+        serviceInformation.setVersion(DRSManagerImpl.DRS_RELEASE_VERSION);
+        serviceInformation.setUrl(DRSManagerImpl.DRS_URL);
+
+        return serviceInformation;
     }
 
 }

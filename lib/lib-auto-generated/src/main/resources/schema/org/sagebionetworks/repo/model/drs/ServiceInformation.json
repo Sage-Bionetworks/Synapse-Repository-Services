@@ -1,5 +1,5 @@
 {
-	"description": "Service information",
+	"description": "Drs service information",
 	"properties": {
 		"id": {
 			"type": "string",
@@ -34,12 +34,12 @@
 		"createdAt": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The creation date of the service."
+			"description": "The creation date of the Drs services."
 		},
 		"updatedAt": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The creation date of the service."
+			"description": "The update date of the Drs services."
 		},
 		"environment": {
 			"type": "string",
@@ -47,11 +47,11 @@
 		},
 		"version": {
 			"type": "string",
-			"description": "The version of software."
+			"description": "The version of software in which Drs services released."
 		},
 		"url": {
 			"type": "string",
-			"description": "The DRS url."
+			"description": "The Drs API's base url for the provider of service."
 		}
 	}
 }
