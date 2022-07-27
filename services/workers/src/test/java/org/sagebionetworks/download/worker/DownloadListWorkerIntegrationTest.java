@@ -11,10 +11,14 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.download.DownloadListManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -29,6 +33,8 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
@@ -37,12 +43,22 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
+import org.sagebionetworks.repo.model.download.FilesStatisticsRequest;
+import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -71,12 +87,19 @@ public class DownloadListWorkerIntegrationTest {
 	private AccessControlListObjectHelper aclHelper;
 	@Autowired
 	private AccessControlListDAO aclDao;
-
+	@Autowired
+	private DownloadListManager downloadListmanager;
+	@Autowired
+	private TrashManager trashManager;
+	@Autowired
+	private ColumnModelManager columnModelManager;
+	
 	@Autowired
 	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 
 	UserInfo adminUser;
 	UserInfo user;
+	ColumnModel datasetColumn;
 
 	@BeforeEach
 	public void before() {
@@ -90,6 +113,11 @@ public class DownloadListWorkerIntegrationTest {
 		String userName = UUID.randomUUID().toString();
 		user = userManager.createOrGetTestUser(adminUser,
 				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
+		datasetColumn = new ColumnModel();
+		datasetColumn.setName("aString");
+		datasetColumn.setColumnType(ColumnType.STRING);
+		datasetColumn.setMaximumSize(50L);
+		datasetColumn = columnModelManager.createColumnModel(user, datasetColumn);
 	}
 
 	@AfterEach
@@ -217,6 +245,350 @@ public class DownloadListWorkerIntegrationTest {
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (AddToDownloadListResponse response) -> {
 			assertNotNull(response);
 			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+	}
+	
+	// Set of tests to reproduce PLFM-7263
+	
+	// Case when we add a DELETED file using a batch action
+	@Test
+	public void testAddBatchWithDeletedItem() throws Exception {
+		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node deletedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// We delete the file before adding it
+		nodeDao.delete(deletedFile.getId());
+				
+		// Call under test
+		AddBatchOfFilesToDownloadListResponse result = downloadListmanager.addBatchOfFilesToDownloadList(user, new AddBatchOfFilesToDownloadListRequest().setBatchToAdd(List.of(
+			new DownloadListItem().setFileEntityId(file.getId()),
+			new DownloadListItem().setFileEntityId(deletedFile.getId())
+		)));
+		
+		// Only one should have been added
+		assertEquals(1, result.getNumberOfFilesAdded());
+		
+	}
+	
+	// Case when we add a TRASHED file using a batch action
+	@Test
+	@Disabled
+	public void testAddBatchWithTrashedItem() throws Exception {
+		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.DELETE);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node trashedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// We trash the file before adding it
+		trashManager.moveToTrash(user, trashedFile.getId(), false);
+				
+		// Call under test
+		AddBatchOfFilesToDownloadListResponse result = downloadListmanager.addBatchOfFilesToDownloadList(user, new AddBatchOfFilesToDownloadListRequest().setBatchToAdd(List.of(
+			new DownloadListItem().setFileEntityId(file.getId()),
+			new DownloadListItem().setFileEntityId(trashedFile.getId())
+		)));
+		
+		// PLFM-7263: This returns 2 instead of 1
+		assertEquals(1, result.getNumberOfFilesAdded());
+		
+	}
+	
+	// Case when we add dataset items with a deleted file in it
+	@Test
+	@Disabled
+	public void testAddFromDatasetWithDeletedFile() throws Exception {
+		// create file in a project with read access
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node deletedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// add file to a data set
+		List<EntityRef> items = Arrays.asList(
+			new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()), 
+			new EntityRef().setEntityId(deletedFile.getId()).setVersionNumber(deletedFile.getVersionNumber())
+		);
+		
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+
+		// We delete the file before adding it
+		nodeDao.delete(deletedFile.getId());
+		
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setParentId(dataset.getId());
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			// PLFM-7263: This fails returning 2 instead of 1
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	// Case when we add dataset items with a trashed file in it
+	@Test
+	@Disabled
+	public void testAddFromDatasetWithTrashedFile() throws Exception {
+		// create file in a project with read access
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ, ACCESS_TYPE.DELETE);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node trashedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// add file to a data set
+		List<EntityRef> items = Arrays.asList(
+			new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()), 
+			new EntityRef().setEntityId(trashedFile.getId()).setVersionNumber(trashedFile.getVersionNumber())
+		);
+		
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDataset");
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+
+		// We trash the file before adding it
+		trashManager.moveToTrash(user, trashedFile.getId(), false);
+		
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setParentId(dataset.getId());
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			// PLFM-7263: This fails returning 2 instead of 1
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	// Case when we add items from a query on a snapshot and there are deleted files in it
+	@Test
+	@Disabled
+	public void testAddFromQueryOnSnapshotWithDeletedFile() throws Exception {
+		// create file in a project with read access
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ, ACCESS_TYPE.DELETE);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node deletedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// add file to a data set
+		List<EntityRef> items = Arrays.asList(
+			new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()), 
+			new EntityRef().setEntityId(deletedFile.getId()).setVersionNumber(deletedFile.getVersionNumber())
+		);
+
+		Dataset dataset = asynchronousJobWorkerHelper.createDataset(adminUser, 
+			new Dataset().setParentId(file.getParentId()).setName("aDataset").setItems(items).setColumnIds(List.of(datasetColumn.getId())));
+
+		asynchronousJobWorkerHelper.assertQueryResult(adminUser, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(2L, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);		
+		
+		// We create a snapshot
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(dataset.getId());
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(new SnapshotRequest().setSnapshotComment("snapshot"));
+		
+		TableUpdateTransactionResponse snapshotResponse = asynchronousJobWorkerHelper.assertJobResponse(adminUser, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response.getSnapshotVersionNumber());
+		}, MAX_WAIT_MS).getResponse();
+
+		asynchronousJobWorkerHelper.assertQueryResult(adminUser, "SELECT * FROM " + dataset.getId()  + "." + snapshotResponse.getSnapshotVersionNumber(), (QueryResultBundle result) -> {
+			assertEquals(2L, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		
+		// Now delete one of the files
+		nodeDao.delete(deletedFile.getId());
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setQuery(new Query().setSql("SELECT * FROM " + dataset.getId() + "." + snapshotResponse.getSnapshotVersionNumber()));
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, addRequest, (AddToDownloadListResponse response) -> {
+			// PLFM-7263: This fails returning 2 instead of 1
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	// Case when we add items from a query on a snapshot and there are trashed files in it
+	@Test
+	@Disabled
+	public void testAddFromQueryOnSnapshotWithTrashedFile() throws Exception {
+		// create file in a project with read access
+		Node file = createFileHierarchy(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ, ACCESS_TYPE.DELETE);
+		
+		// Add another file to the hierarchy, we will move this to the trash
+		Node trashedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+		
+		// add file to a data set
+		List<EntityRef> items = Arrays.asList(
+			new EntityRef().setEntityId(file.getId()).setVersionNumber(file.getVersionNumber()), 
+			new EntityRef().setEntityId(trashedFile.getId()).setVersionNumber(trashedFile.getVersionNumber())
+		);
+
+		Dataset dataset = asynchronousJobWorkerHelper.createDataset(adminUser, 
+			new Dataset().setParentId(file.getParentId()).setName("aDataset").setItems(items).setColumnIds(List.of(datasetColumn.getId())));
+
+		asynchronousJobWorkerHelper.assertQueryResult(adminUser, "SELECT * FROM " + dataset.getId(), (QueryResultBundle result) -> {
+			assertEquals(2L, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);		
+		
+		// We create a snapshot
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(dataset.getId());
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(new SnapshotRequest().setSnapshotComment("snapshot"));
+		
+		TableUpdateTransactionResponse snapshotResponse = asynchronousJobWorkerHelper.assertJobResponse(adminUser, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertNotNull(response.getSnapshotVersionNumber());
+		}, MAX_WAIT_MS).getResponse();
+
+		asynchronousJobWorkerHelper.assertQueryResult(adminUser, "SELECT * FROM " + dataset.getId()  + "." + snapshotResponse.getSnapshotVersionNumber(), (QueryResultBundle result) -> {
+			assertEquals(2L, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+
+		// Now trash one of the files
+		trashManager.moveToTrash(user, trashedFile.getId(), false);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setQuery(new Query().setSql("SELECT * FROM " + dataset.getId() + "." + snapshotResponse.getSnapshotVersionNumber()));
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(adminUser, addRequest, (AddToDownloadListResponse response) -> {
+			// PLFM-7263: This fails returning 2 instead of 1
+			assertEquals(1L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+	
+	// Case for statistics on files when a file on the download list is deleted 
+	@Test
+	@Disabled
+	public void testStatisticsWithDeletedItem() throws Exception {
+		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node deletedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+				
+		// Call under test
+		AddBatchOfFilesToDownloadListResponse result = downloadListmanager.addBatchOfFilesToDownloadList(user, new AddBatchOfFilesToDownloadListRequest().setBatchToAdd(List.of(
+			new DownloadListItem().setFileEntityId(file.getId()),
+			new DownloadListItem().setFileEntityId(deletedFile.getId())
+		)));
+
+		// Both files should have been added
+		assertEquals(2, result.getNumberOfFilesAdded());
+		
+		// We now delete the file after adding it
+		nodeDao.delete(deletedFile.getId());		
+		
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+			assertEquals(1, details.getNumberOfFilesAvailableForDownload());
+			// PLFM-7263: This fails returning 1 instead of 0
+			assertEquals(0, details.getNumberOfFilesRequiringAction());
+			// Note that the deleted file is still in the download list
+			assertEquals(2, details.getTotalNumberOfFiles());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+		// One file should now be available for download
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()), (DownloadListQueryResponse response) -> {
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getResponseDetails();
+			assertEquals(1, details.getPage().size());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+		// No file should require any action for download
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest()), (DownloadListQueryResponse response) -> {
+			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
+			// PLFM-7263: Interestingly this does not fail, even though the FilesStatisticsRequest returns 1 for the numberOfFilesRequiringAction
+			assertEquals(0, details.getPage().size());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+	}
+	
+	@Test
+	@Disabled
+	public void testStatisticsWithTrashedItem() throws Exception {
+		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.DELETE);
+		
+		// Add another file to the hierarchy, we will delete this
+		Node trashedFile = nodeDaoHelper.create((n) -> {
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.file);
+			n.setName("DeletedFile");
+			n.setFileHandleId(file.getFileHandleId());
+		});
+				
+		// Call under test
+		AddBatchOfFilesToDownloadListResponse result = downloadListmanager.addBatchOfFilesToDownloadList(user, new AddBatchOfFilesToDownloadListRequest().setBatchToAdd(List.of(
+			new DownloadListItem().setFileEntityId(file.getId()),
+			new DownloadListItem().setFileEntityId(trashedFile.getId())
+		)));
+
+		// Both files should have been added
+		assertEquals(2, result.getNumberOfFilesAdded());
+		
+		// We now trash the file after adding it
+		trashManager.moveToTrash(user, trashedFile.getId(), false);
+		
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
+			FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+			assertEquals(1, details.getNumberOfFilesAvailableForDownload());
+			// PLFM-7263: This fails returning 1 instead of 0
+			assertEquals(0, details.getNumberOfFilesRequiringAction());
+			// Note that the trashed file is still in the download list
+			assertEquals(2, details.getTotalNumberOfFiles());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+		// One file should now be available for download
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()), (DownloadListQueryResponse response) -> {
+			AvailableFilesResponse details = (AvailableFilesResponse) response.getResponseDetails();
+			assertEquals(1, details.getPage().size());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
+		// No file should require any action for download
+		asynchronousJobWorkerHelper.assertJobResponse(user, new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest()), (DownloadListQueryResponse response) -> {
+			ActionRequiredResponse details = (ActionRequiredResponse) response.getResponseDetails();
+			// PLFM-7263: This fails returning 1 instead of 0
+			assertEquals(0, details.getPage().size());
 		}, MAX_WAIT_MS, MAX_RETRIES);
 		
 	}
