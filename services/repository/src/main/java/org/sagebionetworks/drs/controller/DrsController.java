@@ -31,13 +31,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  *     Use <a href="${GET.service-info}> GET /service-info</a> API to get information about GA4GH-compliant web services,
- *     including DRS services, to be aggregated into registries and made available via a standard API
+ *     including drs services, to be aggregated into registries and made available via a standard API
  * </p>
  */
-@ControllerInfo(displayName = "DRS Services", path = "ga4gh/drs/v1")
+@ControllerInfo(displayName = "Drs Services", path = "ga4gh/drs/v1")
 @Controller
 @RequestMapping(UrlHelpers.DRS_PATH)
-public class DRSController {
+public class DrsController {
 
     @Autowired
     ServiceProvider serviceProvider;
@@ -45,15 +45,16 @@ public class DRSController {
 
     /**
      * Get the drs service information.See the drs specification:
-     *<a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#tag/GA4GH-Service-Registry">
-     *     GA4GH Service Registry</a>
+     * <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#tag/GA4GH-Service-Registry">
+     * GA4GH Service Registry</a>
+     *
      * @return the drs service information
      */
     @RequiredScope({OAuthScope.view})
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = {UrlHelpers.DRS_SERVICE_INFO}, method = RequestMethod.GET)
     public @ResponseBody
-    ServiceInformation getDRSServiceInfo() {
-        return serviceProvider.getDRSService().getServiceInformation();
+    ServiceInformation getDrsServiceInfo() {
+        return serviceProvider.getDrsService().getServiceInformation();
     }
 }

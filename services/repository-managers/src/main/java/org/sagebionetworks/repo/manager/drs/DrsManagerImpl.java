@@ -12,7 +12,7 @@ import java.time.ZoneOffset;
 import java.util.Date;
 
 @Service
-public class DRSManagerImpl implements DRSManager {
+public class DrsManagerImpl implements DrsManager {
     public static final String REVERSE_DOMAIN_NOTATION = "org.sagebase.prod.repo-prod";
     public static final String SERVICE_NAME = "Sage Bionetworks Synapse DRS API";
     public static final String CONTACT_URL = "https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
@@ -32,7 +32,7 @@ public class DRSManagerImpl implements DRSManager {
     private StackConfiguration stackConfiguration;
 
     @Autowired
-    public DRSManagerImpl(StackConfiguration stackConfiguration) {
+    public DrsManagerImpl(StackConfiguration stackConfiguration) {
         super();
         this.stackConfiguration = stackConfiguration;
     }

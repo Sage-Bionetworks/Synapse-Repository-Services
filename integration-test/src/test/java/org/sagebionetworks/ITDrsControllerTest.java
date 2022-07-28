@@ -7,21 +7,21 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(ITTestExtension.class)
-public class ITDRSControllerTest {
+public class ITDrsControllerTest {
 
     final private SynapseClient synapse;
 
-    public ITDRSControllerTest(SynapseClient synapse) {
+    public ITDrsControllerTest(SynapseClient synapse) {
         this.synapse = synapse;
     }
 
     @Test
-    public void testGETDRSServiceInfo() throws SynapseException {
-        ServiceInformation serviceInformation = synapse.getDRSServiceInfo();
+    public void testGETDrsServiceInfo() throws SynapseException {
+        ServiceInformation serviceInformation = synapse.getDrsServiceInfo();
         assertNotNull(serviceInformation);
         assertEquals(serviceInformation.getId(), "org.sagebase.prod.repo-prod");
         assertEquals(serviceInformation.getName(), "Sage Bionetworks Synapse DRS API");

@@ -11,7 +11,7 @@
 		},
 		"version": {
 			"type": "string",
-			"description": "The version of DRS standard."
+			"description": "The version of DRS specification."
 		}
 	}
 }

@@ -5,9 +5,9 @@ import org.sagebionetworks.repo.model.drs.ServiceInformation;
 /**
  * Service that is exposed to the clients for drs.
  */
-public interface DRSService {
+public interface DrsService {
     /**
-     * @return the DRS service information
+     * @return the drs service information
      */
     ServiceInformation getServiceInformation();
 }
