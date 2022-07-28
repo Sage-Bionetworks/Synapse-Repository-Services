@@ -494,6 +494,8 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2GoogleClientSecret();
+	
+	public String getOAuth2GoogleDiscoveryDocument();
 
 	/**
 	 * 
@@ -506,6 +508,8 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuth2ORCIDClientSecret();
+	
+	public String getOAuth2ORCIDDiscoveryDocument();
 
 	/**
 	 * Get the max bytes per HTTP request for a table.
@@ -837,5 +841,10 @@ public interface StackConfiguration {
 	 * @return Max amount of time in ms that a kinesis delivery retry can wait for, can be null 
 	 */
 	Long getKinesisMaxRetryDelay();
+
+	/**
+	 * @return drs service endpoint
+	 */
+	String getDrsServiceEndpoint();
 	
 }

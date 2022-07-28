@@ -427,6 +427,10 @@
 			"description": "Secondary table tha maps the materialized views to their bound source tables"
 		},
 		{
+			"name": "PRINCIPAL_OIDC_BINDING",
+			"description": "Table that maps a user to a bound OIDC provider identity"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

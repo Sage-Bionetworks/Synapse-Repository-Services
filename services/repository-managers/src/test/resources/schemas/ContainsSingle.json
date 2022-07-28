@@ -1,0 +1,12 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "containsSingle",
+	"properties": {
+		"fruit": {
+			"type": "array",
+			"contains": {
+				"const": "apple"
+			}
+		}
+	}
+}

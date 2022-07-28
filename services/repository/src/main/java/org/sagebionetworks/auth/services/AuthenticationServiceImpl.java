@@ -118,14 +118,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		if(providedInfo.getUsersVerifiedEmail() == null){
+		
+		if (providedInfo.getUsersVerifiedEmail() == null){
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
-		// This is the ID of the user within the provider's system.
-		PrincipalAlias emailAlias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
 		
+		if (providedInfo.getSubject() == null) {
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide the user subject");
+		}
+		
+		// We first lookup for a potential subject already bound for the given provider
+		Long principalId = userManager.lookupUserIdByOIDCSubject(request.getProvider(), providedInfo.getSubject()).orElseGet(() -> {
+			// If not found, for backward compatibility we also lookup the user by the provider verified email
+			PrincipalAlias alias = userManager.lookupUserByUsernameOrEmail(providedInfo.getUsersVerifiedEmail());
+			// Finally, we also migrate the user to the oauth provider subject (See https://sagebionetworks.jira.com/browse/PLFM-7302)
+			userManager.bindUserToOIDCSubject(alias.getPrincipalId(), request.getProvider(), providedInfo.getSubject());
+			return alias.getPrincipalId();
+		});
+				
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(emailAlias.getPrincipalId(), tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(principalId, tokenIssuer);
 	}
 	
 	@WriteTransaction
@@ -133,15 +145,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// Use the authentication code to lookup the user's information.
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
-		if(providedInfo.getUsersVerifiedEmail() == null){
+		
+		if (providedInfo.getUsersVerifiedEmail() == null){
 			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
 		}
+		
+		if (providedInfo.getSubject() == null) {
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide the user subject");
+		}
+		
 		// create account with the returned user info.
 		NewUser newUser = new NewUser();
+		
 		newUser.setEmail(providedInfo.getUsersVerifiedEmail());
 		newUser.setFirstName(providedInfo.getFirstName());
 		newUser.setLastName(providedInfo.getLastName());
 		newUser.setUserName(request.getUserName());
+		newUser.setOauthProvider(request.getProvider());
+		newUser.setSubject(providedInfo.getSubject());
+		
 		long newPrincipalId = userManager.createUser(newUser);
 
 		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);

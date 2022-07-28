@@ -1,0 +1,13 @@
+{
+	"description": "The information of the organization, which provides DRS API implementation.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The name of the organization."
+		},
+		"url": {
+			"type": "string",
+			"description": "The url of organization."
+		}
+	}
+}

@@ -12,6 +12,7 @@ import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
@@ -19,6 +20,10 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
+import org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider;
+import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
+import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
+import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
@@ -35,6 +40,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionF
 import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation;
 import org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiMarkdown;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -175,6 +182,24 @@ public class RepositoryConfiguration {
 		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
 		
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
+	}
+	
+	@Bean
+	public Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap(StackConfiguration config, SimpleHttpClient client) {
+		return Map.of(
+			OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client),
+			OAuthProvider.ORCID, orcidOAuthProvider(config, client)
+		);
+	}
+	
+	@Bean
+	public GoogleOAuth2Provider googleOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
+		return new GoogleOAuth2Provider(config.getOAuth2GoogleClientId(), config.getOAuth2GoogleClientSecret(), new OIDCConfig(client, config.getOAuth2GoogleDiscoveryDocument()));
+	}
+	
+	@Bean
+	public OrcidOAuth2Provider orcidOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
+		return new OrcidOAuth2Provider(config.getOAuth2ORCIDClientId(), config.getOAuth2ORCIDClientSecret(), new OIDCConfig(client, config.getOAuth2ORCIDDiscoveryDocument()));
 	}
 	
 }

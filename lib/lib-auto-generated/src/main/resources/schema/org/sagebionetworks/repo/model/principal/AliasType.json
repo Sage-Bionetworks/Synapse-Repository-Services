@@ -1,27 +1,27 @@
 {
-    "description": "The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum",
+    "description": "The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum. For an OAuthProvider type the matching alias is prefixed with USER_",
     "name": "AliasType",
     "type": "string",
     "enum": [
         {
             "name": "USER_NAME",
-            "description": "TODO: Auto-generated description"
+            "description": "Alias used for the unique username of a user"
         },
         {
             "name": "TEAM_NAME",
-            "description": "TODO: Auto-generated description"
+            "description": "Alias used for the unique name of a team"
         },
         {
             "name": "USER_EMAIL",
-            "description": "TODO: Auto-generated description"
+            "description": "Alias used for the email address of a user"
         },
         {
             "name": "USER_OPEN_ID",
-            "description": "TODO: Auto-generated description"
+            "description": "Deprecated"
         },
         {
             "name": "USER_ORCID",
-            "description": "TODO: Auto-generated description"
+            "description": "Alias used for the ORCID identity of a user"
         }
     ]
 }
