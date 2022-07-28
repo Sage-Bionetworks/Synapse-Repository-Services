@@ -507,7 +507,8 @@ public class DownloadListWorkerIntegrationTest {
 	// Case for statistics on files when a file on the download list is deleted 
 	@Test
 	// This was discovered while researching https://sagebionetworks.jira.com/browse/PLFM-7263, the behavior should be consistent with trashed case (See testStatisticsWithTrashedItem)
-	// no matter which way we decide to go
+	// no matter which way we decide to go. This should be enabled to test the fix for https://sagebionetworks.jira.com/browse/PLFM-7418
+	// or adjusted if we decide to keep it this way
 	@Disabled
 	public void testStatisticsWithDeletedItem() throws Exception {
 		Node file = createFileHierarchy(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
