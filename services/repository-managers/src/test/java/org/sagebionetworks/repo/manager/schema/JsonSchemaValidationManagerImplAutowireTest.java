@@ -748,6 +748,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultDouble", "0.0123456", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConst", "123", AnnotationsValueType.LONG);
 		assertEquals(Optional.of(expected), annos);
 	}
 	
@@ -767,6 +768,7 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultLong", "123456", AnnotationsValueType.LONG);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultTimestamp", "222", AnnotationsValueType.TIMESTAMP_MS);
 		AnnotationsV2TestUtils.putAnnotations(expected, "defaultBoolean", "true", AnnotationsValueType.BOOLEAN);
+		AnnotationsV2TestUtils.putAnnotations(expected, "someConst", "123", AnnotationsValueType.LONG);
 		assertEquals(Optional.of(expected), annos);
 	}
 	
@@ -1010,6 +1012,68 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		annos = manager.calculateDerivedAnnotations(schema, subject);
 		expected = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(expected, "someConditional", "someBoolean was false", AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalSingleContains() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsSingle.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "fruit", List.of("apple"), AnnotationsValueType.STRING);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithUnconditionalMultipleContains() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultiple.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+		
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123","456","789"), AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalMatchThen() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", true);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "111", "222"),
+				AnnotationsValueType.LONG);
+		assertEquals(Optional.of(expected), annos);
+	}
+	
+	@Test
+	public void testCalculateDerivedAnnotationsWithContainsMultipleConditionalMatchElse() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/ContainsMultipleConditional.json");
+		assertNotNull(schema.getProperties());
+
+		JSONObject subject = new JSONObject();
+		subject.put("someBoolean", false);
+
+		// call under test
+		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
+		Annotations expected = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(expected, "_accessRequirementIds", List.of("456", "333", "444"),
+				AnnotationsValueType.LONG);
 		assertEquals(Optional.of(expected), annos);
 	}
 	

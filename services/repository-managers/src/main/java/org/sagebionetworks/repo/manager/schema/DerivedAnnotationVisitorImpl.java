@@ -1,15 +1,21 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import org.everit.json.schema.ArraySchema;
 import org.everit.json.schema.CombinedSchema;
 import org.everit.json.schema.ConstSchema;
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.event.CombinedSchemaMatchEvent;
 import org.everit.json.schema.event.ConditionalSchemaMatchEvent;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
@@ -142,13 +148,66 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 	 */
 	void considerMatchingProperty(String key, Schema schema) {
 		if (!this.keysPresentAtStart.contains(key)) {
-			Optional<Object> optionalObjectValue = getConstOrDefaultValue(schema);
-			if (optionalObjectValue.isPresent()) {
-				JSONObject value = new JSONObject();
-				value.put(key, optionalObjectValue.get());
-				AnnotationsValue anValue = translator.getAnnotationValueFromJsonObject(key, value);
-				annotations.getAnnotations().put(key, anValue);
-			}
+			streamOverSubSchemas(schema).forEach(s->{
+				handleConstAndDefault(key, s);
+			});
+		}
+	}
+
+	void handleConstAndDefault(String key, Schema s) {
+		Optional<Object> optionalObjectValue = getConstOrDefaultValue(s);
+		if (optionalObjectValue.isPresent()) {
+			JSONObject value = new JSONObject();
+			value.put(key, optionalObjectValue.get());
+			AnnotationsValue newValue = translator.getAnnotationValueFromJsonObject(key, value);
+			annotations.getAnnotations().put(key,
+					mergeArrayAnnotations(annotations.getAnnotations().get(key), newValue));
+		}
+	}
+	
+	/**
+	 * Given two annotation values, attempt to merge the values if they are the same.
+	 * @param existing
+	 * @param newValue
+	 * @return
+	 */
+	AnnotationsValue mergeArrayAnnotations(AnnotationsValue existing, AnnotationsValue newValue) {
+		ValidateArgument.required(newValue, "newValue");
+		ValidateArgument.required(newValue.getType(), "newValue.type");
+		ValidateArgument.required(newValue.getValue(), "newValue.value");
+		if(existing == null) {
+			return newValue;
+		}
+		if(!newValue.getType().equals(existing.getType())) {
+			// ignore the new
+			return existing;
+		}
+		List<String> mergedValues = new ArrayList<>(existing.getValue());
+		mergedValues.addAll(newValue.getValue());
+		return new AnnotationsValue().setType(newValue.getType()).setValue(mergedValues);
+	}
+	
+	/**
+	 * Get a stream over the given schema. If the schema represents a leaf, then the
+	 * resulting stream will only contain that leaf. If the schema has subschemas,
+	 * the resulting stream will include each subschema recursively.
+	 * 
+	 * @param schema
+	 * @return
+	 */
+	static Stream<Schema> streamOverSubSchemas(Schema schema) {
+		List<Schema> list = new LinkedList<>();
+		streamOverSubSchemas(schema, list);
+		return list.stream();
+	}
+	
+	private static void streamOverSubSchemas(Schema schema, List<Schema> list) {
+		if (schema instanceof CombinedSchema) {
+			((CombinedSchema) schema).getSubschemas().forEach(sub -> {
+				streamOverSubSchemas(sub, list);
+			});
+		} else {
+			list.add(schema);
 		}
 	}
 
@@ -160,9 +219,15 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 	 *         'default' or 'const'.
 	 */
 	Optional<Object> getConstOrDefaultValue(Schema schema) {
+		if(schema == null) {
+			return Optional.empty();
+		}
 		if (schema instanceof ConstSchema) {
 			return Optional.of(((ConstSchema) schema).getPermittedValue());
-		} else if (schema instanceof ReferenceSchema) {
+		} else if (schema instanceof ArraySchema) {
+			// recursive follow $ref to the referenced schema.
+			return getConstOrDefaultValue(((ArraySchema)schema).getContainedItemSchema());
+		}  else if (schema instanceof ReferenceSchema) {
 			// recursive follow $ref to the referenced schema.
 			return getConstOrDefaultValue(((ReferenceSchema)schema).getReferredSchema());
 		}else {
