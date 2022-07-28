@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.manager.drs;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
+import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 @Service
@@ -23,8 +25,9 @@ public class DRSManagerImpl implements DRSManager {
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
     public static final String DESCRIPTION = "This service provides implementation of DRS specification for " +
             "accessing FileEntities and Datasets within Synapse.";
-    public static Date CREATED_AT = new Date("Tue Jul 29 12:27:16 PDT 2022");
-    public static Date UPDATED_AT = new Date("Tue Jul 29 12:27:16 PDT 2022");
+    private static final LocalDate localDate = LocalDate.of(2022, 8, 01);
+    public static final Date CREATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
+    public static final Date UPDATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
 
     private StackConfiguration stackConfiguration;
 
