@@ -267,7 +267,10 @@ TOKEN [IGNORE_CASE]: {
 
 /* numeric functions */
 TOKEN [IGNORE_CASE]: {
-	< numeric_function_name: "ROUND" >
+	< numeric_function_name:
+	"ROUND"
+	| "CRC32"
+    >
 }
 
 /* list functions */

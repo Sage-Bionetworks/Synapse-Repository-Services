@@ -53,6 +53,7 @@ String Functions,Convert all string values from the column foo to upper case.,se
 String Functions,Convert all string values from the column foo to lower case.,select lower(foo) from syn123
 String Functions,Trim leading and trailing white space characters from all string values of the column foo.,select trim(foo) from syn123
 Numeric Functions,Rounds all numeric values in the column foo to 2 decimal places.,"select round(foo,2) from syn123"
+Numeric Functions,"Perform a checksum calculation using the salt, tag, id, and benefactorId to detect if changed have been made to the data.","select sum(crc32(concat('salt','-',etag,'-',id,'-',benefactorId))) from syn123"
 Grouping,"Select all rows grouping first by foo, then by bar.","select * from syn123 group by foo, bar"
 Grouping,"Grouping can be used in conjunction with aggregation function.  In this example, values from the foo column are first grouped, then the average of each group is calculated. For this example, one row will be returned for each group.","select foo, avg(foo) from syn123 group by foo"
 Sorting,Select all columns from the table with the returned row order sorted by the values of the foo column in ascending order.,select * from syn123 order by foo asc
