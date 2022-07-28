@@ -841,5 +841,10 @@ public interface StackConfiguration {
 	 * @return Max amount of time in ms that a kinesis delivery retry can wait for, can be null 
 	 */
 	Long getKinesisMaxRetryDelay();
+
+	/**
+	 * @return drs service endpoint
+	 */
+	String getDrsServiceEndpoint();
 	
 }

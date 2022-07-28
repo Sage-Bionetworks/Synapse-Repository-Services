@@ -179,6 +179,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -6130,5 +6131,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/entity/"+entityId+"/derivedKeys", Keys.class);
+	}
+
+	@Override
+	public ServiceInformation getDrsServiceInfo() throws SynapseException {
+		return getJSONEntity(getDrsEndpoint(), "/service-info", ServiceInformation.class);
 	}
 }

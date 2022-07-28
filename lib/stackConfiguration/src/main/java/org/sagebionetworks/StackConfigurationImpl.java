@@ -1247,4 +1247,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 		}
 		return null;
 	}
+
+	@Override
+	public String getDrsServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.drsservice.endpoint");
+	}
 }

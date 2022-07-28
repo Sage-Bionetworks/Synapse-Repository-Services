@@ -11,8 +11,7 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<!-- Discover all our controllers -->
-	<context:component-scan base-package="org.sagebionetworks.repo.web.controller, org.sagebionetworks.auth.controller, org.sagebionetworks.file.controller" />
-
+	<context:component-scan base-package="org.sagebionetworks.repo.web.controller, org.sagebionetworks.auth.controller, org.sagebionetworks.file.controller, org.sagebionetworks.drs.controller" />
 
 	<!-- Import the manager beans -->
   	<import resource="classpath:repository-servlet-import.xml" />

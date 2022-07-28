@@ -143,6 +143,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -4133,5 +4134,10 @@ public interface SynapseClient extends BaseClient {
 	 */
 	Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException;
 
-
+    /**
+     * Get the service information for drs API.
+     * @return
+     * @throws SynapseException
+     */
+    ServiceInformation getDrsServiceInfo() throws SynapseException;
 }
