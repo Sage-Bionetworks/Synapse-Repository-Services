@@ -499,7 +499,7 @@ public class DatasetIntegrationTest {
 			}, MAX_WAIT);
 		}).getMessage();
 		
-		assertEquals("Scope has not been defined for this view.", errorMessage);
+		assertEquals("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.", errorMessage);
 	}
 
 }

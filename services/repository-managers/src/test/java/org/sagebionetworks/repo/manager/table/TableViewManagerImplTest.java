@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -1570,5 +1571,39 @@ public class TableViewManagerImplTest {
 			// call under test
 			manager.refreshBenefactorsForViewSnapshot(idAndVersion);
 		});
+	}
+
+	@Test
+	public void testExceptionMessageForUndefinedDatasetScope() throws Exception {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		setupWriter();
+		doThrow(new UndefinedViewScopeException("Some error message that should be overwritten"))
+				.when(mockIndexManager).createViewSnapshot(any(), any(), any(), any());
+		when(mockNodeManager.getNodeType(viewId)).thenReturn(EntityType.dataset);
+
+		// call under test
+		assertThrows(
+				UndefinedViewScopeException.class,
+				() -> manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema),
+				"You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version."
+		);
+	}
+
+	@Test
+	public void testExceptionMessageForUndefinedDatasetCollectionScope() throws Exception {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		setupWriter();
+		doThrow(new UndefinedViewScopeException("Some error message that should be overwritten"))
+				.when(mockIndexManager).createViewSnapshot(any(), any(), any(), any());
+		when(mockNodeManager.getNodeType(viewId)).thenReturn(EntityType.datasetcollection);
+
+		// call under test
+		assertThrows(
+				UndefinedViewScopeException.class,
+				() -> manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema),
+				"You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version."
+		);
 	}
 }

@@ -1106,7 +1106,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		if (filter.isEmpty()) {
 			// nothing to do if the scope is empty.
-			throw new IllegalArgumentException("Scope has not been defined for this view.");
+			throw new UndefinedViewScopeException("Scope has not been defined for this view.");
 		}
 		
 		Map<String, Object> param = filter.getParameters();

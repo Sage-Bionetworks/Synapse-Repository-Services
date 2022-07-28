@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -54,7 +55,7 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -629,7 +630,16 @@ public class TableViewManagerImpl implements TableViewManager {
 			String bucket = config.getViewSnapshotBucketName();
 			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
 			return new BucketAndKey().withBucket(bucket).withtKey(key);
-		} catch (IOException e) {
+		} catch (UndefinedViewScopeException e) {
+			// PLFM-7417 - Contextually update the error message based on the entity type.
+			EntityType entityType = nodeManager.getNodeType(KeyFactory.keyToString(idAndVersion.getId()));
+			if (EntityType.dataset.equals(entityType)) {
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.");
+			} else if (EntityType.datasetcollection.equals(entityType)) {
+				throw new UndefinedViewScopeException("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.");
+			}
+			throw e;
+ 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			// unconditionally delete the temporary file.

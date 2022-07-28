@@ -2466,7 +2466,7 @@ public class TableIndexDAOImplTest {
 				
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 		
-		assertThrows(IllegalArgumentException.class, () -> {
+		assertThrows(UndefinedViewScopeException.class, () -> {
 			// call under test
 			tableIndexDAO.createViewSnapshotFromObjectReplication(tableId.getId(), filter, schema,
 					fieldTypeMapper, stream);
