@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "containsMultiple",
+	"$id": "containsMultipleDuplicates",
 	"properties": {
 		"integers": {
 			"type": "array",
@@ -18,7 +18,13 @@
 				},
 				{
 					"contains": {
-						"const": 789
+						"const": 123
+					}
+				},
+				{
+					"contains": {
+						"type": "integer",
+						"const": 456
 					}
 				}
 			]
