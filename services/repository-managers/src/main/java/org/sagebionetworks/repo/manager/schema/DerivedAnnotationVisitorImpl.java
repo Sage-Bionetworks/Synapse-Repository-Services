@@ -105,7 +105,7 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 	 */
 	void addMatchingSchema(Schema schema) {
 		// We only consider ObjectSchemas that have properties with key-value pairs.
-		streamOverSubSchemas(schema).filter(s -> s instanceof ObjectSchema).map(s -> (ObjectSchema) s)
+		streamOverSubschemas(schema).filter(s -> s instanceof ObjectSchema).map(s -> (ObjectSchema) s)
 				.forEach(s -> addMatchingObjectSchema(s));
 	}
 
@@ -133,7 +133,7 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 	 */
 	void considerMatchingProperty(String key, Schema schema) {
 		if (!this.keysPresentAtStart.contains(key)) {
-			streamOverSubSchemas(schema).forEach(sub -> {
+			streamOverSubschemas(schema).forEach(sub -> {
 				addOrUpdateConstAndDefaultAnnotation(key, sub);
 			});
 		}
@@ -191,7 +191,7 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 	 * @param schema
 	 * @return
 	 */
-	static Stream<Schema> streamOverSubSchemas(Schema schema) {
+	static Stream<Schema> streamOverSubschemas(Schema schema) {
 		List<Schema> list = new LinkedList<>();
 		streamOverSubSchemasRecursive(schema, list);
 		return list.stream();
