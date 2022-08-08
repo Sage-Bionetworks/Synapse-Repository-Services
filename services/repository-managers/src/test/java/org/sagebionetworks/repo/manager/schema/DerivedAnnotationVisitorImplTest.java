@@ -64,6 +64,26 @@ public class DerivedAnnotationVisitorImplTest {
 	}
 	
 	@Test
+	public void testMergeArrayAnnotationsWithNulls() {
+		AnnotationsValue newValue = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.DOUBLE, "3.14", null);
+		AnnotationsValue existing = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.LONG, "222", null);
+		// call under test
+		AnnotationsValue result = DerivedAnnotationVisitorImpl.mergeArrayAnnotations(existing, newValue);
+		AnnotationsValue expected = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "222", null, "3.14");
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testMergeArrayAnnotationsWithEmpty() {
+		AnnotationsValue newValue = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "one", "");
+		AnnotationsValue existing = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "two", "");
+		// call under test
+		AnnotationsValue result = DerivedAnnotationVisitorImpl.mergeArrayAnnotations(existing, newValue);
+		AnnotationsValue expected = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "two", "", "one");
+		assertEquals(expected, result);
+	}
+	
+	@Test
 	public void testMergeArrayAnnotationsNullNew() {
 		AnnotationsValue newValue = null;
 		AnnotationsValue existing = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.LONG, "222");
