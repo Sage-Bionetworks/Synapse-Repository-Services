@@ -2935,6 +2935,39 @@ public class TableWorkerIntegrationTest {
 			assertEquals("five#four", row.getValues().get(1));
 		});
 	}
+
+	@Test
+	public void testQueryCRC32() throws Exception {
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setMaximumSize(50L);
+		foo.setName("foo");
+		foo = columnManager.createColumnModel(adminUserInfo, foo);
+		schema = Lists.newArrayList(foo);
+		// build a table with this column.
+		createTableWithSchema();
+		// add some rows
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "one"),
+				TableModelTestUtils.createRow(null, null, "two")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		// Wait for the table to become available
+		String sql = "select CRC32(foo) from " + tableId + " order by foo desc";
+		query.setSql(sql);
+
+		waitForConsistentQuery(adminUserInfo, query, queryOptions, (results) -> {
+			assertNotNull(results);
+			List<Row> queryRows = results.getQueryResults().getRows();
+			assertEquals(2, queryRows.size());
+			Row row = queryRows.get(0);
+			assertEquals("298486374", queryRows.get(0).getValues().get(0));
+			assertEquals("2053932785", queryRows.get(1).getValues().get(0));
+		});
+	}
 	
 	/**
 	 * Create a table with the maximum number of LARGE_TEXT columns and add data
