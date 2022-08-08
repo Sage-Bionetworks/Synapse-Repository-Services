@@ -55,11 +55,11 @@ public class DerivedAnnotationVisitorImplTest {
 
 	@Test
 	public void testMergeArrayAnnotationsWithMixedTypes() {
-		AnnotationsValue newValue = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "one");
+		AnnotationsValue newValue = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.DOUBLE, "3.14");
 		AnnotationsValue existing = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.LONG, "222");
 		// call under test
 		AnnotationsValue result = DerivedAnnotationVisitorImpl.mergeArrayAnnotations(existing, newValue);
-		AnnotationsValue expected = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.LONG, "222");
+		AnnotationsValue expected = AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "222", "3.14");
 		assertEquals(expected, result);
 	}
 	

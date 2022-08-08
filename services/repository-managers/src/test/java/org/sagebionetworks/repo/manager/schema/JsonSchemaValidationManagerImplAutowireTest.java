@@ -1052,12 +1052,13 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 
 		JSONObject subject = new JSONObject();
 		subject.put("someBoolean", true);
-		
+
 		// call under test
 		Optional<Annotations> annos = manager.calculateDerivedAnnotations(schema, subject);
 		Annotations expected = new Annotations();
 		// other types are ignored.
-		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123","456"), AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(expected, "integers", List.of("123", "not a number", "true", "456"),
+				AnnotationsValueType.STRING);
 		assertEquals(Optional.of(expected), annos);
 	}
 	

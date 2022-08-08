@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
@@ -171,14 +172,15 @@ public class DerivedAnnotationVisitorImpl implements DerivedAnnotationVisitor {
 		if (existing == null) {
 			return newValue;
 		}
+		AnnotationsValueType resultType = existing.getType();
 		if (!newValue.getType().equals(existing.getType())) {
-			// ignore the new since the types do not match
-			return existing;
+			// when the types do not match the result should be of type string.
+			resultType = AnnotationsValueType.STRING;
 		}
 		// used linked to maintain insert order.
 		Set<String> mergedValues = new LinkedHashSet<>(existing.getValue());
 		mergedValues.addAll(newValue.getValue());
-		return new AnnotationsValue().setType(newValue.getType())
+		return new AnnotationsValue().setType(resultType)
 				.setValue(mergedValues.stream().collect(Collectors.toList()));
 	}
 
