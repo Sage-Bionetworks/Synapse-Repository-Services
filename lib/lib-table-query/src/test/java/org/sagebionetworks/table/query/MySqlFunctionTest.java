@@ -74,6 +74,13 @@ public class MySqlFunctionTest {
 	}
 
 	@Test
+	public void testCRC32() throws ParseException {
+		MySqlFunction element = new TableQueryParser("CRC32('abc')").mysqlFunction();
+		assertEquals("CRC32('abc')", element.toSql());
+		assertEquals(FunctionReturnType.LONG, element.getFunctionReturnType());
+	}
+
+	@Test
 	public void testReplace() throws ParseException {
 		MySqlFunction element = new TableQueryParser("replace('a','b')").mysqlFunction();
 		assertEquals("REPLACE('a','b')", element.toSql());
