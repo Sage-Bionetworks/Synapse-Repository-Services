@@ -1,0 +1,66 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "...",
+	"$id": "containsMultipleConditional",
+	"type": "object",
+	"properties": {
+		"someBoolean": {
+			"type": "boolean"
+		},
+		"_accessRequirementIds": {
+			"type": "array",
+			"contains": {
+				"const": 456
+			}
+		}
+	},
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"someBoolean": {
+						"const": true
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"_accessRequirementIds": {
+						"type": "array",
+						"allOf": [
+							{
+								"contains": {
+									"const": 111
+								}
+							},
+							{
+								"contains": {
+									"const": 222
+								}
+							}
+						]
+					}
+				}
+			},
+			"else": {
+				"properties": {
+					"_accessRequirementIds": {
+						"type": "array",
+						"allOf": [
+							{
+								"contains": {
+									"const": 333
+								}
+							},
+							{
+								"contains": {
+									"const": 444
+								}
+							}
+						]
+					}
+				}
+			}
+		}
+	]
+}
