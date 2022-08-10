@@ -1,0 +1,13 @@
+{
+	"description": "The checksum of the DrsObject. At least one checksum must be provided. For blobs, the checksum is computed over the bytes in the blob. For bundles, the checksum is computed over a sorted concatenation of the checksums of its top-level contained objects.",
+	"properties": {
+		"checksum": {
+			"type": "string",
+			"description": "The hex-string encoded checksum for the data."
+		},
+		"type": {
+			"type": "string",
+			"description": "The digest method used to create the checksum."
+		}
+	}
+}

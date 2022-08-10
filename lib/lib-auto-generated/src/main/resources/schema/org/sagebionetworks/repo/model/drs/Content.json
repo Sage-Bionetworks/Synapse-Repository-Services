@@ -1,0 +1,17 @@
+{
+	"description": "List of object inside bundle.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "A name declared by the bundle author that must be used when materializing this object, overriding any name directly associated with the object itself. The name must be unique with the containing bundle."
+		},
+		"id": {
+			"type": "string",
+			"description": "A DRS-identifier of a DrsObject."
+		},
+		"drs_uri": {
+			"type": "string",
+			"description": "DRS identifier URI paths that may be used to obtain the object"
+		}
+	}
+}

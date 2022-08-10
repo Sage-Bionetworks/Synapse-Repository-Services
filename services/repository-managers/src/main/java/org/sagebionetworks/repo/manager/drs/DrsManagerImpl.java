@@ -1,15 +1,32 @@
 package org.sagebionetworks.repo.manager.drs;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.drs.AccessMethod;
+import org.sagebionetworks.repo.model.drs.Checksum;
+import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class DrsManagerImpl implements DrsManager {
@@ -17,7 +34,9 @@ public class DrsManagerImpl implements DrsManager {
     public static final String SERVICE_NAME = "Sage Bionetworks Synapse DRS API";
     public static final String CONTACT_URL = "https://sagebionetworks.jira.com/servicedesk/customer/portal/9";
     public static final String DOCUMENTATION_URL = "https://docs.synapse.org";
-    public static final String DRS_URL = "https://repo-prod.prod.sagebase.org";
+    public static final String REGISTERED_HOSTNAME = "repo-prod.prod.sagebase.org";
+    public static final String HTTPS = "https";
+    public static final String DRS = "drs";
     public static final String DRS_GROUP = "org.ga4gh";
     public static final String DRS_ARTIFACT = "drs";
     public static final String DRS_VERSION = "1.2.0";
@@ -25,30 +44,38 @@ public class DrsManagerImpl implements DrsManager {
     public static final String ORGANIZATION_URL = "https://www.sagebionetworks.org";
     public static final String DESCRIPTION = "This service provides implementation of DRS specification for " +
             "accessing FileEntities and Datasets within Synapse.";
+    public static final String CHECKSUM_TYPE = "md5";
+    public static final String DELIMETER = "_";
     private static final LocalDate localDate = LocalDate.of(2022, 8, 01);
     public static final Date CREATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
     public static final Date UPDATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
 
     private StackConfiguration stackConfiguration;
+    private FileHandleManager fileHandleManager;
+    private EntityManager entityManager;
 
     @Autowired
-    public DrsManagerImpl(StackConfiguration stackConfiguration) {
+    public DrsManagerImpl(StackConfiguration stackConfiguration, FileHandleManager fileHandleManager,
+                          EntityManager entityManager) {
         super();
         this.stackConfiguration = stackConfiguration;
+        this.fileHandleManager = fileHandleManager;
+        this.entityManager = entityManager;
     }
 
     @Override
     public ServiceInformation getServiceInformation() {
-        ServiceInformation result = new ServiceInformation();
+        final String baseURL = String.format("%s://%s", HTTPS, REGISTERED_HOSTNAME);
+        final ServiceInformation result = new ServiceInformation();
         result.setId(REVERSE_DOMAIN_NOTATION);
         result.setName(SERVICE_NAME);
-        PackageInformation drsPackageInformation = new PackageInformation();
+        final PackageInformation drsPackageInformation = new PackageInformation();
         drsPackageInformation.setGroup(DRS_GROUP);
         drsPackageInformation.setArtifact(DRS_ARTIFACT);
         drsPackageInformation.setVersion(DRS_VERSION);
         result.setType(drsPackageInformation);
         result.setDescription(DESCRIPTION);
-        OrganizationInformation organization = new OrganizationInformation();
+        final OrganizationInformation organization = new OrganizationInformation();
         organization.setName(ORGANIZATION_NAME);
         organization.setUrl(ORGANIZATION_URL);
         result.setOrganization(organization);
@@ -58,7 +85,53 @@ public class DrsManagerImpl implements DrsManager {
         result.setUpdatedAt(UPDATED_AT);
         result.setEnvironment(stackConfiguration.getStack());
         result.setVersion(stackConfiguration.getStackInstance());
-        result.setUrl(DRS_URL);
+        result.setUrl(baseURL);
+        return result;
+    }
+
+    @Override
+    public DrsObject getDrsObject(final UserInfo userInfo, final String id) throws
+            NotFoundException, DatastoreException, UnauthorizedException {
+        final DrsObject result = new DrsObject();
+        final IdAndVersion idAndVersion = IdAndVersion.parse(id);
+        final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
+                idAndVersion.getVersion().orElseThrow(() ->
+                        new NotFoundException(String.format("Drs object id %s does not exists", id))), null);
+
+        result.setId(id);
+        result.setName(entity.getName());
+        final String selfURI = String.format("%s://%s/%s", DRS, REGISTERED_HOSTNAME, id);
+        result.setSelf_uri(selfURI);
+        result.setCreated_time(entity.getCreatedOn());
+        result.setUpdated_time(entity.getModifiedOn());
+        result.setDescription(entity.getDescription());
+
+        if (entity instanceof FileEntity) {
+            final FileEntity file = (FileEntity) entity;
+            final FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, file.getDataFileHandleId());
+            result.setSize(fileHandle.getContentSize());
+            result.setVersion(file.getVersionNumber());
+            result.setMime_type(fileHandle.getContentType());
+            final List<Checksum> checksums = new ArrayList();
+            final Checksum checksum = new Checksum();
+            checksum.setChecksum(fileHandle.getContentMd5());
+            checksum.setType(CHECKSUM_TYPE);
+            checksums.add(checksum);
+            result.setChecksums(checksums);
+            final List<AccessMethod> accessMethods = new ArrayList<>();
+            final String accessId = String.join(DELIMETER, FileHandleAssociateType.FileEntity.name(), id,
+                    file.getDataFileHandleId());
+            final AccessMethod accessMethod = new AccessMethod();
+            accessMethod.setType(HTTPS);
+            accessMethod.setAccess_id(accessId);
+            accessMethods.add(accessMethod);
+            result.setAccess_methods(accessMethods);
+        } else if (entity instanceof Dataset) {
+            //to do for get blob
+        } else {
+            throw new IllegalArgumentException("Provided drs object id does not belong to blob or bundle.");
+        }
+
         return result;
     }
 }
