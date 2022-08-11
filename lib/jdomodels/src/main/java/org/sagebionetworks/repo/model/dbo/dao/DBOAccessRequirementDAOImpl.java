@@ -19,6 +19,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
@@ -60,6 +61,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
@@ -142,7 +144,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENTS_SQL = "DELETE FROM "
 			+ TABLE_SUBJECT_ACCESS_REQUIREMENT + " WHERE " + COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID + "=:"
-			+ COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+			+ COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID +" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE+" =:bindingType";
 
 	private static final String GET_ACCESS_REQUIREMENTS_IDS_PAGE_SQL = GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL
 			+ " " + LIMIT_PARAM + " :" + LIMIT_PARAM + " " + OFFSET_PARAM + " :" + OFFSET_PARAM;
@@ -264,6 +266,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private void clearSubjectAccessRequirement(Long accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
+		param.addValue("bindingType", BindingType.MANUAL.name());
 		namedJdbcTemplate.update(DELETE_SUBJECT_ACCESS_REQUIREMENTS_SQL, param);
 	}
 
@@ -574,5 +577,36 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		
 		return jdbcTemplate.query(sqlQuery, requirementMapper, queryParams.toArray());
 	}
+
+
+	@Override
+	public List<Long> getDynamicallyBoundAccessRequirementIdsForSubject(RestrictableObjectDescriptor subject) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@WriteTransaction
+	@Override
+	public void addDynamicallyBoundAccessRequirmentsToSubject(RestrictableObjectDescriptor subject, List<Long> arIds) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@WriteTransaction
+	@Override
+	public void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject,
+			List<Long> arIds) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateAccessRequirmentEtags(List<Long> arIds) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
 
 }

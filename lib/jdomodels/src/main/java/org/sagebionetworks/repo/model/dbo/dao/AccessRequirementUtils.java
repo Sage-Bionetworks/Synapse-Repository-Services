@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -127,6 +128,7 @@ public class AccessRequirementUtils {
 			nar.setAccessRequirementId(accessRequirementId);
 			nar.setSubjectId(KeyFactory.stringToKey(rod.getId()));
 			nar.setSubjectType(rod.getType().toString());
+			nar.setBindingType(BindingType.MANUAL.name());
 			batch.add(nar);
 		}
 		return batch;

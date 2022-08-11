@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -109,18 +110,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
 		ValidateArgument.required(ar.getAccessType(), "AccessType");
-		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
+		if(Boolean.TRUE.equals(ar.getSubjectsDefinedByAnnotations())) {
+			if(ar.getSubjectIds() != null && !ar.getSubjectIds().isEmpty()) {
+				throw new IllegalArgumentException("When 'subjectsDefinedByAnnotations' = true, then subjectIds must be empty or excluded.");
+			}
+		}else {
+			if(ar.getSubjectIds() == null) {
+				throw new IllegalArgumentException("When 'subjectsDefinedByAnnotations' = false (or excluded), then subjectIds must be included.");
+			}
+		}
 		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
 				"No longer support PostMessageContentAccessRequirement.");
 		ValidateArgument.requirement(ar.getDescription() == null || ar.getDescription().length() <= MAX_DESCRIPTION_LENGHT,
 				"The AR description can be at most " + MAX_DESCRIPTION_LENGHT + " characters.");
 		RestrictableObjectType expecitingObjectType = determineObjectType(ar.getAccessType());
 		
-		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
-			ValidateArgument.requirement(rod.getType().equals(expecitingObjectType),
-					"Cannot apply AccessRequirement with AccessType "+ar.getAccessType().name()+" to an object of type "+rod.getType().name());
+		if(ar.getSubjectIds() != null) {
+			for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
+				ValidateArgument.requirement(rod.getType().equals(expecitingObjectType),
+						"Cannot apply AccessRequirement with AccessType "+ar.getAccessType().name()+" to an object of type "+rod.getType().name());
+			}
 		}
-		
+
 		if (ar instanceof ManagedACTAccessRequirement) {
 			ManagedACTAccessRequirement managedAR = (ManagedACTAccessRequirement) ar;
 			
@@ -185,40 +196,40 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return;
 	}
 
-	Set<RestrictableObjectDescriptor> findSubjectIdsToSignal(Set<RestrictableObjectDescriptor> currentSubjectIds, Set<RestrictableObjectDescriptor> updatedSubjectIds) {
+	List<RestrictableObjectDescriptor> findSubjectIdsToSignal(List<RestrictableObjectDescriptor> currentSubjectIds, List<RestrictableObjectDescriptor> updatedSubjectIds) {
+		currentSubjectIds = Objects.requireNonNullElse(currentSubjectIds, Collections.emptyList());
+		updatedSubjectIds = Objects.requireNonNullElse(updatedSubjectIds, Collections.emptyList());
 		// We need to signal the subjectIds in the symmetric difference between currentSubjectIds and updatedSubjectIds
 		Set<RestrictableObjectDescriptor> symmetricDiff = new HashSet<>(currentSubjectIds);
 		symmetricDiff.removeAll(updatedSubjectIds); // A-B
 		Set<RestrictableObjectDescriptor> bMinusA = new HashSet<>(updatedSubjectIds);
 		bMinusA.removeAll(currentSubjectIds); // B-A
 		symmetricDiff.addAll(bMinusA);
-		return symmetricDiff;
+		return new ArrayList<>(symmetricDiff);
 	}
 
 	void signalSubjectIds(List<RestrictableObjectDescriptor> currentSubjectIds, List<RestrictableObjectDescriptor> updatedSubjectIds) {
-		Set<RestrictableObjectDescriptor> curSubjIds = new HashSet<>(currentSubjectIds);
-		Set<RestrictableObjectDescriptor> updSubjIds = new HashSet<>(updatedSubjectIds);
-		Set<RestrictableObjectDescriptor> subjectIdsToSignal = findSubjectIdsToSignal(curSubjIds, updSubjIds);
-		for (RestrictableObjectDescriptor rod: subjectIdsToSignal) {
-			signalSubjectId(rod);
-		}
+		findSubjectIdsToSignal(currentSubjectIds, updatedSubjectIds).forEach(rod->signalSubjectId(rod));
 	}
+	
 
 	@WriteTransaction
 	@Override
-	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement)
+			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
 		populateCreationFields(userInfo, accessRequirement);
-		for (RestrictableObjectDescriptor rod : accessRequirement.getSubjectIds()) {
-			if (RestrictableObjectType.ENTITY==rod.getType()) {
+		List<RestrictableObjectDescriptor> subjects = Objects.requireNonNullElse(accessRequirement.getSubjectIds(),
+				Collections.emptyList());
+		for (RestrictableObjectDescriptor rod : subjects) {
+			if (RestrictableObjectType.ENTITY == rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
 			}
 		}
-		signalSubjectIds(new ArrayList<RestrictableObjectDescriptor>(), accessRequirement.getSubjectIds()); // Create == empty currentSibjectIds
-		
+		signalSubjectIds(Collections.emptyList(), subjects);
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
 
@@ -309,8 +320,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
-
-		for (RestrictableObjectDescriptor rod : toUpdate.getSubjectIds()) {
+		
+		List<RestrictableObjectDescriptor> subjects = Objects.requireNonNullElse(toUpdate.getSubjectIds(), Collections.emptyList());
+		for (RestrictableObjectDescriptor rod : subjects) {
 			if (RestrictableObjectType.ENTITY==rod.getType()) {
 				preventCreateWithinSTSFolder(rod.getId());
 			}
@@ -325,7 +337,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 		AccessRequirement currentAr = accessRequirementDAO.get(accessRequirementId);
 		List<RestrictableObjectDescriptor> currentArSubjectIds = currentAr.getSubjectIds();
-		signalSubjectIds(currentArSubjectIds, toUpdate.getSubjectIds());
+		signalSubjectIds(currentArSubjectIds, subjects);
 
 		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
 		populateModifiedFields(userInfo, toUpdate);

@@ -1008,6 +1008,18 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testCreateyAccessRequirementWithSubjectsDefinedByAnnotations() throws Exception{
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement.setSubjectIds(null);
+		accessRequirement.setSubjectsDefinedByAnnotations(true);
+
+		// call under test
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		assertNotNull(accessRequirement.getId());
+		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+	}
+	
 	private void addReviewers(Long arId, List<String> reviewerIds) {
 		AccessControlList acl = new AccessControlList()
 			.setId(arId.toString())

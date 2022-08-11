@@ -241,6 +241,7 @@ public class SqlConstants {
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID		= "SUBJECT_ID";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE		= "SUBJECT_TYPE";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE		= "BINDING_TYPE";
 	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
 
 	

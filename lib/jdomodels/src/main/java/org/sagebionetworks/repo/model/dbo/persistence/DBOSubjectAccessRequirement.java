@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_SUBJECT_ACCESS_REQUIREMENT;
@@ -9,8 +10,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJEC
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -23,11 +26,13 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	private Long subjectId;
 	private String subjectType;
 	private Long accessRequirementId;
+	private String bindingType;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("subjectId", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, true),
 		new FieldColumn("subjectType", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, true),
 		new FieldColumn("accessRequirementId", COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true),
+		new FieldColumn("bindingType", COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE, true),
 	};
 
 	@Override
@@ -41,6 +46,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				sar.setSubjectId(rs.getLong(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID));
 				sar.setSubjectType(rs.getString(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE));
 				sar.setAccessRequirementId(rs.getLong(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID));
+				sar.setBindingType(rs.getString(COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE));
 				return sar;
 			}
 
@@ -89,47 +95,43 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 		this.accessRequirementId = accessRequirementId;
 	}
 
+	/**
+	 * @return the bindingType
+	 */
+	public String getBindingType() {
+		return bindingType;
+	}
+
+	/**
+	 * @param bindingType the bindingType to set
+	 */
+	public void setBindingType(String bindingType) {
+		this.bindingType = bindingType;
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((subjectId == null) ? 0 : subjectId.hashCode());
-		result = prime * result + ((subjectType == null) ? 0 : subjectType.hashCode());
-		return result;
+		return Objects.hash(accessRequirementId, bindingType, subjectId, subjectType);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof DBOSubjectAccessRequirement)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		DBOSubjectAccessRequirement other = (DBOSubjectAccessRequirement) obj;
-		if (accessRequirementId == null) {
-			if (other.accessRequirementId != null)
-				return false;
-		} else if (!accessRequirementId.equals(other.accessRequirementId))
-			return false;
-		if (subjectId == null) {
-			if (other.subjectId != null)
-				return false;
-		} else if (!subjectId.equals(other.subjectId))
-			return false;
-		if (subjectType == null) {
-			if (other.subjectType != null)
-				return false;
-		} else if (!subjectType.equals(other.subjectType))
-			return false;
-		return true;
+		return Objects.equals(accessRequirementId, other.accessRequirementId)
+				&& Objects.equals(bindingType, other.bindingType) && Objects.equals(subjectId, other.subjectId)
+				&& Objects.equals(subjectType, other.subjectType);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOSubjectAccessRequirement [subjectId=" + subjectId + ", subjectType=" + subjectType
-				+ ", accessRequirementId=" + accessRequirementId + "]";
+				+ ", accessRequirementId=" + accessRequirementId + ", bindingType=" + bindingType + "]";
 	}
 
 	@Override
@@ -154,6 +156,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 					dbo.setSubjectId(backup.getSubjectId());
 					dbo.setSubjectType(backup.getSubjectType());
 				}
+				dbo.setBindingType(Objects.requireNonNullElse(backup.getBindingType(), BindingType.MANUAL.name()));
 				return dbo;
 			}
 
@@ -164,6 +167,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				backup.setAccessRequirementId(dbo.getAccessRequirementId());
 				backup.setSubjectId(dbo.getSubjectId());
 				backup.setSubjectType(dbo.getSubjectType());
+				backup.setBindingType(dbo.getBindingType());
 				return backup;
 			}
 		};
