@@ -551,4 +551,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 
+	@Override
+	public boolean isTableSearchEnabled(IdAndVersion idAndVersion) {
+		return nodeDao.isSearchEnabled(idAndVersion.getId(), idAndVersion.getVersion().orElse(null));
+	}
+
 }

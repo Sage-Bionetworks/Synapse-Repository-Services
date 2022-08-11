@@ -408,4 +408,10 @@ public interface TableManagerSupport extends SchemaProvider {
 	 */
 	IndexDescription getIndexDescription(IdAndVersion idAndVersion);
 
+	/**
+	 * @param idAndVersion
+	 * @return True if full text search is enabled for the table with the given version
+	 */
+	boolean isTableSearchEnabled(IdAndVersion idAndVersion);
+
 }

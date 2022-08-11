@@ -2210,4 +2210,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
 	}
+	
+	@Override
+	public boolean isSearchEnabled(Long nodeId, Long versionNumber) {
+		ValidateArgument.required(nodeId, "The nodeId");
+		
+		String sql = "SELECT R." + COL_REVISION_SEARCH_ENABLED + " R FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON (N." + COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + ")"
+				+ " WHERE N." + COL_NODE_ID + " = ?";
+		
+		List<Object> args;
+		
+		if (versionNumber == null) {
+			sql += " AND N." + COL_NODE_CURRENT_REV + " = R." + COL_REVISION_NUMBER;
+			args = List.of(nodeId);
+		} else {
+			sql += " AND R." + COL_REVISION_NUMBER + " = ?";
+			args = List.of(nodeId, versionNumber);
+		}
+				
+		Boolean result = jdbcTemplate.queryForObject(sql, Boolean.class, args.toArray());
+		
+		return result != null && result;
+	}
 }
