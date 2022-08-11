@@ -13,6 +13,10 @@
 				"type": "string"
 			},
 			"description": "The list of ColumnModel IDs that define the schema of the object."
-		}
+		},
+    	"isSearchEnabled": {
+    		"type": "boolean",
+    		"description": "When creating or updating a table or view specifies if full text search should be enabled.  Note that enabling full text search might slow down the indexing of the table or view."
+    	}
 	}
 }
