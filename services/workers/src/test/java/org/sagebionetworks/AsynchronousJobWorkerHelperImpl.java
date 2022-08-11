@@ -358,17 +358,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
 		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
-		return createEntityView(user, name, parentId, TableModelUtils.getIds(defaultColumns), scope, viewTypeMask);
+		return createEntityView(user, name, parentId, TableModelUtils.getIds(defaultColumns), scope, viewTypeMask, false);
 	}
 	
 	@Override
-	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask) {
+	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask, boolean searchEnabled) {
 		EntityView view = new EntityView();
 		view.setName(name);
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(parentId);
 		view.setColumnIds(schema);
 		view.setScopeIds(scope);
+		view.setIsSearchEnabled(searchEnabled);
 		String viewId = entityManager.createEntity(user, view, null);
 		view = entityManager.getEntity(user, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();

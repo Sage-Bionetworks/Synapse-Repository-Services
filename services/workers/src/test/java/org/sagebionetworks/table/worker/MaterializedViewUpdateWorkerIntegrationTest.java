@@ -885,7 +885,7 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	EntityView createView(String projectId, Long viewTypeMask, List<ColumnModel> schema) {
 		List<String> scope = Arrays.asList(projectId);
 		List<String> columnIds = schema.stream().map(c -> c.getId()).collect(Collectors.toList());
-		return asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), projectId, columnIds, scope, viewTypeMask);
+		return asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), projectId, columnIds, scope, viewTypeMask, false);
 	}
 	
 	/**

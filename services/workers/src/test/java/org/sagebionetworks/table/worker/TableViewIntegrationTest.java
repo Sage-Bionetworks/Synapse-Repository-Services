@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -300,7 +301,7 @@ public class TableViewIntegrationTest {
 	 * @param scope
 	 */
 	private String createView(ViewType type, List<String> scope) {
-		return createView(ViewTypeMask.getMaskForDepricatedType(type), scope);
+		return createView(ViewTypeMask.getMaskForDepricatedType(type), scope, false);
 	}
 	
 	/**
@@ -309,8 +310,8 @@ public class TableViewIntegrationTest {
 	 * @param type
 	 * @param scope
 	 */
-	private String createView(Long viewTypeMask, List<String> scope) {
-		EntityView view = asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), project.getId(), defaultColumnIds, scope, viewTypeMask);
+	private String createView(Long viewTypeMask, List<String> scope, boolean searchEnabled) {
+		EntityView view = asyncHelper.createEntityView(adminUserInfo, UUID.randomUUID().toString(), project.getId(), defaultColumnIds, scope, viewTypeMask, searchEnabled);
 		entitiesToDelete.add(view.getId());
 		return view.getId();
 	}
@@ -1199,7 +1200,7 @@ public class TableViewIntegrationTest {
 		dataset = entityManager.getEntity(adminUserInfo, childDatasetId, Dataset.class);
 
 		List<String> scope = Lists.newArrayList(project.getId());
-		fileViewId = createView(viewTypeMask, scope);
+		fileViewId = createView(viewTypeMask, scope, false);
 	
 		// wait for the view.
 		waitForEntityReplication(fileViewId, childDatasetId);
@@ -2083,6 +2084,36 @@ public class TableViewIntegrationTest {
 		assertNotNull(response);
 		assertEquals(1L, response.getNumberOfFilesAdded());
 
+	}
+	
+	@Test
+	public void testTextMatches() throws Exception {
+		String matchingString = "matching";
+		
+		// First file should have a match
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Second file should not match
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not" + matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds.add(stringColumn.getId());
+		
+		boolean searchEnabled = true;
+		
+		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
+		
+		String sql = "select * from " + viewId + " where text_matches('" + matchingString + "')";
+		
+		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(2L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+		
 	}
 
 	/**
