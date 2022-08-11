@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1767,6 +1768,32 @@ public class TableIndexManagerImplTest {
 		
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		
+		// call under test
+		managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+
+		verify(mockIndexDao).executeInWriteTransaction(any());
+		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(managerSpy, never()).updateSearchIndex(any(), any());
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransactionWithSearchEnabled() {
+		setupExecuteInWriteTransaction();
+		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[]::new);
+		
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		doReturn(schema).when(managerSpy).getSchemaForSearchIndex(any());
+		List<TableRowData> mockedData = Mockito.mock(List.class);
+		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(mockedData);
+		Iterator<TableRowData> mockedDataIterator = Mockito.mock(Iterator.class);
+		when(mockedData.iterator()).thenReturn(mockedDataIterator);
 		
 		// call under test
 		managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
@@ -1775,6 +1802,10 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(mockIndexDao).isSearchEnabled(tableId);
+		verify(managerSpy).getSchemaForSearchIndex(schema);
+		verify(mockIndexDao).getTableDataForRowIds(tableId, schema, rowsIdsWithChanges);
+		verify(managerSpy).updateSearchIndex(tableId, mockedDataIterator);
 	}
 
 	@Test

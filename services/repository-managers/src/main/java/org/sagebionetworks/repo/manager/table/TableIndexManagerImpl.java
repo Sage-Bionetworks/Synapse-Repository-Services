@@ -790,13 +790,24 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			Long[] rowsIdsArray = filter.getLimitObjectIds().get().stream().toArray(Long[] ::new);
+			Set<Long> rowIdsSet = filter.getLimitObjectIds().get();
+			Long[] rowsIdsArray = rowIdsSet.stream().toArray(Long[] ::new);
  			// First delete the provided rows from the view
 			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			try {
 				// Apply any updates to the view for the given Ids
 				tableIndexDao.copyObjectReplicationToView(viewId.getId(), filter, currentSchema, provider);
 				populateListColumnIndexTables(viewId, currentSchema, filter.getLimitObjectIds().get());
+				
+				if (tableIndexDao.isSearchEnabled(viewId)) {
+					List<ColumnModel> filteredColumns = getSchemaForSearchIndex(currentSchema);
+					
+					if (!filteredColumns.isEmpty()) {
+						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(viewId, filteredColumns, rowIdsSet);
+						updateSearchIndex(viewId, rowsData.iterator());
+					}
+				}
+				
 			} catch (Exception e) {
 				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
 				determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);

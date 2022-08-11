@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -2087,7 +2088,7 @@ public class TableViewIntegrationTest {
 	}
 	
 	@Test
-	public void testTextMatches() throws Exception {
+	public void testTextMatchesWithSearchEnabled() throws Exception {
 		String matchingString = "matching";
 		
 		// First file should have a match
@@ -2114,6 +2115,85 @@ public class TableViewIntegrationTest {
 			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
 		});
 		
+	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabledOnExistingView() throws Exception {
+		String matchingString = "matching";
+		
+		// First file should have a match
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Second file should not match
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not" + matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds.add(stringColumn.getId());
+		
+		boolean searchEnabled = false;
+		
+		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
+				
+		String sql = "select * from " + viewId + " where text_matches('" + matchingString + "')";
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {});
+		});
+
+
+		// The change of the search flag will trigger a full rebuild of the view
+		searchEnabled = true;
+		EntityView view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class).setIsSearchEnabled(searchEnabled);
+		entityManager.updateEntity(adminUserInfo, view, false, null);		
+		asyncHelper.updateEntityView(viewId, adminUserInfo, defaultColumnIds, List.of(project.getId()), ViewTypeMask.File.getMask());
+		
+		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+	}
+	
+	@Test
+	public void testTextMatchesWithSearchEnabledAndUpdateToAvailable() throws Exception {
+		String matchingString = "matching";
+		
+		// First file should have a match
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Second file should not match
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not" + matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds.add(stringColumn.getId());
+		
+		boolean searchEnabled = true;
+		
+		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
+				
+		String sql = "select * from " + viewId + " where text_matches('" + matchingString + "')";
+		
+		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+
+		// Now add the annotation to the 3rd file, this should trigger an update to the available view when queried
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(2L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
 	}
 
 	/**

@@ -354,8 +354,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			 * remains AVAILABLE. Users will be able to query the view during this
 			 * operation.
 			 */
+			log.info(idAndVersion +  ": applying changes to AVAILABLE view...");
 			applyChangesToAvailableView(idAndVersion, outerProgressCallback);
 		}else {
+			log.info(idAndVersion +  ": creating or rebuilding view...");
 			/*
 			 * The view is not currently available. This route will
 			 * create or rebuild the table from scratch with the view status set to
