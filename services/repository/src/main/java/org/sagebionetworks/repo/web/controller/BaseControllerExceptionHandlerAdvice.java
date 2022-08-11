@@ -1,14 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.PrintStream;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.amazonaws.AmazonServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -36,6 +28,7 @@ import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -51,10 +44,12 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
+import org.sagebionetworks.repo.web.rest.doc.DrsException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -68,7 +63,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.util.NestedServletException;
 
-import com.amazonaws.AmazonServiceException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * This abstract class attempts to encapsulate exception handling for exceptions
@@ -219,6 +220,29 @@ public class BaseControllerExceptionHandlerAdvice {
 	ErrorResponse handleNotFoundException(NotFoundException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
+	}
+
+	/**
+	 * Drs error response contains msg and status code which is different from existing API error response.
+	 * Log the drs exception and return an ResponseEntity, which contains body  as DrsErrorResponse and HTTPStatus code.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ResponseEntity object containing the DrsErrorResponse and HTTPStatus error code.
+	 */
+	@ExceptionHandler(DrsException.class)
+	public @ResponseBody
+	ResponseEntity handleDrsNotFoundException(DrsException ex,
+											  HttpServletRequest request) {
+		// Let the existing exception handler deal with logging
+		handleException(ex, request, false);
+		// Create the necessary object
+		final DrsErrorResponse errorResponse = new DrsErrorResponse();
+		errorResponse.setMsg(ex.getMsg());
+		errorResponse.setStatus_code(ex.getStatusCode().longValue());
+		return new ResponseEntity(errorResponse,HttpStatus.resolve(ex.getStatusCode()));
 	}
 
 	/**

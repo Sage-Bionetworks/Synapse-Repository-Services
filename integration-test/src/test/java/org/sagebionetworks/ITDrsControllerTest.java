@@ -134,6 +134,4 @@ public class ITDrsControllerTest {
         assertEquals(drsObject.getSelf_uri(), "drs://repo-prod.prod.sagebase.org/" + idAndVersion);
         assertEquals(drsObject.getDescription(), file.getDescription());
     }
-
-
 }

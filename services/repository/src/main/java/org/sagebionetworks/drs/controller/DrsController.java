@@ -1,7 +1,8 @@
 package org.sagebionetworks.drs.controller;
 
+import com.google.api.gax.rpc.InvalidArgumentException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.rest.doc.DrsException;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,13 +39,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *         <li><a href="${GET.objects.id}"> GET /objects/{id}</a></li>
  *     </ul>
  * </p>
- *
+ * <p>
  *     Use <a href="${GET.service-info}"> GET /service-info </a> API to get information about GA4GH-compliant web services,
  *     including drs services, to be aggregated into registries and made available via a standard API.
  *     </p>
  *     Use <a href="${GET.objects.id}"> GET /objects/{id} </a> API to get information about drs object.
  *     </p>
- *
  */
 @ControllerInfo(displayName = "Drs Services", path = "ga4gh/drs/v1")
 @Controller
@@ -81,8 +82,19 @@ public class DrsController {
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
     public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
-                           @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-            throws NotFoundException, DatastoreException, UnauthorizedException {
-      return serviceProvider.getDrsService().getDrsObject(userId, id);
+                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+        try {
+            return serviceProvider.getDrsService().getDrsObject(userId, id);
+        } catch (NotFoundException ex) {
+            throw new DrsException(ex.getMessage(),HttpStatus.NOT_FOUND.value());
+        } catch (IllegalArgumentException | InvalidArgumentException ex) {
+            throw new DrsException(ex.getMessage(),HttpStatus.BAD_REQUEST.value());
+        } catch (UnauthorizedException ex) {
+            throw new DrsException(ex.getMessage(),HttpStatus.UNAUTHORIZED.value());
+        } catch (UnauthenticatedException ex) {
+            throw new DrsException(ex.getMessage(),HttpStatus.FORBIDDEN.value());
+        }catch (Exception ex) {
+            throw new DrsException(ex.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
     }
 }
