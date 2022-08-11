@@ -385,10 +385,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
-			String schemaMD5Hex) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
-		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
+	public void setIndexVersionAndSchemaMD5HexAndSearchStatus(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashAndSearchSQL(tableId);
+		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, searchEnabled, viewCRC, schemaMD5Hex, searchEnabled);
 	}
 
 	@Override
@@ -557,6 +556,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void createTableIfDoesNotExist(IndexDescription description) {
 		template.update(description.getCreateOrUpdateIndexSql());
+		
+		// Add the search column if needed for the index
+		if (description.hasDefaultSearchColumn() && getDatabaseColumnInfo(description.getIdAndVersion(), TableConstants.ROW_SEARCH_CONTENT).isEmpty()) {
+			addSearchColumn(description.getIdAndVersion());
+		}
 	}
 
 	@Override

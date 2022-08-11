@@ -2111,7 +2111,7 @@ public class TableViewIntegrationTest {
 		String sql = "select * from " + viewId + " where text_matches('" + matchingString + "')";
 		
 		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
-			assertEquals(2L, queryResult.getQueryResult().getQueryResults().getRows().size());
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
 		});
 		
 	}

@@ -224,8 +224,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// get the truth version
 		long truthLastVersion = getTableVersion(idAndVersion);
 		// compare the truth with the index.
-		return this.tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion,
-				truthLastVersion, truthSchemaMD5Hex);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		
+		if (!indexDao.doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex)) {
+			return false;
+		};
+		
+		// Compare the search flag status with the truth
+		return indexDao.isSearchEnabled(idAndVersion) == isTableSearchEnabled(idAndVersion);
 	}
 
 	/*

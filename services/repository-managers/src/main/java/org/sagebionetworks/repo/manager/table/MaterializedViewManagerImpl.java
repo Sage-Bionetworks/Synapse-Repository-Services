@@ -221,7 +221,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex, /* TODO */ false);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		} catch (InvalidStatusTokenException e) {

@@ -88,5 +88,11 @@ public class TableIndexDescription implements IndexDescription {
 	public String toString() {
 		return "TableIndexDescription [idAndVersion=" + idAndVersion + "]";
 	}
+	
+	@Override
+	public boolean hasDefaultSearchColumn() {
+		// Tables are build using an history of transactions that might drop/add the column over time
+		return false;
+	}
 
 }

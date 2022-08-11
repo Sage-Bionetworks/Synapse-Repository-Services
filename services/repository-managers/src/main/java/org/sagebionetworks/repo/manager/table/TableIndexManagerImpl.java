@@ -197,6 +197,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(indexDescription.getIdAndVersion());
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
+		
 		updateTableSchema(indexDescription, changes);
 
 		//apply changes to multi-value column indexes
@@ -214,8 +215,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
-		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
+	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled) {
+		tableIndexDao.setIndexVersionAndSchemaMD5HexAndSearchStatus(tableId, viewCRC, schemaMD5Hex, searchEnabled);
 	}
 
 	/**
@@ -467,17 +468,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public long populateViewFromEntityReplication(final Long viewId, final ViewScopeType scopeType,
-			final List<ColumnModel> currentSchema) {
+	public long populateViewFromEntityReplication(final Long viewId, final ViewScopeType scopeType, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewId);
-				
+		ViewFilter filter = provider.getViewFilter(viewId);		
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyObjectReplicationToView(viewId, filter, currentSchema, provider);
+			tableIndexDao.copyObjectReplicationToView(viewId, filter, currentSchema, provider);			
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
@@ -664,8 +663,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		 * history.
 		 */
 		List<ColumnModel> boundSchema = tableManagerSupport.getTableSchema(idAndVersion);
-		boolean isTableView = false;
 		List<ColumnChangeDetails> changes = setIndexSchema(new TableIndexDescription(idAndVersion), boundSchema);
+		
 		if(changes != null && !changes.isEmpty()) {
 			log.warn("PLFM-5639: table: "+idAndVersion.toString()+" required the following schema changes: "+changes);
 		}
@@ -949,7 +948,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * 
 	 * @param tableId
 	 */
-	void updateSearchIndex(IdAndVersion tableId) {
+	@Override
+	public void updateSearchIndex(IdAndVersion tableId) {
 		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
 		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
 		

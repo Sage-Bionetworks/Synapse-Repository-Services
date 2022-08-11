@@ -109,13 +109,13 @@ public interface TableIndexManager {
 	void deleteTableIndex(IdAndVersion tableId);
 
 	/**
-	 * Set the current version of the index and the schema MD5, both of which are
+	 * Set the current version of the index, the schema MD5 and the search flag, all of which are
 	 * used to determine if the index is up-to-date.
 	 * 
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
+	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled);
 
 	/**
 	 * Optimize the indices of this table. Indices are added until either all
@@ -318,5 +318,12 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+
+	/**
+	 * Updates the search index for the table with the given id
+	 * 
+	 * @param tableId
+	 */
+	void updateSearchIndex(IdAndVersion tableId);
 
 }

@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -514,9 +515,11 @@ public class TableViewManagerImpl implements TableViewManager {
 			// Need the MD5 for the original schema.
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-
-			// create the table in the index.
+			// Record the search flag before processing to avoid race conditions
+			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
+			// create the table in the index
 			indexManager.setIndexSchema(tableManagerSupport.getIndexDescription(idAndVersion), viewSchema);
+
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -531,9 +534,13 @@ public class TableViewManagerImpl implements TableViewManager {
 
 			//for any list columns, build separate tables that serve as an index
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
+			
+			if (isSearchEnabled) {
+				indexManager.updateSearchIndex(idAndVersion);
+			}
 
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex, isSearchEnabled);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		} catch (InvalidStatusTokenException e) {
@@ -554,8 +561,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param indexManager
 	 * @param viewSchema
 	 */
-	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager,
-			List<ColumnModel> viewSchema) {
+	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager, List<ColumnModel> viewSchema) {
 		// Look-up the type for this table.
 		ViewScopeType scopeType = tableManagerSupport.getViewScopeType(idAndVersion);
 
