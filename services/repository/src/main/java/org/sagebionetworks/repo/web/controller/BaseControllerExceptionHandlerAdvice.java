@@ -234,8 +234,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	 */
 	@ExceptionHandler(DrsException.class)
 	public @ResponseBody
-	ResponseEntity handleDrsNotFoundException(DrsException ex,
-											  HttpServletRequest request) {
+	ResponseEntity handleDrsException(DrsException ex, HttpServletRequest request) {
 		// Let the existing exception handler deal with logging
 		handleException(ex, request, false);
 		// Create the necessary object

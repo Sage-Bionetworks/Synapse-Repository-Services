@@ -1,18 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.sql.BatchUpdateException;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.google.common.collect.Maps;
 import org.junit.Before;
 import org.junit.Test;
 import org.reflections.Reflections;
@@ -26,7 +14,17 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import com.google.common.collect.Maps;
+import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.sql.BatchUpdateException;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author deflaux
@@ -69,9 +67,11 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		Map<String, Integer> exceptions = Maps.newHashMap();
 		for (Method handler : handlers) {
 			Class<? extends Throwable>[] exceptionsThrown = handler.getAnnotation(ExceptionHandler.class).value();
-			int statusCode = handler.getAnnotation(ResponseStatus.class).value().value();
-			for (Class<? extends Throwable> exceptionThrown : exceptionsThrown) {
-				assertNull("duplicate exception handler? " + exceptionThrown.getName(), exceptions.put(exceptionThrown.getName(), statusCode));
+			if(handler.getAnnotation(ResponseStatus.class) != null){
+				int statusCode = handler.getAnnotation(ResponseStatus.class).value().value();
+				for (Class<? extends Throwable> exceptionThrown : exceptionsThrown) {
+					assertNull("duplicate exception handler? " + exceptionThrown.getName(), exceptions.put(exceptionThrown.getName(), statusCode));
+				}
 			}
 		}
 
