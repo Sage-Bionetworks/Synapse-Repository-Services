@@ -303,6 +303,45 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 
 	}
+	
+	@Test
+	public void testMaterializedViewWithSearchEnabled() throws Exception {
+		int numberOfFiles = 5;
+		List<Entity> entites = createProjectHierachy(numberOfFiles);
+		String projectId = entites.get(0).getId();
+		List<String> fileIds = entites.stream().filter((e) -> e instanceof FileEntity).map(e -> e.getId()).collect(Collectors.toList());
+		assertEquals(numberOfFiles, fileIds.size());
+		
+		String matchingText = "matchingCode";
+		
+		List<PatientData> patientData = Arrays.asList(
+				new PatientData().withCode(matchingText).withPatientId(111L),
+				new PatientData().withCode("def").withPatientId(222L)
+		);
+		
+		IdAndVersion viewId = createFileViewWithPatientIds(entites, patientData);
+		IdAndVersion tableId = createTableWithPatientIds(projectId, patientData);
+		
+		String definingSql = String.format(
+				"select v.id, p.patientId, p.code from %s v join %s p on (v.patientId = p.patientId)",
+				viewId.toString(), tableId.toString());
+		
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql, true);
+		
+		String materializedQuery = "select * from "+materializedViewId.toString()+" where text_matches('" + matchingText + "') order by \"v.id\" asc";
+		
+		List<Row> expectedRows = Arrays.asList(
+				new Row().setRowId(1L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(0), "111", matchingText)),
+				new Row().setRowId(3L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(2), "111", matchingText)),
+				new Row().setRowId(5L).setVersionNumber(0L).setValues(Arrays.asList(fileIds.get(4), "111", matchingText))
+		);
+		
+		// Wait for the query against the materialized view to have the expected results.
+		asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
+			assertEquals(expectedRows, results.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT_MS);
+
+	}
 
 	/*
 	 * This test is added to reproduce and fix PLFM-7321.
@@ -1076,11 +1115,14 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 
 	private IdAndVersion createMaterializedView(String parentId, String sql) {
-		MaterializedView view = asyncHelper.createMaterializedView(adminUserInfo, parentId, sql);
+		return createMaterializedView(parentId, sql, false);
+	}
+	
+	private IdAndVersion createMaterializedView(String parentId, String sql, boolean searchEnabled) {
+		MaterializedView view = asyncHelper.createMaterializedView(adminUserInfo, parentId, sql, searchEnabled);
 		
 		return KeyFactory.idAndVersion(view.getId(), null);
 	}
-
 
 	static class PatientData {
 		Long patientId;

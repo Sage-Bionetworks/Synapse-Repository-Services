@@ -494,12 +494,13 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
-	public MaterializedView createMaterializedView(UserInfo user, String parentId, String sql) {
+	public MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled) {
 		MaterializedView materializedView = new MaterializedView();
 		
 		materializedView.setName(UUID.randomUUID().toString());
 		materializedView.setDefiningSQL(sql);
 		materializedView.setParentId(parentId);
+		materializedView.setIsSearchEnabled(searchEnabled);
 		
 		String materializedViewId = entityManager.createEntity(user, materializedView, null);
 		

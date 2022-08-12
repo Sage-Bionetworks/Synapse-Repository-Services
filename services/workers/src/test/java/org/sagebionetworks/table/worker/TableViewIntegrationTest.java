@@ -2088,7 +2088,7 @@ public class TableViewIntegrationTest {
 	}
 	
 	@Test
-	public void testTextMatchesWithSearchEnabled() throws Exception {
+	public void testViewWithSearchEnabled() throws Exception {
 		String matchingString = "matching";
 		
 		// First file should have a match
@@ -2118,7 +2118,7 @@ public class TableViewIntegrationTest {
 	}
 	
 	@Test
-	public void testTextMatchesWithSearchEnabledOnExistingView() throws Exception {
+	public void testUpdateViewWithSearchEnabledOnExistingView() throws Exception {
 		String matchingString = "matching";
 		
 		// First file should have a match
@@ -2158,7 +2158,7 @@ public class TableViewIntegrationTest {
 	}
 	
 	@Test
-	public void testTextMatchesWithSearchEnabledAndUpdateToAvailable() throws Exception {
+	public void testViewWithSearchEnabledAndUpdateToAvailable() throws Exception {
 		String matchingString = "matching";
 		
 		// First file should have a match

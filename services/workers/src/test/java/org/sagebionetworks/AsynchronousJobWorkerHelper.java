@@ -220,7 +220,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @param sql
 	 * @return
 	 */
-	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql);
+	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled);
 
 
 	/**
