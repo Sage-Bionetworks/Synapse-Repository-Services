@@ -223,7 +223,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
 			if (isSearchEnabled) {
-				indexManager.updateSearchIndex(idAndVersion);
+				indexManager.updateSearchIndex(definingSql.getIndexDescription());
 			}
 
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.

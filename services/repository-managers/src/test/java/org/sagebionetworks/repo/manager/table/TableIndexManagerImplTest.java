@@ -80,14 +80,15 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.TableRowData;
+import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.TypedCellValue;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -131,7 +132,7 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private ObjectFieldModelResolver mockObjectFieldModelResolver;
 	@Mock
-	private RowSearchProcessor mockSearchProcessor;
+	private TableRowSearchProcessor mockSearchProcessor;
 	@Mock
 	private ViewFilter mockFilter;
 	@Mock
@@ -399,7 +400,7 @@ public class TableIndexManagerImplTest {
 		RowSearchContent searchRowContent = new RowSearchContent(102L, "processed row");
 		
 		when(mockIndexDao.getTableDataForRowIds(any(), any(), any())).thenReturn(Arrays.asList(rowData, rowData));
-		when(mockSearchProcessor.process(any())).thenReturn(searchRowContent.getSearchContent());
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn(searchRowContent.getSearchContent());
 		
 		
 		// call under test.
@@ -412,7 +413,7 @@ public class TableIndexManagerImplTest {
 		// there are no files
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		verify(mockIndexDao).getTableDataForRowIds(tableId, Arrays.asList(schema.get(0), schema.get(1)), ImmutableSet.of(0L, 5L));
-		verify(mockSearchProcessor, times(2)).process(rowData.getRowValues());
+		verify(mockSearchProcessor, times(2)).process(rowData, false);
 		verify(mockIndexDao).updateSearchIndex(tableId, Arrays.asList(searchRowContent, searchRowContent));
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
@@ -693,8 +694,10 @@ public class TableIndexManagerImplTest {
 		// Simulate a table with search enabled
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
 		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// call under test
-		managerSpy.updateTableSchema(new TableIndexDescription(tableId), columnChanges);
+		managerSpy.updateTableSchema(indexDescription, columnChanges);
 		
 		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		
@@ -705,7 +708,7 @@ public class TableIndexManagerImplTest {
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList("11"));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		verify(mockIndexDao).isSearchEnabled(tableId);
-		verify(managerSpy).updateSearchIndex(tableId);
+		verify(managerSpy).updateSearchIndex(indexDescription);
 	}
 
 	@Test
@@ -1250,12 +1253,14 @@ public class TableIndexManagerImplTest {
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		doNothing().when(managerSpy).updateSearchIndex(any());
 
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
+		verify(managerSpy).createTableIfDoesNotExist(indexDescription);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
-		verify(managerSpy).updateSearchIndex(tableId);
+		verify(managerSpy).updateSearchIndex(indexDescription);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
 	
@@ -1719,9 +1724,11 @@ public class TableIndexManagerImplTest {
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockFilter.getLimitObjectIds()).thenReturn(Optional.of(rowsIdsWithChanges));
 		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
 		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
@@ -1745,8 +1752,10 @@ public class TableIndexManagerImplTest {
 		Iterator<TableRowData> mockedDataIterator = Mockito.mock(Iterator.class);
 		when(mockedData.iterator()).thenReturn(mockedDataIterator);
 		
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		
 		// call under test
-		managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+		managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
 
 		verify(mockIndexDao).executeInWriteTransaction(any());
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
@@ -1755,7 +1764,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).isSearchEnabled(tableId);
 		verify(managerSpy).getSchemaForSearchIndex(schema);
 		verify(mockIndexDao).getTableDataForRowIds(tableId, schema, rowsIdsWithChanges);
-		verify(managerSpy).updateSearchIndex(tableId, mockedDataIterator);
+		verify(managerSpy).updateSearchIndex(indexDescription, mockedDataIterator);
 	}
 
 	@Test
@@ -1775,9 +1784,12 @@ public class TableIndexManagerImplTest {
 		doThrow(exception).when(mockIndexDao).copyObjectReplicationToView(any(), any(), any(), any());
 		
 		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[]::new);
+		
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		
 		Exception thrown = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			managerSpy.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+			managerSpy.updateViewRowsInTransaction(indexDescription, scopeType, schema, mockFilter);
 		});
 		assertEquals(exception, thrown);
 
@@ -1789,11 +1801,10 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testUpdateViewRowsInTransaction_NullTableId() {
-		tableId = null;
+	public void testUpdateViewRowsInTransaction_NullIndexDescription() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+			manager.updateViewRowsInTransaction(null, scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1802,7 +1813,7 @@ public class TableIndexManagerImplTest {
 		scopeType = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, EntityType.entityview), scopeType, schema, mockFilter);
 		});
 	}
 
@@ -1811,7 +1822,7 @@ public class TableIndexManagerImplTest {
 		schema = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateViewRowsInTransaction(tableId, scopeType, schema, mockFilter);
+			manager.updateViewRowsInTransaction(new ViewIndexDescription(tableId, EntityType.entityview), scopeType, schema, mockFilter);
 		});
 	}
 
@@ -2581,10 +2592,12 @@ public class TableIndexManagerImplTest {
 		// The pagination iterator calls this twice unconditionally, so the second time we return an empty list
 		when(mockIndexDao.getTableDataPage(any(), any(), anyLong(), anyLong())).thenReturn(Arrays.asList(tableRow1Data, tableRow2Data), Collections.emptyList());
 		
-		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn("processed value");
+		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
 		
 		// Call under test
-		manager.updateSearchIndex(tableId);
+		manager.updateSearchIndex(indexDescription);
 		
 		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, 0);
 		verify(mockIndexDao).getTableDataPage(tableId, expectedSearchSchema, TableIndexManagerImpl.BATCH_SIZE, TableIndexManagerImpl.BATCH_SIZE);
@@ -2609,8 +2622,10 @@ public class TableIndexManagerImplTest {
 		
 		when(mockIndexDao.getDatabaseInfo(any())).thenReturn(Arrays.asList(column1Info, column2Info));
 		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId);
+		manager.updateSearchIndex(indexDescription);
 		
 		verify(mockIndexDao).clearSearchIndex(tableId);
 		verifyNoMoreInteractions(mockIndexDao);
@@ -2624,16 +2639,50 @@ public class TableIndexManagerImplTest {
 			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		);
 		
-		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn("processed value");
 
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId, rows.iterator());
+		manager.updateSearchIndex(indexDescription, rows.iterator());
 
-		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		ArgumentCaptor<TableRowData> dataCaptor = ArgumentCaptor.forClass(TableRowData.class);
 		
-		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture(), eq(false));
 		
-		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+		assertEquals(rows, dataCaptor.getAllValues());
+		
+		verifyNoMoreInteractions(mockSearchProcessor);
+		
+		List<RowSearchContent> expectedBatch = rows.stream().map( data -> new RowSearchContent(data.getRowId(), "processed value")).collect(Collectors.toList());
+		
+		verify(mockIndexDao).updateSearchIndex(tableId, expectedBatch);
+		
+	}
+	
+	@Test
+	public void testUpdateSearchIndexWithIteratorWithIncludesRowId() {
+		
+		List<TableRowData> rows = Arrays.asList(
+			new TableRowData(1L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value"))),
+			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
+		);
+		
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn("processed value");
+
+		IndexDescription indexDescription = Mockito.mock(IndexDescription.class);
+		
+		when(indexDescription.getIdAndVersion()).thenReturn(tableId);
+		when(indexDescription.addRowIdToSearchIndex()).thenReturn(true);
+		
+		// Call under test
+		manager.updateSearchIndex(indexDescription, rows.iterator());
+
+		ArgumentCaptor<TableRowData> dataCaptor = ArgumentCaptor.forClass(TableRowData.class);
+		
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture(), eq(true));
+		
+		assertEquals(rows, dataCaptor.getAllValues());
 		
 		verifyNoMoreInteractions(mockSearchProcessor);
 		
@@ -2651,16 +2700,18 @@ public class TableIndexManagerImplTest {
 			new TableRowData(2L, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		);
 		
-		when(mockSearchProcessor.process(any())).thenReturn("processed value", null);
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn("processed value", null);
 
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId, rows.iterator());
+		manager.updateSearchIndex(indexDescription, rows.iterator());
 		
-		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		ArgumentCaptor<TableRowData> dataCaptor = ArgumentCaptor.forClass(TableRowData.class);
 		
-		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture(), eq(false));
 		
-		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+		assertEquals(rows, dataCaptor.getAllValues());
 		
 		verifyNoMoreInteractions(mockSearchProcessor);
 		
@@ -2673,8 +2724,10 @@ public class TableIndexManagerImplTest {
 		
 		List<TableRowData> rows = Collections.emptyList();
 		
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId, rows.iterator());
+		manager.updateSearchIndex(indexDescription, rows.iterator());
 		
 		verifyZeroInteractions(mockSearchProcessor);
 		
@@ -2691,16 +2744,18 @@ public class TableIndexManagerImplTest {
 			new TableRowData(rowId, Arrays.asList(new TypedCellValue(ColumnType.STRING, "column 1 value"), new TypedCellValue(ColumnType.STRING, "column 2 value")))
 		).collect(Collectors.toList());
 		
-		when(mockSearchProcessor.process(any())).thenReturn("processed value");
+		when(mockSearchProcessor.process(any(), anyBoolean())).thenReturn("processed value");
 
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId, rows.iterator());
+		manager.updateSearchIndex(indexDescription, rows.iterator());
 		
-		ArgumentCaptor<List<TypedCellValue>> dataCaptor = ArgumentCaptor.forClass(List.class);
+		ArgumentCaptor<TableRowData> dataCaptor = ArgumentCaptor.forClass(TableRowData.class);
 		
-		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture());
+		verify(mockSearchProcessor, times(rows.size())).process(dataCaptor.capture(), eq(false));
 		
-		assertEquals(rows.stream().map(TableRowData::getRowValues).collect(Collectors.toList()), dataCaptor.getAllValues());
+		assertEquals(rows, dataCaptor.getAllValues());
 
 		List<List<TableRowData>> expectedBatches = Lists.partition(rows, TableIndexManagerImpl.BATCH_SIZE);
 		
@@ -2717,8 +2772,10 @@ public class TableIndexManagerImplTest {
 	public void testUpdateSearchIndexWithIteratorAndEmptyIterator() {
 		Iterator<TableRowData> rowData = Collections.emptyIterator();
 
+		IndexDescription indexDescription = new TableIndexDescription(tableId);
+		
 		// Call under test
-		manager.updateSearchIndex(tableId, rowData);
+		manager.updateSearchIndex(indexDescription, rowData);
 		
 		verifyZeroInteractions(mockSearchProcessor);
 		verifyZeroInteractions(mockIndexDao);

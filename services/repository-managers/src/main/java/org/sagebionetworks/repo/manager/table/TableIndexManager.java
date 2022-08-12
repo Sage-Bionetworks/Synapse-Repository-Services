@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -249,7 +248,7 @@ public interface TableIndexManager {
 	 * rowId, all data will first be deleted from the view, then copied back to the
 	 * view from the replication tables.
 	 * 
-	 * @param viewId             The Id of the view.
+	 * @param index             The index description of the view
 	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this
 	 *                           transaction.
 	 * @param viewTypeMask       The type of view this is.
@@ -257,7 +256,7 @@ public interface TableIndexManager {
 	 * @param filter
 	 * @param provider
 	 */
-	void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema,
+	void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
 			ViewFilter filter);
 
 	/**
@@ -322,8 +321,8 @@ public interface TableIndexManager {
 	/**
 	 * Updates the search index for the table with the given id
 	 * 
-	 * @param tableId
+	 * @param index
 	 */
-	void updateSearchIndex(IdAndVersion tableId);
+	void updateSearchIndex(IndexDescription index);
 
 }

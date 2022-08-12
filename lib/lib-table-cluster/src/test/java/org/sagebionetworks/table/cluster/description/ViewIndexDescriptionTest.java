@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.description;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,7 +45,7 @@ public class ViewIndexDescriptionTest {
 	
 	@Test
 	public void testGetBenefactorColumnNamesWithDataset() {
-		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.dataset);
 		// call under test
 		assertEquals(
 				Collections.singletonList(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
@@ -127,6 +128,14 @@ public class ViewIndexDescriptionTest {
 	@Test
 	public void testGetDependencies() {
 		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		// Call under test
 		assertEquals(Collections.emptyList(), vid.getDependencies());
+	}
+	
+	@Test
+	public void testAddRowIdToSearchIndex() {
+		ViewIndexDescription vid = new ViewIndexDescription(IdAndVersion.parse("syn999"), EntityType.entityview);
+		// Call under test
+		assertTrue(vid.addRowIdToSearchIndex());
 	}
 }

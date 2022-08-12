@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +48,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -2112,6 +2110,16 @@ public class TableViewIntegrationTest {
 		String sql = "select * from " + viewId + " where text_matches('" + matchingString + "')";
 		
 		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// We should be able to find the row by id as well (views add the row id to the index)
+		waitForConsistentQuery(adminUserInfo, "select * from " + viewId + " where text_matches('" + KeyFactory.stringToKey(fileIds.get(0)) + "')", (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// ...and by the syn prefixed id 
+		waitForConsistentQuery(adminUserInfo, "select * from " + viewId + " where text_matches('" + fileIds.get(0) + "')", (queryResult) -> {
 			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
 		});
 		

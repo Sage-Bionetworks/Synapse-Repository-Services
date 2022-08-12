@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.manager.table.metadata.providers;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionField;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
@@ -55,16 +53,11 @@ public class SubmissionMetadataIndexProvider implements MetadataIndexProvider {
 	// @formatter:on
 
 	private final SubmissionManager submissionManager;
-	private final SubmissionDAO submissionDao;
-	private final EvaluationDAO evaluationDao;
 	private final ViewScopeDao viewScopeDao;
 
 	@Autowired
-	public SubmissionMetadataIndexProvider(SubmissionManager submissionManager, SubmissionDAO submissionDao,
-			EvaluationDAO evaluationDao, ViewScopeDao viewScopeDao) {
+	public SubmissionMetadataIndexProvider(SubmissionManager submissionManager, ViewScopeDao viewScopeDao) {
 		this.submissionManager = submissionManager;
-		this.submissionDao = submissionDao;
-		this.evaluationDao = evaluationDao;
 		this.viewScopeDao = viewScopeDao;
 	}
 

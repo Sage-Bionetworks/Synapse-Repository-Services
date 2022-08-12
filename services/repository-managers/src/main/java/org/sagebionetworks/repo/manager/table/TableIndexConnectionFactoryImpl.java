@@ -5,7 +5,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
+import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,12 +20,12 @@ public class TableIndexConnectionFactoryImpl implements TableIndexConnectionFact
 	
 	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	
-	private RowSearchProcessor searchProcessor;
+	private TableRowSearchProcessor searchProcessor;
 
 	@Autowired
 	public TableIndexConnectionFactoryImpl(ConnectionFactory connectionFactory, TableManagerSupport tableManagerSupport,
 			MetadataIndexProviderFactory metaDataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory,
-			RowSearchProcessor searchProcessor) {
+			TableRowSearchProcessor searchProcessor) {
 		this.connectionFactory = connectionFactory;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metaDataIndexProviderFactory = metaDataIndexProviderFactory;

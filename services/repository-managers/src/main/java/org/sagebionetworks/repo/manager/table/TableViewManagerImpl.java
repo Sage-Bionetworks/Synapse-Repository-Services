@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -57,6 +56,7 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -439,10 +439,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			ViewScopeType scopeType = tableManagerSupport.getViewScopeType(viewId);
 			MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
 			ViewFilter originalFilter = provider.getViewFilter(viewId.getId());
-			
 			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 			Set<Long> rowsIdsWithChanges = null;
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
+			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(viewId);
 			// Continue applying change to the view until none remain.
 			do {
 				Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(viewId);
@@ -464,7 +464,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
 					// update these rows in a new transaction.
-					indexManager.updateViewRowsInTransaction(viewId, scopeType, currentSchema, deltaFilter);
+					indexManager.updateViewRowsInTransaction(indexDescription, scopeType, currentSchema, deltaFilter);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
@@ -517,8 +517,9 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 			// Record the search flag before processing to avoid race conditions
 			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
+			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 			// create the table in the index
-			indexManager.setIndexSchema(tableManagerSupport.getIndexDescription(idAndVersion), viewSchema);
+			indexManager.setIndexSchema(indexDescription, viewSchema);
 
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
@@ -536,7 +537,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
 			if (isSearchEnabled) {
-				indexManager.updateSearchIndex(idAndVersion);
+				indexManager.updateSearchIndex(indexDescription);
 			}
 
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.

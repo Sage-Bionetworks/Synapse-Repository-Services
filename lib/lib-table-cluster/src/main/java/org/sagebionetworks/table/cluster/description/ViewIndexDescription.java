@@ -23,12 +23,12 @@ public class ViewIndexDescription implements IndexDescription {
 	private final IdAndVersion idAndVersion;
 	private final EntityType viewType;
 	private final BenefactorDescription description;
-	
+
 	public ViewIndexDescription(IdAndVersion idAndVersion, EntityType viewtype) {
 		super();
 		this.idAndVersion = idAndVersion;
 		this.viewType = viewtype;
-		ObjectType benefactorType = EntityType.submissionview.equals(viewtype)? ObjectType.EVALUATION: ObjectType.ENTITY;
+		ObjectType benefactorType = EntityType.submissionview.equals(viewtype) ? ObjectType.EVALUATION : ObjectType.ENTITY;
 		this.description = new BenefactorDescription(ROW_BENEFACTOR, benefactorType);
 	}
 
@@ -60,7 +60,7 @@ public class ViewIndexDescription implements IndexDescription {
 	public List<BenefactorDescription> getBenefactors() {
 		return Collections.singletonList(description);
 	}
-	
+
 	@Override
 	public EntityType getTableType() {
 		return viewType;
@@ -68,24 +68,24 @@ public class ViewIndexDescription implements IndexDescription {
 
 	@Override
 	public List<String> getColumnNamesToAddToSelect(SqlContext type, boolean includeEtag, boolean isAggregate) {
-		if(!SqlContext.query.equals(type)) {
+		if (!SqlContext.query.equals(type)) {
 			throw new IllegalArgumentException("Only 'query' is supported for views");
 		}
-		if(isAggregate) {
+		if (isAggregate) {
 			return Collections.emptyList();
 		}
-		if(includeEtag) {
+		if (includeEtag) {
 			return Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG);
-		}else {
+		} else {
 			return Arrays.asList(ROW_ID, ROW_VERSION);
 		}
 	}
-	
+
 	@Override
 	public List<IndexDescription> getDependencies() {
 		return Collections.emptyList();
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(description, idAndVersion, viewType);
@@ -105,9 +105,14 @@ public class ViewIndexDescription implements IndexDescription {
 	}
 
 	@Override
+	public boolean addRowIdToSearchIndex() {
+		// The row_id in a view is a reference to an object
+		return true;
+	}
+
+	@Override
 	public String toString() {
-		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description="
-				+ description + "]";
+		return "ViewIndexDescription [idAndVersion=" + idAndVersion + ", viewType=" + viewType + ", description=" + description + "]";
 	}
 
 }

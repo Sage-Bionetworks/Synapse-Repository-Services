@@ -51,6 +51,13 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	 * @return
 	 */
 	List<IndexDescription> getDependencies();
+	
+	/**
+	 * @return True if the row id should be included in the search index when search is enabled
+	 */
+	default boolean addRowIdToSearchIndex() {
+		return false;
+	}
 
 	/**
 	 * Default @Comparable based on IdAndVersion.

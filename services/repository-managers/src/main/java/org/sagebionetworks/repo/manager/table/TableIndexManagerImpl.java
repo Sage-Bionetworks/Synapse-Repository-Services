@@ -49,8 +49,8 @@ import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
 import org.sagebionetworks.table.cluster.search.RowSearchContent;
-import org.sagebionetworks.table.cluster.search.RowSearchProcessor;
 import org.sagebionetworks.table.cluster.search.TableRowData;
+import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
@@ -88,9 +88,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	private final TableManagerSupport tableManagerSupport;
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
-	private final RowSearchProcessor searchProcessor;
+	private final TableRowSearchProcessor searchProcessor;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, RowSearchProcessor searchProcessor){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor){
 		ValidateArgument.required(dao, "TableIndexDao");
 		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
 		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
@@ -133,6 +133,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			
 			// Read the current status of the search, this is the status up to the current change
 			boolean isSearchEnabled = tableIndexDao.isSearchEnabled(tableId);
+			IndexDescription index = new TableIndexDescription(tableId);
 			
 			// apply all changes in a transaction
 			tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
@@ -160,7 +161,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 						// Find out the set of row ids that added/updated values for searcheable columns
 						Set<Long> rowIds = rowset.getCreatedOrUpdatedRowIds(filteredColumns);
 						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(tableId, filteredColumns, rowIds);
-						updateSearchIndex(tableId, rowsData.iterator());
+						updateSearchIndex(index, rowsData.iterator());
 					}
 				}
 				// set the new max version for the index
@@ -350,7 +351,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 			
 			if (tableIndexDao.isSearchEnabled(tableId) && isRequireSearchIndexUpdate(tableId, changes)) {
-				updateSearchIndex(tableId);
+				updateSearchIndex(indexDescription);
 			}
 			
 		}
@@ -737,14 +738,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
+		IndexDescription index = new TableIndexDescription(idAndVersion);
 		// This will make sure that the table is properly created if it does not exist
-		createTableIfDoesNotExist(new TableIndexDescription(idAndVersion));
+		createTableIfDoesNotExist(index);
 				
 		SearchChange change = loadChangeData.getChange();
 		
 		if (change.isEnabled()) {
 			// When we enable the search on a table we unconditionally re-index the whole table
-			updateSearchIndex(idAndVersion);
+			updateSearchIndex(index);
 		} else {
 			tableIndexDao.clearSearchIndex(idAndVersion);
 		}
@@ -775,12 +777,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType,
+	public void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType,
 			List<ColumnModel> currentSchema, ViewFilter filter) {
-		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(index, "index");
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
+		IdAndVersion viewId = index.getIdAndVersion();
 		boolean isSearchEnabled = tableIndexDao.isSearchEnabled(viewId);
 		List<ColumnModel> searchSchema = getSchemaForSearchIndex(currentSchema);
 		// all calls are in a single transaction.
@@ -796,7 +799,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				
 				if (isSearchEnabled & !searchSchema.isEmpty()) {
 					List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(viewId, searchSchema, rowIdsSet);
-					updateSearchIndex(viewId, rowsData.iterator());
+					updateSearchIndex(index, rowsData.iterator());
 				}
 				
 			} catch (Exception e) {
@@ -951,22 +954,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param tableId
 	 */
 	@Override
-	public void updateSearchIndex(IdAndVersion tableId) {
-		List<ColumnModel> currentSchema = getCurrentTableSchema(tableId);
+	public void updateSearchIndex(IndexDescription index) {
+		List<ColumnModel> currentSchema = getCurrentTableSchema(index.getIdAndVersion());
 		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
 		
 		if (searchIndexSchema.isEmpty()) {
 			// On a schema change it might happen that now no columns are eligible for indexing, for such cases
 			// we simply clear the search index
-			tableIndexDao.clearSearchIndex(tableId);
+			tableIndexDao.clearSearchIndex(index.getIdAndVersion());
 			return;
 		}
 				
 		Iterator<TableRowData> tableRowsIterator = new PaginationIterator<>((PaginationProvider<TableRowData>) (limit, offset) -> {
-			return tableIndexDao.getTableDataPage(tableId, searchIndexSchema, limit, offset);
+			return tableIndexDao.getTableDataPage(index.getIdAndVersion(), searchIndexSchema, limit, offset);
 		}, BATCH_SIZE);
 		
-		updateSearchIndex(tableId, tableRowsIterator);
+		updateSearchIndex(index, tableRowsIterator);
 	}
 	
 	/**
@@ -976,20 +979,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param tableId
 	 * @param tableRowDataIterator
 	 */
-	void updateSearchIndex(IdAndVersion tableId, Iterator<TableRowData> tableRowDataIterator) {
+	void updateSearchIndex(IndexDescription index, Iterator<TableRowData> tableRowDataIterator) {
+		boolean includeRowId = index.addRowIdToSearchIndex();
 		Iterators.partition(tableRowDataIterator, BATCH_SIZE).forEachRemaining(batch -> {
 			List<RowSearchContent> transformedBatch = batch.stream()
-				.map(this::mapTableRowDataToSearchContent)
+				.map((rawData) -> mapTableRowDataToSearchContent(rawData, includeRowId))
 				.collect(Collectors.toList());
 			
 			if (!transformedBatch.isEmpty()) {
-				tableIndexDao.updateSearchIndex(tableId, transformedBatch);
+				tableIndexDao.updateSearchIndex(index.getIdAndVersion(), transformedBatch);
 			}
 		});
 	}
 	
-	private RowSearchContent mapTableRowDataToSearchContent(TableRowData rowData) {
-		String processedValue = searchProcessor.process(rowData.getRowValues());
+	private RowSearchContent mapTableRowDataToSearchContent(TableRowData rowData, boolean includeRowId) {
+		String processedValue = searchProcessor.process(rowData, includeRowId);
 		return new RowSearchContent(rowData.getRowId(), processedValue);
 	}
 	
