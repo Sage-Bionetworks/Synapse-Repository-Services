@@ -781,7 +781,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(scopeType, "scopeType");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-		
+		boolean isSearchEnabled = tableIndexDao.isSearchEnabled(viewId);
+		List<ColumnModel> searchSchema = getSchemaForSearchIndex(currentSchema);
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			Set<Long> rowIdsSet = filter.getLimitObjectIds().get();
@@ -793,13 +794,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				tableIndexDao.copyObjectReplicationToView(viewId.getId(), filter, currentSchema, provider);
 				populateListColumnIndexTables(viewId, currentSchema, filter.getLimitObjectIds().get());
 				
-				if (tableIndexDao.isSearchEnabled(viewId)) {
-					List<ColumnModel> filteredColumns = getSchemaForSearchIndex(currentSchema);
-					
-					if (!filteredColumns.isEmpty()) {
-						List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(viewId, filteredColumns, rowIdsSet);
-						updateSearchIndex(viewId, rowsData.iterator());
-					}
+				if (isSearchEnabled & !searchSchema.isEmpty()) {
+					List<TableRowData> rowsData = tableIndexDao.getTableDataForRowIds(viewId, searchSchema, rowIdsSet);
+					updateSearchIndex(viewId, rowsData.iterator());
 				}
 				
 			} catch (Exception e) {
