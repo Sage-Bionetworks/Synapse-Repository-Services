@@ -223,15 +223,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		String truthSchemaMD5Hex = getSchemaMD5Hex(idAndVersion);
 		// get the truth version
 		long truthLastVersion = getTableVersion(idAndVersion);
+		// get the search flag for the node
+		boolean truthSearchEnabled = isTableSearchEnabled(idAndVersion);
 		// compare the truth with the index.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		
-		if (!indexDao.doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex)) {
-			return false;
-		};
-		
-		// Compare the search flag status with the truth
-		return indexDao.isSearchEnabled(idAndVersion) == isTableSearchEnabled(idAndVersion);
+		return tableConnectionFactory.getConnection(idAndVersion).doesIndexStateMatch(idAndVersion, truthLastVersion, truthSchemaMD5Hex, truthSearchEnabled);
 	}
 
 	/*

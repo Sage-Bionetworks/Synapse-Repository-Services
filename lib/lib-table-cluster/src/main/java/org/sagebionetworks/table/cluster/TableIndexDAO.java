@@ -214,7 +214,7 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 * @return
 	 */
-	boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex);
+	boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex, boolean searchEnabled);
 
 	/**
 	 * Get the distinct Long values for a given column ID.

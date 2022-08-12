@@ -479,6 +479,13 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException {
+		TableEntity table = entityManager.getEntity(user, tableId, TableEntity.class);
+		
+		table.setColumnIds(newSchema);
+		table.setIsSearchEnabled(searchEnabled);
+		
+		entityManager.updateEntity(user, table, false, null);
+		
 		long maxWaitMS = 60 * 1000; 
 		long start = System.currentTimeMillis();
 		while (true) {

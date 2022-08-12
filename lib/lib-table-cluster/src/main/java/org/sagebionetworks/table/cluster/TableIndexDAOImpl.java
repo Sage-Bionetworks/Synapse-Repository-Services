@@ -537,13 +537,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex) {
+	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex, boolean searchEnabled) {
 		long indexVersion = getMaxCurrentCompleteVersionForTable(tableId);
-		if(indexVersion != versionNumber){
+		if (indexVersion != versionNumber){
 			return false;
 		}
 		String indexMD5Hex = getCurrentSchemaMD5Hex(tableId);
-		return indexMD5Hex.equals(schemaMD5Hex);
+		if (!indexMD5Hex.equals(schemaMD5Hex)) {
+			return false;
+		}
+		return searchEnabled == isSearchEnabled(tableId);
 	}
 
 	@Override

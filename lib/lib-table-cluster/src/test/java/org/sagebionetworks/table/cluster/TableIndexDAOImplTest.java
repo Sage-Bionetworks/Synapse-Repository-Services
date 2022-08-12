@@ -936,15 +936,19 @@ public class TableIndexDAOImplTest {
 		long version = 123;
 		this.tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
 		// call under test
-		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertTrue(match);
 		
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5, false);
 		assertFalse(match);
 		
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1, false);
+		assertFalse(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
 	
@@ -1265,7 +1269,7 @@ public class TableIndexDAOImplTest {
 		String md5 = "md5hex";
 		long version = 123;
 		// call under test
-		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertFalse(match);
 	}
 	
