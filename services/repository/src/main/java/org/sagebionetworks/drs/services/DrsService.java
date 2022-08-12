@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.rest.doc.DrsException;
 
 /**
  * Service that is exposed to the clients for drs.
@@ -25,5 +26,5 @@ public interface DrsService {
      * @throws DatastoreException
      * @throws UnauthorizedException
      */
-    DrsObject getDrsObject(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
+    DrsObject getDrsObject(Long userId, String id) throws DrsException;
 }

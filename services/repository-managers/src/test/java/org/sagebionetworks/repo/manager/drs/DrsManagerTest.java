@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -44,12 +45,15 @@ public class DrsManagerTest {
     FileHandleManager fileHandleManager;
     @Mock
     UserInfo userInfo;
+    @Mock
+    UserManager userManager;
 
     private static final String FILE_ID = "syn1.1";
     private static final String FILE_NAME = "Test File";
     private static final String FILE_DESCRIPTION = "Drs Test File";
     private static final String DATA_FILE_HANDLE_ID = "123456";
     private static final String FILE_CHECKSUM = "HexOfMd5";
+    private static final Long USER_ID = 1L;
 
     @Test
     public void testGETDrsServiceInformation() {
@@ -66,8 +70,8 @@ public class DrsManagerTest {
         final FileHandle fileHandle = getFileHandle();
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(file);
         when(fileHandleManager.getRawFileHandle(any(), any())).thenReturn(fileHandle);
-
-        final DrsObject drsObject = drsManager.getDrsObject(userInfo, file.getId());
+        when(userManager.getUserInfo(any())).thenReturn(userInfo);
+        final DrsObject drsObject = drsManager.getDrsObject(USER_ID, file.getId());
         assertNotNull(drsObject);
         assertEquals(drsObject.getId(), file.getId());
         assertEquals(drsObject.getName(), file.getName());
@@ -83,7 +87,7 @@ public class DrsManagerTest {
         final String id = "syn1";
         final String expectedErrorMessage = String.format("Drs object id %s does not exists", id);
         final NotFoundException exception = assertThrows(NotFoundException.class, () -> {
-            drsManager.getDrsObject(userInfo, id);
+            drsManager.getDrsObject(USER_ID, id);
         });
         assertEquals(expectedErrorMessage, exception.getMessage());
     }
@@ -93,7 +97,7 @@ public class DrsManagerTest {
         final Project project = getProject("syn1.1","project");
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(project);
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            drsManager.getDrsObject(userInfo, project.getId());
+            drsManager.getDrsObject(USER_ID, project.getId());
         });
         assertEquals("Provided drs object id does not belong to blob or bundle.", exception.getMessage());
     }

@@ -1,13 +1,9 @@
 package org.sagebionetworks.drs.controller;
 
-import com.google.api.gax.rpc.InvalidArgumentException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -82,19 +78,8 @@ public class DrsController {
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
     public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
-                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
-        try {
-            return serviceProvider.getDrsService().getDrsObject(userId, id);
-        } catch (NotFoundException ex) {
-            throw new DrsException(ex.getMessage(),HttpStatus.NOT_FOUND.value());
-        } catch (IllegalArgumentException | InvalidArgumentException ex) {
-            throw new DrsException(ex.getMessage(),HttpStatus.BAD_REQUEST.value());
-        } catch (UnauthorizedException ex) {
-            throw new DrsException(ex.getMessage(),HttpStatus.UNAUTHORIZED.value());
-        } catch (UnauthenticatedException ex) {
-            throw new DrsException(ex.getMessage(),HttpStatus.FORBIDDEN.value());
-        }catch (Exception ex) {
-            throw new DrsException(ex.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR.value());
-        }
+                                                @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+            throws DrsException {
+        return serviceProvider.getDrsService().getDrsObject(userId, id);
     }
 }

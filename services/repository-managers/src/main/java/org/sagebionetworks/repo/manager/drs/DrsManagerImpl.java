@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.drs;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -46,21 +47,23 @@ public class DrsManagerImpl implements DrsManager {
             "accessing FileEntities and Datasets within Synapse.";
     public static final String CHECKSUM_TYPE = "md5";
     public static final String DELIMETER = "_";
+    public static final String ILLEGAL_ARGUMENT_ERROR_MESSAGE = "Provided drs object id does not belong to blob or bundle.";
     private static final LocalDate localDate = LocalDate.of(2022, 8, 01);
     public static final Date CREATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
     public static final Date UPDATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
-
-    private StackConfiguration stackConfiguration;
-    private FileHandleManager fileHandleManager;
-    private EntityManager entityManager;
+    private final StackConfiguration stackConfiguration;
+    private final FileHandleManager fileHandleManager;
+    private final EntityManager entityManager;
+    private final UserManager userManager;
 
     @Autowired
-    public DrsManagerImpl(StackConfiguration stackConfiguration, FileHandleManager fileHandleManager,
-                          EntityManager entityManager) {
+    public DrsManagerImpl(final StackConfiguration stackConfiguration, final FileHandleManager fileHandleManager,
+                          final EntityManager entityManager, final UserManager userManager) {
         super();
         this.stackConfiguration = stackConfiguration;
         this.fileHandleManager = fileHandleManager;
         this.entityManager = entityManager;
+        this.userManager = userManager;
     }
 
     @Override
@@ -90,8 +93,9 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public DrsObject getDrsObject(final UserInfo userInfo, final String id) throws
-            NotFoundException, DatastoreException, UnauthorizedException {
+    public DrsObject getDrsObject(final Long userId, final String id)
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
         final IdAndVersion idAndVersion = IdAndVersion.parse(id);
         final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
@@ -129,9 +133,8 @@ public class DrsManagerImpl implements DrsManager {
         } else if (entity instanceof Dataset) {
             //to do for get blob
         } else {
-            throw new IllegalArgumentException("Provided drs object id does not belong to blob or bundle.");
+            throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
-
         return result;
     }
 }

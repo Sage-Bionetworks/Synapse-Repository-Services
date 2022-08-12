@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.drs;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,5 +23,5 @@ public interface DrsManager {
      *
      * @return The {@link DrsObject} containing the information
      */
-    DrsObject getDrsObject(UserInfo userInfo, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
+    DrsObject getDrsObject(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
 }
