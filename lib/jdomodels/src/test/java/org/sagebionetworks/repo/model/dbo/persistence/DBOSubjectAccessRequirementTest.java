@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.ar.BindingType;
 import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 
@@ -37,11 +38,25 @@ public class DBOSubjectAccessRequirementTest {
 		backup.setAccessRequirementId(101L);
 		backup.setSubjectId(987L);
 		backup.setSubjectType("EVALUATION");
+		backup.setBindingType(BindingType.MANUAL.name());
 		DBOSubjectAccessRequirement sar = translator.createDatabaseObjectFromBackup(backup);
+		
 		assertEquals(RestrictableObjectType.EVALUATION.toString(), sar.getSubjectType());
 		assertEquals(backup.getSubjectId(), sar.getSubjectId());
 		assertEquals(backup.getAccessRequirementId(), sar.getAccessRequirementId());
 		assertEquals(backup, translator.createBackupFromDatabaseObject(sar));
+	}
+	
+	@Test
+	public void testTranslatorWithNullBindingType() throws Exception { 
+		DBOSubjectAccessRequirementBackup backup = new DBOSubjectAccessRequirementBackup();
+		backup.setAccessRequirementId(101L);
+		backup.setSubjectId(987L);
+		backup.setSubjectType("EVALUATION");
+		backup.setBindingType(null);
+		DBOSubjectAccessRequirement sar = translator.createDatabaseObjectFromBackup(backup);
+		
+		assertEquals(BindingType.MANUAL.toString(), sar.getBindingType());
 	}
 
 }

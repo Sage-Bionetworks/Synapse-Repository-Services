@@ -245,13 +245,6 @@ public class SqlConstants {
 	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
 
 	
-	// the following are defined temporarily, for a 'bridge' migration table
-	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
-	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
-	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_TYPE			= "NODE_TYPE";
-	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
-	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
-	
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL						= "ACCESS_APPROVAL";
 	public static final String COL_ACCESS_APPROVAL_ID						= "ID";

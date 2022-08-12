@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +90,6 @@ public class DBOAccessRequirementDAOImplTest {
 	private Node node2 = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
 	private TermsOfUseAccessRequirement accessRequirement2 = null;
-	private List<AccessRequirement> ars = null;
 
 	
 	@BeforeEach
@@ -99,8 +99,7 @@ public class DBOAccessRequirementDAOImplTest {
 		researchProjectDao.truncateAll();
 		accessRequirementDAO.truncateAll();
 		nodeDao.truncateAll();
-		
-		ars = new ArrayList<>();
+
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
@@ -147,6 +146,7 @@ public class DBOAccessRequirementDAOImplTest {
 	// for PLFM-1730 test that if we create a number of access requirements, they come back in the creation order
 	@Test
 	public void testRetrievalOrder() throws Exception{
+		List<AccessRequirement> ars = new ArrayList<>();
 		for (int i=0; i<10; i++) {
 			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);
 			ars.add(accessRequirementDAO.create(accessRequirement));
@@ -1016,8 +1016,304 @@ public class DBOAccessRequirementDAOImplTest {
 
 		// call under test
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		
 		assertNotNull(accessRequirement.getId());
 		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+		assertEquals(Collections.emptyList(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 1000L, 0L));
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotations() throws Exception{
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement.setSubjectIds(null);
+		accessRequirement.setSubjectsDefinedByAnnotations(true);
+
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		
+		assertNotNull(accessRequirement.getId());
+		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+		assertEquals(Collections.emptyList(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 1000L, 0L));
+		
+		accessRequirement.setVersionNumber(2L);
+		accessRequirement.setName("new name");
+		
+		// call under test
+		accessRequirement = accessRequirementDAO.update(accessRequirement);
+		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+		assertEquals(Collections.emptyList(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 1000L, 0L));
+	}
+	
+	@Test
+	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotationsAndBoundSubjects() throws Exception {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement.setSubjectIds(null);
+		accessRequirement.setSubjectsDefinedByAnnotations(true);
+
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+
+		assertNotNull(accessRequirement.getId());
+		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+		assertEquals(Collections.emptyList(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 1000L, 0L));
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+
+		// bind a subject to this AR
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne,
+				List.of(accessRequirement.getId()));
+
+		accessRequirement.setVersionNumber(2L);
+		accessRequirement.setName("new name");
+
+		// call under test
+		accessRequirement = accessRequirementDAO.update(accessRequirement);
+		assertEquals(accessRequirement.getSubjectIds(), Collections.emptyList());
+		assertEquals(List.of(subjectOne),
+				accessRequirementDAO.getSubjects(accessRequirement.getId(), 1000L, 0L));
+
+		// the update should not remove dynamically bound subjects.
+		assertEquals(List.of(accessRequirement.getId()),
+				accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+	}
+	
+	@Test
+	public void testValidateSubject() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		// call under test
+		Long subjectId = DBOAccessRequirementDAOImpl.validateSubject(subject);
+		assertEquals(Long.valueOf(123L), subjectId);
+	}
+	
+	@Test
+	public void testValidateSubjectWithNullSubject() {
+		RestrictableObjectDescriptor subject = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			DBOAccessRequirementDAOImpl.validateSubject(subject);
+		}).getMessage();
+		assertEquals("subject is required.", message);
+	}
+	
+	@Test
+	public void testValidateSubjectWithNullSubjectId() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor().setId(null)
+				.setType(RestrictableObjectType.ENTITY);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			DBOAccessRequirementDAOImpl.validateSubject(subject);
+		}).getMessage();
+		assertEquals("subject.id is required.", message);
+	}
+	
+	@Test
+	public void testValidateSubjectWithNullSubjectType() {
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(null);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			DBOAccessRequirementDAOImpl.validateSubject(subject);
+		}).getMessage();
+		assertEquals("subject.type is required.", message);
+	}
+	
+	@Test
+	public void testAddDynamicallyBoundAccessRequirmentsToSubject() {
+		List<AccessRequirement> ars = createArsWithSubjectsDefinedByAnnotations(3);
+
+		Map<Long, String> startingEtags = ars.stream()
+				.collect(Collectors.toMap(AccessRequirement::getId, AccessRequirement::getEtag));
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToOne = List.of(ars.get(0).getId(), ars.get(2).getId());
+		
+		// call under test
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, bindToOne);
+		
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(0).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
+		
+		assertEquals(bindToOne, accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+	}
+	
+	@Test
+	public void testAddDynamicallyBoundAccessRequirmentsToSubjectWithDuplicate() {
+		List<AccessRequirement> ars = createArsWithSubjectsDefinedByAnnotations(3);
+
+		Map<Long, String> startingEtags = ars.stream()
+				.collect(Collectors.toMap(AccessRequirement::getId, AccessRequirement::getEtag));
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToOne = List.of(ars.get(0).getId(), ars.get(2).getId());
+		
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, bindToOne);
+		
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(0).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
+		
+		List<Long> overlap = List.of(ars.get(0).getId(), ars.get(1).getId());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, overlap);
+		}).getMessage();
+		assertEquals("One or more access requirement is already dynamically bound to this subject.", message);
+		
+		// the etag should not change since it was part of a duplicate batch.
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		
+		assertEquals(bindToOne, accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+	}
+	
+	@Test
+	public void testAddDynamicallyBoundAccessRequirmentsToSubjectWithMultipleSubjects() {
+		List<AccessRequirement> ars = createArsWithSubjectsDefinedByAnnotations(4);
+
+		Map<Long, String> startingEtags = ars.stream()
+				.collect(Collectors.toMap(AccessRequirement::getId, AccessRequirement::getEtag));
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToOne = List.of(ars.get(0).getId(), ars.get(2).getId());
+		
+		// two
+		RestrictableObjectDescriptor subjectTwo = new RestrictableObjectDescriptor().setId("syn456")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToTwo = List.of(ars.get(2).getId(), ars.get(3).getId());
+		
+		// call under test
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, bindToOne);
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectTwo, bindToTwo);
+		
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(0).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(3).getId(), startingEtags));
+
+		assertEquals(bindToOne, accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+		assertEquals(bindToTwo, accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectTwo));
+	}
+	
+	@Test
+	public void testRemovedDynamicallyBoundAccessRequirmentsToSubject() {
+		List<AccessRequirement> ars = createArsWithSubjectsDefinedByAnnotations(3);
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		// add all 
+		List<Long> bindToOne = ars.stream().map(AccessRequirement::getId).collect(Collectors.toList());
+		// start with all bound
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, bindToOne);
+		
+		Map<Long, String> startingEtags = createMapOfCurrentEtags(bindToOne);
+		
+		List<Long> toRemove = List.of(ars.get(0).getId(), ars.get(2).getId());
+		
+		// call under test
+		accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subjectOne, toRemove);
+		
+		assertEquals(List.of(ars.get(1).getId()), accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+		
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(0).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
+	}
+	
+	
+	@Test
+	public void testRemoveDynamicallyBoundAccessRequirmentsToSubjectWithMultipleSubjects() {
+		List<AccessRequirement> ars = createArsWithSubjectsDefinedByAnnotations(4);
+
+		// one
+		RestrictableObjectDescriptor subjectOne = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToOne = List.of(ars.get(0).getId(), ars.get(2).getId());
+
+		// two
+		RestrictableObjectDescriptor subjectTwo = new RestrictableObjectDescriptor().setId("syn456")
+				.setType(RestrictableObjectType.ENTITY);
+		List<Long> bindToTwo = List.of(ars.get(2).getId(), ars.get(3).getId());
+
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectOne, bindToOne);
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subjectTwo, bindToTwo);
+
+		Map<Long, String> startingEtags = createMapOfCurrentEtags(
+				ars.stream().map(AccessRequirement::getId).collect(Collectors.toList()));
+
+		List<Long> toRemoveFromOne = List.of(ars.get(0).getId());
+		List<Long> toRemoveFromTwo = List.of(ars.get(2).getId());
+
+		// call under test
+		accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subjectOne, toRemoveFromOne);
+		accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subjectTwo, toRemoveFromTwo);
+
+		assertEquals(List.of(ars.get(2).getId()),
+				accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectOne));
+		assertEquals(List.of(ars.get(3).getId()),
+				accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subjectTwo));
+
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(0).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(1).getId(), startingEtags));
+		assertFalse(doesAccessRequirmentEtagMatch(ars.get(2).getId(), startingEtags));
+		assertTrue(doesAccessRequirmentEtagMatch(ars.get(3).getId(), startingEtags));
+	}
+		
+	/**
+	 * Does the provide etag match the current etag of the given access requirement.
+	 * @param arId
+	 * @param etag
+	 * @return
+	 */
+	boolean doesAccessRequirmentEtagMatch(Long arId, String etag) {
+		return etag.equals(accessRequirementDAO.get(arId.toString()).getEtag());
+	}
+	
+	/**
+	 * Does the current etag of the provided access requirement ID match the mapped etag for this ar.
+	 * @param arId
+	 * @param etagMap
+	 * @return
+	 */
+	boolean doesAccessRequirmentEtagMatch(Long arId, Map<Long,String> etagMap) {
+		return doesAccessRequirmentEtagMatch(arId, etagMap.get(arId));
+	}
+	
+	/**
+	 * Helper to get a map of each access requirements current etag
+	 * @param arIds
+	 * @return
+	 */
+	Map<Long,String> createMapOfCurrentEtags(List<Long> arIds) {
+		Map<Long,String> etags = new HashMap<>(arIds.size());
+		for(Long id: arIds) {
+			etags.put(id, accessRequirementDAO.get(id.toString()).getEtag());
+		}
+		return etags;
+	}
+	
+	/**
+	 * Helper to create n access requirements with subjectsDefinedByAnnotations = true.
+	 * @param count
+	 * @return
+	 */
+	List<AccessRequirement> createArsWithSubjectsDefinedByAnnotations(int count){
+		List<AccessRequirement> ars = new ArrayList<>(count);
+		for(int i=0; i<count; i++) {
+			AccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");
+			ar.setSubjectIds(null);
+			ar.setSubjectsDefinedByAnnotations(true);
+			ar = accessRequirementDAO.create(ar);
+			ars.add(ar);
+		}
+		return ars;
 	}
 	
 	private void addReviewers(Long arId, List<String> reviewerIds) {

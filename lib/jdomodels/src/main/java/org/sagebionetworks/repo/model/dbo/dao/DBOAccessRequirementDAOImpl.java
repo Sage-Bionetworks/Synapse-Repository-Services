@@ -18,8 +18,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_BINDING_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
@@ -67,12 +67,14 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -577,34 +579,103 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		
 		return jdbcTemplate.query(sqlQuery, requirementMapper, queryParams.toArray());
 	}
-
+	
+	/**
+	 * Validate the provided subject and return the subject ID as a {@link Long}.
+	 * @param subject
+	 * @return
+	 */
+	static Long validateSubject(RestrictableObjectDescriptor subject) {
+		ValidateArgument.required(subject, "subject");
+		ValidateArgument.required(subject.getId(), "subject.id");
+		ValidateArgument.required(subject.getType(), "subject.type");
+		return KeyFactory.stringToKey(subject.getId());
+	}
 
 	@Override
 	public List<Long> getDynamicallyBoundAccessRequirementIdsForSubject(RestrictableObjectDescriptor subject) {
-		// TODO Auto-generated method stub
-		return null;
+		Long subjectId = validateSubject(subject);
+		return jdbcTemplate.queryForList(
+				"SELECT REQUIREMENT_ID FROM NODE_ACCESS_REQUIREMENT WHERE SUBJECT_ID = ? AND SUBJECT_TYPE = ? AND BINDING_TYPE = ? ",
+				Long.class, subjectId, subject.getType().name(), BindingType.DYNAMIC.name());
 	}
 	
 	@WriteTransaction
 	@Override
 	public void addDynamicallyBoundAccessRequirmentsToSubject(RestrictableObjectDescriptor subject, List<Long> arIds) {
-		// TODO Auto-generated method stub
-		
+		Long subjectId = validateSubject(subject);
+		ValidateArgument.required(arIds, "arIds");
+		if (arIds.isEmpty()) {
+			return;
+		}
+		try {
+			jdbcTemplate.batchUpdate(
+					"INSERT INTO NODE_ACCESS_REQUIREMENT"
+					+ " (SUBJECT_ID, SUBJECT_TYPE, REQUIREMENT_ID, BINDING_TYPE) VALUES (?,?,?,?)",
+					new BatchPreparedStatementSetter() {
+
+						@Override
+						public void setValues(PreparedStatement ps, int i) throws SQLException {
+							ps.setLong(1, subjectId);
+							ps.setString(2, subject.getType().name());
+							ps.setLong(3, arIds.get(i));
+							ps.setString(4, BindingType.DYNAMIC.name());
+						}
+
+						@Override
+						public int getBatchSize() {
+							return arIds.size();
+						}
+					});
+
+			// needed to ensure that this change migrates.
+			updateAccessRequirmentEtags(arIds);
+		} catch (DuplicateKeyException e) {
+			throw new IllegalArgumentException(
+					"One or more access requirement is already dynamically bound to this subject.", e);
+		}
 	}
 
 	@WriteTransaction
 	@Override
 	public void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject,
 			List<Long> arIds) {
-		// TODO Auto-generated method stub
-		
+		Long subjectId = validateSubject(subject);
+		ValidateArgument.required(arIds, "arIds");
+		if (arIds.isEmpty()) {
+			return;
+		}
+		jdbcTemplate.batchUpdate(
+				"DELETE FROM NODE_ACCESS_REQUIREMENT "
+				+ "WHERE SUBJECT_ID = ? AND SUBJECT_TYPE = ? AND REQUIREMENT_ID = ? AND BINDING_TYPE = ?",
+				new BatchPreparedStatementSetter() {
+
+					@Override
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						ps.setLong(1, subjectId);
+						ps.setString(2, subject.getType().name());
+						ps.setLong(3, arIds.get(i));
+						ps.setString(4, BindingType.DYNAMIC.name());
+					}
+
+					@Override
+					public int getBatchSize() {
+						return arIds.size();
+					}
+				});
+		// needed to ensure that this change migrates.
+		updateAccessRequirmentEtags(arIds);
 	}
 
-	@WriteTransaction
-	@Override
-	public void updateAccessRequirmentEtags(List<Long> arIds) {
-		// TODO Auto-generated method stub
-		
+	private void updateAccessRequirmentEtags(List<Long> arIds) {
+		ValidateArgument.required(arIds, "arIds");
+		if (arIds.isEmpty()) {
+			return;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("ids", arIds);
+		// Note: The rows must be updated in order to prevent deadlock with other threads.
+		namedJdbcTemplate.update("UPDATE ACCESS_REQUIREMENT SET ETAG = UUID() WHERE ID IN (:ids) ORDER BY ID", param);
 	}
 
 

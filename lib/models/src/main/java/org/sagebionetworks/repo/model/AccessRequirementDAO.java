@@ -179,6 +179,7 @@ public interface AccessRequirementDAO {
 	/**
 	 * Add the dynamically bound access requirements to the provided subject.
 	 * Note: The caller is expected to only add new binding with this call, so it will fail if a binding already exists.
+	 * 
 	 * @param subject
 	 * @param arIds
 	 */
@@ -190,12 +191,6 @@ public interface AccessRequirementDAO {
 	 * @param arIds
 	 */
 	void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
-	
-	/**
-	 * Update the etag of the provided access requirement IDs.
-	 * @param arIds
-	 */
-	void updateAccessRequirmentEtags(List<Long> arIds);
-	
+		
 	
 }
