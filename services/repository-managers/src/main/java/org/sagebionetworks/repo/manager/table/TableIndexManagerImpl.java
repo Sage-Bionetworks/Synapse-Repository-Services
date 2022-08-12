@@ -961,7 +961,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.clearSearchIndex(tableId);
 			return;
 		}
-		
+				
 		Iterator<TableRowData> tableRowsIterator = new PaginationIterator<>((PaginationProvider<TableRowData>) (limit, offset) -> {
 			return tableIndexDao.getTableDataPage(tableId, searchIndexSchema, limit, offset);
 		}, BATCH_SIZE);

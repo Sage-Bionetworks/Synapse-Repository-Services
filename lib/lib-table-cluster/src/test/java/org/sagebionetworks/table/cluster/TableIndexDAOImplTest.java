@@ -281,8 +281,8 @@ public class TableIndexDAOImplTest {
 		// Now we should be able to see the columns that were created
 		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
-		// ROW_ID and one ROW_VERSION plus one extra for doubles.
-		assertEquals(allTypes.size() + 2 + 1, columns.size());
+		// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT plus one extra for doubles.
+		assertEquals(allTypes.size() + 3 + 1, columns.size());
 		for (int i = 0; i < allTypes.size(); i++) {
 			// Now remove a column and update the table
 			ColumnModel removed = allTypes.remove(0);
@@ -290,13 +290,13 @@ public class TableIndexDAOImplTest {
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
-			// ROW_ID and one ROW_VERSION.
+			// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT.
 			int extraColumns = 1;
 			if (removed.getColumnType() == ColumnType.DOUBLE) {
 				extraColumns = 0;
 			}
 			// removed
-			assertEquals(allTypes.size() + 2
+			assertEquals(allTypes.size() + 3
 					+ extraColumns, columns.size(),"removed " + removed);
 			// Now add a column
 			allTypes.add(removed);
@@ -304,8 +304,8 @@ public class TableIndexDAOImplTest {
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
-			// ROW_ID and one ROW_VERSION.
-			assertEquals(allTypes.size() + 2 + 1,
+			// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT .
+			assertEquals(allTypes.size() + 3 + 1,
 					columns.size(), "read " + removed);
 		}
 	}
@@ -1308,7 +1308,7 @@ public class TableIndexDAOImplTest {
 		// Call under test.
 		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
-		assertEquals(2, schema.size());
+		assertEquals(3, schema.size());
 		DatabaseColumnInfo cd = schema.get(0);
 		assertEquals(ROW_ID, cd.getColumnName());
 		assertTrue(cd.hasIndex(), "ROW_ID is the primary key so it should have an index.");
@@ -1316,6 +1316,10 @@ public class TableIndexDAOImplTest {
 		cd = schema.get(1);
 		assertEquals(ROW_VERSION, cd.getColumnName());
 		assertFalse(cd.hasIndex());
+		
+		cd = schema.get(2);
+		assertEquals(ROW_SEARCH_CONTENT, cd.getColumnName());
+		assertTrue(cd.hasIndex());
 	}
 	
 	@Test
@@ -1336,8 +1340,8 @@ public class TableIndexDAOImplTest {
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
 		assertNotNull(schema);
-		assertEquals(3, schema.size());
-		DatabaseColumnInfo cd = schema.get(2);
+		assertEquals(4, schema.size());
+		DatabaseColumnInfo cd = schema.get(3);
 		assertEquals("_C123_", cd.getColumnName());
 		assertFalse(cd.hasIndex());
 		
@@ -1454,7 +1458,7 @@ public class TableIndexDAOImplTest {
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
 
-		DatabaseColumnInfo info = infoList.get(2);
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C15_", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
 
@@ -1500,7 +1504,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		
-		assertEquals(4, infoList.size());
+		assertEquals(5, infoList.size());
 		
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
@@ -1514,7 +1518,7 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getColumnType());
 
 		// one
-		info = infoList.get(2);
+		info = infoList.get(3);
 		assertEquals("_C12_", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
 		assertTrue(info.hasIndex());
@@ -1525,7 +1529,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(ColumnType.INTEGER, info.getColumnType());
 		
 		// two
-		info = infoList.get(3);
+		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
 		assertEquals(new Long(2), info.getCardinality());
 		assertTrue(info.hasIndex());
@@ -1554,8 +1558,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 	}
 	
@@ -1578,8 +1582,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 		
 		// Now change the column type
@@ -1594,8 +1598,8 @@ public class TableIndexDAOImplTest {
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		info = infoList.get(3);
 		assertEquals("_C13_idx_",info.getIndexName());
 	}
 	
@@ -1618,8 +1622,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 		
 		// reduce the number of allowed indices
@@ -1629,8 +1633,8 @@ public class TableIndexDAOImplTest {
 		// the column should no longer have an index.
 		infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		info = infoList.get(3);
 		assertFalse(info.hasIndex());
 		assertEquals(null,info.getIndexName());
 	}
