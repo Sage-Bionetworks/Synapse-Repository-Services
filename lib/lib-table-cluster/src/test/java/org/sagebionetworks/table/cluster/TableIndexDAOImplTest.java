@@ -1190,7 +1190,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		tableIndexDAO.addSearchColumn(tableId);
 		
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
 		
@@ -1214,7 +1213,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		tableIndexDAO.addSearchColumn(tableId);
 				
 		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
 		
@@ -1237,8 +1235,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
 		
 		// Now add some data
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
@@ -1669,64 +1665,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
 	}
-	
-	@Test
-	public void testGetDatabaseColumnInfo(){
-		ColumnModel column = new ColumnModel();
 		
-		column.setId("12");
-		column.setName("foo");
-		column.setColumnType(ColumnType.INTEGER);
-		
-		createOrUpdateTable(Arrays.asList(column), indexDescription);
-		
-		String columnName = SQLUtils.getColumnNameForId(column.getId());
-		
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-		
-		assertTrue(info.isPresent());
-	}
-	
-	@Test
-	public void testGetDatabaseColumnInfoForMetaDataColumns(){
-				
-		createOrUpdateTable(Collections.emptyList(), indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
-		
-		List<String> metaDataColumns = Arrays.asList(ROW_ID, ROW_VERSION, ROW_SEARCH_CONTENT);
-
-		for (String columnName : metaDataColumns) {
-			// table does not exist
-			Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-			
-			assertTrue(info.isPresent());
-		}
-	}
-	
-	@Test
-	public void testGetDatabaseColumnWithNonExistingTable(){
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, ROW_ID);
-		assertFalse(info.isPresent());
-	}
-		
-	@Test
-	public void testGetDatabaseColumnInfoWithNonExistingColumn(){
-				
-		createOrUpdateTable(Collections.emptyList(), indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
-		
-		String columnName = "nonExisting";
-		
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-			
-		assertFalse(info.isPresent());
-	}
-	
 	@Test
 	public void testCreateTempTable(){
 		ColumnModel intColumn = new ColumnModel();

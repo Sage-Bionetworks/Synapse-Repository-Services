@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -279,13 +278,6 @@ public interface TableIndexDAO {
 	 */
 	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
 	
-	/**
-	 * @param tableId
-	 * @param columnName The physical name of the column
-	 * @return An optional containing the database level information about the column with the given name 
-	 */
-	Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName);
-
 	/**
 	 * Provide the cardinality for the given columns and table.
 	 * 
@@ -616,19 +608,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	List<IdAndChecksum> getIdAndChecksumsForFilter(Long salt, ViewFilter filter, Long limit, Long offset);
-	
-	/**
-	 * Adds a special SEARCH_CONTENT FT column to the table index 
-	 * @param idAndVersion
-	 */
-	void addSearchColumn(IdAndVersion idAndVersion);
-	
-	/**
-	 * Removes the special SEARCH_CONTENT FT column from the table index 
-	 * @param idAndVersion
-	 */
-	void removeSearchColumn(IdAndVersion idAndVersion);
-	
+		
 	/**
 	 * @param idAndVersion The id of the table
 	 * @param selectColumns The columns to fetch

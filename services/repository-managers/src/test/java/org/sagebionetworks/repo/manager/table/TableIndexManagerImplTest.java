@@ -1247,7 +1247,6 @@ public class TableIndexManagerImplTest {
 		
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
 		
-		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.empty());
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		doNothing().when(managerSpy).updateSearchIndex(any());
 
@@ -1255,8 +1254,6 @@ public class TableIndexManagerImplTest {
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
 		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
-		verify(mockIndexDao).addSearchColumn(tableId);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 		verify(managerSpy).updateSearchIndex(tableId);
 		verifyNoMoreInteractions(mockIndexDao);
@@ -1269,64 +1266,17 @@ public class TableIndexManagerImplTest {
 		boolean enableSearch = false;
 		
 		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
-		
-		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.of(new DatabaseColumnInfo()));
 		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
 		
 		// call under test
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
 		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
-		verify(mockIndexDao).removeSearchColumn(tableId);
+		verify(mockIndexDao).clearSearchIndex(tableId);
 		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
-	
-	@Test
-	public void testApplyChangeToIndexSearchEnableWithExisting() throws NotFoundException, IOException {
-		long changeNumber = 123L;
 		
-		boolean enableSearch = true;
-		
-		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
-		
-		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.of(new DatabaseColumnInfo()));
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
-		doNothing().when(managerSpy).updateSearchIndex(any());
-		
-		// call under test
-		managerSpy.applyChangeToIndex(tableId, mockChange);
-		
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
-		verify(mockIndexDao).removeSearchColumn(tableId);
-		verify(mockIndexDao).addSearchColumn(tableId);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
-		verify(managerSpy).updateSearchIndex(tableId);
-		verifyNoMoreInteractions(mockIndexDao);
-	}
-	
-	@Test
-	public void testApplyChangeToIndexSearchDisableWithNonExisting() throws NotFoundException, IOException {
-		long changeNumber = 123L;
-		
-		boolean enableSearch = false;
-		
-		TableChangeMetaData mockChange = setupMockSearchChange(changeNumber, enableSearch);
-		
-		when(mockIndexDao.getDatabaseColumnInfo(any(), any())).thenReturn(Optional.empty());
-		doNothing().when(managerSpy).createTableIfDoesNotExist(any());
-		
-		// call under test
-		managerSpy.applyChangeToIndex(tableId, mockChange);
-		
-		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
-		verify(mockIndexDao).getDatabaseColumnInfo(tableId, TableConstants.ROW_SEARCH_CONTENT);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
-		verifyNoMoreInteractions(mockIndexDao);
-	}
-	
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLock() throws Exception {
 		setupExecuteInWriteTransaction();

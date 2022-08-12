@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.description;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +37,9 @@ public class TableIndexDescription implements IndexDescription {
 		builder.append("( ");
 		builder.append(ROW_ID).append(" BIGINT NOT NULL, ");
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
-		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		builder.append(ROW_SEARCH_CONTENT).append(" MEDIUMTEXT NULL, ");
+		builder.append("PRIMARY KEY (").append("ROW_ID").append("), ");
+		builder.append("FULLTEXT INDEX `" + ROW_SEARCH_CONTENT + "_INDEX` (" + ROW_SEARCH_CONTENT + ")");
 		builder.append(")");
 		return builder.toString();
 	}
@@ -88,11 +91,4 @@ public class TableIndexDescription implements IndexDescription {
 	public String toString() {
 		return "TableIndexDescription [idAndVersion=" + idAndVersion + "]";
 	}
-	
-	@Override
-	public boolean hasDefaultSearchColumn() {
-		// Tables are build using an history of transactions that might drop/add the column over time
-		return false;
-	}
-
 }

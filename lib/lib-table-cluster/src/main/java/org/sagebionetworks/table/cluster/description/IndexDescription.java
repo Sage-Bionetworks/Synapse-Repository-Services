@@ -51,14 +51,6 @@ public interface IndexDescription extends Comparable<IndexDescription> {
 	 * @return
 	 */
 	List<IndexDescription> getDependencies();
-	
-	/**
-	 * @return True if the index includes a full text search column by default
-	 */
-	default boolean hasDefaultSearchColumn() {
-		return true;
-	}
-
 
 	/**
 	 * Default @Comparable based on IdAndVersion.

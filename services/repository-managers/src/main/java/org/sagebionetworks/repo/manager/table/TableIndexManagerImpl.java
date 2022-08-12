@@ -739,20 +739,14 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void applySearchChangeToIndex(IdAndVersion idAndVersion, ChangeData<SearchChange> loadChangeData) {
 		// This will make sure that the table is properly created if it does not exist
 		createTableIfDoesNotExist(new TableIndexDescription(idAndVersion));
-		
-		// Unconditionally remove the search column to avoid situations such as those in PLFM-7024
-		tableIndexDao.getDatabaseColumnInfo(idAndVersion, TableConstants.ROW_SEARCH_CONTENT).ifPresent(column -> {
-			tableIndexDao.removeSearchColumn(idAndVersion);
-		});
-		
+				
 		SearchChange change = loadChangeData.getChange();
 		
 		if (change.isEnabled()) {
-			tableIndexDao.addSearchColumn(idAndVersion);
-
 			// When we enable the search on a table we unconditionally re-index the whole table
 			updateSearchIndex(idAndVersion);
-			
+		} else {
+			tableIndexDao.clearSearchIndex(idAndVersion);
 		}
 		
 		// set the new max version for the index

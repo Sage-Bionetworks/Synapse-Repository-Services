@@ -25,8 +25,12 @@ public class MaterializedViewIndexDescriptionTest {
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
-		assertEquals("CREATE TABLE IF NOT EXISTS T123(" + " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
-				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0," + " PRIMARY KEY (ROW_ID))", sql);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT))", sql);
 	}
 
 	@Test
@@ -37,12 +41,14 @@ public class MaterializedViewIndexDescriptionTest {
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
-		assertEquals("CREATE TABLE IF NOT EXISTS T123("
-				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
-				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T999 BIGINT NOT NULL,"
-				+ " PRIMARY KEY (ROW_ID),"
-				+ " KEY (ROW_BENEFACTOR_T999))", sql);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
+				+ "KEY (ROW_BENEFACTOR_T999))", sql);
 	}
 
 	@Test
@@ -54,14 +60,16 @@ public class MaterializedViewIndexDescriptionTest {
 		MaterializedViewIndexDescription mid = new MaterializedViewIndexDescription(materializedViewId, dependencies);
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
-		assertEquals("CREATE TABLE IF NOT EXISTS T123("
-				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
-				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T888 BIGINT NOT NULL,"
-				+ " ROW_BENEFACTOR_T999 BIGINT NOT NULL,"
-				+ " PRIMARY KEY (ROW_ID),"
-				+ " KEY (ROW_BENEFACTOR_T888),"
-				+ " KEY (ROW_BENEFACTOR_T999))", sql);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_BENEFACTOR_T888 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR_T999 BIGINT NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
+				+ "KEY (ROW_BENEFACTOR_T888), "
+				+ "KEY (ROW_BENEFACTOR_T999))", sql);
 	}
 
 	@Test
@@ -75,14 +83,16 @@ public class MaterializedViewIndexDescriptionTest {
 				Arrays.asList(dependency));
 		// call under test
 		String sql = mid.getCreateOrUpdateIndexSql();
-		assertEquals("CREATE TABLE IF NOT EXISTS T123("
-				+ " ROW_ID BIGINT NOT NULL AUTO_INCREMENT,"
-				+ " ROW_VERSION BIGINT NOT NULL DEFAULT 0,"
-				+ " ROW_BENEFACTOR_T888_T456 BIGINT NOT NULL,"
-				+ " ROW_BENEFACTOR_T999_T456 BIGINT NOT NULL,"
-				+ " PRIMARY KEY (ROW_ID),"
-				+ " KEY (ROW_BENEFACTOR_T888_T456),"
-				+ " KEY (ROW_BENEFACTOR_T999_T456))", sql);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID BIGINT NOT NULL AUTO_INCREMENT, "
+				+ "ROW_VERSION BIGINT NOT NULL DEFAULT 0, "
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "ROW_BENEFACTOR_T888_T456 BIGINT NOT NULL, "
+				+ "ROW_BENEFACTOR_T999_T456 BIGINT NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT), "
+				+ "KEY (ROW_BENEFACTOR_T888_T456), "
+				+ "KEY (ROW_BENEFACTOR_T999_T456))", sql);
 	}
 
 	@Test

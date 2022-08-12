@@ -22,7 +22,9 @@ public class TableIndexDescriptionTest {
 		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
 				+ "ROW_ID BIGINT NOT NULL, "
 				+ "ROW_VERSION BIGINT NOT NULL, "
-				+ "PRIMARY KEY (ROW_ID))", sql);
+				+ "ROW_SEARCH_CONTENT MEDIUMTEXT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (ROW_SEARCH_CONTENT))", sql);
 	}
 	
 	@Test

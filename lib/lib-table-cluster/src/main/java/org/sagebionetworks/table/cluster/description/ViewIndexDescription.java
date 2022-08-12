@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster.description;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_SEARCH_CONTENT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Arrays;
@@ -46,9 +47,11 @@ public class ViewIndexDescription implements IndexDescription {
 		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
 		builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 		builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
+		builder.append(ROW_SEARCH_CONTENT).append(" MEDIUMTEXT NULL, ");
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
-		builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
+		builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append("), ");
+		builder.append("FULLTEXT INDEX `" + ROW_SEARCH_CONTENT + "_INDEX` (" + ROW_SEARCH_CONTENT + ")");
 		builder.append(")");
 		return builder.toString();
 	}

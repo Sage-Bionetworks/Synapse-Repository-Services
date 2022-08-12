@@ -101,7 +101,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -559,11 +558,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void createTableIfDoesNotExist(IndexDescription description) {
 		template.update(description.getCreateOrUpdateIndexSql());
-		
-		// Add the search column if needed for the index
-		if (description.hasDefaultSearchColumn() && getDatabaseColumnInfo(description.getIdAndVersion(), TableConstants.ROW_SEARCH_CONTENT).isEmpty()) {
-			addSearchColumn(description.getIdAndVersion());
-		}
 	}
 
 	@Override
@@ -626,19 +620,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		} catch (BadSqlGrammarException e) {
 			// Spring throws this when the table does not exist
 			return new LinkedList<DatabaseColumnInfo>();
-		}
-	}
-
-	@Override
-	public Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName) {
-		try {
-			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
-			// Bind variables do not seem to work here
-			DatabaseColumnInfo columnInfo = template.queryForObject(SQL_SHOW_COLUMNS + tableName + " WHERE `" + FIELD + "` = ?", DB_COL_INFO_MAPPER, columnName);
-			return Optional.ofNullable(columnInfo);
-		} catch (BadSqlGrammarException | EmptyResultDataAccessException e) {
-			// Spring throws this when the table does not exist
-			return Optional.empty();
 		}
 	}
 
@@ -1453,21 +1434,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
 	}
-	
-	@Override
-	public void addSearchColumn(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "The id");
-		String sql = SQLUtils.generateAddSearchColumnSql(idAndVersion);
-		template.update(sql);
-	}
-	
-	@Override
-	public void removeSearchColumn(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "The id");
-		String sql = SQLUtils.generateRemoveSearchColumnSql(idAndVersion);
-		template.update(sql);		
-	}
-	
+		
 	@Override
 	public List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
