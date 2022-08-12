@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -200,9 +200,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		currentSubjectIds = Objects.requireNonNullElse(currentSubjectIds, Collections.emptyList());
 		updatedSubjectIds = Objects.requireNonNullElse(updatedSubjectIds, Collections.emptyList());
 		// We need to signal the subjectIds in the symmetric difference between currentSubjectIds and updatedSubjectIds
-		Set<RestrictableObjectDescriptor> symmetricDiff = new HashSet<>(currentSubjectIds);
+		Set<RestrictableObjectDescriptor> symmetricDiff = new LinkedHashSet<>(currentSubjectIds);
 		symmetricDiff.removeAll(updatedSubjectIds); // A-B
-		Set<RestrictableObjectDescriptor> bMinusA = new HashSet<>(updatedSubjectIds);
+		Set<RestrictableObjectDescriptor> bMinusA = new LinkedHashSet<>(updatedSubjectIds);
 		bMinusA.removeAll(currentSubjectIds); // B-A
 		symmetricDiff.addAll(bMinusA);
 		return new ArrayList<>(symmetricDiff);
