@@ -2,9 +2,9 @@
 	"title": "Access Requirement",
 	"type": "interface",
 	"description": "Interface for JSON schema for AccessRequirement.  The Access Requirement mechanism is distinct from the access control list in that it is controlled not by the entity owner but by a separate authority:  Access Requirements are created and maintained by the Synapse Access and Compliance Team (ACT).  ACTAccessRequirements can only be approved by the ACT.  Self-sign Access Requirements can be approved by the user desiring access, but said user first has to meet 'terms of use' associated with the requirement.",
-	"implements":[
+	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.Versionable"
+			"$ref": "org.sagebionetworks.repo.model.Versionable"
 		}
 	],
 	"properties": {
@@ -52,13 +52,17 @@
 			"title": "Modified By",
 			"transient": true
 		},
+		"subjectsDefinedByAnnotations": {
+			"type": "boolean",
+			"description": "Defaults to 'false'.  When 'true', the subjects controlled by this AR are defined by the the'_accessRequirementIds' annotations on individual entities.  This property is mutually exclusive with 'subjectIds'.  If this is set to 'true' then 'subjectIds' must be excluded or empty."
+		},
 		"subjectIds": {
 			"type": "array",
-			"description": "The IDs of the items controlled by this Access Requirement.  Required when creating or updating.",
+			"description": "The IDs of the items controlled by this Access Requirement when 'subjectsDefinedByAnnotations=false'. This property is mutually exclusive with 'subjectsDefinedByAnnotations'.  When 'subjectsDefinedByAnnotations=true' then this property must be empty or excluded.  Required when creating or updating and 'subjectsDefinedByAnnotations=false' or 'subjectsDefinedByAnnotations' is excluded.",
 			"transient": true,
 			"items": {
-        		"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.RestrictableObjectDescriptor"
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.RestrictableObjectDescriptor"
 			}
 		},
 		"accessType": {
@@ -67,9 +71,9 @@
 			"name": "AccessType",
 			"$ref": "org.sagebionetworks.repo.model.ACCESS_TYPE"
 		},
-        "concreteType":{
-            "type":"string",
-            "description":"Indicates which type of AccessRequirement this object represents.  Provided by the system, the user may not set this field."
-        }
+		"concreteType": {
+			"type": "string",
+			"description": "Indicates which type of AccessRequirement this object represents.  Provided by the system, the user may not set this field."
+		}
 	}
 }

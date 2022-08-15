@@ -167,4 +167,30 @@ public interface AccessRequirementDAO {
 	List<AccessRequirement> searchAccessRequirements(List<AccessRequirementSearchSort> sort, String nameContains, String reviewerId,
 			Long projectId, ACCESS_TYPE accessType, long limit, long offset);
 	
+	
+	/**
+	 * Get the dynamically bound access requirement IDs for the given subject.
+	 * 
+	 * @param subject
+	 * @return
+	 */
+	List<Long> getDynamicallyBoundAccessRequirementIdsForSubject(RestrictableObjectDescriptor subject);
+	
+	/**
+	 * Add the dynamically bound access requirements to the provided subject.
+	 * Note: The caller is expected to only add new binding with this call, so it will fail if a binding already exists.
+	 * 
+	 * @param subject
+	 * @param arIds
+	 */
+	void addDynamicallyBoundAccessRequirmentsToSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
+	
+	/**
+	 * Remove the dynamically bound access requirements from the provided subject.
+	 * @param subject
+	 * @param arIds
+	 */
+	void removeDynamicallyBoundAccessRequirementsFromSubject(RestrictableObjectDescriptor subject, List<Long> arIds);
+		
+	
 }
