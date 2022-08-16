@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import com.amazonaws.AmazonServiceException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -797,7 +798,8 @@ public class BaseControllerExceptionHandlerAdvice {
 			log.error("Handling " + request.toString());
 		}
 
-		if (request.getPathInfo().startsWith("/ga4gh/drs/v1")) {
+		if (request != null &&
+				!StringUtils.isEmpty(request.getPathInfo()) && request.getPathInfo().startsWith("/ga4gh/drs/v1")) {
 			return getDrsErrorResponse(ex, message);
 		}
 		ErrorResponse er = new ErrorResponse();
