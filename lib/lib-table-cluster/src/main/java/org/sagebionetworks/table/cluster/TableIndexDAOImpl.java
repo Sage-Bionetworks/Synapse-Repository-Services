@@ -370,13 +370,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
-	
-	@Override
-	public void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSearchSQL(tableId);
-		template.update(createOrUpdateStatusSql, version, searchEnabled, version, searchEnabled);
-	}	
-	
+		
 	@Override
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
@@ -384,9 +378,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5HexAndSearchStatus(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashAndSearchSQL(tableId);
-		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, searchEnabled, viewCRC, schemaMD5Hex, searchEnabled);
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
+		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
+	}
+	
+	@Override
+	public void setSearchEnabled(IdAndVersion tableId, boolean searchStatus) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateSearchStatusSQL(tableId);
+		template.update(createOrUpdateStatusSql, searchStatus, searchStatus);
 	}
 
 	@Override

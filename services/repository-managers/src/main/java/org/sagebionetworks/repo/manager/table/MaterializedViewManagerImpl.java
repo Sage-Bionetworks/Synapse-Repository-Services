@@ -207,6 +207,9 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 			// create the table in the index.
 			indexManager.setIndexSchema(definingSql.getIndexDescription(), viewSchema);
+			// Sync the search flag
+			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
+		
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
 			
 			Long viewCRC = null;
@@ -222,12 +225,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			//for any list columns, build separate tables that serve as an index
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
-			if (isSearchEnabled) {
-				indexManager.updateSearchIndex(definingSql.getIndexDescription());
-			}
-
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex, isSearchEnabled);
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		} catch (InvalidStatusTokenException e) {

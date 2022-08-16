@@ -2203,6 +2203,67 @@ public class TableViewIntegrationTest {
 			assertEquals(2L, queryResult.getQueryResult().getQueryResults().getRows().size());
 		});
 	}
+	
+	@Test
+	public void testViewSnapshotWithSearchEnabled() throws Exception {
+		String matchingString = "matching";
+		
+		// First file should have a match
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Second file should not match
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not" + matchingString, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds.add(stringColumn.getId());
+		
+		boolean searchEnabled = true;
+		
+		String viewId = createView(ViewTypeMask.File.getMask(), List.of(project.getId()), searchEnabled);
+		
+		// The current version should have it enabled
+		waitForConsistentQuery(adminUserInfo, "select * from " + viewId + " where text_matches('" + matchingString + "')", (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+		// Creates a snapshot
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(viewId);
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+
+		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
+			assertNotNull(response);
+			assertNotNull(response.getSnapshotVersionNumber());
+		}).getSnapshotVersionNumber();
+		
+		// Disable the search on the current version
+		EntityView view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class).setIsSearchEnabled(false);
+		entityManager.updateEntity(adminUserInfo, view, false, null);		
+		asyncHelper.updateEntityView(viewId, adminUserInfo, defaultColumnIds, List.of(project.getId()), ViewTypeMask.File.getMask());
+
+		// The current version should have it disabled
+		assertThrows(IllegalArgumentException.class, () -> {		
+			waitForConsistentQuery(adminUserInfo, "select * from " + viewId + " where text_matches('" + matchingString + "')", (result) -> {});
+		});
+		
+		// The snapshot should have the search enabled
+		String sql = "select * from " + viewId + "." + snaphsotVersionNumber + " where text_matches('" + matchingString + "')";
+		
+		waitForConsistentQuery(adminUserInfo, sql, (queryResult) -> {
+			assertEquals(1L, queryResult.getQueryResult().getQueryResults().getRows().size());
+		});
+		
+	}
 
 	/**
 	 * Broadcast a change message to the view worker.

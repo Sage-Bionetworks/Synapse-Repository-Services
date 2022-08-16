@@ -517,9 +517,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 			// Record the search flag before processing to avoid race conditions
 			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
+			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 			// create the table in the index
 			indexManager.setIndexSchema(indexDescription, viewSchema);
+			// Sync the search flag
+			indexManager.setSearchEnabled(idAndVersion, isSearchEnabled);
 
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			
@@ -536,12 +539,8 @@ public class TableViewManagerImpl implements TableViewManager {
 			//for any list columns, build separate tables that serve as an index
 			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 			
-			if (isSearchEnabled) {
-				indexManager.updateSearchIndex(indexDescription);
-			}
-
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex, isSearchEnabled);
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		} catch (InvalidStatusTokenException e) {

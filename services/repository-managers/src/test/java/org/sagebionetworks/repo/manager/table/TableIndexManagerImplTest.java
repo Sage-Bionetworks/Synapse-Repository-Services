@@ -751,13 +751,36 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
 		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
-
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(false);
+		
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 
 		// call under test
 		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
+		verify(mockIndexDao, never()).updateSearchIndex(any(), any());
+		// the CRC should be calculated with the etag column.
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationWithSearchEnabled() {
+		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+		when(mockMetadataProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataProvider);
+		when(mockMetadataProvider.getViewFilter(tableId.getId())).thenReturn(mockFilter);
+		when(mockIndexDao.isSearchEnabled(any())).thenReturn(true);
+		IndexDescription indexDescription = new ViewIndexDescription(tableId, EntityType.entityview);
+		when(mockManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		doNothing().when(managerSpy).updateSearchIndex(any());
+		
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+
+		// call under test
+		Long resultCrc = managerSpy.populateViewFromEntityReplication(tableId.getId(), scopeType, schema);
+		assertEquals(crc32, resultCrc);
+		verify(mockIndexDao).copyObjectReplicationToView(tableId.getId(), mockFilter, schema, mockMetadataProvider);
+		verify(managerSpy).updateSearchIndex(indexDescription);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -1259,7 +1282,8 @@ public class TableIndexManagerImplTest {
 		managerSpy.applyChangeToIndex(tableId, mockChange);
 		
 		verify(managerSpy).createTableIfDoesNotExist(indexDescription);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
+		verify(mockIndexDao).setSearchEnabled(tableId, enableSearch);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
 		verify(managerSpy).updateSearchIndex(indexDescription);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
@@ -1278,7 +1302,8 @@ public class TableIndexManagerImplTest {
 		
 		verify(managerSpy).createTableIfDoesNotExist(new TableIndexDescription(tableId));
 		verify(mockIndexDao).clearSearchIndex(tableId);
-		verify(mockIndexDao).setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, mockChange.getChangeNumber(), enableSearch);
+		verify(mockIndexDao).setSearchEnabled(tableId, enableSearch);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
 		verifyNoMoreInteractions(mockIndexDao);
 	}
 		

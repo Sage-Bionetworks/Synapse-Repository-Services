@@ -216,8 +216,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled) {
-		tableIndexDao.setIndexVersionAndSchemaMD5HexAndSearchStatus(tableId, viewCRC, schemaMD5Hex, searchEnabled);
+	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
+		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
+	}
+	
+	@Override
+	public void setSearchEnabled(IdAndVersion tableId, boolean searchEnabled) {
+		tableIndexDao.setSearchEnabled(tableId, searchEnabled);
 	}
 
 	/**
@@ -482,6 +487,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema, provider, scopeType.getTypeMask(), filter);
 		}
+		
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(viewId).build();
+				
+		if (tableIndexDao.isSearchEnabled(idAndVersion)) {			
+			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
+		}
+		
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(viewId);
 	}
@@ -751,8 +763,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.clearSearchIndex(idAndVersion);
 		}
 		
+		// Update the search status
+		setSearchEnabled(idAndVersion, change.isEnabled());
 		// set the new max version for the index
-		tableIndexDao.setMaxCurrentCompleteVersionAndSearchStatusForTable(idAndVersion, loadChangeData.getChangeNumber(), change.isEnabled());
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
 	}
 	
 	@Override
@@ -767,6 +781,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
+		
+		if (tableIndexDao.isSearchEnabled(idAndVersion)) {
+			updateSearchIndex(tableManagerSupport.getIndexDescription(idAndVersion));
+		}
 	}
 
 	@Override
@@ -953,8 +971,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * 
 	 * @param tableId
 	 */
-	@Override
-	public void updateSearchIndex(IndexDescription index) {
+	void updateSearchIndex(IndexDescription index) {
 		List<ColumnModel> currentSchema = getCurrentTableSchema(index.getIdAndVersion());
 		List<ColumnModel> searchIndexSchema = getSchemaForSearchIndex(currentSchema);
 		
@@ -1042,11 +1059,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql) {
-		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), definingSql.getIndexDescription());
+		IndexDescription indexDescription = definingSql.getIndexDescription();
+		Long result = tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
 			tableIndexDao.update(insertSql, definingSql.getParameters());
 			return 1L;
 		});
+		if (tableIndexDao.isSearchEnabled(indexDescription.getIdAndVersion())) {
+			updateSearchIndex(indexDescription);
+		}
+		return result;
 	}
 	
 }

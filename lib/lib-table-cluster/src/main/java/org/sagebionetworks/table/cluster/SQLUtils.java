@@ -500,7 +500,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusSearchSQL(IdAndVersion tableId) {
+	public static String buildCreateOrUpdateSearchStatusSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -514,7 +514,7 @@ public class SQLUtils {
 		builder.append(STATUS_COL_SCHEMA_HASH);
 		builder.append(",");
 		builder.append(STATUS_COL_SEARCH_ENABLED);
-		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', ?) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, " + STATUS_COL_SEARCH_ENABLED + " = ?");
+		builder.append(" ) VALUES ('1', -1, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', ?) ON DUPLICATE KEY UPDATE " + STATUS_COL_SEARCH_ENABLED + " = ?");
 		return builder.toString();
 	}
 	
@@ -536,7 +536,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusVersionAndHashAndSearchSQL(IdAndVersion tableId){
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(IdAndVersion tableId){
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -550,7 +550,7 @@ public class SQLUtils {
 		builder.append(STATUS_COL_SCHEMA_HASH);
 		builder.append(",");
 		builder.append(STATUS_COL_SEARCH_ENABLED);
-		builder.append(" ) VALUES ('1', ?, ?, ?) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+STATUS_COL_SCHEMA_HASH+" = ?, " + STATUS_COL_SEARCH_ENABLED + " = ?");
+		builder.append(" ) VALUES ('1', ?, ?, FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?, "+STATUS_COL_SCHEMA_HASH+" = ?");
 		return builder.toString();
 	}
 

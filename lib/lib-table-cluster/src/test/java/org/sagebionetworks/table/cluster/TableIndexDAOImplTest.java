@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -953,18 +952,17 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testSetIndexVersionAndSchemaMD5HexAndSearchStatus(){
+	public void testSetIndexVersionAndSchemaMD5Hex(){
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
 		
 		String md5 = "md5hex";
 		Long version = 123L;
 		// call under test.
-		this.tableIndexDAO.setIndexVersionAndSchemaMD5HexAndSearchStatus(tableId, version, md5, false);
+		this.tableIndexDAO.setIndexVersionAndSchemaMD5Hex(tableId, version, md5);
 		
 		assertEquals(md5, this.tableIndexDAO.getCurrentSchemaMD5Hex(tableId));
 		assertEquals(version, this.tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
-		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
 	}
 	
 	@Test
@@ -984,13 +982,11 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testIsSearchEnabledWithFalse() {
+	public void testSetSearchEnabledWithFalse() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
-		Long version = 123L;
-		
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		tableIndexDAO.setSearchEnabled(tableId, false);
 		
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
@@ -999,13 +995,11 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testIsSearchEnabledWithTrue() {
+	public void testSetSearchEnabledWithTrue() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
-		Long version = 123L;
-		
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		tableIndexDAO.setSearchEnabled(tableId, true);
 		
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
@@ -1014,21 +1008,16 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testSetMaxCurrentCompleteVersionAndSearchStatusForTable() {
+	public void testSetMaxCurrentCompleteVersionForTable() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
 		Long version = 123L;
 		
 		// Call under test
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
 		
-		assertTrue(tableIndexDAO.isSearchEnabled(tableId));
-		
-		// Call under test
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
-		
-		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
+		assertEquals(version, tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
 		
 	}
 	

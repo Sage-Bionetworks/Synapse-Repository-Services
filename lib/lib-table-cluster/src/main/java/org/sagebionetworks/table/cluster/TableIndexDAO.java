@@ -131,15 +131,6 @@ public interface TableIndexDAO {
 	 * @param highestVersion
 	 */
 	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
-
-	/**
-	 * Set the max complete version for this table along with the search status
-	 * 
-	 * @param tableId
-	 * @param version
-	 * @param searchEnabled
-	 */
-	void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled);
 	
 	/**
 	 * Set the MD5 hex of the table's current schema.
@@ -156,6 +147,8 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
+	
+	void setSearchEnabled(IdAndVersion tableId, boolean searchStatus);
 
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
@@ -453,13 +446,13 @@ public interface TableIndexDAO {
 	long calculateCRC32ofTableView(Long viewId);
 
 	/**
-	 * Save both the current version, the schema MD5 and the search status for current index.
+	 * Save both the current version and the schema MD5 for current index.
 	 * 
 	 * @param tableId
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	void setIndexVersionAndSchemaMD5HexAndSearchStatus(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex, boolean searchEnabled);
+	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
 
 	/**
 	 * Get the distinct possible ColumnModels for the given scope filter

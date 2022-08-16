@@ -938,12 +938,13 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
 		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
+		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), scopeType, viewSchema);
 		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
-		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex, false);
+		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
@@ -986,6 +987,7 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 		verify(mockColumnModelManager).getTableSchema(idAndVersion);
 		verify(mockIndexManager).setIndexSchema(indexDescription, viewSchema);
+		verify(mockIndexManager).setSearchEnabled(idAndVersion, false);
 		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
 				1L);
 		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(), any());
@@ -995,7 +997,7 @@ public class TableViewManagerImplTest {
 		verify(mockFile).delete();
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
-		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex, false);
+		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
