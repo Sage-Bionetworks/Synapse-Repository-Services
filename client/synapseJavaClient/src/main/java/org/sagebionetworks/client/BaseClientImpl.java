@@ -1,26 +1,5 @@
 package org.sagebionetworks.client;
 
-import static org.sagebionetworks.client.Method.DELETE;
-import static org.sagebionetworks.client.Method.GET;
-import static org.sagebionetworks.client.Method.POST;
-import static org.sagebionetworks.client.Method.PUT;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.util.InetAddressUtils;
@@ -55,6 +34,27 @@ import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
 
 /**
  * Low-level Java Client API for REST APIs
@@ -521,7 +521,7 @@ public class BaseClientImpl implements BaseClient {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		validateContentType(response, APPLICATION_JSON);
-		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
+		return ClientUtils.convertResponseBodyToJSONAndThrowException(response, endpoint);
 	}
 
 	/**

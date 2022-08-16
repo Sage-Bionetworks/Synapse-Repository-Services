@@ -1,13 +1,15 @@
 package org.sagebionetworks.drs.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.repo.web.rest.doc.DrsException;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -67,8 +69,10 @@ public class DrsController {
     }
 
     /**
-     * Get DRSObject API will provide information about the DrsObject which can be file or dataset.
-     * DrsObject is fetched by drsId i.e Synapse Id plus version which makes it immutable:
+     * Get DRSObject API will provide information about the DrsObject which can be
+     * <a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> or
+     * <a href="${org.sagebionetworks.repo.model.table.Dataset}">Dataset</a>.
+     * DrsObject is fetched by drsId i.e Synapse Id plus version which makes it immutable , example id = syn123.1.
      * <a href="https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#operation/GetObject">
      * Get info about a DrsObject.</a>
      *
@@ -79,7 +83,7 @@ public class DrsController {
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
     public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
                                                 @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-            throws DrsException {
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
         return serviceProvider.getDrsService().getDrsObject(userId, id);
     }
 }

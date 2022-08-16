@@ -1,13 +1,7 @@
 package org.sagebionetworks.client;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.Map;
-
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
@@ -29,6 +23,7 @@ import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
@@ -36,6 +31,13 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.Map;
 
 public class ClientUtils {
 
@@ -72,14 +74,26 @@ public class ClientUtils {
 
 	}
 
-	public static void throwException(int statusCode, String reasonStr) throws SynapseException{
-		ErrorResponseCode errorResponseCode;
-		String errorMessage;
+	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
+		throwException(statusCode, reasonStr, null);
+	}
+
+	public static void throwException(int statusCode, String reasonStr, String endpoint) throws SynapseException {
+		ErrorResponseCode errorResponseCode = null;
+		String errorMessage = null;
+		Integer httpStatusCode = null;
 
 		try {
-			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
-			errorMessage = errorResponse.getReason();
-			errorResponseCode = errorResponse.getErrorCode();
+			if (StringUtils.isEmpty(endpoint)) {
+				ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
+				errorMessage = errorResponse.getReason();
+				errorResponseCode = errorResponse.getErrorCode();
+			} else if (endpoint.contains("/ga4gh/drs/v1")) {
+				DrsErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, DrsErrorResponse.class);
+				errorMessage = errorResponse.getMsg();
+				httpStatusCode = Math.toIntExact(errorResponse.getStatus_code());
+			}
+
 		} catch (JSONObjectAdapterException e) {
 			//this is fine, just use the original reasonStr
 			errorMessage = reasonStr;
@@ -87,22 +101,22 @@ public class ClientUtils {
 		}
 
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			throw new SynapseUnauthorizedException(errorMessage, errorResponseCode);
+			throw new SynapseUnauthorizedException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
-			throw new SynapseForbiddenException(errorMessage, errorResponseCode);
+			throw new SynapseForbiddenException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-			throw new SynapseNotFoundException(errorMessage, errorResponseCode);
+			throw new SynapseNotFoundException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
-			throw new SynapseBadRequestException(errorMessage, errorResponseCode);
+			throw new SynapseBadRequestException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_LOCKED) {
-			throw new SynapseLockedException(errorMessage, errorResponseCode);
+			throw new SynapseLockedException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
-			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode);
+			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode, httpStatusCode);
 		} else if (statusCode == HttpStatus.SC_GONE) {
-			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode);
-		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
-			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode);
-		}else {
+			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode, httpStatusCode);
+		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE) {
+			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode, httpStatusCode);
+		} else {
 			throw new UnknownSynapseServerException(statusCode, errorMessage, null, errorResponseCode);
 		}
 	}
@@ -119,12 +133,16 @@ public class ClientUtils {
 	 * @return
 	 * @throws SynapseException
 	 */
+
 	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
+			return convertResponseBodyToJSONAndThrowException(response, null);
+	}
+	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response, String endpoint) throws SynapseException {
 		ValidateArgument.required(response, "response");
 		JSONObject json;
 
 		if (!is200sStatusCode(response.getStatusCode())) {
-			throwException(response.getStatusCode(), response.getContent());
+			throwException(response.getStatusCode(), response.getContent(), endpoint);
 		}
 
 		try {

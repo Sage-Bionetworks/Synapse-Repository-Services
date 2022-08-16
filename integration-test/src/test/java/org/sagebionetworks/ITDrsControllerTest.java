@@ -134,4 +134,16 @@ public class ITDrsControllerTest {
         assertEquals(drsObject.getSelf_uri(), "drs://repo-prod.prod.sagebase.org/" + idAndVersion);
         assertEquals(drsObject.getDescription(), file.getDescription());
     }
+
+    @Test
+    public void testGETDrsObjectBlobWithIncorrectID() {
+        final String idAndVersion = file.getId();
+        final String errorMessage = String.format("Drs object id %s does not exists", idAndVersion);
+        try {
+            synapse.getDrsObject(idAndVersion);
+        } catch (SynapseException synapseException) {
+            assertEquals(404, synapseException.getHttpStatusCode());
+            assertEquals(errorMessage, synapseException.getMessage());
+        }
+    }
 }

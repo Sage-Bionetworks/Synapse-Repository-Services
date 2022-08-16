@@ -6,10 +6,13 @@ import org.junit.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -44,14 +47,24 @@ public class BaseControllerExceptionHandlerAdviceTest {
 
 	@Test
 	public void testDeadlockError(){
-		ErrorResponse response = controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
+		ErrorResponse response = (ErrorResponse) controller.handleTransientDataAccessExceptions(new DeadlockLoserDataAccessException("Message",
 				new BatchUpdateException()), request);
 		assertEquals(BaseControllerExceptionHandlerAdvice.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+	}
+
+	@Test
+	public void testNotFoundDrsErrorResponse(){
+		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+		final String errorMessage = "Drs object does not exists.";
+		mockHttpServletRequest.setPathInfo("/ga4gh/drs/v1");
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(new NotFoundException(errorMessage), mockHttpServletRequest, false);
+		assertEquals(errorMessage, response.getMsg());
+		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus_code().intValue());
 	}
 	
 	@Test
 	public void testTransientError() {
-		ErrorResponse response = controller.handleTransientDataAccessExceptions(new TransientDataAccessException("Message",
+		ErrorResponse response = (ErrorResponse) controller.handleTransientDataAccessExceptions(new TransientDataAccessException("Message",
 				new BatchUpdateException()) {
 			private static final long serialVersionUID = 1L;
 		}, request);
@@ -67,12 +80,10 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		Map<String, Integer> exceptions = Maps.newHashMap();
 		for (Method handler : handlers) {
 			Class<? extends Throwable>[] exceptionsThrown = handler.getAnnotation(ExceptionHandler.class).value();
-			if(handler.getAnnotation(ResponseStatus.class) != null){
 				int statusCode = handler.getAnnotation(ResponseStatus.class).value().value();
 				for (Class<? extends Throwable> exceptionThrown : exceptionsThrown) {
 					assertNull("duplicate exception handler? " + exceptionThrown.getName(), exceptions.put(exceptionThrown.getName(), statusCode));
 				}
-			}
 		}
 
 		for (TestEntry testEntry : ExceptionHandlers.testEntries) {

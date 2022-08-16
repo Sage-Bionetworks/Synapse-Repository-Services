@@ -12,6 +12,7 @@ package org.sagebionetworks.client.exceptions;
 abstract public class SynapseException extends Exception {
 
 	private static final long serialVersionUID = 1L;
+	private Integer httpStatusCode;
 
 	public SynapseException() {
 		super();
@@ -21,12 +22,21 @@ abstract public class SynapseException extends Exception {
 		super(arg0, arg1);
 	}
 
+	public SynapseException(String arg0, Throwable arg1, Integer httpStatusCode) {
+		super(arg0, arg1);
+		this.httpStatusCode =httpStatusCode;
+	}
+
 	public SynapseException(String arg0) {
 		super(arg0);
 	}
 
 	public SynapseException(Throwable arg0) {
 		super(arg0);
+	}
+
+	public Integer getHttpStatusCode() {
+		return this.httpStatusCode;
 	}
 	
 }

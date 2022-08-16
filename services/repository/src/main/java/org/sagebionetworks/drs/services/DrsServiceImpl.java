@@ -1,10 +1,11 @@
 package org.sagebionetworks.drs.services;
 
-import org.sagebionetworks.drs.util.HandleExceptionUtil;
 import org.sagebionetworks.repo.manager.drs.DrsManager;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
-import org.sagebionetworks.repo.web.rest.doc.DrsException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +28,7 @@ public class DrsServiceImpl implements DrsService {
 
     @Override
     public DrsObject getDrsObject(final Long userId, final String id)
-            throws DrsException {
-        return HandleExceptionUtil.handleException(() -> drsManager.getDrsObject(userId, id));
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+        return drsManager.getDrsObject(userId, id);
     }
 }

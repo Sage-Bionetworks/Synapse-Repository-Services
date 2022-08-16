@@ -29,4 +29,8 @@ public class SynapseDeprecatedServiceException extends SynapseServerException {
 	public SynapseDeprecatedServiceException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
+
+	public SynapseDeprecatedServiceException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
+		super(message, errorResponseCode, httpStatusCode);
+	}
 }

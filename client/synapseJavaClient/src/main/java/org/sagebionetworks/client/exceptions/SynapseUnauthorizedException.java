@@ -25,6 +25,10 @@ public class SynapseUnauthorizedException extends SynapseServerException {
 		super(message, errorResponseCode);
 	}
 
+	public SynapseUnauthorizedException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
+		super(message, errorResponseCode, httpStatusCode);
+	}
+
 	public SynapseUnauthorizedException(Throwable cause) {
 		super(cause);
 	}
