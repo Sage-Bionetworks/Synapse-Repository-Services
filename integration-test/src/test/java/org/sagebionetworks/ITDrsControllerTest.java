@@ -3,7 +3,6 @@ package org.sagebionetworks;
 
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.Util.FileEntityUtil;
@@ -21,7 +20,6 @@ import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
-import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.io.IOException;
@@ -40,38 +38,15 @@ public class ITDrsControllerTest {
     private Project project;
     private Folder folder;
     private FileEntity file;
-    private FileHandleAssociation association;
     private SynapseAdminClient adminSynapse;
 
     private FileEntityUtil fileEntityUtil;
     private List<String> fileHandlesToDelete = Lists.newArrayList();
 
-    public ITDrsControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) throws SynapseException{
+    public ITDrsControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
         this.adminSynapse = adminSynapse;
         this.synapse = synapse;
         this.fileEntityUtil = new FileEntityUtil(adminSynapse, synapse);
-    }
-
-    @BeforeEach
-    public void before() throws SynapseException, IOException {
-        adminSynapse.clearAllLocks();
-        fileEntityUtil.createProjectHierarchy();
-        project = fileEntityUtil.project;
-
-        folder = fileEntityUtil.folder;
-
-        fileHandle = fileEntityUtil.fileHandle;
-        fileHandlesToDelete.add(fileHandle.getId());
-
-        file = fileEntityUtil.file;
-
-        // Association for this file.
-        association = new FileHandleAssociation();
-        association.setAssociateObjectId(file.getId());
-        association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-        association.setFileHandleId(file.getDataFileHandleId());
-
-        synapse.clearDownloadList();
     }
 
     @AfterEach
@@ -104,15 +79,17 @@ public class ITDrsControllerTest {
     }
 
     @Test
-    public void testGETDrsObjectBlob() throws SynapseException {
+    public void testGETDrsObjectBlob() throws SynapseException, IOException {
+        createProjectHierarchy();
         final String idAndVersion = file.getId() + ".1";
         final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
         assertNotNull(drsObject);
-        assertEquals(getExpectedDrsObject(idAndVersion),drsObject);
+        assertEquals(getExpectedDrsObject(idAndVersion), drsObject);
     }
 
     @Test
-    public void testGETDrsObjectBlobWithIncorrectID() {
+    public void testGETDrsObjectBlobWithIncorrectID() throws SynapseException, IOException {
+        createProjectHierarchy();
         final String idAndVersion = file.getId();
         final String errorMessage = String.format("Drs object id %s does not exists", idAndVersion);
         try {
@@ -122,7 +99,21 @@ public class ITDrsControllerTest {
         }
     }
 
-    private DrsObject getExpectedDrsObject(final String idAndVersion){
+    private void createProjectHierarchy() throws SynapseException, IOException {
+        fileEntityUtil.createProjectHierarchy();
+        project = fileEntityUtil.project;
+
+        folder = fileEntityUtil.folder;
+
+        fileHandle = fileEntityUtil.fileHandle;
+        fileHandlesToDelete.add(fileHandle.getId());
+
+        file = fileEntityUtil.file;
+
+        synapse.clearDownloadList();
+    }
+
+    private DrsObject getExpectedDrsObject(final String idAndVersion) {
         final DrsObject drsObject = new DrsObject();
         drsObject.setId(idAndVersion);
         drsObject.setName(file.getName());
@@ -138,14 +129,14 @@ public class ITDrsControllerTest {
         checksums.add(checksum);
         drsObject.setChecksums(checksums);
         final List<AccessMethod> accessMethods = new ArrayList<>();
-        final AccessMethod accessMethod= new AccessMethod();
+        final AccessMethod accessMethod = new AccessMethod();
         accessMethod.setType(AccessMethodType.https);
         accessMethod.setAccess_id(FileHandleAssociateType.FileEntity.name() + "_" +
                 idAndVersion + "_" + file.getDataFileHandleId());
         accessMethods.add(accessMethod);
         drsObject.setAccess_methods(accessMethods);
         drsObject.setSelf_uri("drs://repo-prod.prod.sagebase.org/" + idAndVersion);
-       drsObject.setDescription(file.getDescription());
+        drsObject.setDescription(file.getDescription());
         return drsObject;
     }
 }

@@ -129,7 +129,6 @@ public class ClientUtils {
 	 * @return
 	 * @throws SynapseException
 	 */
-
 	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
 		ValidateArgument.required(response, "response");
 		JSONObject json;
