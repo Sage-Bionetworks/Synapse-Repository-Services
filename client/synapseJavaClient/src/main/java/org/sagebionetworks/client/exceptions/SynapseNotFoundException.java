@@ -29,7 +29,4 @@ public class SynapseNotFoundException extends SynapseServerException {
 	public SynapseNotFoundException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-	public SynapseNotFoundException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }

@@ -29,8 +29,4 @@ public class SynapseLockedException extends SynapseServerException {
 	public SynapseLockedException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-
-	public SynapseLockedException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }

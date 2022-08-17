@@ -32,8 +32,4 @@ public class SynapseTooManyRequestsException extends SynapseServerException {
 	public SynapseTooManyRequestsException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-
-	public SynapseTooManyRequestsException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }

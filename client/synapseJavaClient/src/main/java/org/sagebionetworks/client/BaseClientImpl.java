@@ -521,7 +521,7 @@ public class BaseClientImpl implements BaseClient {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		validateContentType(response, APPLICATION_JSON);
-		return ClientUtils.convertResponseBodyToJSONAndThrowException(response, endpoint);
+		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
 	/**

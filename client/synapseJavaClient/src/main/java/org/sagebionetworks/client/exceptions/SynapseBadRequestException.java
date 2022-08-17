@@ -25,8 +25,4 @@ public class SynapseBadRequestException extends SynapseServerException {
 	public SynapseBadRequestException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-
-	public SynapseBadRequestException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }

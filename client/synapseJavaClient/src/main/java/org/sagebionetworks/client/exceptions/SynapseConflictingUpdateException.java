@@ -32,8 +32,4 @@ public class SynapseConflictingUpdateException extends SynapseServerException {
 	public SynapseConflictingUpdateException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-
-	public SynapseConflictingUpdateException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }

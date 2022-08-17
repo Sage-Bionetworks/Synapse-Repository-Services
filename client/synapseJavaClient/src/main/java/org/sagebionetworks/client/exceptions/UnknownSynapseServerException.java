@@ -53,7 +53,7 @@ public class UnknownSynapseServerException extends SynapseServerException {
 	}
 
 	public UnknownSynapseServerException(int httpStatus, String message, Throwable cause, ErrorResponseCode errorResponseCode) {
-		super(createMessage(httpStatus, message), cause, errorResponseCode, httpStatus);
+		super(createMessage(httpStatus, message), cause, errorResponseCode);
 		this.statusCode = httpStatus;
 	}
 

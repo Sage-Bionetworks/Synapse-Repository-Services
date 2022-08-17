@@ -1,17 +1,18 @@
+
 {
-	"description": "List of object inside bundle.",
+	"description": "For blob there is no contents and for bundle its list of object inside the bundle.",
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": "A name declared by the bundle author that must be used when materializing this object, overriding any name directly associated with the object itself. The name must be unique with the containing bundle."
+			"description": "A name declared by the bundle author that must be used when materializing this object, overriding any name directly associated with the object itself. The name must be unique with the containing bundle.synID is used as name as its unique e.g syn123.1"
 		},
 		"id": {
 			"type": "string",
-			"description": "A DRS-identifier of a DrsObject."
+			"description": "A DRS-identifier of a DrsObject i.e synId e.g syn123.1"
 		},
 		"drs_uri": {
 			"type": "string",
-			"description": "DRS identifier URI paths that may be used to obtain the object"
+			"description": "A list of full DRS identifier URI paths that may be used to obtain the object. These URIs may be external to this DRS instance. e.g drs://<host-name>/syn123.1"
 		}
 	}
 }

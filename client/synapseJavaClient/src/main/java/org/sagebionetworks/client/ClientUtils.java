@@ -1,7 +1,6 @@
 package org.sagebionetworks.client;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
@@ -21,6 +20,7 @@ import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BaseError;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
@@ -42,6 +42,7 @@ import java.util.Map;
 public class ClientUtils {
 
 	public static final String ERROR_REASON_TAG = "reason";
+	public static final String CONCRETE_TYPE = "concreteType";
 
 	/**
 	 * Checks to see if the statusCode is in [200,300) range.
@@ -75,23 +76,18 @@ public class ClientUtils {
 	}
 
 	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
-		throwException(statusCode, reasonStr, null);
-	}
-
-	public static void throwException(int statusCode, String reasonStr, String endpoint) throws SynapseException {
 		ErrorResponseCode errorResponseCode = null;
 		String errorMessage = null;
-		Integer httpStatusCode = null;
 
 		try {
-			if (StringUtils.isEmpty(endpoint)) {
-				ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
+			final BaseError baseError = EntityFactory.createEntityFromJSONString(reasonStr, BaseError.class);
+			if (baseError instanceof ErrorResponse) {
+				final ErrorResponse errorResponse =  (ErrorResponse) baseError;
 				errorMessage = errorResponse.getReason();
 				errorResponseCode = errorResponse.getErrorCode();
-			} else if (endpoint.contains("/ga4gh/drs/v1")) {
-				DrsErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, DrsErrorResponse.class);
+			} else if (baseError instanceof DrsErrorResponse) {
+				final DrsErrorResponse errorResponse = (DrsErrorResponse) baseError;
 				errorMessage = errorResponse.getMsg();
-				httpStatusCode = Math.toIntExact(errorResponse.getStatus_code());
 			}
 
 		} catch (JSONObjectAdapterException e) {
@@ -101,21 +97,21 @@ public class ClientUtils {
 		}
 
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			throw new SynapseUnauthorizedException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseUnauthorizedException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
-			throw new SynapseForbiddenException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseForbiddenException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-			throw new SynapseNotFoundException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseNotFoundException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
-			throw new SynapseBadRequestException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseBadRequestException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_LOCKED) {
-			throw new SynapseLockedException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseLockedException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_PRECONDITION_FAILED) {
-			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_GONE) {
-			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode);
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE) {
-			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode, httpStatusCode);
+			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode);
 		} else {
 			throw new UnknownSynapseServerException(statusCode, errorMessage, null, errorResponseCode);
 		}
@@ -135,14 +131,11 @@ public class ClientUtils {
 	 */
 
 	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
-			return convertResponseBodyToJSONAndThrowException(response, null);
-	}
-	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response, String endpoint) throws SynapseException {
 		ValidateArgument.required(response, "response");
 		JSONObject json;
 
 		if (!is200sStatusCode(response.getStatusCode())) {
-			throwException(response.getStatusCode(), response.getContent(), endpoint);
+			throwException(response.getStatusCode(), response.getContent());
 		}
 
 		try {

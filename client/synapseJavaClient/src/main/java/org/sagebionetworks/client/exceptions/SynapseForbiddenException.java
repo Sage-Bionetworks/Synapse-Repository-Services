@@ -29,8 +29,4 @@ public class SynapseForbiddenException extends SynapseServerException {
 	public SynapseForbiddenException(String message, ErrorResponseCode errorResponseCode) {
 		super(message, errorResponseCode);
 	}
-
-	public SynapseForbiddenException(String message, ErrorResponseCode errorResponseCode, Integer httpStatusCode) {
-		super(message, errorResponseCode, httpStatusCode);
-	}
 }
