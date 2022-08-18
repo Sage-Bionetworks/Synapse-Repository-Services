@@ -28,7 +28,8 @@ public class DrsServiceImpl implements DrsService {
 
     @Override
     public DrsObject getDrsObject(final Long userId, final String id)
-            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+            throws NotFoundException, DatastoreException, UnauthorizedException,
+            IllegalArgumentException, UnsupportedOperationException {
         return drsManager.getDrsObject(userId, id);
     }
 }

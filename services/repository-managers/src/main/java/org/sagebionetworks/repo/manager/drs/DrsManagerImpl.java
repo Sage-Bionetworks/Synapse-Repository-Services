@@ -49,7 +49,7 @@ public class DrsManagerImpl implements DrsManager {
             "accessing FileEntities and Datasets within Synapse.";
     public static final String CHECKSUM_TYPE = "md5";
     public static final String DELIMETER = "_";
-    public static final String ILLEGAL_ARGUMENT_ERROR_MESSAGE = "Provided drs object id does not belong to blob or bundle.";
+    public static final String ILLEGAL_ARGUMENT_ERROR_MESSAGE = "DRS API only supports FileEntity and Datasets.";
     private static final LocalDate localDate = LocalDate.of(2022, 8, 01);
     public static final Date CREATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
     public static final Date UPDATED_AT = Date.from(localDate.atStartOfDay(ZoneOffset.UTC).toInstant());
@@ -96,13 +96,13 @@ public class DrsManagerImpl implements DrsManager {
 
     @Override
     public DrsObject getDrsObject(final Long userId, final String id)
-            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
         final IdAndVersion idAndVersion = IdAndVersion.parse(id);
+
         final Entity entity = entityManager.getEntityForVersion(userInfo, idAndVersion.getId().toString(),
-                idAndVersion.getVersion().orElseThrow(() ->
-                        new NotFoundException(String.format("Drs object id %s does not exists", id))), null);
+                getVersion(idAndVersion), null);
 
         result.setId(id);
         result.setName(entity.getName());
@@ -133,10 +133,14 @@ public class DrsManagerImpl implements DrsManager {
             accessMethods.add(accessMethod);
             result.setAccess_methods(accessMethods);
         } else if (entity instanceof Dataset) {
-            //to do for get blob
+            throw new UnsupportedOperationException("Currently Dataset object are not supported.");
         } else {
             throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
         return result;
+    }
+
+    private Long getVersion(final IdAndVersion idAndVersion) throws IllegalArgumentException {
+        return idAndVersion.getVersion().orElseThrow(() -> new IllegalArgumentException("Object id should include version. e.g syn123.1"));
     }
 }

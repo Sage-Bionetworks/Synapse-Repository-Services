@@ -798,24 +798,30 @@ public class BaseControllerExceptionHandlerAdvice {
 			log.error("Handling " + request.toString());
 		}
 
-		if (request != null &&
-				!StringUtils.isEmpty(request.getPathInfo()) && request.getPathInfo().startsWith("/ga4gh/drs/v1")) {
+		if (!StringUtils.isEmpty(request.getPathInfo()) && request.getPathInfo().startsWith(UrlHelpers.DRS_PATH)) {
 			return getDrsErrorResponse(ex, message);
 		}
+
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(message);
 		er.setErrorCode(associatedErrorCode);
 		return er;
 	}
 
-	private DrsErrorResponse getDrsErrorResponse(final Throwable ex, final String message){
+	DrsErrorResponse getDrsErrorResponse(final Throwable ex, final String message){
 		final DrsErrorResponse drsErrorResponse = new DrsErrorResponse();
 		drsErrorResponse.setMsg(message);
-		drsErrorResponse.setStatus_code(getHttpStatusCode(ex));
+		drsErrorResponse.setStatus_code(getDrsHttpStatusCode(ex));
 		return drsErrorResponse;
 	}
 
-	private long getHttpStatusCode(final Throwable ex) {
+	/**
+	 * This method returns the expected http status for drs requests as specified in specification.
+	 * @param ex
+	 * @return int
+	 */
+
+	private long getDrsHttpStatusCode(final Throwable ex) {
 		if (ex instanceof NotFoundException) {
 			return HttpStatus.NOT_FOUND.value();
 		} else if (ex instanceof IllegalArgumentException) {

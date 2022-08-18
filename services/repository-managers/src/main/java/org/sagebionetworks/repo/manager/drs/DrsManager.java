@@ -23,5 +23,6 @@ public interface DrsManager {
      *
      * @return The {@link DrsObject} containing the information
      */
-    DrsObject getDrsObject(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
+    DrsObject getDrsObject(Long userId, String id) throws NotFoundException, DatastoreException,
+            UnauthorizedException, IllegalArgumentException, UnsupportedOperationException;
 }

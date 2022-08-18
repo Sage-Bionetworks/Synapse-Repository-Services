@@ -83,7 +83,7 @@ public class DrsController {
     @RequestMapping(value = {UrlHelpers.DRS_OBJECT}, method = RequestMethod.GET)
     public @ResponseBody DrsObject getDrsObject(@PathVariable String id,
                                                 @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException {
+            throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         return serviceProvider.getDrsService().getDrsObject(userId, id);
     }
 }

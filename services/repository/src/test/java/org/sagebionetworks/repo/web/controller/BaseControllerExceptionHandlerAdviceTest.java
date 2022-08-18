@@ -6,8 +6,11 @@ import org.junit.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.springframework.dao.DeadlockLoserDataAccessException;
@@ -55,11 +58,54 @@ public class BaseControllerExceptionHandlerAdviceTest {
 	@Test
 	public void testNotFoundDrsErrorResponse(){
 		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
-		final String errorMessage = "Drs object does not exists.";
-		mockHttpServletRequest.setPathInfo("/ga4gh/drs/v1");
-		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(new NotFoundException(errorMessage), mockHttpServletRequest, false);
+		final String errorMessage = "some message";
+		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
+				new NotFoundException(errorMessage), mockHttpServletRequest, false);
 		assertEquals(errorMessage, response.getMsg());
 		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus_code().intValue());
+	}
+	@Test
+	public void testBadRequestDrsErrorResponse(){
+		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+		final String errorMessage = "some message";
+		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
+				new IllegalArgumentException(errorMessage), mockHttpServletRequest, false);
+		assertEquals(errorMessage, response.getMsg());
+		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus_code().intValue());
+	}
+	@Test
+	public void testUnauthorizedDrsErrorResponse(){
+		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+		final String errorMessage = "some message.";
+		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
+				new UnauthorizedException(errorMessage), mockHttpServletRequest, false);
+		assertEquals(errorMessage, response.getMsg());
+		assertEquals(HttpStatus.UNAUTHORIZED.value(), response.getStatus_code().intValue());
+	}
+
+	@Test
+	public void testUnauthenticatedDrsErrorResponse(){
+		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+		final String errorMessage = "some message.";
+		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
+				new UnauthenticatedException(errorMessage), mockHttpServletRequest, false);
+		assertEquals(errorMessage, response.getMsg());
+		assertEquals(HttpStatus.FORBIDDEN.value(), response.getStatus_code().intValue());
+	}
+
+	@Test
+	public void testInternalServerErrorDrsErrorResponse(){
+		final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
+		final String errorMessage = "some message.";
+		mockHttpServletRequest.setPathInfo(UrlHelpers.DRS_PATH);
+		final DrsErrorResponse response = (DrsErrorResponse) controller.handleException(
+				new UnsupportedOperationException(errorMessage), mockHttpServletRequest, false);
+		assertEquals(errorMessage, response.getMsg());
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.getStatus_code().intValue());
 	}
 	
 	@Test
