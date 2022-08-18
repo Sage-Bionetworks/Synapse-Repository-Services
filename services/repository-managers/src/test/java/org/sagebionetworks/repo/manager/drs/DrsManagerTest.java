@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -85,8 +84,8 @@ public class DrsManagerTest {
     @Test
     public void testGETBlobDrsObjectWithInvalidID() {
         final String id = "syn1";
-        final String expectedErrorMessage = String.format("Drs object id %s does not exists", id);
-        final NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+        final String expectedErrorMessage = String.format("Object id should include version. e.g syn123.1", id);
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, id);
         });
         assertEquals(expectedErrorMessage, exception.getMessage());
@@ -99,7 +98,7 @@ public class DrsManagerTest {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, project.getId());
         });
-        assertEquals("Provided drs object id does not belong to blob or bundle.", exception.getMessage());
+        assertEquals("DRS API only supports FileEntity and Datasets.", exception.getMessage());
     }
 
     private FileEntity getFileEntity() {

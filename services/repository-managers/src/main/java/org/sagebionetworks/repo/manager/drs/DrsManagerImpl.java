@@ -116,7 +116,7 @@ public class DrsManagerImpl implements DrsManager {
             final FileEntity file = (FileEntity) entity;
             final FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, file.getDataFileHandleId());
             result.setSize(fileHandle.getContentSize());
-            result.setVersion(file.getVersionNumber().toString());
+            result.setVersion(file.getVersionNumber() == null ? null : file.getVersionNumber().toString());
             result.setMime_type(fileHandle.getContentType());
             final List<Checksum> checksums = new ArrayList();
             final Checksum checksum = new Checksum();
