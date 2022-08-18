@@ -98,7 +98,11 @@ public class TableConstants {
 		ColumnType.STRING, 
 		ColumnType.STRING_LIST, 
 		ColumnType.LARGETEXT, 
-		ColumnType.LINK
+		ColumnType.LINK,
+		ColumnType.ENTITYID,
+		ColumnType.ENTITYID_LIST,
+		ColumnType.EVALUATIONID,
+		ColumnType.SUBMISSIONID
 	);
 		
 	/**
