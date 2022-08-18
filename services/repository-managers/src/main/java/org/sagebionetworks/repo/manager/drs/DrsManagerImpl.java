@@ -114,7 +114,9 @@ public class DrsManagerImpl implements DrsManager {
 
         if (entity instanceof FileEntity) {
             final FileEntity file = (FileEntity) entity;
-            final FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, file.getDataFileHandleId());
+            // Drs user are allowed to see metadata so access check is not required and
+            // moreover the metadata provided is not sensitive like s3 url etc.
+            final FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(file.getDataFileHandleId());
             result.setSize(fileHandle.getContentSize());
             result.setVersion(file.getVersionNumber() == null ? null : file.getVersionNumber().toString());
             result.setMime_type(fileHandle.getContentType());

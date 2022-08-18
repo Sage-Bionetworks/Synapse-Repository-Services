@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
-public class DrsManagerTest {
+public class DrsManagerImplUnitTest {
 
     @InjectMocks
     DrsManagerImpl drsManager;
@@ -68,7 +68,7 @@ public class DrsManagerTest {
         final FileEntity file = getFileEntity();
         final FileHandle fileHandle = getFileHandle();
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(file);
-        when(fileHandleManager.getRawFileHandle(any(), any())).thenReturn(fileHandle);
+        when(fileHandleManager.getRawFileHandleUnchecked(any())).thenReturn(fileHandle);
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
         final DrsObject drsObject = drsManager.getDrsObject(USER_ID, file.getId());
         assertNotNull(drsObject);
