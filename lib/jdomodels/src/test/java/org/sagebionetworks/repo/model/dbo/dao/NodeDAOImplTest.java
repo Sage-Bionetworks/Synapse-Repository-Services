@@ -4876,6 +4876,41 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testIsSearchEnabled() {
+		Node project = nodeDaoHelper.create(n -> {
+			n.setName("aProject");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+		});
+		
+		toDelete.add(project.getId());
+		
+		Node table = nodeDaoHelper.create(n -> {
+			n.setName("aTable");
+			n.setCreatedByPrincipalId(creatorUserGroupId);
+			n.setParentId(project.getId());
+			n.setNodeType(EntityType.table);
+		});
+
+		Long firstVersion = table.getVersionNumber();
+		
+		// Call under test
+		assertFalse(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), null));
+		assertFalse(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), firstVersion));
+		
+		table = nodeDao.getNodeForVersion(table.getId(), firstVersion);
+		table.setVersionLabel("new version");
+		table.setIsSearchEnabled(true);
+		
+		Long newVersion = nodeDao.createNewVersion(table);
+		
+		// Call under test
+		assertTrue(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), null));
+		assertTrue(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), newVersion));
+		assertFalse(nodeDao.isSearchEnabled(KeyFactory.stringToKey(table.getId()), firstVersion));
+		
+	}
+	
+	@Test
 	public void testGetDatasetItemsWithNotFound() {
 		Long datasetId = -1L;
 		String message = assertThrows(NotFoundException.class, ()->{

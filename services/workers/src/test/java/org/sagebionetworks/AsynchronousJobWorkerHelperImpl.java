@@ -358,17 +358,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	@Override
 	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> scope, long viewTypeMask) {
 		List<ColumnModel> defaultColumns = tableMangerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
-		return createEntityView(user, name, parentId, TableModelUtils.getIds(defaultColumns), scope, viewTypeMask);
+		return createEntityView(user, name, parentId, TableModelUtils.getIds(defaultColumns), scope, viewTypeMask, false);
 	}
 	
 	@Override
-	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask) {
+	public EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask, boolean searchEnabled) {
 		EntityView view = new EntityView();
 		view.setName(name);
 		view.setViewTypeMask(viewTypeMask);
 		view.setParentId(parentId);
 		view.setColumnIds(schema);
 		view.setScopeIds(scope);
+		view.setIsSearchEnabled(searchEnabled);
 		String viewId = entityManager.createEntity(user, view, null);
 		view = entityManager.getEntity(user, viewId, EntityView.class);
 		ViewScope viewScope = new ViewScope();
@@ -478,6 +479,13 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	
 	@Override
 	public void updateTable(String tableId, UserInfo user, List<String> newSchema, Boolean searchEnabled) throws InterruptedException {
+		TableEntity table = entityManager.getEntity(user, tableId, TableEntity.class);
+		
+		table.setColumnIds(newSchema);
+		table.setIsSearchEnabled(searchEnabled);
+		
+		entityManager.updateEntity(user, table, false, null);
+		
 		long maxWaitMS = 60 * 1000; 
 		long start = System.currentTimeMillis();
 		while (true) {
@@ -493,12 +501,13 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
-	public MaterializedView createMaterializedView(UserInfo user, String parentId, String sql) {
+	public MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled) {
 		MaterializedView materializedView = new MaterializedView();
 		
 		materializedView.setName(UUID.randomUUID().toString());
 		materializedView.setDefiningSQL(sql);
 		materializedView.setParentId(parentId);
+		materializedView.setIsSearchEnabled(searchEnabled);
 		
 		String materializedViewId = entityManager.createEntity(user, materializedView, null);
 		

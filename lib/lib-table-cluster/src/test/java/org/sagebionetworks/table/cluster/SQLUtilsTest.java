@@ -34,10 +34,10 @@ import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
+import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -2968,24 +2968,6 @@ public class SQLUtilsTest {
 		assertEquals("ALTER TABLE T999 ADD COLUMN _C456_ JSON DEFAULT NULL COMMENT 'BOOLEAN_LIST'", results.get(0));
 		assertEquals("UPDATE T999 SET _C456_ = JSON_ARRAY(_C123_)", results.get(1));
 		assertEquals("ALTER TABLE T999 DROP COLUMN _C123_", results.get(2));
-	}
-	
-	@Test
-	public void testGenerateAddSearchColumnSql() {
-		
-		String expected = "ALTER TABLE T999 ADD COLUMN `ROW_SEARCH_CONTENT` MEDIUMTEXT NULL, ADD FULLTEXT INDEX `ROW_SEARCH_CONTENT_INDEX` (`ROW_SEARCH_CONTENT`)";
-		String sql = SQLUtils.generateAddSearchColumnSql(tableId);
-		
-		assertEquals(expected, sql);
-	}
-	
-	@Test
-	public void testGenerateRemoveSearchColumnSql() {
-		
-		String expected = "ALTER TABLE T999 DROP COLUMN `ROW_SEARCH_CONTENT`";
-		String sql = SQLUtils.generateRemoveSearchColumnSql(tableId);
-		
-		assertEquals(expected, sql);
 	}
 	
 	@Test

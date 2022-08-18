@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -109,13 +108,21 @@ public interface TableIndexManager {
 	void deleteTableIndex(IdAndVersion tableId);
 
 	/**
-	 * Set the current version of the index and the schema MD5, both of which are
+	 * Set the current version of the index, the schema MD5, all of which are
 	 * used to determine if the index is up-to-date.
 	 * 
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
 	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex);
+	
+	/**
+	 * Sets the status of the search flag for the given table
+	 * 
+	 * @param tableId
+	 * @param searchEnabled
+	 */
+	void setSearchEnabled(IdAndVersion tableId, boolean searchEnabled);
 
 	/**
 	 * Optimize the indices of this table. Indices are added until either all
@@ -249,7 +256,7 @@ public interface TableIndexManager {
 	 * rowId, all data will first be deleted from the view, then copied back to the
 	 * view from the replication tables.
 	 * 
-	 * @param viewId             The Id of the view.
+	 * @param index             The index description of the view
 	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this
 	 *                           transaction.
 	 * @param viewTypeMask       The type of view this is.
@@ -257,7 +264,7 @@ public interface TableIndexManager {
 	 * @param filter
 	 * @param provider
 	 */
-	void updateViewRowsInTransaction(IdAndVersion viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema,
+	void updateViewRowsInTransaction(IndexDescription index, ViewScopeType scopeType, List<ColumnModel> currentSchema,
 			ViewFilter filter);
 
 	/**
@@ -318,5 +325,6 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
+
 
 }

@@ -6,10 +6,5 @@
             "$ref":"org.sagebionetworks.repo.model.table.Table"
         }
     ],
-    "properties": {
-    	"isSearchEnabled": {
-    		"type": "boolean",
-    		"description": "When creating a new table specifies if full text search is enabled for the table."
-    	}
-    }
+    "properties": { }
 }

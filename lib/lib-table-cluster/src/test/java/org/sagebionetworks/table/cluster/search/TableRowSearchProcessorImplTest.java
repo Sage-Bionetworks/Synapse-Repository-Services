@@ -14,11 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 @ExtendWith(MockitoExtension.class)
-public class SimpleRowSearchProcessorTest {
+public class TableRowSearchProcessorImplTest {
 
 	@InjectMocks
-	private SimpleRowSearchProcessor processor;
-	
+	private TableRowSearchProcessorImpl processor;
+		
 	@Test
 	public void testProcess() {
 		
@@ -29,9 +29,54 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value 1 big value", result);
+	}
+	
+	@Test
+	public void testProcessWithIncludeRowId() {
+		
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.INTEGER, "1"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
+		
+		// Call under test
+		String result = processor.process(new TableRowData(123L, data), true);
+		
+		assertEquals("123 syn123 value 1 big value", result);
+	}
+	
+	@Test
+	public void testProcessWithEntityId() {
+		
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.ENTITYID, "123"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
+		
+		// Call under test
+		String result = processor.process(new TableRowData(1L, data), false);
+		
+		assertEquals("value 123 syn123 big value", result);
+	}
+	
+	@Test
+	public void testProcessWithEntityIdList() {
+		
+		List<TypedCellValue> data = Arrays.asList(
+			new TypedCellValue(ColumnType.STRING, "value"),
+			new TypedCellValue(ColumnType.ENTITYID_LIST, "[\"123\",\"456\"]"),
+			new TypedCellValue(ColumnType.LARGETEXT, "big value")
+		);
+		
+		// Call under test
+		String result = processor.process(new TableRowData(1L, data), false);
+		
+		assertEquals("value 123 syn123 456 syn456 big value", result);
 	}
 	
 	@Test
@@ -44,7 +89,7 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value big value", result);
 	}
@@ -59,7 +104,7 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value big value", result);
 	}
@@ -74,7 +119,7 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 
 		assertNull(result);
 	}
@@ -89,7 +134,7 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value a b c big value", result);
 	}
@@ -104,7 +149,7 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value a b big value", result);
 	}
@@ -119,20 +164,20 @@ public class SimpleRowSearchProcessorTest {
 		);
 		
 		// Call under test
-		String result = processor.process(data);
+		String result = processor.process(new TableRowData(1L, data), false);
 		
 		assertEquals("value big value", result);
 	}
-	
+		
 	@Test
 	public void testProcessWithNullRowData() {
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			processor.process(null);
+			processor.process(null, false);
 		});
 		
-		assertEquals("data is required.", ex.getMessage());
+		assertEquals("rowData is required.", ex.getMessage());
 	}
 
 }

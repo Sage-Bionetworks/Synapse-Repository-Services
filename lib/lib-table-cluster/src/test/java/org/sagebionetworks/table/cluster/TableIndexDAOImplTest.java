@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -281,8 +280,8 @@ public class TableIndexDAOImplTest {
 		// Now we should be able to see the columns that were created
 		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
-		// ROW_ID and one ROW_VERSION plus one extra for doubles.
-		assertEquals(allTypes.size() + 2 + 1, columns.size());
+		// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT plus one extra for doubles.
+		assertEquals(allTypes.size() + 3 + 1, columns.size());
 		for (int i = 0; i < allTypes.size(); i++) {
 			// Now remove a column and update the table
 			ColumnModel removed = allTypes.remove(0);
@@ -290,13 +289,13 @@ public class TableIndexDAOImplTest {
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
-			// ROW_ID and one ROW_VERSION.
+			// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT.
 			int extraColumns = 1;
 			if (removed.getColumnType() == ColumnType.DOUBLE) {
 				extraColumns = 0;
 			}
 			// removed
-			assertEquals(allTypes.size() + 2
+			assertEquals(allTypes.size() + 3
 					+ extraColumns, columns.size(),"removed " + removed);
 			// Now add a column
 			allTypes.add(removed);
@@ -304,8 +303,8 @@ public class TableIndexDAOImplTest {
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
-			// ROW_ID and one ROW_VERSION.
-			assertEquals(allTypes.size() + 2 + 1,
+			// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT .
+			assertEquals(allTypes.size() + 3 + 1,
 					columns.size(), "read " + removed);
 		}
 	}
@@ -936,15 +935,19 @@ public class TableIndexDAOImplTest {
 		long version = 123;
 		this.tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
 		// call under test
-		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertTrue(match);
 		
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5, false);
 		assertFalse(match);
 		
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1, false);
+		assertFalse(match);
+		
+		// call under test
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
 	
@@ -979,13 +982,11 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testIsSearchEnabledWithFalse() {
+	public void testSetSearchEnabledWithFalse() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
-		Long version = 123L;
-		
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
+		tableIndexDAO.setSearchEnabled(tableId, false);
 		
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
@@ -994,13 +995,11 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testIsSearchEnabledWithTrue() {
+	public void testSetSearchEnabledWithTrue() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
-		Long version = 123L;
-		
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		tableIndexDAO.setSearchEnabled(tableId, true);
 		
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
@@ -1009,21 +1008,16 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
-	public void testSetMaxCurrentCompleteVersionAndSearchStatusForTable() {
+	public void testSetMaxCurrentCompleteVersionForTable() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		
 		Long version = 123L;
 		
 		// Call under test
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, true);
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
 		
-		assertTrue(tableIndexDAO.isSearchEnabled(tableId));
-		
-		// Call under test
-		tableIndexDAO.setMaxCurrentCompleteVersionAndSearchStatusForTable(tableId, version, false);
-		
-		assertFalse(tableIndexDAO.isSearchEnabled(tableId));
+		assertEquals(version, tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
 		
 	}
 	
@@ -1185,7 +1179,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		tableIndexDAO.addSearchColumn(tableId);
 		
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
 		
@@ -1209,7 +1202,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		tableIndexDAO.addSearchColumn(tableId);
 				
 		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
 		
@@ -1232,8 +1224,6 @@ public class TableIndexDAOImplTest {
 		);
 		
 		createOrUpdateTable(columns, indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
 		
 		// Now add some data
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
@@ -1264,7 +1254,7 @@ public class TableIndexDAOImplTest {
 		String md5 = "md5hex";
 		long version = 123;
 		// call under test
-		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5);
+		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertFalse(match);
 	}
 	
@@ -1307,7 +1297,7 @@ public class TableIndexDAOImplTest {
 		// Call under test.
 		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
-		assertEquals(2, schema.size());
+		assertEquals(3, schema.size());
 		DatabaseColumnInfo cd = schema.get(0);
 		assertEquals(ROW_ID, cd.getColumnName());
 		assertTrue(cd.hasIndex(), "ROW_ID is the primary key so it should have an index.");
@@ -1315,6 +1305,10 @@ public class TableIndexDAOImplTest {
 		cd = schema.get(1);
 		assertEquals(ROW_VERSION, cd.getColumnName());
 		assertFalse(cd.hasIndex());
+		
+		cd = schema.get(2);
+		assertEquals(ROW_SEARCH_CONTENT, cd.getColumnName());
+		assertTrue(cd.hasIndex());
 	}
 	
 	@Test
@@ -1335,8 +1329,8 @@ public class TableIndexDAOImplTest {
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
 		assertNotNull(schema);
-		assertEquals(3, schema.size());
-		DatabaseColumnInfo cd = schema.get(2);
+		assertEquals(4, schema.size());
+		DatabaseColumnInfo cd = schema.get(3);
 		assertEquals("_C123_", cd.getColumnName());
 		assertFalse(cd.hasIndex());
 		
@@ -1453,7 +1447,7 @@ public class TableIndexDAOImplTest {
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
 
-		DatabaseColumnInfo info = infoList.get(2);
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C15_", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
 
@@ -1499,7 +1493,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		
-		assertEquals(4, infoList.size());
+		assertEquals(5, infoList.size());
 		
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
@@ -1513,7 +1507,7 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getColumnType());
 
 		// one
-		info = infoList.get(2);
+		info = infoList.get(3);
 		assertEquals("_C12_", info.getColumnName());
 		assertEquals(new Long(5), info.getCardinality());
 		assertTrue(info.hasIndex());
@@ -1524,7 +1518,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(ColumnType.INTEGER, info.getColumnType());
 		
 		// two
-		info = infoList.get(3);
+		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
 		assertEquals(new Long(2), info.getCardinality());
 		assertTrue(info.hasIndex());
@@ -1553,8 +1547,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 	}
 	
@@ -1577,8 +1571,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 		
 		// Now change the column type
@@ -1593,8 +1587,8 @@ public class TableIndexDAOImplTest {
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		info = infoList.get(3);
 		assertEquals("_C13_idx_",info.getIndexName());
 	}
 	
@@ -1617,8 +1611,8 @@ public class TableIndexDAOImplTest {
 		// Get the latest table information
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		DatabaseColumnInfo info = infoList.get(3);
 		assertEquals("_C12_idx_",info.getIndexName());
 		
 		// reduce the number of allowed indices
@@ -1628,8 +1622,8 @@ public class TableIndexDAOImplTest {
 		// the column should no longer have an index.
 		infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
-		assertEquals(3, infoList.size());
-		info = infoList.get(2);
+		assertEquals(4, infoList.size());
+		info = infoList.get(3);
 		assertFalse(info.hasIndex());
 		assertEquals(null,info.getIndexName());
 	}
@@ -1664,64 +1658,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
 	}
-	
-	@Test
-	public void testGetDatabaseColumnInfo(){
-		ColumnModel column = new ColumnModel();
 		
-		column.setId("12");
-		column.setName("foo");
-		column.setColumnType(ColumnType.INTEGER);
-		
-		createOrUpdateTable(Arrays.asList(column), indexDescription);
-		
-		String columnName = SQLUtils.getColumnNameForId(column.getId());
-		
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-		
-		assertTrue(info.isPresent());
-	}
-	
-	@Test
-	public void testGetDatabaseColumnInfoForMetaDataColumns(){
-				
-		createOrUpdateTable(Collections.emptyList(), indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
-		
-		List<String> metaDataColumns = Arrays.asList(ROW_ID, ROW_VERSION, ROW_SEARCH_CONTENT);
-
-		for (String columnName : metaDataColumns) {
-			// table does not exist
-			Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-			
-			assertTrue(info.isPresent());
-		}
-	}
-	
-	@Test
-	public void testGetDatabaseColumnWithNonExistingTable(){
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, ROW_ID);
-		assertFalse(info.isPresent());
-	}
-		
-	@Test
-	public void testGetDatabaseColumnInfoWithNonExistingColumn(){
-				
-		createOrUpdateTable(Collections.emptyList(), indexDescription);
-		
-		tableIndexDAO.addSearchColumn(tableId);
-		
-		String columnName = "nonExisting";
-		
-		// table does not exist
-		Optional<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseColumnInfo(tableId, columnName);
-			
-		assertFalse(info.isPresent());
-	}
-	
 	@Test
 	public void testCreateTempTable(){
 		ColumnModel intColumn = new ColumnModel();

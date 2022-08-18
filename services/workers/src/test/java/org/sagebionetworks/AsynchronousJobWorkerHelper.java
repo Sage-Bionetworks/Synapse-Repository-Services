@@ -142,7 +142,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @param viewTypeMask
 	 * @return
 	 */
-	EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask);
+	EntityView createEntityView(UserInfo user, String name, String parentId, List<String> schema, List<String> scope, long viewTypeMask, boolean searchEnabled);
 
 	/**
 	 * Creates a submission view with the default columns
@@ -220,7 +220,7 @@ public interface AsynchronousJobWorkerHelper {
 	 * @param sql
 	 * @return
 	 */
-	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql);
+	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled);
 
 
 	/**

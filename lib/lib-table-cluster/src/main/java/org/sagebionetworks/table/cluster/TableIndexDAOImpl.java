@@ -101,7 +101,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -371,13 +370,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
 		template.update(createOrUpdateStatusSql, version, version);
 	}
-	
-	@Override
-	public void setMaxCurrentCompleteVersionAndSearchStatusForTable(IdAndVersion tableId, Long version, boolean searchEnabled) {
-		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSearchSQL(tableId);
-		template.update(createOrUpdateStatusSql, version, searchEnabled, version, searchEnabled);
-	}	
-	
+		
 	@Override
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
@@ -385,10 +378,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
-			String schemaMD5Hex) {
+	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, viewCRC, schemaMD5Hex, viewCRC, schemaMD5Hex);
+	}
+	
+	@Override
+	public void setSearchEnabled(IdAndVersion tableId, boolean searchStatus) {
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateSearchStatusSQL(tableId);
+		template.update(createOrUpdateStatusSql, searchStatus, searchStatus);
 	}
 
 	@Override
@@ -538,13 +536,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex) {
+	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex, boolean searchEnabled) {
 		long indexVersion = getMaxCurrentCompleteVersionForTable(tableId);
-		if(indexVersion != versionNumber){
+		if (indexVersion != versionNumber){
 			return false;
 		}
 		String indexMD5Hex = getCurrentSchemaMD5Hex(tableId);
-		return indexMD5Hex.equals(schemaMD5Hex);
+		if (!indexMD5Hex.equals(schemaMD5Hex)) {
+			return false;
+		}
+		return searchEnabled == isSearchEnabled(tableId);
 	}
 
 	@Override
@@ -619,19 +620,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		} catch (BadSqlGrammarException e) {
 			// Spring throws this when the table does not exist
 			return new LinkedList<DatabaseColumnInfo>();
-		}
-	}
-
-	@Override
-	public Optional<DatabaseColumnInfo> getDatabaseColumnInfo(IdAndVersion tableId, String columnName) {
-		try {
-			String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
-			// Bind variables do not seem to work here
-			DatabaseColumnInfo columnInfo = template.queryForObject(SQL_SHOW_COLUMNS + tableName + " WHERE `" + FIELD + "` = ?", DB_COL_INFO_MAPPER, columnName);
-			return Optional.ofNullable(columnInfo);
-		} catch (BadSqlGrammarException | EmptyResultDataAccessException e) {
-			// Spring throws this when the table does not exist
-			return Optional.empty();
 		}
 	}
 
@@ -1446,21 +1434,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new IdAndChecksum().withId(rs.getLong("ID")).withChecksum(rs.getLong("CHECK_SUM"));
 		});
 	}
-	
-	@Override
-	public void addSearchColumn(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "The id");
-		String sql = SQLUtils.generateAddSearchColumnSql(idAndVersion);
-		template.update(sql);
-	}
-	
-	@Override
-	public void removeSearchColumn(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "The id");
-		String sql = SQLUtils.generateRemoveSearchColumnSql(idAndVersion);
-		template.update(sql);		
-	}
-	
+		
 	@Override
 	public List<TableRowData> getTableDataForRowIds(IdAndVersion idAndVersion, List<ColumnModel> selectColumns, Set<Long> rowIds) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
