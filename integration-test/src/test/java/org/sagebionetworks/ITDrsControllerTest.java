@@ -91,7 +91,7 @@ public class ITDrsControllerTest {
     public void testGETDrsObjectBlobWithIncorrectID() throws SynapseException, IOException {
         createProjectHierarchy();
         final String idAndVersion = file.getId();
-        final String errorMessage = String.format("Drs object id %s does not exists", idAndVersion);
+        final String errorMessage = "Object id should include version. e.g syn123.1";
         try {
             synapse.getDrsObject(idAndVersion);
         } catch (SynapseException synapseException) {
