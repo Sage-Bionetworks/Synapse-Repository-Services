@@ -1,20 +1,6 @@
 package org.sagebionetworks.repo.web.filter;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.PrintWriter;
-
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +9,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith({MockitoExtension.class})
 public class StackStatusFilterTest {
@@ -33,8 +32,8 @@ public class StackStatusFilterTest {
 	
 	private static final String GATED_URI = "/repo/v1/entity";
 	
-	private static final String REASON_JSON_FORMAT = "{\"reason\":\"%s\"}";
-	private static final String REASON_JSON_FORMAT_WITH_MESSAGE_FORMAT = String.format("{\"reason\":\"%s\"}", MSG_FORMAT);
+	private static final String REASON_JSON_FORMAT = "{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"%s\"}";
+	private static final String REASON_JSON_FORMAT_WITH_MESSAGE_FORMAT = String.format("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"%s\"}", MSG_FORMAT);
 	
 	
 	@Mock

@@ -1,24 +1,6 @@
 package org.sagebionetworks.auth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.PrintWriter;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,7 +9,23 @@ import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 
-import com.google.common.collect.ImmutableList;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HttpAuthUtilTest {
@@ -245,7 +243,7 @@ class HttpAuthUtilTest {
 		verify(httpResponse).setStatus(status.value());
 		verify(httpResponse).setContentType("application/json");
 		verify(httpResponse).setHeader("WWW-Authenticate", "Bearer realm=\"Synapse Repository Services\"");
-		verify(mockWriter).println("{\"reason\":\"bad request\"}");
+		verify(mockWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"bad request\"}");
 	}
 
 	@Test
@@ -260,7 +258,7 @@ class HttpAuthUtilTest {
 		verify(httpResponse).setStatus(status.value());
 		verify(httpResponse).setContentType("application/json");
 		verify(httpResponse, never()).setHeader("WWW-Authenticate", "\"Digest\" your email");
-		verify(mockWriter).println("{\"reason\":\"bad request\"}");
+		verify(mockWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"bad request\"}");
 	}
 
 	@Test
@@ -273,7 +271,7 @@ class HttpAuthUtilTest {
 		verify(httpResponse).setStatus(401);
 		verify(httpResponse).setContentType("application/json");
 		verify(httpResponse).setHeader("WWW-Authenticate", "Bearer realm=\"Synapse Repository Services\"");
-		verify(mockWriter).println("{\"reason\":\"missing token\"}");
+		verify(mockWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"missing token\"}");
 		
 	}
 
