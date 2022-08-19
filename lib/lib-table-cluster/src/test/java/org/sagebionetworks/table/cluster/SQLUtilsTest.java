@@ -3105,4 +3105,47 @@ public class SQLUtilsTest {
 		
 		assertEquals("The id is required.", ex.getMessage());
 	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE)"
+				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateSearchStatusSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateSearchStatusSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', -1, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', ?)"
+				+ " ON DUPLICATE KEY UPDATE SEARCH_ENABLED = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusHashSQL() {
+		
+		String result = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', -1, ?, FALSE)"
+				+ " ON DUPLICATE KEY UPDATE SCHEMA_HASH = ?", result);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateStatusVersionAndHashSQL() {
+		String result = SQLUtils.buildCreateOrUpdateStatusVersionAndHashSQL(tableId);
+		
+		assertEquals("INSERT INTO T" + tableId.getId() + "S"
+				+ " ( SINGLE_KEY,ROW_VERSION,SCHEMA_HASH,SEARCH_ENABLED )"
+				+ " VALUES ('1', ?, ?, FALSE)"
+				+ " ON DUPLICATE KEY UPDATE ROW_VERSION = ?, SCHEMA_HASH = ?", result);
+	}
 }

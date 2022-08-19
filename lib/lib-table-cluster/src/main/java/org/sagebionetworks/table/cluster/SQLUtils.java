@@ -496,7 +496,7 @@ public class SQLUtils {
 		builder.append(STATUS_COL_SCHEMA_HASH);
 		builder.append(",");
 		builder.append(STATUS_COL_SEARCH_ENABLED);
-		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ? ");
+		builder.append(" ) VALUES ('1', ?, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE) ON DUPLICATE KEY UPDATE "+ROW_VERSION+" = ?");
 		return builder.toString();
 	}
 	
@@ -532,7 +532,7 @@ public class SQLUtils {
 		builder.append(STATUS_COL_SCHEMA_HASH);
 		builder.append(",");
 		builder.append(STATUS_COL_SEARCH_ENABLED);
-		builder.append(" ) VALUES ('1', -1, ?, FALSE) ON DUPLICATE KEY UPDATE "+STATUS_COL_SCHEMA_HASH+" = ? ");
+		builder.append(" ) VALUES ('1', -1, ?, FALSE) ON DUPLICATE KEY UPDATE "+STATUS_COL_SCHEMA_HASH+" = ?");
 		return builder.toString();
 	}
 	
