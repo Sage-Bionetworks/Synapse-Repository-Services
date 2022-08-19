@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.schema;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
@@ -29,12 +30,13 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 	private final SchemaValidationResultDao schemaValidationResultDao;
 	private final DerivedAnnotationDao derivedAnnotationDao;
 	private final TransactionalMessenger messenger;
+	private final AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
 	public EntitySchemaValidator(EntityManager entityManger, JsonSchemaManager jsonSchemaManager,
 			JsonSchemaValidationManager jsonSchemaValidationManager,
 			SchemaValidationResultDao schemaValidationResultDao, DerivedAnnotationDao derivedAnnotationDao,
-			TransactionalMessenger messenger) {
+			TransactionalMessenger messenger, AccessRequirementManager accessRequirmentManager) {
 		super();
 		this.entityManger = entityManger;
 		this.jsonSchemaManager = jsonSchemaManager;
@@ -42,6 +44,7 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		this.schemaValidationResultDao = schemaValidationResultDao;
 		this.derivedAnnotationDao = derivedAnnotationDao;
 		this.messenger = messenger;
+		this.accessRequirementManager = accessRequirmentManager;
 	}
 
 	@WriteTransaction

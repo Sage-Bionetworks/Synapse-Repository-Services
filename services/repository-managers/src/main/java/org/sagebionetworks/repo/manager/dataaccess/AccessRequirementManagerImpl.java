@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -604,6 +605,31 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		} catch (Exception e) {
 			LOG.warn(String.format("Cannot map access requirement to project for: '%s' due to: '%s'", entityId, e.getMessage()));
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void setDynamicallyBoundAccessRequirementsForSubject(RestrictableObjectDescriptor subject,
+			Set<Long> newArIds) {
+		ValidateArgument.required(subject, "subject");
+		ValidateArgument.required(newArIds, "newArIds");
+		
+		Set<Long> currentIds = new LinkedHashSet<>(accessRequirementDAO.getDynamicallyBoundAccessRequirementIdsForSubject(subject));
+		
+		List<Long> toRemove = new ArrayList<>();
+		for(Long currentId: currentIds) {
+			if(!newArIds.contains(currentId)) {
+				toRemove.add(currentId);
+			}
+		}
+		List<Long> toAdd = new ArrayList<>();
+		for(Long newId: newArIds) {
+			if(!currentIds.contains(newId)) {
+				toAdd.add(newId);
+			}
+		}
+		accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subject, toRemove);
+		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
 	}
 	
 }
