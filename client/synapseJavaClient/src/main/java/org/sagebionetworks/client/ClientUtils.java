@@ -1,12 +1,5 @@
 package org.sagebionetworks.client;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.Map;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -27,8 +20,10 @@ import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BaseError;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.Header;
@@ -37,9 +32,17 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.Map;
+
 public class ClientUtils {
 
 	public static final String ERROR_REASON_TAG = "reason";
+	public static final String CONCRETE_TYPE = "concreteType";
 
 	/**
 	 * Checks to see if the statusCode is in [200,300) range.
@@ -72,14 +75,21 @@ public class ClientUtils {
 
 	}
 
-	public static void throwException(int statusCode, String reasonStr) throws SynapseException{
-		ErrorResponseCode errorResponseCode;
-		String errorMessage;
+	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
+		ErrorResponseCode errorResponseCode = null;
+		String errorMessage = null;
 
 		try {
-			ErrorResponse errorResponse = EntityFactory.createEntityFromJSONString(reasonStr, ErrorResponse.class);
-			errorMessage = errorResponse.getReason();
-			errorResponseCode = errorResponse.getErrorCode();
+			final BaseError baseError = EntityFactory.createEntityFromJSONString(reasonStr, BaseError.class);
+			if (baseError instanceof ErrorResponse) {
+				final ErrorResponse errorResponse =  (ErrorResponse) baseError;
+				errorMessage = errorResponse.getReason();
+				errorResponseCode = errorResponse.getErrorCode();
+			} else if (baseError instanceof DrsErrorResponse) {
+				final DrsErrorResponse errorResponse = (DrsErrorResponse) baseError;
+				errorMessage = errorResponse.getMsg();
+			}
+
 		} catch (JSONObjectAdapterException e) {
 			//this is fine, just use the original reasonStr
 			errorMessage = reasonStr;
@@ -100,9 +110,9 @@ public class ClientUtils {
 			throw new SynapseConflictingUpdateException(errorMessage, errorResponseCode);
 		} else if (statusCode == HttpStatus.SC_GONE) {
 			throw new SynapseDeprecatedServiceException(errorMessage, errorResponseCode);
-		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
+		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE) {
 			throw new SynapseTooManyRequestsException(errorMessage, errorResponseCode);
-		}else {
+		} else {
 			throw new UnknownSynapseServerException(statusCode, errorMessage, null, errorResponseCode);
 		}
 	}

@@ -1,0 +1,64 @@
+{
+	"description": "The drs object metadata, Currently supported type is blob(DrsObject without contents array) and bundle(DrsObject with contents array).",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "An identifier unique to this DrsObject.A drs object id should be Synapse id with version which makes it immutable e.g syn32132536.1 "
+		},
+		"name": {
+			"type": "string",
+			"description": "A string that can be used to name a DrsObject. This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]."
+		},
+		"self_uri": {
+			"type": "string",
+			"description": "Drs self uri is drs://<hostname>/<id> and can be used by clients to store and pass around."
+		},
+		"size": {
+			"type": "integer",
+			"description": "For blobs, the blob size in bytes. For bundles, the cumulative size, in bytes, of items in the contents field."
+		},
+		"created_time": {
+			"type": "string",
+			"format": "date-time",
+			"description": "Timestamp of object creation in RFC3339."
+		},
+		"updated_time": {
+			"type": "string",
+			"format": "date-time",
+			"description": "Timestamp of object updated in RFC3339."
+		},
+		"version": {
+			"type": "string",
+			"description": "Version of drs object."
+		},
+		"mime_type": {
+			"type": "string",
+			"description": "The mime-type of the drs object. Must be: <a href=\"http://en.wikipedia.org/wiki/Internet_media_type\"> Internet_media_type </a>"
+		},
+		"checksums": {
+			"type": "array",
+			"description": "The hex-string encoded checksum for the drs object. At least one checksum must be provided. For blobs, the checksum is computed over the bytes in the blob that is md5. For bundles, the checksum is computed over a sorted concatenation of the checksums of its top-level contained objects.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.drs.Checksum"
+			}
+		},
+		"contents": {
+			"type": "array",
+			"description": "For blob there is no contents and for bundle its list of object inside the bundle.",
+			"items": {
+					"$ref": "org.sagebionetworks.repo.model.drs.Content"
+				}
+		},
+		"access_methods": {
+			"type": "array",
+			"description": "The list of access methods that can be used to fetch the DrsObject. Required for single blobs and bundles have no access method.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.drs.AccessMethod"
+			}
+		},
+		"description": {
+			"type": "string",
+			"description": "A readable description of the DrsObject."
+		}
+	}
+}

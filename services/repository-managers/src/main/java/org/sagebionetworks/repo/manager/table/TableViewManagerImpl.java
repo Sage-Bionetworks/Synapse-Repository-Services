@@ -397,7 +397,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			},
 					idAndVersion);
 		} catch (LockUnavilableException e1) {
-			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.");
+			log.warn("Unable to acquire lock: " + idAndVersion + " so the message will be ignored.");
 		}
 	}
 	
@@ -507,9 +507,11 @@ public class TableViewManagerImpl implements TableViewManager {
 				// nothing to do
 				return;
 			}
+			log.info(String.format("Attempting to create view: '%s'...", idAndVersion.toString()));
 			// Start the worker
 			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+			log.info(String.format("Deleting view index if it exists: '%s'...", idAndVersion.toString()));
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(idAndVersion);
 			// Need the MD5 for the original schema.
@@ -519,6 +521,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			boolean isSearchEnabled = tableManagerSupport.isTableSearchEnabled(idAndVersion);
 			
 			IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+			log.info(String.format("Setting view index schema: '%s'...", idAndVersion.toString()));
 			// create the table in the index
 			indexManager.setIndexSchema(indexDescription, viewSchema);
 			// Sync the search flag
@@ -543,6 +546,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+			log.info(String.format("Set view: '%s' to AVIALABLE.", idAndVersion.toString()));
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.
@@ -551,6 +555,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		} catch (Exception e) {
 			// failed.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
+			log.info(String.format("Set view: '%s' to PROCESSING_FAILED.", idAndVersion.toString()));
 			throw e;
 		}
 	}

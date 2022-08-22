@@ -1,20 +1,5 @@
 package org.sagebionetworks.auth.filter;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.PrintWriter;
-import java.util.Base64;
-import java.util.Enumeration;
-
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +8,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.util.Base64;
+import java.util.Enumeration;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DockerRegistryAuthFilterTest {
@@ -69,7 +68,7 @@ public class DockerRegistryAuthFilterTest {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain, never()).doFilter(any(), any());
-		verify(mockPrintWriter).println("{\"reason\":\"Missing required credentials in the authorization header.\"}");
+		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 
 	@Test
@@ -80,7 +79,7 @@ public class DockerRegistryAuthFilterTest {
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain, never()).doFilter(any(), any());
-		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
+		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test

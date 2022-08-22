@@ -1,14 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.PrintStream;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.amazonaws.AmazonServiceException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -36,6 +29,7 @@ import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -51,6 +45,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
@@ -68,7 +63,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.util.NestedServletException;
 
-import com.amazonaws.AmazonServiceException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * This abstract class attempts to encapsulate exception handling for exceptions
@@ -192,7 +193,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleMissingServletRequestParameterException(MissingServletRequestParameterException ex, 
+	JSONEntity handleMissingServletRequestParameterException(MissingServletRequestParameterException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -210,13 +211,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(NotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleNotFoundException(NotFoundException ex,
+	JSONEntity handleNotFoundException(NotFoundException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -227,13 +228,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * 
 	 * @param ex
 	 * @param request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ServiceUnavailableException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleServiceUnavailableException(
+	JSONEntity handleServiceUnavailableException(
 			ServiceUnavailableException ex, HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -247,13 +248,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ConflictingUpdateException.class)
 	@ResponseStatus(HttpStatus.PRECONDITION_FAILED)
 	public @ResponseBody
-	ErrorResponse handleConflictingUpdateException(
+	JSONEntity handleConflictingUpdateException(
 			ConflictingUpdateException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -272,13 +273,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(UnauthorizedException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
-	ErrorResponse handleUnauthorizedException(UnauthorizedException ex,
+	JSONEntity handleUnauthorizedException(UnauthorizedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -290,7 +291,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(UnauthenticatedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
-	ErrorResponse handleUnauthenticatedException(UnauthenticatedException ex,
+	JSONEntity handleUnauthenticatedException(UnauthenticatedException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
@@ -305,7 +306,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(NameConflictException.class)
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
-	ErrorResponse handleNameConflictException(NameConflictException ex,
+	JSONEntity handleNameConflictException(NameConflictException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -319,7 +320,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(AsynchJobFailedException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleAsynchJobFailedException(AsynchJobFailedException ex,
+	JSONEntity handleAsynchJobFailedException(AsynchJobFailedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -332,13 +333,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(IllegalArgumentException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex,
+	JSONEntity handleIllegalArgumentException(IllegalArgumentException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -351,13 +352,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(QuarantinedEmailException.class)
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
-	ErrorResponse handleQuarantinedEmailException(QuarantinedEmailException ex,
+	JSONEntity handleQuarantinedEmailException(QuarantinedEmailException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -370,13 +371,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(FileHandleLinkedException.class)
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
-	ErrorResponse handleFileHandleLinkedException(FileHandleLinkedException ex, HttpServletRequest request) {
+	JSONEntity handleFileHandleLinkedException(FileHandleLinkedException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
 
@@ -389,13 +390,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(InvalidModelException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleInvalidModelException(InvalidModelException ex,
+	JSONEntity handleInvalidModelException(InvalidModelException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -408,13 +409,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(TypeMismatchException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleTypeMismatchException(TypeMismatchException ex,
+	JSONEntity handleTypeMismatchException(TypeMismatchException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -427,13 +428,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(JSONObjectAdapterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleJSONObjectAdapterException(JSONObjectAdapterException ex,
+	JSONEntity handleJSONObjectAdapterException(JSONObjectAdapterException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -445,13 +446,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity Response object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(EOFException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleEofException(EOFException ex, HttpServletRequest request) {
+	JSONEntity handleEofException(EOFException ex, HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
 
@@ -462,13 +463,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleNotReadableException(
+	JSONEntity handleNotReadableException(
 			HttpMessageNotReadableException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -481,13 +482,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ParseException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleParseException(ParseException ex,
+	JSONEntity handleParseException(ParseException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -500,13 +501,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
 	@ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
 	public @ResponseBody
-	ErrorResponse handleNotAcceptableException(
+	JSONEntity handleNotAcceptableException(
 			HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -518,13 +519,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
 	@ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
 	public @ResponseBody
-	ErrorResponse handleNotSupportedException(
+	JSONEntity handleNotSupportedException(
 			HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -535,13 +536,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * an existing call
 	 * @param ex the exception thrown by Spring when a method is called that isn't supported
 	 * @param request the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
 	public @ResponseBody
-	ErrorResponse handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
+	JSONEntity handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
 															   HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -554,13 +555,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(DatastoreException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleDatastoreException(DatastoreException ex,
+	JSONEntity handleDatastoreException(DatastoreException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -573,13 +574,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ServletException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleServletException(ServletException ex,
+	JSONEntity handleServletException(ServletException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -591,13 +592,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(NestedServletException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleNestedServletException(NestedServletException ex,
+	JSONEntity handleNestedServletException(NestedServletException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -609,13 +610,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(IllegalStateException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleIllegalStateException(IllegalStateException ex,
+	JSONEntity handleIllegalStateException(IllegalStateException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -627,14 +628,14 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @param ex
 	 * @param request
 	 * @param response
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 * @throws IOException
 	 */
 	@ExceptionHandler(ACLInheritanceException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleAccessControlListInheritanceException(
+	JSONEntity handleAccessControlListInheritanceException(
 			ACLInheritanceException ex, HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
 		// Build and set the redirect URL
@@ -650,13 +651,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @param ex
 	 * @param request
 	 * @param response
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(NullPointerException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleNullPointerException(NullPointerException ex,
+	JSONEntity handleNullPointerException(NullPointerException ex,
 			HttpServletRequest request, HttpServletResponse response) {
 		log.error("Handling " + request.toString(), ex);
 		final int MAX_STACK_TRACE_LENGTH = 256;
@@ -679,13 +680,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JsonEnityt object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
-	ErrorResponse handleAllOtherExceptions(Exception ex,
+	JSONEntity handleAllOtherExceptions(Exception ex,
 			HttpServletRequest request) {
 		log.error("Consider specifically handling exceptions of type "
 						+ ex.getClass().getName());
@@ -702,7 +703,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(TransientDataAccessException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleTransientDataAccessExceptions(TransientDataAccessException ex,
+	JSONEntity handleTransientDataAccessExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
 		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();
@@ -739,20 +740,18 @@ public class BaseControllerExceptionHandlerAdvice {
 	}
 
 	/**
-	 * Log the exception at the warning level and return an ErrorResponse
+	 * Log the exception at the warning level and return an JSONEntity
 	 * object. Child classes should override this method if they want to change
 	 * the behavior for all exceptions.
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
+	 *
+	 * @param ex        the exception to be handled
+	 * @param request   the client request
 	 * @param fullTrace Should the full stack trace of the exception be written to the log.
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
+	 * @return an JSONEntity object containing the exception reason or some
+	 * other human-readable response
 	 */
-	ErrorResponse handleException(Throwable ex,
-			HttpServletRequest request, boolean fullTrace) {
+	JSONEntity handleException(Throwable ex,
+								  HttpServletRequest request, boolean fullTrace) {
 		return handleException(ex, request, fullTrace, null);
 	}
 
@@ -761,17 +760,15 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * object. Child classes should override this method if they want to change
 	 * the behavior for all exceptions.
 	 *
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 * @param ex                  the exception to be handled
+	 * @param request             the client request
+	 * @param fullTrace           Should the full stack trace of the exception be written to the log.
 	 * @param associatedErrorCode Optional. Used when an ErrorResponseCode should be associated with the Throwable.
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
+	 * @return an JSONEntity object containing the exception reason or some
+	 * other human-readable response
 	 */
-	ErrorResponse handleException(Throwable ex,
-								  HttpServletRequest request, boolean fullTrace,  ErrorResponseCode associatedErrorCode) {
+	JSONEntity handleException(Throwable ex,
+							   HttpServletRequest request, boolean fullTrace, ErrorResponseCode associatedErrorCode) {
 
 		String message = ex.getMessage();
 		if (message == null) {
@@ -783,14 +780,14 @@ public class BaseControllerExceptionHandlerAdvice {
 	/**
 	 * Log the exception at the warning level and return an ErrorResponse object. Child classes should override this
 	 * method if they want to change the behavior for all exceptions.
-	 * 
-	 * @param ex the exception to be handled
-	 * @param request the client request
-	 * @param fullTrace Should the full stack trace of the exception be written to the log.
+	 *
+	 * @param ex                  the exception to be handled
+	 * @param request             the client request
+	 * @param fullTrace           Should the full stack trace of the exception be written to the log.
 	 * @param associatedErrorCode Optional. Used when an ErrorResponseCode should be associated with the Throwable.
 	 * @return an ErrorResponse object containing the exception reason or some other human-readable response
 	 */
-	private ErrorResponse handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace, ErrorResponseCode associatedErrorCode) {
+	private JSONEntity handleException(Throwable ex, HttpServletRequest request, String message, boolean fullTrace, ErrorResponseCode associatedErrorCode) {
 		// TODO: why do we need this logging behavior difference?
 		// Always log the stack trace on develop stacks
 		if (fullTrace || StackConfigurationSingleton.singleton().isDevelopStack()) {
@@ -801,10 +798,41 @@ public class BaseControllerExceptionHandlerAdvice {
 			log.error("Handling " + request.toString());
 		}
 
+		if (!StringUtils.isEmpty(request.getPathInfo()) && request.getPathInfo().startsWith(UrlHelpers.DRS_PATH)) {
+			return getDrsErrorResponse(ex, message);
+		}
+
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(message);
 		er.setErrorCode(associatedErrorCode);
 		return er;
+	}
+
+	DrsErrorResponse getDrsErrorResponse(final Throwable ex, final String message){
+		final DrsErrorResponse drsErrorResponse = new DrsErrorResponse();
+		drsErrorResponse.setMsg(message);
+		drsErrorResponse.setStatus_code(getDrsHttpStatusCode(ex));
+		return drsErrorResponse;
+	}
+
+	/**
+	 * This method returns the expected http status for drs requests as specified in specification.
+	 * @param ex
+	 * @return int
+	 */
+
+	private long getDrsHttpStatusCode(final Throwable ex) {
+		if (ex instanceof NotFoundException) {
+			return HttpStatus.NOT_FOUND.value();
+		} else if (ex instanceof IllegalArgumentException) {
+			return HttpStatus.BAD_REQUEST.value();
+		} else if (ex instanceof UnauthorizedException) {
+			return HttpStatus.UNAUTHORIZED.value();
+		} else if (ex instanceof UnauthenticatedException) {
+			return HttpStatus.FORBIDDEN.value();
+		} else {
+			return HttpStatus.INTERNAL_SERVER_ERROR.value();
+		}
 	}
 
 	/**
@@ -829,13 +857,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(EntityInTrashCanException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
+	JSONEntity handleEntityInTrashCanException(EntityInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -847,13 +875,13 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
+	 * @return an JSONEntity object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ParentInTrashCanException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
-	ErrorResponse handleParentInTrashCanException(ParentInTrashCanException ex,
+	JSONEntity handleParentInTrashCanException(ParentInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
@@ -864,7 +892,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(TooManyRequestsException.class)
 	@ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
 	public @ResponseBody
-	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
+	JSONEntity handleTooManyRequestsException(TooManyRequestsException ex,
 			HttpServletRequest request, HttpServletResponse response) {
 		return handleException(ex, request, true);
 	}
@@ -876,7 +904,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(ByteLimitExceededException.class)
 	@ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
 	public @ResponseBody
-	ErrorResponse handleTooManyRequestsException(ByteLimitExceededException ex,
+	JSONEntity handleTooManyRequestsException(ByteLimitExceededException ex,
 			HttpServletRequest request, HttpServletResponse response) {
 		boolean fullTrace = false;
 		return handleException(ex, request, fullTrace);
@@ -890,7 +918,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(TermsOfUseException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
-	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
+	JSONEntity handleTermsOfUseException(TermsOfUseException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
@@ -902,7 +930,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(LockedException.class)
 	@ResponseStatus(HttpStatus.LOCKED)
 	public @ResponseBody
-	ErrorResponse handleLockedException(LockedException ex,
+	JSONEntity handleLockedException(LockedException ex,
 
 										HttpServletRequest request,
 										HttpServletResponse response) {
@@ -916,7 +944,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(UnsuccessfulLoginLockoutException.class)
 	@ResponseStatus(HttpStatus.LOCKED)
 	public @ResponseBody
-	ErrorResponse handleLockedException(UnsuccessfulLoginLockoutException ex,
+	JSONEntity handleLockedException(UnsuccessfulLoginLockoutException ex,
 										HttpServletRequest request,
 										HttpServletResponse response) {
 		return handleException(ex, request, false);
@@ -928,7 +956,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(DeprecatedServiceException.class)
 	@ResponseStatus(HttpStatus.GONE)
 	public @ResponseBody
-	ErrorResponse handleDeprecatedServiceException(DeprecatedServiceException ex,
+	JSONEntity handleDeprecatedServiceException(DeprecatedServiceException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
@@ -938,7 +966,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(UnexpectedRollbackException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
+	JSONEntity handleUnexpectedRollbackException(UnexpectedRollbackException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);
@@ -955,7 +983,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(TemporarilyUnavailableException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleTemporarilyUnavailableException(TemporarilyUnavailableException ex,
+	JSONEntity handleTemporarilyUnavailableException(TemporarilyUnavailableException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);
@@ -972,7 +1000,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(AmazonServiceException.class)
 	@ResponseStatus(HttpStatus.BAD_GATEWAY)
 	public @ResponseBody
-	ErrorResponse handleAmazonServiceException(AmazonServiceException ex,
+	JSONEntity handleAmazonServiceException(AmazonServiceException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);
@@ -981,7 +1009,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(InvalidPasswordException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleInvalidPasswordException(InvalidPasswordException ex,
+	JSONEntity handleInvalidPasswordException(InvalidPasswordException ex,
 												 HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -989,7 +1017,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(PasswordResetViaEmailRequiredException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
-	ErrorResponse handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
+	JSONEntity handlePasswordChangeRequiredException(PasswordResetViaEmailRequiredException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PASSWORD_RESET_VIA_EMAIL_REQUIRED);
 	}
@@ -997,7 +1025,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(UserCertificationRequiredException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
-	ErrorResponse handleUserCertificationRequiredException(UserCertificationRequiredException ex,
+	JSONEntity handleUserCertificationRequiredException(UserCertificationRequiredException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.USER_CERTIFICATION_REQUIRED);
 	}
@@ -1005,7 +1033,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(InvalidTableQueryFacetColumnRequestException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleInvalidTableQueryFacetColumnRequestException(InvalidTableQueryFacetColumnRequestException ex,
+	JSONEntity handleInvalidTableQueryFacetColumnRequestException(InvalidTableQueryFacetColumnRequestException ex,
 														   HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.INVALID_TABLE_QUERY_FACET_COLUMN_REQUEST);
 	}
@@ -1014,7 +1042,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(NoHandlerFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request){
+	JSONEntity handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request){
 		return handleException(ex,
 				request,
 				ex.getHttpMethod() +" was not found. Please reference API documentation at https://docs.synapse.org/rest/",
@@ -1025,7 +1053,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ExceptionHandler(OAuthClientNotVerifiedException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
-	ErrorResponse handleOAuthClientNotVerifiedException(OAuthClientNotVerifiedException ex,
+	JSONEntity handleOAuthClientNotVerifiedException(OAuthClientNotVerifiedException ex,
 														HttpServletRequest request){
 		return handleException(ex, request, true, ErrorResponseCode.OAUTH_CLIENT_NOT_VERIFIED);
 	}

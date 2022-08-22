@@ -1,25 +1,5 @@
 package org.sagebionetworks.auth.filter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.PrintWriter;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +18,25 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 
@@ -123,7 +122,7 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService).login(loginCred, null);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
-		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
+		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test
@@ -144,7 +143,7 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService).login(loginCred, null);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
-		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
+		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test

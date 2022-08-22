@@ -1,14 +1,8 @@
 package org.sagebionetworks.client;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.List;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
@@ -143,6 +137,7 @@ import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
 import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListRequest;
 import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadListResponse;
+import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -304,9 +299,14 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
 
 
 /**
@@ -4140,4 +4140,11 @@ public interface SynapseClient extends BaseClient {
      * @throws SynapseException
      */
     ServiceInformation getDrsServiceInfo() throws SynapseException;
+
+	/**
+	 * Get the drs object with drs ID.
+	 * @return
+	 * @throws SynapseException
+	 */
+	DrsObject getDrsObject(String objectId) throws SynapseException;
 }

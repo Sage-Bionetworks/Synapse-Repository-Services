@@ -1,29 +1,9 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.Collections;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.impl.DefaultClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,10 +19,27 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.HandlerMethod;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.impl.DefaultClaims;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME;
 
 @ExtendWith(MockitoExtension.class)
 class OAuthScopeInterceptorTest {
@@ -268,7 +265,7 @@ class OAuthScopeInterceptorTest {
 		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, modify, offline_access, openid, profile";
 		String expectedReason = expectedError + ". " + expectedErrorDescription;
 
-		assertEquals("{\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}"+System.lineSeparator() , os.toString());
+		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}"+System.lineSeparator() , os.toString());
 		
 	}
 
@@ -288,7 +285,7 @@ class OAuthScopeInterceptorTest {
 		String expectedError = OAuthErrorCode.insufficient_scope.name();
 		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, modify, offline_access, openid, profile, view";
 		String expectedReason = expectedError + ". " + expectedErrorDescription;
-		assertEquals("{\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}" + System.lineSeparator(),  os.toString());
+		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}" + System.lineSeparator(),  os.toString());
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper, never()).parseJWT(anyString());
@@ -313,7 +310,7 @@ class OAuthScopeInterceptorTest {
 		
 		assertFalse(result);
 
-		assertEquals("{\"reason\":\""+message+"\"}"+System.lineSeparator(),  os.toString());
+		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\""+message+"\"}"+System.lineSeparator(),  os.toString());
 		
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 		verify(mockOidcTokenHelper).parseJWT(anyString());

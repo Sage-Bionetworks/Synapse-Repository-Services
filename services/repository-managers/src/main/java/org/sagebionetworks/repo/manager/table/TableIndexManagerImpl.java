@@ -949,7 +949,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param tableId The id of the table
 	 * @return The schema currently used by the table in the index
 	 */
-	private List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
+	List<ColumnModel> getCurrentTableSchema(IdAndVersion tableId) {
 		// Get the current schema.
 		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
 		// Determine the current schema
