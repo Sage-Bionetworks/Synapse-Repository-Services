@@ -240,4 +240,9 @@ public class EntitySchemaValidatorImplTest {
 				.setChangeType(ChangeType.UPDATE)
 				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 	}
+	
+	@Test
+	public void test() {
+		
+	}
 }
