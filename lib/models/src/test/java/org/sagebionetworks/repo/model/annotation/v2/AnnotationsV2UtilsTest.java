@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,15 +13,17 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import com.google.common.collect.Lists;
 
 public class AnnotationsV2UtilsTest {
 
@@ -131,20 +136,25 @@ public class AnnotationsV2UtilsTest {
 	}
 
 	@Test
-	public void testInvalidNames() {
+	public void testInvalidNames() {		
+		List<String> invalidNames = new ArrayList<>();
+		
+		// Reserved annotations are all invalid
+		invalidNames.addAll(AnnotationsV2Utils.RESERVED_ANNOTATION_NAMES.stream()
+		    // Add lower and upper case variants, all should be invalid
+			.flatMap(name -> Arrays.asList(name, name.toLowerCase(), name.toUpperCase()).stream())
+			.collect(Collectors.toList()));
+
 		// There are all invalid names
-		String[] invalidNames = new String[] { "~", "!", "@", "#", "$", "%",
+		invalidNames.addAll(Arrays.asList("~", "!", "@", "#", "$", "%",
 				"^", "&", "*", "(", ")", "\"", "\n\t", "'", "?", "<", ">", "/",
-				";", "{", "}", "|", "=", "+", "-", "White\n\t Space", null, "" };
-		for (int i = 0; i < invalidNames.length; i++) {
-			try {
-				// These are all bad names
-				AnnotationsV2Utils.checkKeyName(invalidNames[i]);
-				fail("Name: " + invalidNames[i] + " is invalid");
-			} catch (InvalidModelException e) {
-				// Expected
-			}
-		}
+				";", "{", "}", "|", "=", "+", "-", "White\n\t Space", null, ""));
+		
+		invalidNames.forEach( name -> {
+			assertThrows(InvalidModelException.class, () -> {
+				AnnotationsV2Utils.checkKeyName(name);
+			});
+		});	
 	}
 
 	@Test
@@ -210,7 +220,7 @@ public class AnnotationsV2UtilsTest {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
 		});
 	}
-
+	
 	@Test
 	public void testUpdateValidateAnnotations_MapInvalidValues(){
 		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsValueType.STRING);
@@ -220,7 +230,7 @@ public class AnnotationsV2UtilsTest {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
 		});
 	}
-
+	
 	@Test
 	public void testUpdateValidateAnnotations_MapValid(){
 		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsValueType.STRING);
