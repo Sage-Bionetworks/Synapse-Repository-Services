@@ -1023,6 +1023,22 @@ public class DBOAccessRequirementDAOImplTest {
 	}
 	
 	@Test
+	public void testaddDynamicallyBoundAccessRequirmentsToSubjectWithDoesNotExist() {
+
+		RestrictableObjectDescriptor subject = new RestrictableObjectDescriptor().setId("syn123")
+				.setType(RestrictableObjectType.ENTITY);
+
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, List.of(-222L));
+		}).getMessage();
+		assertEquals(
+				"Cannot bind access requirements to: 'syn123' because one or more of the provide"
+				+ " access requirement ids does not exist: '[-222]'",
+				message);
+	}
+	
+	@Test
 	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotations() throws Exception{
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement.setSubjectIds(null);

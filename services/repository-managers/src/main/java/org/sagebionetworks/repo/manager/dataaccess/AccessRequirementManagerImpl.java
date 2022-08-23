@@ -628,8 +628,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				toAdd.add(newId);
 			}
 		}
-		accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subject, toRemove);
-		accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
+		if(!toRemove.isEmpty()) {
+			accessRequirementDAO.removeDynamicallyBoundAccessRequirementsFromSubject(subject, toRemove);
+		}
+		if(!toAdd.isEmpty()) {
+			accessRequirementDAO.addDynamicallyBoundAccessRequirmentsToSubject(subject, toAdd);
+		}
 	}
 	
 }
