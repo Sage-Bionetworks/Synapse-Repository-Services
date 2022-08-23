@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaValidationResultDao;
@@ -59,7 +61,8 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		ValidateArgument.required(entityId, "entityId");
 
 		boolean sendEntityUpdate = false;
-
+		final RestrictableObjectDescriptor objectDescriptor = new RestrictableObjectDescriptor().setId(entityId)
+				.setType(RestrictableObjectType.ENTITY);
 		try {
 			JsonSchemaObjectBinding binding = entityManger.getBoundSchema(entityId);
 			JsonSubject entitySubject = entityManger.getEntityJsonSubject(entityId, false);
@@ -83,12 +86,13 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 			}
 
 			Set<Long> accessRequirmentIdsToBind = extractAccessRequirmentIds(annoOption.orElse(new Annotations()));
-			accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(
-					new RestrictableObjectDescriptor().setId(entityId).setType(RestrictableObjectType.ENTITY),
+			accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
 					accessRequirmentIdsToBind);
 		} catch (NotFoundException e) {
 			schemaValidationResultDao.clearResults(entityId, ObjectType.entity);
 			sendEntityUpdate = derivedAnnotationDao.clearDerivedAnnotations(entityId);
+			accessRequirementManager.setDynamicallyBoundAccessRequirementsForSubject(objectDescriptor,
+					Collections.emptySet());
 		}
 
 		if (sendEntityUpdate) {
@@ -114,10 +118,22 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 		if (derivedAnnotations == null || derivedAnnotations.getAnnotations() == null) {
 			return Collections.emptySet();
 		}
-		return derivedAnnotations.getAnnotations().entrySet().stream()
-				.filter(e -> "".equals(e.getKey()) && AnnotationsValueType.LONG.equals(e.getValue().getType()))
-				.findFirst().map(e -> e.getValue().getValue()).orElseGet(() -> Collections.emptyList()).stream()
-				.map(Long::parseLong).collect(Collectors.toSet());
+		Optional<AnnotationsValue> optionalValue = derivedAnnotations.getAnnotations().entrySet().stream()
+				.filter(e -> AnnotationsV2Utils.ACCESS_REQUIREMENT_IDS.equals(e.getKey())).findFirst()
+				.map(e -> e.getValue());
+		if (!optionalValue.isPresent()) {
+			return Collections.emptySet();
+		}
+		AnnotationsValue value = optionalValue.get();
+		if (!AnnotationsValueType.LONG.equals(value.getType())) {
+			throw new IllegalArgumentException(String.format(
+					"The derived annotation with the key: '%s' does not have an expected type of: '%s', actual type is: '%s'",
+					AnnotationsV2Utils.ACCESS_REQUIREMENT_IDS, AnnotationsValueType.LONG, value.getType()));
+		}
+		if (value.getValue() == null) {
+			return Collections.emptySet();
+		}
+		return value.getValue().stream().map(Long::parseLong).collect(Collectors.toSet());
 	}
 
 }
