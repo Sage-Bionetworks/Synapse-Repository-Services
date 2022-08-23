@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.Util.FileEntityUtil;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -20,6 +19,7 @@ import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.util.FileEntityUtil;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.io.IOException;
@@ -63,7 +63,7 @@ public class ITDrsControllerTest {
     }
 
     @Test
-    public void testGETDrsServiceInfo() throws SynapseException {
+    public void testGetDrsServiceInfo() throws SynapseException {
         final ServiceInformation serviceInformation = synapse.getDrsServiceInfo();
         assertNotNull(serviceInformation);
         assertEquals(serviceInformation.getId(), "org.sagebase.prod.repo-prod");
@@ -79,7 +79,7 @@ public class ITDrsControllerTest {
     }
 
     @Test
-    public void testGETDrsObjectBlob() throws SynapseException, IOException {
+    public void testGetDrsObjectBlob() throws SynapseException, IOException {
         createProjectHierarchy();
         final String idAndVersion = file.getId() + ".1";
         final DrsObject drsObject = synapse.getDrsObject(idAndVersion);
@@ -88,7 +88,7 @@ public class ITDrsControllerTest {
     }
 
     @Test
-    public void testGETDrsObjectBlobWithIncorrectID() throws SynapseException, IOException {
+    public void testGetDrsObjectBlobWithIncorrectID() throws SynapseException, IOException {
         createProjectHierarchy();
         final String idAndVersion = file.getId();
         final String errorMessage = "Object id should include version. e.g syn123.1";

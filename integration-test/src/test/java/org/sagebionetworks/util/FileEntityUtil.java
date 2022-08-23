@@ -1,4 +1,4 @@
-package org.sagebionetworks.Util;
+package org.sagebionetworks.util;
 
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;

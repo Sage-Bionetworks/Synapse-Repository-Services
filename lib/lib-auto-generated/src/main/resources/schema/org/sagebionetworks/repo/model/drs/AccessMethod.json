@@ -8,7 +8,7 @@
 			"enum": [
 				{
 					"name": "https",
-					"description": "TODO: Auto-generated description"
+					"description": "Synapse will always return https pre-signed urls."
 				}
 			]
 		},

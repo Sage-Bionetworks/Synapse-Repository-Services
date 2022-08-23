@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -47,7 +48,8 @@ public class DrsManagerImplUnitTest {
     @Mock
     UserManager userManager;
 
-    private static final String FILE_ID = "syn1.1";
+    private static final String FILE_ID = "syn1";
+    private static final long FILE_VERSION = 1L;
     private static final String FILE_NAME = "Test File";
     private static final String FILE_DESCRIPTION = "Drs Test File";
     private static final String DATA_FILE_HANDLE_ID = "123456";
@@ -55,36 +57,36 @@ public class DrsManagerImplUnitTest {
     private static final Long USER_ID = 1L;
 
     @Test
-    public void testGETDrsServiceInformation() {
+    public void testGetDrsServiceInformation() {
         when(stackConfiguration.getStack()).thenReturn("dev");
         when(stackConfiguration.getStackInstance()).thenReturn("417.0.1");
         final ServiceInformation serviceInformation = drsManager.getServiceInformation();
+        verify(stackConfiguration).getStack();
+        verify(stackConfiguration).getStackInstance();
         assertNotNull(serviceInformation);
         assertEquals(createExpectedServiceInformation(), serviceInformation);
     }
 
     @Test
-    public void testGETBlobDrsObject() {
+    public void testGetBlobDrsObject() {
         final FileEntity file = getFileEntity();
         final FileHandle fileHandle = getFileHandle();
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(file);
         when(fileHandleManager.getRawFileHandleUnchecked(any())).thenReturn(fileHandle);
         when(userManager.getUserInfo(any())).thenReturn(userInfo);
-        final DrsObject drsObject = drsManager.getDrsObject(USER_ID, file.getId());
+
+        final DrsObject drsObject = drsManager.getDrsObject(USER_ID, file.getId()+"."+FILE_VERSION);
+        verify(entityManager).getEntityForVersion(userInfo, "1", FILE_VERSION,null);
+        verify(fileHandleManager).getRawFileHandleUnchecked(file.getDataFileHandleId());
+        verify(userManager).getUserInfo(USER_ID);
         assertNotNull(drsObject);
-        assertEquals(drsObject.getId(), file.getId());
-        assertEquals(drsObject.getName(), file.getName());
-        assertEquals(drsObject.getDescription(), file.getDescription());
-        assertEquals(drsObject.getMime_type(), fileHandle.getContentType());
-        assertEquals(drsObject.getChecksums().get(0).getChecksum(), fileHandle.getContentMd5());
-        assertEquals(drsObject.getAccess_methods().get(0).getAccess_id(), FileHandleAssociateType.FileEntity.name()
-              + "_" + file.getId() + "_"+ file.getDataFileHandleId());
+        assertEquals(drsObject.getId(), file.getId()+"."+FILE_VERSION);
     }
 
     @Test
-    public void testGETBlobDrsObjectWithInvalidID() {
+    public void testGetBlobDrsObjectWithInvalidID() {
         final String id = "syn1";
-        final String expectedErrorMessage = String.format("Object id should include version. e.g syn123.1", id);
+        final String expectedErrorMessage ="Object id should include version. e.g syn123.1";
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, id);
         });
@@ -92,11 +94,12 @@ public class DrsManagerImplUnitTest {
     }
 
     @Test
-    public void testGETInvalidDrsObject() {
+    public void testGetInvalidTypeOfDrsObject() {
         final Project project = getProject("syn1.1","project");
         when(entityManager.getEntityForVersion(any(), any(), any(), any())).thenReturn(project);
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             drsManager.getDrsObject(USER_ID, project.getId());
+            verify(entityManager).getEntityForVersion(userInfo, "1", FILE_VERSION,null);
         });
         assertEquals("DRS API only supports FileEntity and Datasets.", exception.getMessage());
     }
