@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -29,12 +30,14 @@ public class AnnotationsV2Utils {
 
 	static final int MAX_ANNOTATION_KEYS = 100;
 	static final int MAX_VALUES_PER_KEY = 100;
+	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
 			.compile("^[a-zA-Z0-9,_.]+");
-	public static final Set<String> RESERVED_ANNOTATION_NAMES = ImmutableSet.of(
+	
+	public static final Set<String> RESERVED_ANNOTATION_NAMES = Arrays.asList(
 		"_accessRequirementIds"
-	);
+	).stream().map(String::toLowerCase).collect(Collectors.toSet());
 
 	/**
 	 *
@@ -171,7 +174,7 @@ public class AnnotationsV2Utils {
 			throw new InvalidModelException("Invalid annotation name: '" + key + "'. Annotation names may only contain; letters, numbers, '_' and '.'");
 		}
 		
-		if (RESERVED_ANNOTATION_NAMES.contains(key)) {
+		if (RESERVED_ANNOTATION_NAMES.contains(key.toLowerCase())) {
 			throw new InvalidModelException("Invalid annotation name: '" + key + "'. The annotation name is a system reserved annotation.");
 		}
 	}

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,8 +137,15 @@ public class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testInvalidNames() {		
+		List<String> invalidNames = new ArrayList<>();
+		
+		// Reserved annotations are all invalid
+		invalidNames.addAll(AnnotationsV2Utils.RESERVED_ANNOTATION_NAMES.stream()
+		    // Add lower and upper case variants, all should be invalid
+			.flatMap(name -> Arrays.asList(name, name.toLowerCase(), name.toUpperCase()).stream())
+			.collect(Collectors.toList()));
+
 		// There are all invalid names
-		List<String> invalidNames = new ArrayList<>(AnnotationsV2Utils.RESERVED_ANNOTATION_NAMES);		
 		invalidNames.addAll(Arrays.asList("~", "!", "@", "#", "$", "%",
 				"^", "&", "*", "(", ")", "\"", "\n\t", "'", "?", "<", ">", "/",
 				";", "{", "}", "|", "=", "+", "-", "White\n\t Space", null, ""));
