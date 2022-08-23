@@ -1244,6 +1244,7 @@ public class UrlHelpers {
 	 * DRS urls
 	 */
 	public static final String DRS_SERVICE_INFO = "/service-info";
+	public static final String DRS_OBJECT = "/objects/{id}";
 
 	static {
 		@SuppressWarnings("rawtypes")

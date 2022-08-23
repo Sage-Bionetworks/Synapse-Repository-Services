@@ -1,28 +1,7 @@
 package org.sagebionetworks.auth.filter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.google.common.collect.ImmutableList;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +18,27 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricUtils;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.google.common.collect.ImmutableList;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(MockitoExtension.class)
 public class BasicAuthenticationFilterTest {
@@ -99,7 +97,7 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest("{\"reason\":\"Missing required credentials in the authorization header.\"}");
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 	
 	@Test
@@ -110,7 +108,7 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest("{\"reason\":\"Invalid Authorization header for basic authentication (Missing \\\"Basic \\\" prefix)\"}");
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Invalid Authorization header for basic authentication (Missing \\\"Basic \\\" prefix)\"}");
 	}
 	
 	@Test
@@ -120,8 +118,8 @@ public class BasicAuthenticationFilterTest {
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		
-		verifyRejectRequest("{\"reason\":\"Invalid Authorization header for basic authentication (Malformed Base64 encoding: Illegal base64 character 5f)\"}");
+
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Invalid Authorization header for basic authentication (Malformed Base64 encoding: Illegal base64 character 5f)\"}");
 	}
 	
 	@Test
@@ -143,7 +141,7 @@ public class BasicAuthenticationFilterTest {
 		
 		filter.rejectRequest(mockResponse, "Some message");
 		
-		verifyRejectRequest("{\"reason\":\"Some message\"}");
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Some message\"}");
 		
 		verifyZeroInteractions(mockConsumer);
 	}
@@ -158,7 +156,7 @@ public class BasicAuthenticationFilterTest {
 		
 		filter.rejectRequest(mockResponse, message);
 		
-		verifyRejectRequest("{\"reason\":\"Some message\"}");
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Some message\"}");
 		
 		verify(mockConsumer).addProfileData(captorProfileData.capture());
 		
@@ -186,7 +184,7 @@ public class BasicAuthenticationFilterTest {
 		
 		filter.rejectRequest(mockResponse, ex);
 		
-		verifyRejectRequest("{\"reason\":\"Some message\"}");
+		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Some message\"}");
 		
 		verify(mockConsumer).addProfileData(captorProfileData.capture());
 		

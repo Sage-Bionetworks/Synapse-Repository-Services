@@ -1,0 +1,11 @@
+{
+    "description": "Base interface for API errors.",
+    "type": "interface",
+
+    "properties":{
+        "concreteType":{
+            "type":"string",
+            "description":"Indicates which implementation of BaseError this object represents.  The value is the fully qualified class name, e.g. org.sagebionetworks.repo.model.ErrorResponse."
+        }
+    }
+}

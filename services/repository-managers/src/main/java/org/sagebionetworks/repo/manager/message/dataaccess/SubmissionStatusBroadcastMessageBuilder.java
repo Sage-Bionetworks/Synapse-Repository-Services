@@ -26,12 +26,12 @@ public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessage
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String APPROVED_TITLE = "Synapse Notification: Your request has been approved";
 	
-	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request. There may be additional requirements to complete before you may access this resource; "
+	public static final String APPROVED_TEMPLATE = "Your request for access was reviewed and approved. There may be additional requirements to complete before you may access this resource; "
 			+ "[please view and complete any additional requirements](https://www.synapse.org/#!AccessRequirements:ID=%2$s&TYPE=%3$s).\n\n" 
 			+  "If all requirements have been completed, you may access the resource of interest \n %1$s.\n\n";
 
 	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
-	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
+	public static final String REJECTED_TEMPLATE = "A reviewer left a comment in your request. Your request cannot be approved until you respond:\n"
 			+ "%1$s\n"
 			+ "[Please view and complete all requirements](https://www.synapse.org/#!AccessRequirements:ID=%3$s&TYPE=%4$s) to access the resource of interest \n%2$s \n\n";
 	public static final String ENTITY_PAGE_LINK = "https://www.synapse.org/#!Synapse:%1$s";
