@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.drs.AccessMethod;
 import org.sagebionetworks.repo.model.drs.AccessMethodType;
 import org.sagebionetworks.repo.model.drs.Checksum;
 import org.sagebionetworks.repo.model.drs.ChecksumType;
+import org.sagebionetworks.repo.model.drs.Content;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.OrganizationInformation;
 import org.sagebionetworks.repo.model.drs.PackageInformation;
@@ -106,8 +107,8 @@ public class DrsManagerImpl implements DrsManager {
 
         result.setId(id);
         result.setName(entity.getName());
-        final String selfURI = String.format("%s://%s/%s", DRS, REGISTERED_HOSTNAME, id);
-        result.setSelf_uri(selfURI);
+        final String drsURI = DRS + "://" + REGISTERED_HOSTNAME + "/";
+        result.setSelf_uri(drsURI + id);
         result.setCreated_time(entity.getCreatedOn());
         result.setUpdated_time(entity.getModifiedOn());
         result.setDescription(entity.getDescription());
@@ -135,7 +136,21 @@ public class DrsManagerImpl implements DrsManager {
             accessMethods.add(accessMethod);
             result.setAccess_methods(accessMethods);
         } else if (entity instanceof Dataset) {
-            throw new UnsupportedOperationException("Currently Dataset object are not supported.");
+            final Dataset dataset = (Dataset) entity;
+            result.setVersion(dataset.getVersionLabel());
+            List<String> md5OfEachFile = new ArrayList<>();
+            List<Long> sizeEachFile = new ArrayList<>();
+            List<Content> contentList = new ArrayList<>();
+            dataset.getItems().forEach(entityRef -> {
+                final Content content = new Content();
+                final String fileIdWithVersion = entityRef.getEntityId() + "." + entityRef.getVersionNumber();
+                content.setId(fileIdWithVersion);
+                // Name of file should be unique, So file id with version is used as name.
+                content.setName(fileIdWithVersion);
+                content.setDrs_uri(drsURI + fileIdWithVersion);
+                contentList.add(content);
+            });
+            result.setContents(contentList);
         } else {
             throw new IllegalArgumentException(ILLEGAL_ARGUMENT_ERROR_MESSAGE);
         }
