@@ -1085,37 +1085,42 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		namedTemplate.update(sql, param);
 	}
-
+	
 	@Override
-	public void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
-			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outputStream) {
-		ValidateArgument.required(filter, "filter");
+	public List<String> streamTableToCSV(IdAndVersion tableId, CSVWriterStream stream) {
+		List<DatabaseColumnInfo> columnList = getDatabaseInfo(tableId);
+		List<String> headers = new ArrayList<>();
+		List<String> metadataColumns = new ArrayList<>();
 		
+		columnList.forEach( column -> {
+			String columnName = column.getColumnName();
+			// We do not export the search column since it can be re-generated
+			if (TableConstants.ROW_SEARCH_CONTENT.equals(columnName)) {
+				return;
+			}
+			
+			if (column.isMetadata()) {
+				metadataColumns.add(columnName);
+			}
+			headers.add(columnName);
+		});
+
+		// Write the headers first
+		stream.writeNext(headers.toArray(String[]::new));
 		
-		if (filter.isEmpty()) {
-			// nothing to do if the scope is empty.
-			throw new UndefinedViewScopeException("Scope has not been defined for this view.");
-		}
+		List<ColumnModel> schema = SQLUtils.extractSchemaFromInfo(columnList);
 		
-		Map<String, Object> param = filter.getParameters();
-		
-		StringBuilder builder = new StringBuilder();
-		
-		List<ColumnMetadata> metadata = translateSchema(currentSchema, fieldTypeMapper);
-		
-		List<String> headers = SQLUtils.createSelectFromObjectReplication(builder, metadata, filter.getFilterSql());
-		
-		// push the headers to the stream
-		outputStream.writeNext(headers.toArray(new String[headers.size()]));
-		
-		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
-			// Push each row to the callback
+		String selectSql = SQLUtils.buildSelectTableData(tableId, schema, metadataColumns.toArray(String[]::new)).toString();
+				
+		namedTemplate.query(selectSql, (ResultSet rs) -> {
 			String[] row = new String[headers.size()];
 			for (int i = 0; i < headers.size(); i++) {
 				row[i] = rs.getString(i + 1);
 			}
-			outputStream.writeNext(row);
+			stream.writeNext(row);
 		});
+		
+		return schema.stream().map(ColumnModel::getId).collect(Collectors.toList());
 	}
 	
 	// Translates the Column Model schema into a column metadata schema, that maps to the object/annotation replication index

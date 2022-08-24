@@ -83,7 +83,7 @@ public class TableViewUpdateRequestManager implements TableUpdateRequestManager,
 			}
 		}
 		if(Boolean.TRUE.equals(request.getCreateSnapshot())) {
-			long snapshotVersionNumber = tableViewManger.createSnapshot(userInfo, tableId, request.getSnapshotOptions());
+			long snapshotVersionNumber = tableViewManger.createSnapshot(userInfo, idAndVersion, request.getSnapshotOptions(), progressCallback);
 			response.setSnapshotVersionNumber(snapshotVersionNumber);
 		}
 		return response;

@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
@@ -74,7 +75,7 @@ public interface TableViewManager {
 	 * @param snapshotOptions
 	 * @return
 	 */
-	long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
+	long createSnapshot(UserInfo userInfo, IdAndVersion idAndVersion, SnapshotRequest snapshotOptions, ProgressCallback callback) throws TableUnavailableException;
 
 	/**
 	 * Delete the index associated with this view.
@@ -89,5 +90,6 @@ public interface TableViewManager {
 	 * @throws Exception
 	 */
 	void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
+
 
 }

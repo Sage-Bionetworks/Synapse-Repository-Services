@@ -185,18 +185,15 @@ public interface TableIndexManager {
 	 * @return View CRC32
 	 */
 	long populateViewFromEntityReplication(Long viewId, ViewScopeType scopeType, List<ColumnModel> currentSchema);
-
+	
 	/**
-	 * Create a snapshot of the given view.
+	 * Stream the data of the table with the given id to the given stream
 	 * 
-	 * @param tableId
-	 * @param scopeType
-	 * @param allContainersInScope
-	 * @param viewSchema
-	 * @param writter
+	 * @param idAndVersion
+	 * @param stream
+	 * @return The column model ids for the table index
 	 */
-	void createViewSnapshot(Long viewId, ViewScopeType scopeType, List<ColumnModel> viewSchema,
-			CSVWriterStream writter);
+	List<String> streamTableToCSV(IdAndVersion idAndVersion, CSVWriterStream stream);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotation within a given
@@ -325,6 +322,5 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, SqlQuery definingSql);
-
 
 }

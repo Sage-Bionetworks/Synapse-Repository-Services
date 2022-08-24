@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -236,7 +235,7 @@ public class TableViewUpdateRequestManagerTest {
 		assertEquals(schema, schemaResponse.getSchema());
 		// user must have write on the view.
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
@@ -258,7 +257,7 @@ public class TableViewUpdateRequestManagerTest {
 		assertEquals(schema, schemaResponse.getSchema());
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		// calls create snapshot.
-		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+		verify(mockTableViewManger).createSnapshot(user, idAndVersion, snapshotOptions, mockProgressCallback);
 	}
 	
 	@Test
@@ -274,7 +273,7 @@ public class TableViewUpdateRequestManagerTest {
 		assertNotNull(response.getResults());
 		assertTrue(response.getResults().isEmpty());
 		// calls create snapshot.
-		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+		verify(mockTableViewManger).createSnapshot(user, idAndVersion, snapshotOptions, mockProgressCallback);
 	}
 	
 	@Test
@@ -283,7 +282,7 @@ public class TableViewUpdateRequestManagerTest {
 		// call under test
 		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		assertNotNull(response);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
@@ -292,7 +291,7 @@ public class TableViewUpdateRequestManagerTest {
 		// call under test
 		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		assertNotNull(response);
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test
@@ -305,7 +304,7 @@ public class TableViewUpdateRequestManagerTest {
 			// call under test
 			manager.updateTableWithTransaction(mockProgressCallback, user, request);
 		});
-		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+		verify(mockTableViewManger, never()).createSnapshot(any(), any(), any(), any());
 	}
 	
 	@Test

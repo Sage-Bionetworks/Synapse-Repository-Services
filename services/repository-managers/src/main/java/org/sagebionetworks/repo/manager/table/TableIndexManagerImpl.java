@@ -768,16 +768,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// set the new max version for the index
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, loadChangeData.getChangeNumber());
 	}
-	
-	@Override
-	public void createViewSnapshot(Long viewId, ViewScopeType scopeType,
-			List<ColumnModel> viewSchema, CSVWriterStream writter) {
 
-		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewId);
-		
-		tableIndexDao.createViewSnapshotFromObjectReplication(viewId, filter, viewSchema, provider, writter);
+	@Override
+	public List<String> streamTableToCSV(IdAndVersion idAndVersion, CSVWriterStream stream) {
+		return tableIndexDao.streamTableToCSV(idAndVersion, stream);
 	}
+	
 	@Override
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);

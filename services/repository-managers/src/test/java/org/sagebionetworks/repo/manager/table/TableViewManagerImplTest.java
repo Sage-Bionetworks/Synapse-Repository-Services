@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -14,6 +13,8 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -58,7 +59,6 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
-import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -83,6 +83,8 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -99,7 +101,6 @@ import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverImpl;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.util.FileProvider;
-import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
@@ -1108,114 +1109,234 @@ public class TableViewManagerImplTest {
 	
 	
 	@Test
-	public void testCreateViewSnapshotAndUploadToS3() throws IOException {
+	public void testSaveSnapshotToS3() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockIndexManager.streamTableToCSV(any(), any())).thenReturn(schema);
 		setupWriter();
+		
 		String bucket = "snapshot.bucket";
-		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
+		String key = "key";
 		
 		// call under test
-		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
+		List<String> result = manager.saveSnapshotToS3(idAndVersion, bucket, key);
+		
+		assertEquals(schema, result);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
 		verify(mockFileProvider).createFileOutputStream(mockFile);
 		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
 		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
-		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(scopeType), eq(viewSchema), any(CSVWriterStream.class));
-		assertNotNull(bucketAndKey);
+		verify(mockIndexManager).streamTableToCSV(eq(idAndVersion), any());
 		verify(mockS3Client).putObject(putRequestCaptor.capture());
 		PutObjectRequest putRequest = putRequestCaptor.getValue();
-		assertNotNull(putRequest);
 		assertEquals(bucket, putRequest.getBucketName());
-		assertNotNull(putRequest.getKey());
-		assertTrue(putRequest.getKey().startsWith(""+idAndVersion.getId()));
+		assertEquals(key, putRequest.getKey());
 		assertEquals(mockFile, putRequest.getFile());
 		verify(mockFile).delete();
-		assertEquals(bucket, bucketAndKey.getBucket());
-		assertEquals(putRequest.getKey(), bucketAndKey.getKey());
 	}
 	
 	@Test
-	public void testCreateViewSnapshotAndUploadToS3Error() throws IOException {
+	public void testSaveSnapshotToS3WithError() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		FileNotFoundException exception = new FileNotFoundException("no");
 		doThrow(exception).when(mockFileProvider).createFileOutputStream(mockFile);
 	
+		String bucket = "snapshot.bucket";
+		String key = "key";
+		
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
+			manager.saveSnapshotToS3(idAndVersion, bucket, key);
 		}).getCause();
+		
 		assertEquals(exception, cause);
 		
-		verify(mockIndexManager, never()).createViewSnapshot(anyLong(), any(), any(), any(CSVWriterStream.class));
+		verify(mockIndexManager, never()).streamTableToCSV(any(), any());
 		// the temp file must be deleted even if there is an error
 		verify(mockFile).delete();	
 	}
 	
 	@Test
-	public void testCreateViewSnapshotAndUploadToS3NullId() throws IOException {
-		idAndVersion = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
-		});
+	public void testValidateViewForSnapshot() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+		
+		// Call under test
+		manager.validateViewForSnapshot(idAndVersion);
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
 	}
 	
 	@Test
-	public void testCreateViewSnapshotAndUploadToS3NullViewType() throws IOException {
-		scopeType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
+	public void testValidateViewForSnapshotWithProcessingStatus() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING));
+		
+		assertThrows(TableUnavailableException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(idAndVersion);
 		});
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test
-	public void testCreateViewSnapshotAndUploadToS3NullSchema() throws IOException {
-		viewSchema = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema);
-		});
+	public void testValidateViewForSnapshotWithNoId() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(null);
+		}).getMessage();
+		
+		assertEquals("The view id is required.", result);
 	}
-
 	
 	@Test
-	public void testCreateSnapshot() throws IOException {
-		when(mockTableManagerSupport.getViewScopeType(idAndVersion)).thenReturn(scopeType);
-		when(mockColumnModelManager.getTableSchema(idAndVersion)).thenReturn(viewSchema);
-		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		setupWriter();
+	public void testValidateViewForSnapshotWithVersion() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(IdAndVersion.parse("syn123.1"));
+		}).getMessage();
+		
+		assertEquals("You cannot create a version of a versioned view.", result);
+	}
+	
+	@Test
+	public void testValidateViewForSnapshotWithFailedStatus() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING_FAILED).setErrorMessage("failed"));
+		
+		String result = assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(idAndVersion);
+		}).getMessage();
+		
+		assertEquals("You cannot create a version of a view that cannot be built (Status: PROCESSING_FAILED, Error: failed).", result);
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+	}
+	
+	@Test
+	public void testValidateViewForSnapshotWithEmptyFilter() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(scopeType);
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(true);
+		
+		String result = assertThrows(UndefinedViewScopeException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(idAndVersion);
+		}).getMessage();
+		
+		assertEquals("You cannot create a version of a view that has no scope.", result);
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(scopeType.getObjectType());
+		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
+	}
+	
+	@Test
+	public void testValidateViewForSnapshotWithEmptyFilterAndDataset() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(new ViewScopeType(ViewObjectType.DATASET, ViewTypeMask.File.getMask()));
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(true);
+		
+		String result = assertThrows(UndefinedViewScopeException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(idAndVersion);
+		}).getMessage();
+		
+		assertEquals("You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version.", result);
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.DATASET);
+		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
+	}
+	
+	@Test
+	public void testValidateViewForSnapshotWithEmptyFilterAndDatasetCollection() throws TableUnavailableException {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(mockTableManagerSupport.getViewScopeType(any())).thenReturn(new ViewScopeType(ViewObjectType.DATASET_COLLECTION, ViewTypeMask.Dataset.getMask()));
+		when(mockMetadataIndexProviderFactory.getMetadataIndexProvider(any())).thenReturn(mockMetadataIndexProvider);
+		when(mockMetadataIndexProvider.getViewFilter(any())).thenReturn(mockFilter);
+		when(mockFilter.isEmpty()).thenReturn(true);
+		
+		String result = assertThrows(UndefinedViewScopeException.class, () -> {			
+			// Call under test
+			manager.validateViewForSnapshot(idAndVersion);
+		}).getMessage();
+		
+		assertEquals("You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version.", result);
+		
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(mockTableManagerSupport).getViewScopeType(idAndVersion);
+		verify(mockMetadataIndexProviderFactory).getMetadataIndexProvider(ViewObjectType.DATASET_COLLECTION);
+		verify(mockMetadataIndexProvider).getViewFilter(idAndVersion.getId());
+	}
+		
+	@Test
+	public void testCreateSnapshot() throws IOException, TableUnavailableException {
+		doNothing().when(managerSpy).validateViewForSnapshot(any());
+		doReturn(schema).when(managerSpy).saveSnapshotToS3(any(), any(), any());
+		
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
+		
 		long snapshotVersion = 12L;
-		when(mockNodeManager.createSnapshotAndVersion(userInfo, viewId, snapshotOptions)).thenReturn(snapshotVersion);
+		
+		when(mockNodeManager.createSnapshotAndVersion(any(), any(), any())).thenReturn(snapshotVersion);
+		
 		
 		// call under test
-		long result = manager.createSnapshot(userInfo, viewId, snapshotOptions);
+		long result = managerSpy.createSnapshot(userInfo, idAndVersion, snapshotOptions, mockProgressCallback);
+		
 		assertEquals(snapshotVersion, result);
+		
+		verify(managerSpy).validateViewForSnapshot(idAndVersion);
+		
+		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+		
+		verify(managerSpy).saveSnapshotToS3(eq(idAndVersion), eq(bucket), keyCaptor.capture());
+		
+		String key = keyCaptor.getValue();
+		
+		assertTrue(key.startsWith(""+idAndVersion.getId()));
+		
+		verify(mockNodeManager).createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
 				.setVersion(snapshotVersion).build();
-		verify(mockColumnModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
+		
+		verify(mockColumnModelManager).bindColumnsToVersionOfObject(schema, expectedIdAndVersion);
+		
+		ViewSnapshot expectedSnapshot = new ViewSnapshot()
+			.withBucket(bucket)
+			.withKey(key)
+			.withCreatedBy(userInfo.getId())
+			.withViewId(idAndVersion.getId())
+			.withVersion(snapshotVersion);
+		
 		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
+		
+		ViewSnapshot snapshot = snapshotCaptor.getValue();
+		expectedSnapshot.withCreatedOn(snapshot.getCreatedOn());
+		
+		assertEquals(expectedSnapshot, snapshot);
+		
 		// fix for PLFM-5957
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(expectedIdAndVersion);
-		ViewSnapshot snapshot = snapshotCaptor.getValue();
-		assertNotNull(snapshot);
-		assertEquals(bucket, snapshot.getBucket());
-		assertNotNull(snapshot.getKey());
-		assertTrue(snapshot.getKey().startsWith(""+idAndVersion.getId()));
-		assertEquals(userInfo.getId(), snapshot.getCreatedBy());
-		assertNotNull(snapshot.getCreatedOn());
-		assertEquals(snapshotVersion, snapshot.getVersion());
-		assertEquals(idAndVersion.getId(), snapshot.getViewId());
 		
 	}
-	
+		
 	@Test
 	public void testApplyChangesToAvailableView() throws Exception {
 		setupNonexclusiveLockToForwardToCallack();
@@ -1590,39 +1711,5 @@ public class TableViewManagerImplTest {
 			// call under test
 			manager.refreshBenefactorsForViewSnapshot(idAndVersion);
 		});
-	}
-
-	@Test
-	public void testExceptionMessageForUndefinedDatasetScope() throws Exception {
-		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		setupWriter();
-		doThrow(new UndefinedViewScopeException("Some error message that should be overwritten"))
-				.when(mockIndexManager).createViewSnapshot(any(), any(), any(), any());
-		when(mockNodeManager.getNodeType(viewId)).thenReturn(EntityType.dataset);
-
-		// call under test
-		assertThrows(
-				UndefinedViewScopeException.class,
-				() -> manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema),
-				"You cannot create a version of an empty Dataset. Add files to this Dataset before creating a version."
-		);
-	}
-
-	@Test
-	public void testExceptionMessageForUndefinedDatasetCollectionScope() throws Exception {
-		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		setupWriter();
-		doThrow(new UndefinedViewScopeException("Some error message that should be overwritten"))
-				.when(mockIndexManager).createViewSnapshot(any(), any(), any(), any());
-		when(mockNodeManager.getNodeType(viewId)).thenReturn(EntityType.datasetcollection);
-
-		// call under test
-		assertThrows(
-				UndefinedViewScopeException.class,
-				() -> manager.createViewSnapshotAndUploadToS3(idAndVersion, scopeType, viewSchema),
-				"You cannot create a version of an empty Dataset Collection. Add Datasets to this Dataset Collection before creating a version."
-		);
 	}
 }

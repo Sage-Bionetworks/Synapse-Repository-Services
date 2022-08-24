@@ -424,16 +424,15 @@ public interface TableIndexDAO {
 	 */
 	void copyObjectReplicationToView(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
 			ObjectFieldTypeMapper fieldTypeMapper);
-
+	
 	/**
-	 * Copy the data from the entity replication tables to the given view's table.
+	 * Stream the data of the table with the given id to the given CSV stream writer
 	 * 
-	 * @param viewId
-	 * @param scopeFilter
-	 * @param currentSchema
+	 * @param tableId
+	 * @param stream
+	 * @return The column model ids from the table index
 	 */
-	void createViewSnapshotFromObjectReplication(Long viewId, ViewFilter filter, List<ColumnModel> currentSchema,
-			ObjectFieldTypeMapper fieldTypeMapper, CSVWriterStream outStream);
+	List<String> streamTableToCSV(IdAndVersion tableId, CSVWriterStream stream);
 
 	/**
 	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation

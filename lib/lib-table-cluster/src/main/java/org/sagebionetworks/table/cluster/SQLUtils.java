@@ -2080,7 +2080,7 @@ public class SQLUtils {
 		
 	public static String buildSelectTableDataByRowIdSQL(IdAndVersion id, List<ColumnModel> columns) {
 		
-		StringBuilder sql = buildSelectTableData(id, columns)
+		StringBuilder sql = buildSelectTableData(id, columns, ROW_ID)
 				.append(" WHERE ").append(ROW_ID).append(" IN(:").append(ROW_ID).append(")");
 		
 		return sql.toString();
@@ -2088,20 +2088,23 @@ public class SQLUtils {
 	
 	public static String buildSelectTableDataPage(IdAndVersion id, List<ColumnModel> columns) {
 		
-		StringBuilder sql = buildSelectTableData(id, columns)
+		StringBuilder sql = buildSelectTableData(id, columns, ROW_ID)
 				.append(" ORDER BY ").append(ROW_ID).append(" LIMIT :").append(P_LIMIT).append(" OFFSET :").append(P_OFFSET);
 		
 		return sql.toString();
 	}
 	
-	private static StringBuilder buildSelectTableData(IdAndVersion id, List<ColumnModel> columns) {
+	public static StringBuilder buildSelectTableData(IdAndVersion id, List<ColumnModel> columns, String ...metadataColumns) {
 		ValidateArgument.required(id, "The id");
 		ValidateArgument.requiredNotEmpty(columns, "The columns");
 		
-		return new StringBuilder("SELECT ")
-				.append(ROW_ID)
-				.append(", ")
-				.append(String.join(",", getColumnNames(columns)))
+		StringBuilder builder = new StringBuilder("SELECT ");
+		
+		for (String metadataColumn : metadataColumns) {
+			builder.append(metadataColumn).append(",");
+		}
+		
+		return builder.append(String.join(",", getColumnNames(columns)))
 				.append(" FROM ")
 				.append(getTableNameForId(id, TableType.INDEX));
 	}

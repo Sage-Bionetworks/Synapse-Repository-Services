@@ -2972,7 +2972,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBuildSelectTableDataByRowIdSQL() {
-		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
+		String expected = "SELECT ROW_ID,_C456_,_C789_,_C123_ FROM T999 WHERE ROW_ID IN(:ROW_ID)";
 		
 		// Call under test
 		String sql = SQLUtils.buildSelectTableDataByRowIdSQL(tableId, simpleSchema);
@@ -3018,10 +3018,32 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBuildSelectTableDataPageSQL() {
-		String expected = "SELECT ROW_ID, _C456_,_C789_,_C123_ FROM T999 ORDER BY ROW_ID LIMIT :pLimit OFFSET :pOffset";
+		String expected = "SELECT ROW_ID,_C456_,_C789_,_C123_ FROM T999 ORDER BY ROW_ID LIMIT :pLimit OFFSET :pOffset";
 		
 		// Call under test
 		String sql = SQLUtils.buildSelectTableDataPage(tableId, simpleSchema);
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectTableDataSQL() {
+		String expected = "SELECT _C456_,_C789_,_C123_ FROM T999";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectTableData(tableId, simpleSchema).toString();
+		
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testBuildSelectTableDataSQLWithAdditionalColumns() {
+		String[] additionalColumns = new String[] {TableConstants.ROW_ID, TableConstants.ROW_VERSION, TableConstants.ROW_BENEFACTOR, TableConstants.ROW_ETAG};
+
+		String expected = "SELECT ROW_ID,ROW_VERSION,ROW_BENEFACTOR,ROW_ETAG,_C456_,_C789_,_C123_ FROM T999";
+		
+		// Call under test
+		String sql = SQLUtils.buildSelectTableData(tableId, simpleSchema, additionalColumns).toString();
 		
 		assertEquals(expected, sql);
 	}

@@ -1470,17 +1470,17 @@ public class TableViewIntegrationTest {
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
 		createFileView();
 		
-		// wait for the view.
-		waitForEntityReplication(fileViewId, fileId);
-		
-		// Query for the values as strings.
 		int rowCount = fileIds.size();
+
+		// wait for the view.
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId, rowCount);
+		
 		String sql = "select * from "+fileViewId+".1";
 		
 		assertThrows(AsynchJobFailedException.class, () -> {
 			waitForRowCount(adminUserInfo, sql, rowCount);
 		});
-		
+				
 		// Create a snapshot for this view
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
 		transactionRequest.setEntityId(fileViewId);
