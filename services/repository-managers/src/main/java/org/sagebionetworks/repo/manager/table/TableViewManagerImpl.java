@@ -57,6 +57,7 @@ import org.sagebionetworks.table.cluster.UndefinedViewScopeException;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
@@ -379,7 +380,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * to query the view while this process runs.
 		 */
 		try {
-			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
+			tableManagerSupport.tryRunWithTableNonExclusiveLock(outerProgressCallback, (ProgressCallback callback) -> {
 				/*
 				 * A special exclusive lock is used to prevent more then one instance
 				 * from applying deltas to a view at a time.
@@ -544,7 +545,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
-			log.info(String.format("Set view: '%s' to AVIALABLE.", idAndVersion.toString()));
+			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
 			// instead should be retried later.
@@ -632,7 +633,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	void validateViewForSnapshot(IdAndVersion idAndVersion) throws TableUnavailableException {
 		ValidateArgument.required(idAndVersion, "The view id");
-		ValidateArgument.requirement(idAndVersion.getVersion().isEmpty(), "You cannot create a version of a versioned view.");
 		
 		// This will make sure to trigger building the view if not available
 		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
@@ -668,40 +668,52 @@ public class TableViewManagerImpl implements TableViewManager {
 
 	@WriteTransaction
 	@Override
-	public long createSnapshot(UserInfo userInfo, IdAndVersion idAndVersion, SnapshotRequest snapshotOptions, ProgressCallback callback) throws TableUnavailableException {
-		validateViewForSnapshot(idAndVersion);
+	public long createSnapshot(UserInfo userInfo, Long tableId, SnapshotRequest snapshotOptions, ProgressCallback callback) throws Exception {
+		
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		
+		// We acquire a read lock on the view so that no other process can re-build the view, the view can still be queried
+		String buildLockKey = TableModelUtils.getTableSemaphoreKey(idAndVersion);
+		// We also acquire a read lock on the delta key, to prevent changes to available views, the view can still be queried
+		String deltaLockKey = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+		
+		return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
+		
+			validateViewForSnapshot(idAndVersion);
 
-		String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
-		String bucket = config.getViewSnapshotBucketName();
+			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString() + ".csv.gzip";
+			String bucket = config.getViewSnapshotBucketName();
+			
+			// Save the table to S3
+			List<String> schemaColumnIds = saveSnapshotToS3(idAndVersion, bucket, key);
+			
+			// Create a new version of the node
+			long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);
+			
+			IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder()
+				.setId(idAndVersion.getId())
+				.setVersion(snapshotVersion)
+				.build();
+			
+			// bind the schema to the version
+			columModelManager.bindColumnsToVersionOfObject(schemaColumnIds, resultingIdAndVersion);
+			
+			// save the snapshot metadata
+			viewSnapshotDao.createSnapshot(new ViewSnapshot()
+				.withBucket(bucket)
+				.withKey(key)
+				.withCreatedBy(userInfo.getId())
+				.withCreatedOn(new Date())
+				.withViewId(idAndVersion.getId())
+				.withVersion(snapshotVersion)
+			);
+			
+			// trigger an update (see: PLFM-5957)
+			tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
+			
+			return snapshotVersion;
+		}, buildLockKey, deltaLockKey);
 		
-		// Save the table to S3
-		List<String> schemaColumnIds = saveSnapshotToS3(idAndVersion, bucket, key);
-		
-		// Create a new version of the node
-		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, idAndVersion.getId().toString(), snapshotOptions);
-		
-		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder()
-			.setId(idAndVersion.getId())
-			.setVersion(snapshotVersion)
-			.build();
-		
-		// bind the schema to the version
-		columModelManager.bindColumnsToVersionOfObject(schemaColumnIds, resultingIdAndVersion);
-		
-		// save the snapshot metadata
-		viewSnapshotDao.createSnapshot(new ViewSnapshot()
-			.withBucket(bucket)
-			.withKey(key)
-			.withCreatedBy(userInfo.getId())
-			.withCreatedOn(new Date())
-			.withViewId(idAndVersion.getId())
-			.withVersion(snapshotVersion)
-		);
-		
-		// trigger an update (see: PLFM-5957)
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
-		
-		return snapshotVersion;
 	}
 
 }

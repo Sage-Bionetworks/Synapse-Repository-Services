@@ -1195,17 +1195,7 @@ public class TableViewManagerImplTest {
 		
 		assertEquals("The view id is required.", result);
 	}
-	
-	@Test
-	public void testValidateViewForSnapshotWithVersion() {
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.validateViewForSnapshot(IdAndVersion.parse("syn123.1"));
-		}).getMessage();
 		
-		assertEquals("You cannot create a version of a versioned view.", result);
-	}
-	
 	@Test
 	public void testValidateViewForSnapshotWithFailedStatus() throws TableUnavailableException {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(any())).thenReturn(new TableStatus().setState(TableState.PROCESSING_FAILED).setErrorMessage("failed"));
@@ -1284,7 +1274,9 @@ public class TableViewManagerImplTest {
 	}
 		
 	@Test
-	public void testCreateSnapshot() throws IOException, TableUnavailableException {
+	public void testCreateSnapshot() throws Exception {
+		setupNonExclusiveLockWithCustomKeyToForwardToCallack();
+		
 		doNothing().when(managerSpy).validateViewForSnapshot(any());
 		doReturn(schema).when(managerSpy).saveSnapshotToS3(any(), any(), any());
 		
@@ -1297,7 +1289,7 @@ public class TableViewManagerImplTest {
 		
 		
 		// call under test
-		long result = managerSpy.createSnapshot(userInfo, idAndVersion, snapshotOptions, mockProgressCallback);
+		long result = managerSpy.createSnapshot(userInfo, idAndVersion.getId(), snapshotOptions, mockProgressCallback);
 		
 		assertEquals(snapshotVersion, result);
 		
@@ -1339,7 +1331,7 @@ public class TableViewManagerImplTest {
 		
 	@Test
 	public void testApplyChangesToAvailableView() throws Exception {
-		setupNonexclusiveLockToForwardToCallack();
+		setupNonExclusiveLockToForwardToCallack();
 		setupExclusiveLockToForwardToCallack();
 		
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
@@ -1350,7 +1342,7 @@ public class TableViewManagerImplTest {
 		
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
 				eq(idAndVersion));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
@@ -1362,14 +1354,13 @@ public class TableViewManagerImplTest {
 	 * Setup the tryRunWithTableNonexclusiveLock() to forward the call to the passed callback.
 	 * @throws Exception
 	 */
-	void setupNonexclusiveLockToForwardToCallack() throws Exception {
+	void setupNonExclusiveLockToForwardToCallack() throws Exception {
 		doAnswer((InvocationOnMock invocation) -> {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
 			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 2];
-			callable.call(mockProgressCallback);
-			return null;
-		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+			return callable.call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
 				any(), any(IdAndVersion.class));
 	}
 	
@@ -1382,15 +1373,23 @@ public class TableViewManagerImplTest {
 			// Last argument is the callback
 			Object[] args = invocation.getArguments();
 			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[args.length - 1];
-			callable.call(mockProgressCallback);
-			return null;
+			return callable.call(mockProgressCallback);
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				anyString(), any());
 	}
 	
+	void setupNonExclusiveLockWithCustomKeyToForwardToCallack() throws Exception {
+		doAnswer((InvocationOnMock invocation) -> {
+			Object[] args = invocation.getArguments();
+			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[1];
+			return callable.call(mockProgressCallback);
+		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
+				any(), any(String.class));
+	}
+	
 	@Test
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
-		setupNonexclusiveLockToForwardToCallack();
+		setupNonExclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any());
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
@@ -1398,25 +1397,25 @@ public class TableViewManagerImplTest {
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				any());
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
 				eq(idAndVersion));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("not now");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class),
 				any(), any(IdAndVersion.class));
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), any(),
+		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(eq(mockProgressCallback), any(),
 				eq(idAndVersion));
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_OtherException() throws Exception {
-		setupNonexclusiveLockToForwardToCallack();
+		setupNonExclusiveLockToForwardToCallack();
 		IllegalArgumentException exception = new IllegalArgumentException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				anyString(), any());

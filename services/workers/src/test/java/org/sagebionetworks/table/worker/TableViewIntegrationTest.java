@@ -1278,43 +1278,17 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testViewSnapshot() throws Exception {
 		createFileView();
-		// add a column to the view.
-		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
-		ColumnChange addColumn = new ColumnChange();
-		addColumn.setNewColumnId(stringColumn.getId());
-		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
-		// Add a string annotation to each file in the view
-		List<PartialRow> rowsToAdd = new LinkedList<>();
-		int counter = 0;
-		for (String fileId : fileIds) {
-			PartialRow row = new PartialRow();
-			row.setRowId(KeyFactory.stringToKey(fileId));
-			Map<String, String> values = new HashMap<>(1);
-			values.put(stringColumn.getId(), "string value:" + counter++);
-			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
-			row.setEtag(file.getEtag());
-			row.setValues(values);
-			rowsToAdd.add(row);
-		}
-		PartialRowSet rowChange = new PartialRowSet();
-		rowChange.setTableId(fileViewId);
-		rowChange.setRows(rowsToAdd);
-		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
-		rowSetRequest.setToAppend(rowChange);
-
-		// create a snapshot after the change
+		
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId, 3);
+		
 		SnapshotRequest snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
 
-		// Add all of the parts
 		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
 		transactionRequest.setEntityId(fileViewId);
-		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
 		transactionRequest.setCreateSnapshot(true);
 		transactionRequest.setSnapshotOptions(snapshotOptions);
 
-		// Start the job that will change the schema and annotations to each file and
-		// then snapshot the view.
 		// call under test
 		Long snaphsotVersionNumber = startAndWaitForJob(adminUserInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {				
 			assertNotNull(response);
@@ -1322,15 +1296,7 @@ public class TableViewIntegrationTest {
 		}).getSnapshotVersionNumber();
 
 		// Query the snapshot
-		Query query = new Query();
-		query.setSql("select * from " + fileViewId + "." + snaphsotVersionNumber);
-		query.setIncludeEntityEtag(true);
-		
-		waitForConsistentQuery(adminUserInfo, query, (queryResults) -> {			
-			assertNotNull(queryResults);
-			List<Row> rows = extractRows(queryResults);
-			assertEquals(3, rows.size());
-		});
+		waitForRowCount(adminUserInfo, "select * from " + fileViewId + "." + snaphsotVersionNumber, 3);
 	}
 	
 	/**

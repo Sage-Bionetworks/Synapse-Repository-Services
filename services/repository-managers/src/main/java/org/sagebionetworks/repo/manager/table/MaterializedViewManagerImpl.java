@@ -179,7 +179,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		IdAndVersion[] dependentArray = dependentTables.toArray(new IdAndVersion[dependentTables.size()]);
 		// continue with a read lock on each dependent table.
-		tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, (ProgressCallback innerCallback) -> {
+		tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, (ProgressCallback innerCallback) -> {
 			createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(idAndVersion, sqlQuery);
 			return null;
 		}, dependentArray);

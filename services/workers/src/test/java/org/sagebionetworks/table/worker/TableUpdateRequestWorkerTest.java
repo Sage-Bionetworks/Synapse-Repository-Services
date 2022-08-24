@@ -169,7 +169,7 @@ public class TableUpdateRequestWorkerTest {
 		
 		assertEquals(translatedException, result);
 	}
-	
+		
 	@Test
 	public void testTableUnavailable() throws Exception{
 		when(mockTableUpdateRequestManagerProvider.getUpdateRequestManagerForType(tableType)).thenReturn(mockTableUpdateRequestManager);
