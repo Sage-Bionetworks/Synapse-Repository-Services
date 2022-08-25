@@ -96,7 +96,7 @@ public class DrsManagerImpl implements DrsManager {
     }
 
     @Override
-    public DrsObject getDrsObject(final Long userId, final String id)
+    public DrsObject getDrsObject(final Long userId, final String id, final Boolean expand)
             throws NotFoundException, DatastoreException, UnauthorizedException, IllegalArgumentException, UnsupportedOperationException {
         final UserInfo userInfo = userManager.getUserInfo(userId);
         final DrsObject result = new DrsObject();
@@ -136,16 +136,18 @@ public class DrsManagerImpl implements DrsManager {
             accessMethods.add(accessMethod);
             result.setAccess_methods(accessMethods);
         } else if (entity instanceof Dataset) {
+            if (expand) {
+                throw new IllegalArgumentException("Nesting of bundle is not supported");
+            }
+
             final Dataset dataset = (Dataset) entity;
             result.setVersion(dataset.getVersionLabel());
-            List<String> md5OfEachFile = new ArrayList<>();
-            List<Long> sizeEachFile = new ArrayList<>();
             List<Content> contentList = new ArrayList<>();
             dataset.getItems().forEach(entityRef -> {
                 final Content content = new Content();
                 final String fileIdWithVersion = entityRef.getEntityId() + "." + entityRef.getVersionNumber();
                 content.setId(fileIdWithVersion);
-                // Name of file should be unique, So file id with version is used as name.
+                // Name of file should be unique in the bundle, So file id with version is used as name.
                 content.setName(fileIdWithVersion);
                 content.setDrs_uri(drsURI + fileIdWithVersion);
                 contentList.add(content);
